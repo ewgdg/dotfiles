@@ -1,7 +1,9 @@
 **/.DS_Store
 
 # Ignore Alfred cache directories
-alfred/Alfred.alfredpreferences/workflows/*/[Cc]ache[s]/
+alfred/Alfred.alfredpreferences/workflows/*/[Cc]aches/
+alfred/Alfred.alfredpreferences/workflows/*/[Cc]ache/
 
 # Ignore Alfred workflow logs
-alfred/Alfred.alfredpreferences/workflows/*/[Ll]og[s]/
+alfred/Alfred.alfredpreferences/workflows/*/[Ll]ogs/
+alfred/Alfred.alfredpreferences/workflows/*/[Ll]og/
