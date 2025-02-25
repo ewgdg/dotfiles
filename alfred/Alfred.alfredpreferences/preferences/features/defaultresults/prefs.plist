@@ -4,8 +4,6 @@
 <dict>
 	<key>showContacts</key>
 	<false/>
-	<key>showFolders</key>
-	<true/>
 	<key>showUserDefined</key>
 	<array>
 		<string>com.apple.alias-file</string>
