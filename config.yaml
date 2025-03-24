@@ -20,6 +20,10 @@ dotfiles:
   f_config_ibus_rime_rime_ice.custom.yaml:
     src: config/ibus/rime/rime_ice.custom.yaml
     dst: ~/.config/ibus/rime/rime_ice.custom.yaml
+  f_config_1password_ssh_agent.toml:
+    src: config/1Password/ssh/agent.toml
+    dst: ~/.config/1Password/ssh/agent.toml
+    chmod: '600'
 profiles:
   xian-linux-server:
     dotfiles:
@@ -27,3 +31,4 @@ profiles:
     - f_config_ibus_rime_default.custom.yaml
     - f_config_ibus_rime_ibus_rime.custom.yaml
     - f_config_ibus_rime_rime_ice.custom.yaml
+    - f_config_1password_ssh_agent.toml
