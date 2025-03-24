@@ -1,0 +1,29 @@
+config:
+  backup: true
+  banner: true
+  create: true
+  dotpath: dotfiles
+  keepdot: false
+  link_dotfile_default: nolink
+  link_on_import: nolink
+  longkey: true
+dotfiles:
+  f_etc_keyd_default.conf:
+    src: etc/keyd/default.conf
+    dst: /etc/keyd/default.conf
+  f_config_ibus_rime_default.custom.yaml:
+    src: config/ibus/rime/default.custom.yaml
+    dst: ~/.config/ibus/rime/default.custom.yaml
+  f_config_ibus_rime_ibus_rime.custom.yaml:
+    src: config/ibus/rime/ibus_rime.custom.yaml
+    dst: ~/.config/ibus/rime/ibus_rime.custom.yaml
+  f_config_ibus_rime_rime_ice.custom.yaml:
+    src: config/ibus/rime/rime_ice.custom.yaml
+    dst: ~/.config/ibus/rime/rime_ice.custom.yaml
+profiles:
+  xian-linux-server:
+    dotfiles:
+    - f_etc_keyd_default.conf
+    - f_config_ibus_rime_default.custom.yaml
+    - f_config_ibus_rime_ibus_rime.custom.yaml
+    - f_config_ibus_rime_rime_ice.custom.yaml

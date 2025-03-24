@@ -1,0 +1,13 @@
+patch:
+  #"key_binder/+":
+  #  "bindings/+":
+  #    - {accept: bracketleft, send: Page_Up, when: has_menu}
+  #    - {accept: bracketright, send: Page_Down, when: has_menu}
+  #  select_first_character: minus
+  #  select_last_character: equal
+  # default to english
+  # "switches/@0/reset": 1
+  # default to english punctuations
+  "switches/@1/reset": 1
+
+  
