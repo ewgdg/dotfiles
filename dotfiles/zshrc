@@ -20,9 +20,6 @@ setopt HIST_VERIFY
 # Write the history file in the ':start:elapsed;command' format.
 setopt EXTENDED_HISTORY
 
-bindkey -v
-export EDITOR=nvim
-
 setopt PROMPT_SUBST
 
 # Disallow `>` to overwrite existing files. Use `>|` or `>!` instead.
@@ -66,6 +63,12 @@ elif [[ -f "$HOME/projects/dotfiles/config.yaml" ]]; then
 fi
 
 #
+# Vim Mode
+#
+bindkey -v
+export EDITOR=nvim
+
+#
 # PLUGINS
 #
 
@@ -74,9 +77,9 @@ VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=false
 VI_MODE_SET_CURSOR=true
 MODE_INDICATOR=""
 INSERT_MODE_INDICATOR=""
-VI_MODE_CURSOR_NORMAL=2
-VI_MODE_CURSOR_VISUAL=0
-VI_MODE_CURSOR_INSERT=6
+VI_MODE_CURSOR_NORMAL=1
+VI_MODE_CURSOR_VISUAL=1
+VI_MODE_CURSOR_INSERT=5
 VI_MODE_CURSOR_OPPEND=0
 
 ZSH_PLUGIN_DIR=~/.zsh-plugins
@@ -103,3 +106,4 @@ source ${ZIM_HOME}/init.zsh
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   eval "$(oh-my-posh init zsh --config ${HOME}/.zsh-plugins/oh-my-posh-themes/custom.omp.toml)"
 fi
+
