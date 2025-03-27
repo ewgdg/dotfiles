@@ -33,6 +33,9 @@ dotfiles:
   d_zsh-plugins_oh-my-posh-themes:
     src: zsh-plugins/oh-my-posh-themes
     dst: ~/.zsh-plugins/oh-my-posh-themes
+  f_etc_fonts_local.conf:
+    src: etc/fonts/local.conf
+    dst: /etc/fonts/local.conf
 profiles:
   xian-linux-server:
     dotfiles:
@@ -44,3 +47,4 @@ profiles:
     - f_zshrc
     - f_zimrc
     - d_zsh-plugins_oh-my-posh-themes
+    - f_etc_fonts_local.conf
