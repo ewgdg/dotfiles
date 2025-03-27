@@ -42,6 +42,9 @@ dotfiles:
   d_config_oh-my-posh:
     src: config/oh-my-posh
     dst: ~/.config/oh-my-posh
+  d_config_wezterm:
+    src: config/wezterm
+    dst: ~/.config/wezterm
 profiles:
   xian-linux-server:
     dotfiles:
@@ -55,3 +58,4 @@ profiles:
     - d_config_nvim
     - d_config_zsh
     - d_config_oh-my-posh
+    - d_config_wezterm
