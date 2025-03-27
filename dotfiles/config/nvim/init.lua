@@ -7,7 +7,7 @@ vim.opt.smartindent = true -- Smart auto-indentation
 
 vim.opt.textwidth=80
 
-vim.opt.clipboard = "unnamedplus"
+-- vim.opt.clipboard = "unnamedplus"
 
 -- lazy.nvim plugin manager
 require("config.lazy")
