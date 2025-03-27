@@ -36,6 +36,11 @@ dotfiles:
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
+  d_config_nvim:
+    src: config/nvim
+    dst: ~/.config/nvim
+    upignore:
+    - '**.json'
 profiles:
   xian-linux-server:
     dotfiles:
@@ -48,3 +53,4 @@ profiles:
     - f_zimrc
     - d_zsh-plugins_oh-my-posh-themes
     - f_etc_fonts_local.conf
+    - d_config_nvim
