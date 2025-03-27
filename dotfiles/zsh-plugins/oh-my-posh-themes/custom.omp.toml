@@ -1,4 +1,4 @@
-console_title_template = "{{ .Segments.Path.Path }}"
+console_title_template = "{{ base .PWD }}"
 version = 3
 final_space = true
 
@@ -23,7 +23,7 @@ final_space = true
   background = 'transparent'
 
 [transient_prompt]
-  template = "<d>[{{ now | date \"15:04:05\"}}]  {{ .Segments.Path.Path }}\n\ue602 </d>"
+  template = "<d>[{{ now | date \"15:04:05\"}}]  {{ base .PWD }}\n\ue602 </d>"
   foreground = 'p:grey'
   background = 'transparent'
 
