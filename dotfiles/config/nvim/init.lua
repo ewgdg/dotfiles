@@ -5,8 +5,6 @@ vim.opt.expandtab = true -- Use spaces instead of tabs
 vim.opt.autoindent = true -- Copy indentation from the previous line
 vim.opt.smartindent = true -- Smart auto-indentation
 
-vim.opt.textwidth=80
-
 -- vim.opt.clipboard = "unnamedplus"
 
 -- lazy.nvim plugin manager
