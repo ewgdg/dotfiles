@@ -24,6 +24,15 @@ dotfiles:
     src: config/1Password/ssh/agent.toml
     dst: ~/.config/1Password/ssh/agent.toml
     chmod: '600'
+  f_zshrc:
+    src: zshrc
+    dst: ~/.zshrc
+  f_zimrc:
+    src: zimrc
+    dst: ~/.zimrc
+  d_zsh-plugins_oh-my-posh-themes:
+    src: zsh-plugins/oh-my-posh-themes
+    dst: ~/.zsh-plugins/oh-my-posh-themes
 profiles:
   xian-linux-server:
     dotfiles:
@@ -32,3 +41,6 @@ profiles:
     - f_config_ibus_rime_ibus_rime.custom.yaml
     - f_config_ibus_rime_rime_ice.custom.yaml
     - f_config_1password_ssh_agent.toml
+    - f_zshrc
+    - f_zimrc
+    - d_zsh-plugins_oh-my-posh-themes
