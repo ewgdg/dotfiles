@@ -84,7 +84,7 @@ VI_MODE_CURSOR_OPPEND=0
 
 ZSH_PLUGIN_DIR=~/.zsh-plugins
 ZIM_HOME=$ZSH_PLUGIN_DIR
-ZIM_CONFIG_FILE=~/.zimrc
+ZIM_CONFIG_FILE=~/.config/zsh/.zimrc
 
 zstyle ':zim:zmodule' use 'degit'
 
@@ -104,6 +104,6 @@ source ${ZIM_HOME}/init.zsh
 
 # apply theme after vi-mode to overwrite conflicts
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh --config ${HOME}/.zsh-plugins/oh-my-posh-themes/custom.omp.toml)"
+  eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
 fi
 

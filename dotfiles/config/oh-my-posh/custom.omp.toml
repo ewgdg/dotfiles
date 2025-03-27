@@ -24,7 +24,7 @@ final_space = true
 
 [transient_prompt]
   template = "<d>[{{ now | date \"15:04:05\"}}]  {{ base .PWD }}\n\ue602 </d>"
-  foreground = 'p:grey'
+  foreground = 'brightblack'
   background = 'transparent'
 
 [upgrade]

@@ -27,12 +27,6 @@ dotfiles:
   f_zshrc:
     src: zshrc
     dst: ~/.zshrc
-  f_zimrc:
-    src: zimrc
-    dst: ~/.zimrc
-  d_zsh-plugins_oh-my-posh-themes:
-    src: zsh-plugins/oh-my-posh-themes
-    dst: ~/.zsh-plugins/oh-my-posh-themes
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -41,6 +35,13 @@ dotfiles:
     dst: ~/.config/nvim
     upignore:
     - '**.json'
+  d_config_zsh:
+    src: config/zsh
+    dst: ~/.config/zsh
+    chmod: '700'
+  d_config_oh-my-posh:
+    src: config/oh-my-posh
+    dst: ~/.config/oh-my-posh
 profiles:
   xian-linux-server:
     dotfiles:
@@ -50,7 +51,7 @@ profiles:
     - f_config_ibus_rime_rime_ice.custom.yaml
     - f_config_1password_ssh_agent.toml
     - f_zshrc
-    - f_zimrc
-    - d_zsh-plugins_oh-my-posh-themes
     - f_etc_fonts_local.conf
     - d_config_nvim
+    - d_config_zsh
+    - d_config_oh-my-posh
