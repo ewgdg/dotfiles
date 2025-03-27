@@ -122,7 +122,7 @@ final_space = true
       fetch_virtual_env = false
 
   [[blocks.segments]]
-    template = "\ue795 <p:blue><b>{{ .Name }}</b></> "
+    template = " <p:blue><b>{{ .Name }}</b></> "
     foreground = 'p:white'
     background = 'transparent'
     type = 'shell'
