@@ -1,0 +1,56 @@
+#!/usr/bin/env sh
+
+if [ "$#" -lt 1 ]; then
+    USERNAME="$(logname)"
+    echo "User is $USERNAME"
+else
+    USERNAME=$1
+fi
+
+# Input arguments
+USERNAME=$1
+CONFIG_FILE="/etc/sddm.conf.d/autologin.conf"
+
+create_config() {
+    mkdir -p "$(dirname "$CONFIG_FILE")" && touch "$CONFIG_FILE"
+}
+
+enable_auto_login() {
+  local username=$1
+  echo "[Autologin]" > $CONFIG_FILE
+  echo "User=$username" >> $CONFIG_FILE
+  echo "Session=plasma" >> $CONFIG_FILE
+}
+
+disable_auto_login() {
+  > $CONFIG_FILE
+}
+
+# List all sessions
+sessions=$(loginctl list-sessions --no-legend | awk '{print $1}')
+
+for session in $sessions; do
+  # Get details for each session
+  user=$(loginctl show-session "$session" -p Name --value)
+  seat=$(loginctl show-session "$session" -p Seat --value)
+
+  # Check if the session belongs to the user and has a seat
+  if [ "$user" = "$USERNAME" ] && [ -n "$seat" ]; then
+    echo "Session $session for user $USERNAME has a seat: $seat"
+    # Unlock the session
+    loginctl unlock-session "$session"
+    echo "Session $session unlocked."
+    
+    # Terminate the script early
+    exit 0
+  fi
+done
+
+# If the script reaches here, no session was found
+echo "No session found for user $USERNAME with a seat."
+echo "Logging in."
+
+create_config
+enable_auto_login $USERNAME && sudo systemctl restart sddm && disable_auto_login
+
+echo "Logged in."

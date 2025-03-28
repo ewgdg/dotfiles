@@ -45,6 +45,9 @@ dotfiles:
   d_config_wezterm:
     src: config/wezterm
     dst: ~/.config/wezterm
+  d_bin:
+    src: bin
+    dst: ~/bin
 profiles:
   xian-linux-server:
     dotfiles:
@@ -59,3 +62,4 @@ profiles:
     - d_config_zsh
     - d_config_oh-my-posh
     - d_config_wezterm
+    - d_bin

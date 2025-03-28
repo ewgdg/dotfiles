@@ -1,3 +1,5 @@
+export PATH="$HOME/bin:$PATH"
+
 # Set the history file path
 HISTFILE=$HOME/.zsh_history
 # Set history save size and total history size
