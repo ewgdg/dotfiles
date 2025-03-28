@@ -11,6 +11,8 @@ config:
   - "*.log"
   cmpignore:
   - "*.log"
+  upignore:
+  - "*.log"
 dotfiles:
   f_etc_keyd_default.conf:
     src: etc/keyd/default.conf
@@ -59,10 +61,10 @@ dotfiles:
     src: config/sunshine
     dst: ~/.config/sunshine
     cmpignore:
-    - '*.pem'
+    - '*/credentials/*'
     - '*state.json'
     upignore:
-    - '*.pem'
+    - '*/credentials/*'
     - '*state.json'
 profiles:
   xian-linux-server:
