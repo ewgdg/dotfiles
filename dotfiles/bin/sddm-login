@@ -50,7 +50,7 @@ done
 echo "No session found for user $USERNAME with a seat."
 echo "Logging in."
 
-create_config
-enable_auto_login $USERNAME && sudo systemctl restart sddm && disable_auto_login
+sudo create_config
+sudo enable_auto_login $USERNAME && sudo systemctl restart sddm && sudo disable_auto_login
 
 echo "Logged in."

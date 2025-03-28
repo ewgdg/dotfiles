@@ -55,6 +55,6 @@ done
 echo "No session found for user $USERNAME with a seat."
 echo "Logging in."
 
-enable_auto_login $USERNAME && sudo systemctl restart gdm && disable_auto_login
+sudo enable_auto_login $USERNAME && sudo systemctl restart gdm && sudo disable_auto_login
 
 echo "Logged in."
