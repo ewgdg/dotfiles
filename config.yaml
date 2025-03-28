@@ -7,19 +7,24 @@ config:
   link_dotfile_default: nolink
   link_on_import: nolink
   longkey: true
+  impignore:
+  - "*.log"
+  cmpignore:
+  - "*.log"
 dotfiles:
   f_etc_keyd_default.conf:
     src: etc/keyd/default.conf
     dst: /etc/keyd/default.conf
-  f_config_ibus_rime_default.custom.yaml:
-    src: config/ibus/rime/default.custom.yaml
-    dst: ~/.config/ibus/rime/default.custom.yaml
-  f_config_ibus_rime_ibus_rime.custom.yaml:
-    src: config/ibus/rime/ibus_rime.custom.yaml
-    dst: ~/.config/ibus/rime/ibus_rime.custom.yaml
-  f_config_ibus_rime_rime_ice.custom.yaml:
-    src: config/ibus/rime/rime_ice.custom.yaml
-    dst: ~/.config/ibus/rime/rime_ice.custom.yaml
+  d_config_ibus_rime:
+    src: config/ibus/rime
+    dst: ~/.config/ibus/rime
+    cmpignore:
+    - '*'
+    - '!/!(sync)/*.custom.yaml'
+    upignore:
+    - '*'
+    - '!/!(sync)/*.custom.yaml'
+    chmod: '700'
   f_config_1password_ssh_agent.toml:
     src: config/1Password/ssh/agent.toml
     dst: ~/.config/1Password/ssh/agent.toml
@@ -33,8 +38,10 @@ dotfiles:
   d_config_nvim:
     src: config/nvim
     dst: ~/.config/nvim
+    cmpignore:
+    - '*lock.json'
     upignore:
-    - '**.json'
+    - '*lock.json'
   d_config_zsh:
     src: config/zsh
     dst: ~/.config/zsh
@@ -48,13 +55,20 @@ dotfiles:
   d_bin:
     src: bin
     dst: ~/bin
+  d_config_sunshine:
+    src: config/sunshine
+    dst: ~/.config/sunshine
+    cmpignore:
+    - '*.pem'
+    - '*state.json'
+    upignore:
+    - '*.pem'
+    - '*state.json'
 profiles:
   xian-linux-server:
     dotfiles:
     - f_etc_keyd_default.conf
-    - f_config_ibus_rime_default.custom.yaml
-    - f_config_ibus_rime_ibus_rime.custom.yaml
-    - f_config_ibus_rime_rime_ice.custom.yaml
+    - d_config_ibus_rime
     - f_config_1password_ssh_agent.toml
     - f_zshrc
     - f_etc_fonts_local.conf
@@ -63,3 +77,4 @@ profiles:
     - d_config_oh-my-posh
     - d_config_wezterm
     - d_bin
+    - d_config_sunshine
