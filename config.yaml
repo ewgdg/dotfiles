@@ -7,12 +7,10 @@ config:
   link_dotfile_default: nolink
   link_on_import: nolink
   longkey: true
-  impignore:
+  impignore: &global_ignore
   - "*.log"
-  cmpignore:
-  - "*.log"
-  upignore:
-  - "*.log"
+  cmpignore: *global_ignore
+  upignore: *global_ignore
 dotfiles:
   f_etc_keyd_default.conf:
     src: etc/keyd/default.conf
@@ -40,10 +38,9 @@ dotfiles:
   d_config_nvim:
     src: config/nvim
     dst: ~/.config/nvim
-    cmpignore:
+    cmpignore: &nvim_ignore
     - '*lock.json'
-    upignore:
-    - '*lock.json'
+    upignore: *nvim_ignore
   d_config_zsh:
     src: config/zsh
     dst: ~/.config/zsh
@@ -60,12 +57,10 @@ dotfiles:
   d_config_sunshine:
     src: config/sunshine
     dst: ~/.config/sunshine
-    cmpignore:
+    cmpignore: &sunshine_ignore
     - '*/credentials/*'
     - '*state.json'
-    upignore:
-    - '*/credentials/*'
-    - '*state.json'
+    upignore: *sunshine_ignore
 profiles:
   xian-linux-server:
     dotfiles:
