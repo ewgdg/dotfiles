@@ -85,6 +85,13 @@ dotfiles:
   d_config_systemd_user_sunshine.service.d:
     src: config/systemd/user/sunshine.service.d
     dst: ~/.config/systemd/user/sunshine.service.d
+  d_ssh:
+    src: ssh
+    dst: ~/.ssh
+    chmod: '700'
+    cmpignore: &ssh_ignore
+    - "known_hosts*"
+    upignore: *ssh_ignore
 profiles:
   xian-linux-server:
     dotfiles:
@@ -105,3 +112,4 @@ profiles:
     - f_gitconfig
     - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
+    - d_ssh
