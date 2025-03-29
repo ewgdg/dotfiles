@@ -67,11 +67,18 @@ dotfiles:
   f_etc_mkinitcpio.conf:
     src: etc/mkinitcpio.conf
     dst: /etc/mkinitcpio.conf
+  d_config_fcitx5_conf:
+    src: config/fcitx5/conf
+    dst: ~/.config/fcitx5/conf
+    chmod: '700'
+    cmpignore: &fcitx_ignore
+    - 'cached_layouts'
+    upignore: *fcitx_ignore 
 profiles:
   xian-linux-server:
     dotfiles:
     - f_etc_keyd_default.conf
-    - d_config_ibus_rime
+    #- d_config_ibus_rime
     - f_config_1password_ssh_agent.toml
     - f_zshrc
     - f_etc_fonts_local.conf
@@ -83,3 +90,4 @@ profiles:
     - d_config_sunshine
     #- d_etc_sddm.conf.d
     #- f_etc_mkinitcpio.conf
+    - d_config_fcitx5_conf
