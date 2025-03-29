@@ -90,26 +90,30 @@ dotfiles:
     dst: ~/.ssh
     chmod: '700'
     cmpignore: &ssh_ignore
-    - "known_hosts*"
+    - known_hosts*
     upignore: *ssh_ignore
+  f_etc_makepkg.conf:
+    src: etc/makepkg.conf
+    dst: /etc/makepkg.conf
 profiles:
   xian-linux-server:
     dotfiles:
     #- d_etc_sddm.conf.d
-    #- f_etc_mkinitcpio.conf
-    #- d_config_ibus_rime
+    #- f_config_kglobalshortcutsrc
+    #- d_config_wezterm
+    - f_etc_mkinitcpio.conf
+    - d_config_ibus_rime
     - f_etc_keyd_default.conf
     - f_zshrc
     - f_etc_fonts_local.conf
     - d_config_nvim
     - d_config_zsh
     - d_config_oh-my-posh
-    - d_config_wezterm
     - d_bin
     - d_config_sunshine
     - d_config_fcitx5_conf
-    - f_config_kglobalshortcutsrc
     - f_gitconfig
     - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
     - d_ssh
+    - f_etc_makepkg.conf
