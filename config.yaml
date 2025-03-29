@@ -64,6 +64,9 @@ dotfiles:
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
+  f_etc_mkinitcpio.conf:
+    src: etc/mkinitcpio.conf
+    dst: /etc/mkinitcpio.conf
 profiles:
   xian-linux-server:
     dotfiles:
@@ -78,4 +81,5 @@ profiles:
     - d_config_wezterm
     - d_bin
     - d_config_sunshine
-    - d_etc_sddm.conf.d
+    #- d_etc_sddm.conf.d
+    #- f_etc_mkinitcpio.conf
