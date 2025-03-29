@@ -24,7 +24,7 @@ setopt EXTENDED_HISTORY
 
 setopt PROMPT_SUBST
 
-# Disallow `>` to overwrite existing files. Use `>|` or `>!` instead.
+# Disallow `>` to overwrite existing files. Use `>|`(sh compatible) or `>!`(zsh only) instead.
 setopt NO_CLOBBER
 
 # Allow comments starting with `#` in the interactive shell.
@@ -69,6 +69,7 @@ fi
 #
 bindkey -v
 export EDITOR=nvim
+export SYSTEMD_EDITOR=nvim
 
 #
 # PLUGINS
