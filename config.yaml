@@ -82,6 +82,9 @@ dotfiles:
     src: config/1Password/ssh
     dst: ~/.config/1Password/ssh
     chmod: '700'
+  d_config_systemd_user_sunshine.service.d:
+    src: config/systemd/user/sunshine.service.d
+    dst: ~/.config/systemd/user/sunshine.service.d
 profiles:
   xian-linux-server:
     dotfiles:
@@ -101,3 +104,4 @@ profiles:
     - f_config_kglobalshortcutsrc
     - f_gitconfig
     - d_config_1password_ssh
+    - d_config_systemd_user_sunshine.service.d
