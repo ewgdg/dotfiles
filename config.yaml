@@ -95,6 +95,10 @@ dotfiles:
   f_etc_makepkg.conf:
     src: etc/makepkg.conf
     dst: /etc/makepkg.conf
+  d_config_dconf:
+    src: config/dconf
+    dst: ~/.config/dconf
+    chmod: '700'
 profiles:
   xian-linux-server:
     dotfiles:
@@ -117,3 +121,4 @@ profiles:
     - d_config_systemd_user_sunshine.service.d
     - d_ssh
     - f_etc_makepkg.conf
+    - d_config_dconf
