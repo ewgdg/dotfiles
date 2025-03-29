@@ -25,10 +25,6 @@ dotfiles:
     - '*'
     - '!/!(sync)/*.custom.yaml'
     chmod: '700'
-  f_config_1password_ssh_agent.toml:
-    src: config/1Password/ssh/agent.toml
-    dst: ~/.config/1Password/ssh/agent.toml
-    chmod: '600'
   f_zshrc:
     src: zshrc
     dst: ~/.zshrc
@@ -82,12 +78,17 @@ dotfiles:
     src: gitconfig
     dst: ~/.gitconfig
     chmod: '600'
+  d_config_1password_ssh:
+    src: config/1Password/ssh
+    dst: ~/.config/1Password/ssh
+    chmod: '700'
 profiles:
   xian-linux-server:
     dotfiles:
-    - f_etc_keyd_default.conf
+    #- d_etc_sddm.conf.d
+    #- f_etc_mkinitcpio.conf
     #- d_config_ibus_rime
-    - f_config_1password_ssh_agent.toml
+    - f_etc_keyd_default.conf
     - f_zshrc
     - f_etc_fonts_local.conf
     - d_config_nvim
@@ -96,8 +97,7 @@ profiles:
     - d_config_wezterm
     - d_bin
     - d_config_sunshine
-    #- d_etc_sddm.conf.d
-    #- f_etc_mkinitcpio.conf
     - d_config_fcitx5_conf
     - f_config_kglobalshortcutsrc
     - f_gitconfig
+    - d_config_1password_ssh
