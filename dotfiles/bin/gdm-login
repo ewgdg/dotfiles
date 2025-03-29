@@ -1,26 +1,32 @@
 #!/usr/bin/env sh
 
-# Check if the correct number of arguments is provided
+# Check if the script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "This script requires root privileges. Re-running with sudo..."
+  exec sudo -E "$0" "$@"
+fi
+
+# exit immediately if any command fails
+set -e
+
 if [ "$#" -lt 1 ]; then
-    USERNAME="$(logname)"
-    echo "User is $USERNAME"
+    USER_NAME="$(logname)"
+    echo "User is $USER_NAME"
 else
-    USERNAME=$1
+    USER_NAME=$1
 fi
 
 # Input arguments
 CONFIG_FILE="/etc/gdm/custom.conf"
 
 enable_auto_login() {
-  local username=$1
-  
   # Ensure the [daemon] section exists, if not append it to the file
   if ! grep -q "^\[daemon\]" "$CONFIG_FILE"; then
     echo -e "\n[daemon]" >> "$CONFIG_FILE"
   fi
 
   disable_auto_login
-  sed -i "/^\[daemon\]/aAutomaticLoginEnable=True\nAutomaticLogin=$username" "$CONFIG_FILE"
+  sed -i "/^\[daemon\]/aAutomaticLoginEnable=True\nAutomaticLogin=$USER_NAME" "$CONFIG_FILE"
 }
 
 disable_auto_login() {
@@ -31,30 +37,49 @@ disable_auto_login() {
   }' "$CONFIG_FILE"
 }
 
-# List all sessions
-sessions=$(loginctl list-sessions --no-legend | awk '{print $1}')
+# find the session with a seat
+find_session() {
+    local sessions=$(loginctl list-sessions --no-legend | awk '{print $1}')
+    for session in $sessions; do
+        # Get details for each session
+        user=$(loginctl show-session "$session" -p Name --value)
+        seat=$(loginctl show-session "$session" -p Seat --value)
 
-for session in $sessions; do
-  # Get details for each session
-  user=$(loginctl show-session "$session" -p Name --value)
-  seat=$(loginctl show-session "$session" -p Seat --value)
+        # Check if the session belongs to the user and has a seat
+        if [ "$user" = "$USER_NAME" ] && [ -n "$seat" ]; then
+            echo $session
+            return
+        fi
+    done
+}
 
-  # Check if the session belongs to the user and has a seat
-  if [ "$user" = "$USERNAME" ] && [ -n "$seat" ]; then
-    echo "Session $session for user $USERNAME has a seat: $seat"
+session=$(find_session)
+if [ -n "$session" ]; then
+    echo "Session $session for user $USER_NAME has a seat: $seat"
     # Unlock the session
     loginctl unlock-session "$session"
+    # move mouse to wake up the monitor
+    ydotool mousemove -x 1 -y 0
+    ydotool mousemove -x -1 -y 0
     echo "Session $session unlocked."
-    
     # Terminate the script early
     exit 0
-  fi
-done
+fi
 
 # If the script reaches here, no session was found
-echo "No session found for user $USERNAME with a seat."
+echo "No session found for user $USER_NAME with a seat."
 echo "Logging in."
 
-sudo enable_auto_login $USERNAME && sudo systemctl restart gdm && sudo disable_auto_login
+enable_auto_login && systemctl restart gdm
 
+# wait until login
+while true; do
+    session=$(find_session)
+    if [ -n "$session" ]; then
+        break
+    fi
+    sleep 0.5
+done
 echo "Logged in."
+
+disable_auto_login
