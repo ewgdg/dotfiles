@@ -78,6 +78,10 @@ dotfiles:
     src: config/kglobalshortcutsrc
     dst: ~/.config/kglobalshortcutsrc
     chmod: '600'
+  f_gitconfig:
+    src: gitconfig
+    dst: ~/.gitconfig
+    chmod: '600'
 profiles:
   xian-linux-server:
     dotfiles:
@@ -96,3 +100,4 @@ profiles:
     #- f_etc_mkinitcpio.conf
     - d_config_fcitx5_conf
     - f_config_kglobalshortcutsrc
+    - f_gitconfig
