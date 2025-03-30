@@ -116,14 +116,12 @@ profiles:
     - d_bin
   os_linux:
     variables:
-      os: linux
     include:
     - posix
     dotfiles:
     - f_etc_keyd_default.conf
   os_arch:
     variables:
-      distro: arch
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
         {0}
     include:
@@ -145,7 +143,6 @@ profiles:
     - d_config_fcitx5_conf
   os_mac:
     variables:
-      os: mac
       install_cmd: brew install --quite {0}
     include:
     - base

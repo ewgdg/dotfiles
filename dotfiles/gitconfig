@@ -1,3 +1,6 @@
+# {{@@ header() @@}}
+# os: {{@@ os @@}}
+
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
@@ -12,7 +15,12 @@
 [gpg]
 	format = ssh
 [gpg "ssh"]
+{%@@ if os == "linux" @@%}
 	program = /opt/1Password/op-ssh-sign
+{%@@ elif os == "darwin" @@%}
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+{%@@ else @@%}
+{%@@ endif @@%}
 [commit]
 	gpgsign = true
 [init]
