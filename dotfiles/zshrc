@@ -138,20 +138,17 @@ fi
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
 
+# zoxide
+# _ZO_DATA_DIR=$HOME/.local/share
+_ZO_ECHO=1
+_ZO_EXCLUDE_DIRS=$HOMNE:**/.git/*:/tmp/*
+if [ -n $TMPDIR ]; then
+    _ZO_EXCLUDE_DIRS=$_ZO_EXCLUDE_DIRS:$TMPDIR*
+fi
+eval "$(zoxide init --cmd cd zsh)"
+
 # bind keys
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
-
-# alias
-# z history
-alias zh='z -I -t .'
-# z with interactive selection
-alias zi='z -i'
-# z + fzf
-alias zf='z -I'
-# z jump back to parent dir
-alias zb='z -b'
-# restrict matches to subdirs of $PWD
-alias zz='z -c'
