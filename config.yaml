@@ -9,9 +9,10 @@ config:
   longkey: true
   impignore: &global_ignore
   - '*.log'
-  - '*/.DS_Store'
+  - '*.DS_Store'
   cmpignore: *global_ignore
   upignore: *global_ignore
+  instignore: *global_ignore
 dotfiles:
   f_etc_keyd_default.conf:
     src: etc/keyd/default.conf
