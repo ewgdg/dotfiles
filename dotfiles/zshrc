@@ -59,9 +59,9 @@ KEYTIMEOUT=1
 # DOTFILES
 #
 if [[ -f "$HOME/dotfiles/config.yaml" ]]; then
-  export DOTDROP_CONFIG="$HOME/dotfiles/config.yaml"
+    export DOTDROP_CONFIG="$HOME/dotfiles/config.yaml"
 elif [[ -f "$HOME/projects/dotfiles/config.yaml" ]]; then
-  export DOTDROP_CONFIG="$HOME/projects/dotfiles/config.yaml"
+    export DOTDROP_CONFIG="$HOME/projects/dotfiles/config.yaml"
 fi
 
 #
@@ -72,29 +72,36 @@ export EDITOR=nvim
 export SYSTEMD_EDITOR=nvim
 
 # change cursor
-function zle-keymap-select () {
-  local _shape=0
-  case $KEYMAP in
-    vicmd|visual) _shape=1 ;; # block
-    viins|main|command|isearch) _shape=5 ;; # beam
-    viopp) _shape=0 ;; # block
-    *) _shape=0 ;; # block
-  esac
-  printf $'\e[%d q' "${_shape}"
+_fix_cursor() {
+    local _key=${1:-$KEYMAP}
+    local _shape=0
+    case ${_key} in
+        vicmd|visual) _shape=1 ;; # block
+        viins|main|command|isearch) _shape=5 ;; # beam
+        viopp) _shape=0 ;; # block
+        *) _shape=0 ;; # block
+    esac
+    printf $'\e[%d q' "${_shape}"
+}
+zle-keymap-select () {
+    _fix_cursor $KEYMAP
 }
 zle -N zle-keymap-select
-
 zle-line-init() {
-  zle-keymap-select viins
+    _fix_cursor $KEYMAP
 }
 zle -N zle-line-init
+zle-line-finish() {
+    _fix_cursor vicmd
+}
+zle -N zle-line-finish
 
 #
 # Theme
 #
 # if use ohmyzsh vi mode then this need to be placed after it to enable transient prompt
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
+    eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
 fi
 
 #
@@ -119,13 +126,13 @@ zstyle ':zim:zmodule' use 'degit'
 
 # Download zimfw plugin manager if missing.
 if [[ ! -e ${ZIM_HOME}/zimfw.zsh ]]; then
-  curl -fsSL --create-dirs -o ${ZIM_HOME}/zimfw.zsh \
-      https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
+    curl -fsSL --create-dirs -o ${ZIM_HOME}/zimfw.zsh \
+        https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
 fi
 
 # Install missing modules and update ${ZIM_HOME}/init.zsh if missing or outdated.
 if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
-  source ${ZIM_HOME}/zimfw.zsh init
+    source ${ZIM_HOME}/zimfw.zsh init
 fi
 
 # Initialize modules.
