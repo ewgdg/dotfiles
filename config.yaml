@@ -28,6 +28,8 @@ dotfiles:
   f_zshrc:
     src: zshrc
     dst: ~/.zshrc
+    actions:
+    - install fzf
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -95,42 +97,68 @@ dotfiles:
   f_etc_makepkg.conf:
     src: etc/makepkg.conf
     dst: /etc/makepkg.conf
-  d_config_dconf:
-    src: config/dconf
-    dst: ~/.config/dconf
-    chmod: '700'
   d_config_alacritty:
     src: config/alacritty
     dst: ~/.config/alacritty
 profiles:
-  kernel:
+  base:
     dotfiles:
-    - f_etc_mkinitcpio.conf
-  xian-linux-server:
-    dotfiles:
-    #- d_etc_sddm.conf.d
-    #- f_config_kglobalshortcutsrc
     #- d_config_wezterm
-    #- d_config_fcitx5_conf
-    - d_config_ibus_rime
-    - f_etc_keyd_default.conf
     - f_zshrc
-    - f_etc_fonts_local.conf
-    - d_config_nvim
     - d_config_zsh
     - d_config_oh-my-posh
-    - d_bin
-    - d_config_sunshine
+    - d_config_nvim
     - f_gitconfig
+    - d_ssh
+    - d_config_alacritty
+  posix:
+    dotfiles:
+    - d_bin
+  os_linux:
+    variables:
+      os: linux
+    include:
+    - posix
+    dotfiles:
+    - f_etc_keyd_default.conf
+  os_arch:
+    variables:
+      distro: arch
+      install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
+        {0}
+    include:
+    - base
+    - os_linux
+    dotfiles:
+    - f_etc_makepkg.conf
+    - f_etc_fonts_local.conf
+  os_arch_kernel:
+    dotfiles:
+    - f_etc_mkinitcpio.conf
+  de_gnome:
+    dotfiles:
+    - d_config_ibus_rime
+  de_kde:
+    dotfiles:
+    - d_etc_sddm.conf.d
+    - f_config_kglobalshortcutsrc
+    - d_config_fcitx5_conf
+  os_mac:
+    variables:
+      os: mac
+      install_cmd: brew install --quite {0}
+    include:
+    - base
+  xian-linux-server:
+    include:
+    - os_arch
+    - de_gnome
+    dotfiles:
+    - d_config_sunshine
     - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
-    - d_ssh
-    - f_etc_makepkg.conf
-    - d_config_dconf
-    - d_config_alacritty
-  mac:
-    dotfiles:
-    - f_zshrc
-    - d_config_zsh
-    - f_gitconfig
 
+variables:
+  install_cmd: echo 'no install cmd for {0}'
+actions:
+  install: '{{@@ install_cmd @@}}'
