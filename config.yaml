@@ -9,6 +9,7 @@ config:
   longkey: true
   impignore: &global_ignore
   - '*.log'
+  - '*/.DS_Store'
   cmpignore: *global_ignore
   upignore: *global_ignore
 dotfiles:
@@ -31,6 +32,9 @@ dotfiles:
     actions:
     - install fzf
     - install lua
+    - install bat
+    - install tree
+    - install fd
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -116,11 +120,11 @@ profiles:
     - f_gitconfig
     - d_ssh
     - d_config_alacritty
+    - d_config_1password_ssh
   posix:
     dotfiles:
     - d_bin
   os_linux:
-    variables:
     include:
     - posix
     dotfiles:
@@ -157,7 +161,6 @@ profiles:
     - de_gnome
     dotfiles:
     - d_config_sunshine
-    - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
   aegis.lan:
     include:
