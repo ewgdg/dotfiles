@@ -136,3 +136,15 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
+
+# alias
+# z history
+alias zh='z -I -t .'
+# z with interactive selection
+alias zi='z -i'
+# z + fzf
+alias zf='z -I'
+# z jump back to parent dir
+alias zb='z -b'
+# restrict matches to subdirs of $PWD
+alias zz='z -c'
