@@ -9,5 +9,7 @@ config:
   longkey: true
   impignore: &global_ignore
   - '*.log'
+  - '*.DS_Store'
   cmpignore: *global_ignore
   upignore: *global_ignore
+  instignore: *global_ignore
