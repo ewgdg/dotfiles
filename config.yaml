@@ -159,6 +159,6 @@ profiles:
     - d_config_systemd_user_sunshine.service.d
 
 variables:
-  install_cmd: echo 'no install cmd for {0}'
+  install_cmd: echo 'no install cmd for {0} >&2'
 actions:
   install: '{{@@ install_cmd @@}}'
