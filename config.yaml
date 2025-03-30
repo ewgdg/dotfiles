@@ -32,7 +32,7 @@ dotfiles:
     dst: ~/.zshrc
     actions:
     - install fzf
-    - install lua
+    - install zoxide
     - install bat
     - install tree
     - install fd
@@ -124,22 +124,27 @@ dotfiles:
 profiles:
   base:
     dotfiles:
-    #- d_config_wezterm
-    - f_zshrc
-    - d_config_zsh
-    - d_config_oh-my-posh
     - d_config_nvim
     - f_gitconfig
     - d_ssh
     - f_ssh_config
-    - d_config_alacritty
     - d_config_1password_ssh
-  posix:
+    - d_config_alacritty
+  posix_base:
+    include:
+    - base
+    dotfiles:
+    #- d_config_wezterm
+    - f_zshrc
+    - d_config_zsh
+    - d_config_oh-my-posh
+  posix_utils:
     dotfiles:
     - d_bin
   os_linux:
     include:
-    - posix
+    - posix_base
+    - posix_utils
     dotfiles:
     - f_etc_keyd_default.conf
   os_arch:
@@ -147,7 +152,6 @@ profiles:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
         {0}
     include:
-    - base
     - os_linux
     dotfiles:
     - f_etc_makepkg.conf
@@ -167,7 +171,7 @@ profiles:
     variables:
       install_cmd: brew install --quiet {0}
     include:
-    - base
+    - posix_base
   xian-linux-server:
     include:
     - os_arch
