@@ -1,4 +1,4 @@
-zmodule ohmyzsh/ohmyzsh --root plugins/vi-mode
+#zmodule ohmyzsh/ohmyzsh --root plugins/vi-mode
 #zmodule jeffreytse/zsh-vi-mode
 zmodule input
 
@@ -8,7 +8,10 @@ zmodule zsh-users/zsh-completions #--fpath src
 # completion must be sourced after all modules that add completion definitions.
 zmodule completion
 
+zmodule fzf
+
 # Fish-like syntax highlighting for Zsh.
 # zsh-users/zsh-syntax-highlighting must be sourced after completion
 zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-autosuggestions
+zmodule zsh-users/zsh-history-substring-search

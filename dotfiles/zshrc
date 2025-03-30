@@ -71,6 +71,32 @@ bindkey -v
 export EDITOR=nvim
 export SYSTEMD_EDITOR=nvim
 
+# change cursor
+function zle-keymap-select () {
+  local _shape=0
+  case $KEYMAP in
+    vicmd|visual) _shape=1 ;; # block
+    viins|main|command|isearch) _shape=5 ;; # beam
+    viopp) _shape=0 ;; # block
+    *) _shape=0 ;; # block
+  esac
+  printf $'\e[%d q' "${_shape}"
+}
+zle -N zle-keymap-select
+
+zle-line-init() {
+  zle-keymap-select viins
+}
+zle -N zle-line-init
+
+#
+# Theme
+#
+# if use ohmyzsh vi mode then this need to be placed after it to enable transient prompt
+if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
+  eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
+fi
+
 #
 # PLUGINS
 #
@@ -105,8 +131,8 @@ fi
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
 
-# apply theme after vi-mode to overwrite conflicts
-if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
-fi
-
+# bind keys
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey -M vicmd 'k' history-substring-search-up
+bindkey -M vicmd 'j' history-substring-search-down

@@ -124,3 +124,9 @@ profiles:
     - d_ssh
     - f_etc_makepkg.conf
     - d_config_dconf
+  mac:
+    dotfiles:
+    - f_zshrc
+    - d_config_zsh
+    - f_gitconfig
+    
