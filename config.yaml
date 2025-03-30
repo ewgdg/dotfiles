@@ -30,12 +30,15 @@ dotfiles:
     dst: ~/.zshrc
     actions:
     - install fzf
+    - install lua
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
   d_config_nvim:
     src: config/nvim
     dst: ~/.config/nvim
+    actions:
+    - install neovim
     cmpignore: &nvim_ignore
     - '*lock.json'
     upignore: *nvim_ignore
@@ -100,6 +103,8 @@ dotfiles:
   d_config_alacritty:
     src: config/alacritty
     dst: ~/.config/alacritty
+    actions:
+    - install alacritty
 profiles:
   base:
     dotfiles:
@@ -143,7 +148,7 @@ profiles:
     - d_config_fcitx5_conf
   os_mac:
     variables:
-      install_cmd: brew install --quite {0}
+      install_cmd: brew install --quiet {0}
     include:
     - base
   xian-linux-server:
@@ -154,6 +159,9 @@ profiles:
     - d_config_sunshine
     - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
+  aegis.lan:
+    include:
+    - os_mac
 
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
