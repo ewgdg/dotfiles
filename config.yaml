@@ -100,8 +100,19 @@ dotfiles:
     dst: ~/.ssh
     chmod: '700'
     cmpignore: &ssh_ignore
-    - known_hosts*
+    - "known_hosts*"
+    # the config is a template file and should have a separate entry 
+    # to avoid being overwritten during update
+    - "config"
     upignore: *ssh_ignore
+    instignore: *ssh_ignore
+    # there is a bug that if template is true 
+    # and we ignore a template in cmpignore 
+    # then it will be a warning of missing file during comparison
+    template: false
+  f_ssh_config:
+    src: ssh/config
+    dst: ~/.ssh/config
   f_etc_makepkg.conf:
     src: etc/makepkg.conf
     dst: /etc/makepkg.conf
@@ -120,6 +131,7 @@ profiles:
     - d_config_nvim
     - f_gitconfig
     - d_ssh
+    - f_ssh_config
     - d_config_alacritty
     - d_config_1password_ssh
   posix:
