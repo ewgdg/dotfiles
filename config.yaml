@@ -100,12 +100,15 @@ dotfiles:
     dst: ~/.config/dconf
     chmod: '700'
 profiles:
+  kernel:
+    dotfiles:
+    - f_etc_mkinitcpio.conf
   xian-linux-server:
     dotfiles:
     #- d_etc_sddm.conf.d
     #- f_config_kglobalshortcutsrc
     #- d_config_wezterm
-    - f_etc_mkinitcpio.conf
+    #- d_config_fcitx5_conf
     - d_config_ibus_rime
     - f_etc_keyd_default.conf
     - f_zshrc
@@ -115,7 +118,6 @@ profiles:
     - d_config_oh-my-posh
     - d_bin
     - d_config_sunshine
-    - d_config_fcitx5_conf
     - f_gitconfig
     - d_config_1password_ssh
     - d_config_systemd_user_sunshine.service.d
