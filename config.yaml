@@ -99,6 +99,9 @@ dotfiles:
     src: config/dconf
     dst: ~/.config/dconf
     chmod: '700'
+  d_config_alacritty:
+    src: config/alacritty
+    dst: ~/.config/alacritty
 profiles:
   kernel:
     dotfiles:
@@ -124,9 +127,10 @@ profiles:
     - d_ssh
     - f_etc_makepkg.conf
     - d_config_dconf
+    - d_config_alacritty
   mac:
     dotfiles:
     - f_zshrc
     - d_config_zsh
     - f_gitconfig
-    
+

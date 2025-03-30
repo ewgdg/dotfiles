@@ -1,0 +1,26 @@
+[general]
+import = [
+    "~/.config/alacritty/themes/gruvbox_material_medium_dark.toml"
+]
+
+[window]
+dimensions = { columns = 100, lines = 25 }
+
+padding = { x = 0, y = 0 }
+
+dynamic_padding = true
+decorations = "Buttonless"
+opacity = 0.9
+
+[font]
+normal = { family = "CaskaydiaCove Nerd Font", style = "Regular" }
+size = 19
+
+[colors]
+# rose gold = '#F1C2A6'
+cursor = { cursor = "#F1C2A6" }
+vi_mode_cursor = { text = "CellBackground", cursor = "#F1C2A6" }
+selection = { text = "CellBackground", cursor = "#F1C2A6" }
+
+[cursor]
+vi_mode_style = { shape = "Block", blinking = "Off" }
