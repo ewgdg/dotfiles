@@ -34,8 +34,9 @@ dotfiles:
     - install fzf
     - install zoxide
     - install bat
-    - install tree
     - install fd
+    - install eza
+    - install tmux
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
