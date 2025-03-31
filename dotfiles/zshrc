@@ -118,6 +118,16 @@ VI_MODE_CURSOR_VISUAL=1
 VI_MODE_CURSOR_INSERT=5
 VI_MODE_CURSOR_OPPEND=0
 
+# zsh-autosuggestions
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+# zsh-syntax-highlighting
+ZSH_HIGHLIGHT_HIGHLIGHTERS+=(brackets pattern)
+typeset -A ZSH_HIGHLIGHT_PATTERNS
+# To have commands starting with `rm -rf` highlighted:
+ZSH_HIGHLIGHT_PATTERNS+=('rm -rf *' 'fg=yellow,bold,underline')
+
+# zimfw
 ZSH_PLUGIN_DIR=~/.zsh-plugins
 ZIM_HOME=$ZSH_PLUGIN_DIR
 ZIM_CONFIG_FILE=~/.config/zsh/.zimrc
@@ -137,9 +147,6 @@ fi
 
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
-
-# zsh-autosuggestions
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # zoxide
 # export _ZO_DATA_DIR=$HOME/.local/share
