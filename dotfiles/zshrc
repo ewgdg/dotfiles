@@ -139,11 +139,11 @@ fi
 source ${ZIM_HOME}/init.zsh
 
 # zoxide
-# _ZO_DATA_DIR=$HOME/.local/share
-_ZO_ECHO=1
-_ZO_EXCLUDE_DIRS=$HOMNE:**/.git/*:/tmp/*
-if [ -n $TMPDIR ]; then
-    _ZO_EXCLUDE_DIRS=$_ZO_EXCLUDE_DIRS:$TMPDIR*
+# export _ZO_DATA_DIR=$HOME/.local/share
+export _ZO_ECHO=1
+export _ZO_EXCLUDE_DIRS="$HOME:**/.git:**/.git/**:**/node_modules/**:/tmp:/tmp/**"
+if [ -n "$TMPDIR" ]; then
+    _ZO_EXCLUDE_DIRS="$_ZO_EXCLUDE_DIRS:$TMPDIR:$TMPDIR/**"
 fi
 eval "$(zoxide init --cmd cd zsh)"
 
