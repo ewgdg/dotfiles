@@ -36,7 +36,6 @@ dotfiles:
     - install bat
     - install fd
     - install eza
-    - install tmux
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -100,17 +99,14 @@ dotfiles:
     src: ssh
     dst: ~/.ssh
     chmod: '700'
+    template: false
     cmpignore: &ssh_ignore
-    - "known_hosts*"
+    - known_hosts*
     # the config is a template file and should have a separate entry 
     # to avoid being overwritten during update
-    - "config"
+    - config
     upignore: *ssh_ignore
     instignore: *ssh_ignore
-    # there is a bug that if template is true 
-    # and we ignore a template in cmpignore 
-    # then it will be a warning of missing file during comparison
-    template: false
   f_ssh_config:
     src: ssh/config
     dst: ~/.ssh/config
@@ -122,6 +118,11 @@ dotfiles:
     dst: ~/.config/alacritty
     actions:
     - install alacritty
+  d_config_tmux:
+    src: config/tmux
+    dst: ~/.config/tmux
+    actions:
+    - install tmux
 profiles:
   base:
     dotfiles:
@@ -139,6 +140,7 @@ profiles:
     - f_zshrc
     - d_config_zsh
     - d_config_oh-my-posh
+    - d_config_tmux
   posix_utils:
     dotfiles:
     - d_bin
@@ -183,7 +185,8 @@ profiles:
   aegis.lan:
     include:
     - os_mac
-
+    dotfiles:
+    
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
 actions:
