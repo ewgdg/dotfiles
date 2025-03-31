@@ -138,6 +138,9 @@ fi
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
 
+# zsh-autosuggestions
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
 # zoxide
 # export _ZO_DATA_DIR=$HOME/.local/share
 export _ZO_ECHO=1
