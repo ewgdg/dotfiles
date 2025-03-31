@@ -1,0 +1,5 @@
+.git/
+/Applications/
+~/Applications/
+node_modules/
+/tmp/

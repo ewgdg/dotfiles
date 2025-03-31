@@ -123,6 +123,9 @@ dotfiles:
     dst: ~/.config/tmux
     actions:
     - install tmux
+  d_config_fd:
+    src: config/fd
+    dst: ~/.config/fd
 profiles:
   base:
     dotfiles:
@@ -141,6 +144,7 @@ profiles:
     - d_config_zsh
     - d_config_oh-my-posh
     - d_config_tmux
+    - d_config_fd
   posix_utils:
     dotfiles:
     - d_bin
@@ -185,8 +189,6 @@ profiles:
   aegis.lan:
     include:
     - os_mac
-    dotfiles:
-    
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
 actions:
