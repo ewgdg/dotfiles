@@ -153,7 +153,6 @@ profiles:
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
-    - d_etc_docker
   posix_utils:
     dotfiles:
     - d_bin
@@ -163,6 +162,7 @@ profiles:
     - posix_utils
     dotfiles:
     - f_etc_keyd_default.conf
+    - d_etc_docker
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
