@@ -126,6 +126,9 @@ dotfiles:
   d_config_fd:
     src: config/fd
     dst: ~/.config/fd
+  d_config_autostart:
+    src: config/autostart
+    dst: ~/.config/autostart
 profiles:
   base:
     dotfiles:
@@ -169,6 +172,7 @@ profiles:
   de_gnome:
     dotfiles:
     - d_config_ibus_rime
+    - d_config_autostart
   de_kde:
     dotfiles:
     - d_etc_sddm.conf.d
