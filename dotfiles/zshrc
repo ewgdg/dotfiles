@@ -162,7 +162,7 @@ export FZF_CTRL_T_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview
 export FZF_ALT_C_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview_options}' ${FZF_ALT_C_OPTS}"
 # allow color from fd
 export FZF_DEFAULT_OPTS="--ansi"
-alias fzfp="fzf --preview $_fzf_preview_options"
+alias fzfp="fzf --preview '$_fzf_preview_options'"
 
 source <(fzf --zsh)
 
