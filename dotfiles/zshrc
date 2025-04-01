@@ -133,7 +133,7 @@ alias fd='fd --hidden --exclude .git' #-p
 
 # fzf
 # fzf, use fd instead of find (fd reads ~/.fdignore)
-local _fzf_fd_options='--hidden --exclude .git --color=always'
+local _fzf_fd_options='--hidden --exclude .git --color=always --type d --type f'
 local _fzf_preview_options="[[ -d {} ]] && eza -a --tree -L1 --color=always --icons=always {} | head -200 || bat --color=always {} | head -200"
 export FZF_DEFAULT_COMMAND="fd $_fzf_fd_options"
 # Ctrl + T command
