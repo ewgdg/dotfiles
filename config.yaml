@@ -17,6 +17,8 @@ dotfiles:
   f_etc_keyd_default.conf:
     src: etc/keyd/default.conf
     dst: /etc/keyd/default.conf
+    actions:
+    - install keyd
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
