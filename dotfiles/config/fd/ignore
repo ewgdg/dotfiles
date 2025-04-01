@@ -1,5 +1,7 @@
 .git/
 /Applications/
 ~/Applications/
+# for glob pattern has to list the full path
+**/*.app/*
 node_modules/
 /tmp/
