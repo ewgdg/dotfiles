@@ -131,6 +131,9 @@ dotfiles:
   d_config_autostart:
     src: config/autostart
     dst: ~/.config/autostart
+  d_etc_docker:
+    src: etc/docker
+    dst: /etc/docker
 profiles:
   base:
     dotfiles:
@@ -150,6 +153,7 @@ profiles:
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
+    - d_etc_docker
   posix_utils:
     dotfiles:
     - d_bin
