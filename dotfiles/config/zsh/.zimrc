@@ -8,7 +8,8 @@ zmodule zsh-users/zsh-completions #--fpath src
 # completion must be sourced after all modules that add completion definitions.
 zmodule completion
 
-zmodule fzf
+# The zimfw/fzf config
+#zmodule fzf
 
 # Fish-like syntax highlighting for Zsh.
 # zsh-users/zsh-syntax-highlighting must be sourced after completion

@@ -127,6 +127,45 @@ typeset -A ZSH_HIGHLIGHT_PATTERNS
 # To have commands starting with `rm -rf` highlighted:
 ZSH_HIGHLIGHT_PATTERNS+=('rm -rf *' 'fg=yellow,bold,underline')
 
+# fd
+# see also fd ignore file in ~/.config/fd/ignore
+alias fd='fd --hidden --exclude .git' #-p
+
+# fzf
+# fzf, use fd instead of find (fd reads ~/.fdignore)
+local _fzf_fd_options='--hidden --exclude .git --color=always'
+local _fzf_preview_options="[[ -d {} ]] && eza -a --tree -L1 --color=always --icons=always {} | head -200 || bat --color=always {} | head -200"
+export FZF_DEFAULT_COMMAND="fd $_fzf_fd_options"
+# Ctrl + T command
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+# Alt + C command 
+export FZF_ALT_C_COMMAND="fd $_fzf_fd_options --type d"
+# "**" command syntax
+eval "_fzf_compgen_path() {
+    fd ${_fzf_fd_options} . \"\$1\"
+}"
+# "**" command syntax (for directories only)
+eval "_fzf_compgen_dir() {
+    fd ${_fzf_fd_options} --type d . \"\$1\"
+}"
+_fzf_comprun() {
+    local command=$1
+    shift
+
+    case "$command" in
+        export|unset) fzf --preview "eval 'echo \$'{}" "$@" ;;
+        ssh) fzf --preview 'dig {}' "$@" ;;
+        *) fzf --preview "$_fzf_preview_options" "$@" ;;
+    esac
+}
+export FZF_CTRL_T_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview_options}' ${FZF_CTRL_T_OPTS}"
+export FZF_ALT_C_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview_options}' ${FZF_ALT_C_OPTS}"
+# allow color from fd
+export FZF_DEFAULT_OPTS="--ansi"
+alias fzfp="fzf --preview $_fzf_preview_options"
+
+source <(fzf --zsh)
+
 # zimfw
 ZSH_PLUGIN_DIR=~/.zsh-plugins
 ZIM_HOME=$ZSH_PLUGIN_DIR
