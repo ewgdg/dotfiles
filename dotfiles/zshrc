@@ -205,3 +205,6 @@ bindkey -M vicmd 'j' history-substring-search-down
 # alias
 alias ls='eza --icons=auto'
 alias tree='eza --icons=auto --tree'
+
+# custom env
+export PROJECTS_PATH=~/projects
