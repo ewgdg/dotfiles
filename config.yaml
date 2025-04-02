@@ -48,6 +48,7 @@ dotfiles:
     - install neovim
     cmpignore: &nvim_ignore
     - '*lock.json'
+    - 'lazyvim.json'
     upignore: *nvim_ignore
   d_config_zsh:
     src: config/zsh
