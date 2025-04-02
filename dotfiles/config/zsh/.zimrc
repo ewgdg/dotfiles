@@ -12,8 +12,9 @@ zmodule completion
 #zmodule fzf
 
 # Fish-like syntax highlighting for Zsh.
-# zsh-users/zsh-syntax-highlighting must be sourced after completion
-zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-autosuggestions
 zmodule zsh-users/zsh-history-substring-search
 #zmodule skywind3000/z.lua --on-pull 'lua z.lua --init zsh enhanced once echo fzf >| init.zsh'
+# Note that zsh-syntax-highlighting must be the last plugin sourced.
+# zsh-users/zsh-syntax-highlighting must be sourced after completion
+zmodule zsh-users/zsh-syntax-highlighting
