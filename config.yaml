@@ -135,6 +135,8 @@ dotfiles:
   d_etc_docker:
     src: etc/docker
     dst: /etc/docker
+    actions:
+    - install docker docker-compose lazydocker
 profiles:
   base:
     dotfiles:
@@ -154,6 +156,9 @@ profiles:
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
+    actions:
+    - install git lazygit
+    - install ripgrep
   posix_utils:
     dotfiles:
     - d_bin
