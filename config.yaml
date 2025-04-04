@@ -201,6 +201,8 @@ profiles:
     dotfiles:
     - d_config_ibus_rime
     - d_config_autostart
+    actions:
+    - install seahorse #password manager UI
   de_kde:
     variables:
       desktop: kde
@@ -208,6 +210,8 @@ profiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
     - d_config_fcitx5_conf
+    actions:
+    - install kwalletmanager
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
