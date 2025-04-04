@@ -9,7 +9,7 @@ Switch to Next Keyboard Layout=Meta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Lay
 _k_friendly_name=Keyboard Layout Switcher
 
 [google-chrome]
-_k_friendly_name=Google Chrome
+_k_friendly_name=google-chrome
 enter-zapper-mode=none,none,Enter element zapper mode
 lock=Ctrl+Shift+L,Ctrl+Shift+L,Lock the extension
 open-dashboard=none,none,Open dashboard
