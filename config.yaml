@@ -69,7 +69,18 @@ dotfiles:
     cmpignore: &sunshine_ignore
     - '*/credentials/*'
     - '*state.json'
+    - 'sunshine.conf'
     upignore: *sunshine_ignore
+    actions:
+    - |
+      sh
+      'if [[ {{@@ desktop @@}} == kde ]]; then
+        trash {{@@ _dotfile_abs_dst @@}}/sunshine.conf;
+        ln -s {{@@ _dotfile_abs_dst @@}}/sunshine.conf.kde {{@@ _dotfile_abs_dst @@}}/sunshine.conf
+      elif [[ {{@@ desktop @@}} == gnome ]]; then
+        trash {{@@ _dotfile_abs_dst @@}}/sunshine.conf;
+        ln -s {{@@ _dotfile_abs_dst @@}}/sunshine.conf.gnome {{@@ _dotfile_abs_dst @@}}/sunshine.conf
+      fi'
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
@@ -83,6 +94,9 @@ dotfiles:
     cmpignore: &fcitx_ignore
     - cached_layouts
     upignore: *fcitx_ignore
+    actions:
+    - install fcitx5-im
+    - install fcitx5-chinese-addons
   f_config_kglobalshortcutsrc:
     src: config/kglobalshortcutsrc
     dst: ~/.config/kglobalshortcutsrc
@@ -182,10 +196,14 @@ profiles:
     dotfiles:
     - f_etc_mkinitcpio.conf
   de_gnome:
+    variables:
+      desktop: gnome
     dotfiles:
     - d_config_ibus_rime
     - d_config_autostart
   de_kde:
+    variables:
+      desktop: kde
     dotfiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
@@ -198,7 +216,6 @@ profiles:
   xian-linux-server:
     include:
     - os_arch
-    - de_gnome
     - de_kde
     dotfiles:
     - d_config_sunshine
@@ -208,5 +225,8 @@ profiles:
     - os_mac
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
+  symlink_cmd: ln -s {0} {1}
 actions:
   install: '{{@@ install_cmd @@}}'
+  symlink: '{{@@ symlink_cmd @@}}'
+  sh: sh -c "{0}"
