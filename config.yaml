@@ -48,7 +48,7 @@ dotfiles:
     - install neovim
     cmpignore: &nvim_ignore
     - '*lock.json'
-    - 'lazyvim.json'
+    - lazyvim.json
     upignore: *nvim_ignore
   d_config_zsh:
     src: config/zsh
@@ -69,7 +69,7 @@ dotfiles:
     cmpignore: &sunshine_ignore
     - '*/credentials/*'
     - '*state.json'
-    - 'sunshine.conf'
+    - sunshine.conf
     upignore: *sunshine_ignore
     actions:
     - |
@@ -151,6 +151,14 @@ dotfiles:
     dst: /etc/docker
     actions:
     - install docker docker-compose lazydocker
+  f_config_plasmanotifyrc:
+    src: config/plasmanotifyrc
+    dst: ~/.config/plasmanotifyrc
+    chmod: '600'
+  f_config_plasmashellrc:
+    src: config/plasmashellrc
+    dst: ~/.config/plasmashellrc
+    chmod: '600'
 profiles:
   base:
     dotfiles:
@@ -210,8 +218,11 @@ profiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
     - d_config_fcitx5_conf
+    - f_config_plasmanotifyrc
+    - f_config_plasmashellrc
     actions:
-    - install kwalletmanager
+    - install dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
+      kcalc kwalletmanager ffmpegthumbs
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
