@@ -8,19 +8,10 @@ Switch to Last-Used Keyboard Layout=Meta+Alt+L,Meta+Alt+L,Switch to Last-Used Ke
 Switch to Next Keyboard Layout=Meta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
 _k_friendly_name=Keyboard Layout Switcher
 
-[com.google.Chrome]
-_k_friendly_name=com.google.Chrome
-enter-zapper-mode=none,none,Enter element zapper mode
-lock=Ctrl+Shift+L,Ctrl+Shift+L,Lock the extension
-open-dashboard=none,none,Open dashboard
-open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
-open-new-script=none,none,Open new script tab
-toggle-enable=none,none,Toggle enable state
-
 [google-chrome]
 _k_friendly_name=Google Chrome
 enter-zapper-mode=none,none,Enter element zapper mode
-lock=none,Ctrl+Shift+L,Lock the extension
+lock=Ctrl+Shift+L,Ctrl+Shift+L,Lock the extension
 open-dashboard=none,none,Open dashboard
 open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
 open-new-script=none,none,Open new script tab
@@ -78,7 +69,7 @@ MoveZoomDown=none,none,Move Zoomed Area Downwards
 MoveZoomLeft=none,none,Move Zoomed Area to Left
 MoveZoomRight=none,none,Move Zoomed Area to Right
 MoveZoomUp=none,none,Move Zoomed Area Upwards
-Overview=Meta+W\tMeta+Space,Meta+W,Toggle Overview
+Overview=Meta+Esc\tMeta+Space\tMeta+W,Meta+W,Toggle Overview
 Setup Window Shortcut=none,,Setup Window Shortcut
 Show Desktop=Meta+D,Meta+D,Peek at Desktop
 Switch One Desktop Down=Meta+Ctrl+Down,Meta+Ctrl+Down,Switch One Desktop Down
@@ -281,6 +272,9 @@ _launch=Meta+Ctrl+Shift+Space
 
 [services][org.kde.krunner.desktop]
 _launch=Search\tAlt+Space\tAlt+F2
+
+[services][org.kde.plasma-systemmonitor.desktop]
+_launch=none
 
 [wacomtablet]
 Map to fullscreen=Meta+Ctrl+F,Meta+Ctrl+F,Map to fullscreen
