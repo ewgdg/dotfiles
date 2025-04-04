@@ -87,12 +87,12 @@ dotfiles:
   f_etc_mkinitcpio.conf:
     src: etc/mkinitcpio.conf
     dst: /etc/mkinitcpio.conf
-  d_config_fcitx5_conf:
-    src: config/fcitx5/conf
-    dst: ~/.config/fcitx5/conf
+  d_config_fcitx5:
+    src: config/fcitx5
+    dst: ~/.config/fcitx5
     chmod: '700'
     cmpignore: &fcitx_ignore
-    - cached_layouts
+    - conf/cached_layouts
     upignore: *fcitx_ignore
     actions:
     - install fcitx5-im
@@ -217,7 +217,7 @@ profiles:
     dotfiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
-    - d_config_fcitx5_conf
+    - d_config_fcitx5
     - f_config_plasmanotifyrc
     - f_config_plasmashellrc
     actions:
