@@ -19,15 +19,22 @@ dotfiles:
     dst: /etc/keyd/default.conf
     actions:
     - install keyd
+  d_config_keyd:
+    src: config/keyd
+    dst: ~/.config/keyd
+    cmpignore: &keyd_app_ignore
+    - app.lock
+    upignore: *keyd_app_ignore
+  f_config_systemd_user_keyd-application-mapper.service:
+    src: config/systemd/user/keyd-application-mapper.service
+    dst: ~/.config/systemd/user/keyd-application-mapper.service
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
-    cmpignore:
+    cmpignore: &rime_ignore
     - '*'
     - '!/!(sync)/*.custom.yaml'
-    upignore:
-    - '*'
-    - '!/!(sync)/*.custom.yaml'
+    upignore: *rime_ignore
     chmod: '700'
   f_zshrc:
     src: zshrc
@@ -190,7 +197,9 @@ profiles:
     - posix_utils
     dotfiles:
     - f_etc_keyd_default.conf
+    - d_config_keyd
     - d_etc_docker
+    - f_config_systemd_user_keyd-application-mapper.service
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
