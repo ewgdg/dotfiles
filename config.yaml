@@ -198,8 +198,8 @@ profiles:
     dotfiles:
     - f_etc_keyd_default.conf
     - d_config_keyd
-    - d_etc_docker
     - f_config_systemd_user_keyd-application-mapper.service
+    - d_etc_docker
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
