@@ -133,36 +133,38 @@ alias fd='fd --hidden --exclude .git' #-p
 
 # fzf
 # fzf, use fd instead of find (fd reads ~/.fdignore)
-local _fzf_fd_options='--hidden --exclude .git --color=always --type d --type f'
-local _fzf_preview_options="if [[ -d {} ]]; then eza -a --tree -L1 --color=always --icons=always {} | head -200; else bat --color=always {} | head -200; fi"
-export FZF_DEFAULT_COMMAND="fd $_fzf_fd_options"
+local _fzf_preview_argument="if [[ -d {} ]]; \
+  then eza -a --tree -L1 --color=always --icons=always {} | head -n 200; \
+  else bat --color=always --line-range=:500 {}; \
+  fi"
+export FZF_DEFAULT_COMMAND="fd -H -E .git --type d --type f"
 # Ctrl + T command
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
 # Alt + C command 
-export FZF_ALT_C_COMMAND="fd $_fzf_fd_options --type d"
+export FZF_ALT_C_COMMAND="fd -H -E .git --type d"
+export FZF_CTRL_T_OPTS="--bind 'ctrl-/:toggle-preview' ${FZF_CTRL_T_OPTS:-} --preview '${_fzf_preview_argument}' --preview-window wrap"
+export FZF_ALT_C_OPTS="--bind 'ctrl-/:toggle-preview' ${FZF_ALT_C_OPTS:-} --preview '${_fzf_preview_argument}' --preview-window wrap"
+# allow color from fd
+export FZF_DEFAULT_OPTS="--ansi"
 # "**" command syntax
-eval "_fzf_compgen_path() {
-    fd ${_fzf_fd_options} . \"\$1\"
-}"
+_fzf_compgen_path() {
+    fd -H -E .git --type d --type f . "$1"
+}
 # "**" command syntax (for directories only)
-eval "_fzf_compgen_dir() {
-    fd ${_fzf_fd_options} --type d . \"\$1\"
-}"
+_fzf_compgen_dir() {
+    fd -H -E .git --type d . "$1"
+}
 _fzf_comprun() {
     local command=$1
     shift
 
     case "$command" in
         export|unset) fzf --preview "eval 'echo \$'{}" "$@" ;;
-        ssh) fzf --preview 'dig {}' "$@" ;;
-        *) fzf --preview "$_fzf_preview_options" "$@" ;;
+        ssh) fzf --preview "dig {}" "$@" ;;
+        *) fzf --preview "${_fzf_preview_argument}" --preview-window wrap "$@" ;;
     esac
 }
-export FZF_CTRL_T_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview_options}' ${FZF_CTRL_T_OPTS}"
-export FZF_ALT_C_OPTS="--bind 'ctrl-/:toggle-preview' --preview '${_fzf_preview_options}' ${FZF_ALT_C_OPTS}"
-# allow color from fd
-export FZF_DEFAULT_OPTS="--ansi"
-alias fzfp="fzf --preview '$_fzf_preview_options'"
+alias fzfp="fzf --preview '${_fzf_preview_argument}' --preview-window wrap"
 
 source <(fzf --zsh)
 
@@ -205,6 +207,7 @@ bindkey -M vicmd 'j' history-substring-search-down
 # alias
 alias ls='eza --icons=auto'
 alias tree='eza --icons=auto --tree'
+alias grep='rg'
 
 # custom env
 export PROJECTS_PATH=~/projects
