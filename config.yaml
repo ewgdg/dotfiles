@@ -40,11 +40,7 @@ dotfiles:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install fzf
-    - install zoxide
-    - install bat
-    - install fd
-    - install eza
+    - install fzf zoxide bat fd eza
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -244,9 +240,6 @@ profiles:
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
-  aegis.lan:
-    include:
-    - os_mac
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -s {0} {1}
