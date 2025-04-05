@@ -40,7 +40,8 @@ dotfiles:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install fzf zoxide bat fd eza
+    - install 'fzf bat fd eza' 
+    - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -153,7 +154,7 @@ dotfiles:
     src: etc/docker
     dst: /etc/docker
     actions:
-    - install docker docker-compose lazydocker
+    - install 'docker docker-compose lazydocker'
   f_config_plasmanotifyrc:
     src: config/plasmanotifyrc
     dst: ~/.config/plasmanotifyrc
@@ -182,7 +183,7 @@ profiles:
     - d_config_tmux
     - d_config_fd
     actions:
-    - install git lazygit
+    - install 'git lazygit'
     - install ripgrep
   posix_utils:
     dotfiles:
@@ -226,8 +227,7 @@ profiles:
     - f_config_plasmanotifyrc
     - f_config_plasmashellrc
     actions:
-    - install dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
-      kcalc kwalletmanager ffmpegthumbs
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate kcalc kwalletmanager ffmpegthumbs'
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
