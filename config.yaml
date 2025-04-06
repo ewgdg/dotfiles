@@ -166,9 +166,9 @@ dotfiles:
   d_local_share_flatpak_overrides:
     src: local/share/flatpak/overrides
     dst: ~/.local/share/flatpak/overrides
-  d_var_app_org.goldendict.goldendict_goldendict:
-    src: var/app/org.goldendict.GoldenDict/.goldendict
-    dst: ~/.var/app/org.goldendict.GoldenDict/.goldendict
+  d_var_app_org.goldendict.goldendict_config_goldendict:
+    src: var/app/org.goldendict.GoldenDict/config/goldendict
+    dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict
 profiles:
   base:
     dotfiles:
@@ -205,7 +205,7 @@ profiles:
     - d_etc_docker
     - d_config_autostart
     - d_local_share_flatpak_overrides
-    - d_var_app_org.goldendict.goldendict_goldendict
+    - d_var_app_org.goldendict.goldendict_config_goldendict
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
