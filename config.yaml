@@ -40,7 +40,7 @@ dotfiles:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install 'fzf bat fd eza' 
+    - install 'fzf bat fd eza'
     - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
@@ -163,6 +163,9 @@ dotfiles:
     src: config/plasmashellrc
     dst: ~/.config/plasmashellrc
     chmod: '600'
+  d_local_share_flatpak_overrides:
+    src: local/share/flatpak/overrides
+    dst: ~/.local/share/flatpak/overrides
 profiles:
   base:
     dotfiles:
@@ -197,6 +200,8 @@ profiles:
     - d_config_keyd
     - f_config_systemd_user_keyd-application-mapper.service
     - d_etc_docker
+    - d_config_autostart
+    - d_local_share_flatpak_overrides
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
@@ -214,7 +219,6 @@ profiles:
       desktop: gnome
     dotfiles:
     - d_config_ibus_rime
-    - d_config_autostart
     actions:
     - install seahorse #password manager UI
   de_kde:
@@ -227,7 +231,8 @@ profiles:
     - f_config_plasmanotifyrc
     - f_config_plasmashellrc
     actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate kcalc kwalletmanager ffmpegthumbs'
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
+      kcalc kwalletmanager ffmpegthumbs'
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
