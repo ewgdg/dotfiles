@@ -169,6 +169,9 @@ dotfiles:
   d_var_app_org.goldendict.goldendict_config_goldendict:
     src: var/app/org.goldendict.GoldenDict/config/goldendict
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict
+    cmpignore: &goldendict_ignore
+    - 'gdhelp.qhc'
+    upignore: *goldendict_ignore
 profiles:
   base:
     dotfiles:
