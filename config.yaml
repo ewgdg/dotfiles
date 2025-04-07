@@ -170,8 +170,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/timeForNewReleaseCheck"
-    trans_install: xml_merge "{{@@ _dotfile_abs_dst @@}}" "config/*WindowGeometry,config/timeForNewReleaseCheck"
+    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
+    trans_install: xml_merge "{{@@ _dotfile_abs_dst @@}}" "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
 profiles:
   base:
     dotfiles:
