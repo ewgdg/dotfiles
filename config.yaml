@@ -167,9 +167,11 @@ dotfiles:
     src: local/share/flatpak/overrides
     dst: ~/.local/share/flatpak/overrides
   f_var_app_org.goldendict.goldendict_config_goldendict_config:
+    template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xmllint
+    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/timeForNewReleaseCheck"
+    trans_install: xml_merge "{{@@ _dotfile_abs_dst @@}}" "config/*WindowGeometry,config/timeForNewReleaseCheck"
 profiles:
   base:
     dotfiles:
@@ -258,4 +260,6 @@ actions:
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
 trans_update:
-  xmllint: xmllint --format --encode utf-8 {0} -o {1}
+  xml_sort_attr_rm_nodes: "python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}"
+trans_install:
+  xml_merge: "python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0} {1} --merge_file {2} --merge_nodes {3}"
