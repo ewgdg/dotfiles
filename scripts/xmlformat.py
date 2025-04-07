@@ -2,6 +2,7 @@ import os
 import xml.etree.ElementTree as ET
 import fnmatch
 import argparse
+import xml.dom.minidom
 
 
 def merge_nodes(
@@ -114,7 +115,21 @@ def process_xml(
     if sort_attrs:
         sort_attributes(root)
 
-    tree.write(output_file, encoding="utf-8", xml_declaration=True)
+    # Convert ElementTree object to a string
+    xml_string = ET.tostring(root, encoding="unicode")
+    # Parse the string using minidom for pretty-printing
+    dom = xml.dom.minidom.parseString(xml_string)
+    pretty_xml = dom.toprettyxml(indent="  ", newl="\n")
+    lines = pretty_xml.splitlines()
+    pretty_xml = "\n".join(
+        line
+        for line in lines
+        if len(line.strip()) > 0  # and not line.startswith("<?xml")
+    )
+
+    # Write the formatted XML to a file
+    with open(output_file, "w") as output:
+        output.write(pretty_xml)
 
 
 if __name__ == "__main__":
