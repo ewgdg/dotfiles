@@ -171,7 +171,7 @@ dotfiles:
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
     trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
-    trans_install: xml_merge "{{@@ _dotfile_abs_dst @@}}" "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
+    trans_install: xml_merge
 profiles:
   base:
     dotfiles:
@@ -262,4 +262,4 @@ actions:
 trans_update:
   xml_sort_attr_rm_nodes: "python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}"
 trans_install:
-  xml_merge: "python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0} {1} --merge_file {2} --merge_nodes {3}"
+  xml_merge: "python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ _dotfile_abs_dst @@}}' {1} --merge_file {0}"

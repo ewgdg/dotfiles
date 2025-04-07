@@ -162,9 +162,11 @@ if __name__ == "__main__":
         args.input_file,
         args.output_file,
         patterns_for_removal=args.remove_nodes.split(",")
-        if args.remove_nodes
+        if args.remove_nodes is not None and args.remove_nodes != ""
         else None,
         sort_attrs=args.sort_attributes,
         merge_file=args.merge_file,
-        patterns_for_merge=args.merge_nodes.split(",") if args.merge_nodes else None,
+        patterns_for_merge=args.merge_nodes.split(",")
+        if args.merge_nodes is not None and args.merge_nodes != ""
+        else None,
     )
