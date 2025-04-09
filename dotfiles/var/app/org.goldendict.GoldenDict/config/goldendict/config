@@ -116,8 +116,8 @@
     <scanPopupUseUIAutomation>1</scanPopupUseUIAutomation>
     <scanPopupUseIAccessibleEx>1</scanPopupUseIAccessibleEx>
     <scanPopupUseGDMessage>1</scanPopupUseGDMessage>
-    <scanPopupUnpinnedWindowFlags>0</scanPopupUnpinnedWindowFlags>
-    <scanPopupUnpinnedBypassWMHint>0</scanPopupUnpinnedBypassWMHint>
+    <scanPopupUnpinnedWindowFlags>2</scanPopupUnpinnedWindowFlags>
+    <scanPopupUnpinnedBypassWMHint>1</scanPopupUnpinnedBypassWMHint>
     <pronounceOnLoadMain>0</pronounceOnLoadMain>
     <pronounceOnLoadPopup>0</pronounceOnLoadPopup>
     <useInternalPlayer>1</useInternalPlayer>
