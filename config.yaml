@@ -61,6 +61,8 @@ dotfiles:
   d_config_oh-my-posh:
     src: config/oh-my-posh
     dst: ~/.config/oh-my-posh
+    actions:
+    - install oh-my-posh
   d_config_wezterm:
     src: config/wezterm
     dst: ~/.config/wezterm
