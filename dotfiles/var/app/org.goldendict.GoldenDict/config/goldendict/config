@@ -13,16 +13,14 @@
     <dictionary name="Oxford English Living Dictionaries (aka. ODE) Online V1.51">f22d106966c7f15917b85c2dc08501eb</dictionary>
     <dictionary name="牛津联想词典">f7e9d9e88367c850e4a0f7e3cc6501b2</dictionary>
     <dictionary name="牛津同义词学习词典">211b6ed67e03f9daf3145f919e46e676</dictionary>
-    <dictionary name="Oxford Collocations Dictionary for students of English">8fffebeb240c4797aa709d1b6142b23b</dictionary>
+    <dictionary name="Oxford Collocations Dictionary for students of English">46ba7831ab5f0c4995eff2499e03ce7a</dictionary>
     <dictionary name="牛津英语习语词典">6a6feb208e11a4395aa3fba4589d2ba0</dictionary>
     <dictionary name="牛津短语动词词典">ccdfaf8e3dd6cdd7ff22503cc0a6bf0f</dictionary>
-    <dictionary name="简明英汉字典增强版 - CSS">ca6c210aec169562c0161bb5bd11b69e</dictionary>
     <dictionary name="牛津高阶汉英同义词反查(第9版)">cb558437a4b23dd6061cff6d09ac7ac1</dictionary>
     <dictionary name="Google Speech">6b4d6f5b0ab210f5082d4bf3ae82895a</dictionary>
     <mutedDictionaries/>
   </dictionaryOrder>
   <inactiveDictionaries id="0" name="">
-    <dictionary name="English Wikipedia">ae6f89aac7151829681b85f035d54e48</dictionary>
     <mutedDictionaries/>
   </inactiveDictionaries>
   <groups nextId="1"/>
