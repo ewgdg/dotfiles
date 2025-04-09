@@ -40,7 +40,7 @@ dotfiles:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install 'fzf bat fd eza'
+    - install 'fzf bat fd eza rg'
     - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
