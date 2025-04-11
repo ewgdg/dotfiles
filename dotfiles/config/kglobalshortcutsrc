@@ -20,15 +20,6 @@ quick-translator=Alt+D,Alt+D,Quick translator
 toggle=Ctrl+E,Ctrl+E,Turn on/off Trancy Video
 toggle-enable=none,none,Toggle enable state
 
-[google-chrome]
-_k_friendly_name=google-chrome
-enter-zapper-mode=none,none,Enter element zapper mode
-lock=Ctrl+Shift+L,Ctrl+Shift+L,Lock the extension
-open-dashboard=none,none,Open dashboard
-open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
-open-new-script=none,none,Open new script tab
-toggle-enable=none,none,Toggle enable state
-
 [kaccess]
 Toggle Screen Reader On and Off=Meta+Alt+S,Meta+Alt+S,Toggle Screen Reader On and Off
 _k_friendly_name=Accessibility
