@@ -1,7 +1,13 @@
 {
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "1m",
-    "max-file": "2"
-  }
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-file": "2",
+        "max-size": "1m"
+    },
+    "runtimes": {
+        "nvidia": {
+            "args": [],
+            "path": "nvidia-container-runtime"
+        }
+    }
 }
