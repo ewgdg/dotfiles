@@ -28,7 +28,7 @@ def merge_nodes(
             if layer2_child.tag in layer1_child_map:
                 layer1_child, layer1_child_i = layer1_child_map[layer2_child.tag]
                 if should_merge:
-                    print(f"Merging element {child_path} to index {layer1_child_i}")
+                    # print(f"Merging element {child_path} to index {layer1_child_i}")
                     layer1[layer1_child_i] = layer2_child
                 else:
                     merge_nodes_recursion(
@@ -39,7 +39,7 @@ def merge_nodes(
                     )
             elif should_merge:
                 # Add new child node if not present
-                print(f"Adding new element: {child_path}")
+                # print(f"Adding new element: {child_path}")
                 layer1.append(layer2_child)
 
     merge_nodes_recursion(layer1, layer2, layer1.tag, paths_to_merge)

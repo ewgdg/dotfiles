@@ -1,0 +1,7 @@
+[Desktop Entry]
+Exec=flatpak run org.goldendict.GoldenDict $(wl-paste)
+Name=goldendict-search
+# NoDisplay=true
+StartupNotify=false
+Type=Application
+Categories=Utility;

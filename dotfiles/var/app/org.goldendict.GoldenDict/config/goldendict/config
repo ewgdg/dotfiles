@@ -100,8 +100,8 @@
     <helpZoomFactor>1</helpZoomFactor>
     <wordsZoomLevel>0</wordsZoomLevel>
     <enableMainWindowHotkey>0</enableMainWindowHotkey>
-    <mainWindowHotkey>Ctrl+F11, Ctrl+F11</mainWindowHotkey>
-    <enableClipboardHotkey>1</enableClipboardHotkey>
+    <mainWindowHotkey>Ctrl+Ins, Ctrl+Ins</mainWindowHotkey>
+    <enableClipboardHotkey>0</enableClipboardHotkey>
     <clipboardHotkey>Ctrl+Ins, Ctrl+Ins</clipboardHotkey>
     <enableScanPopup>0</enableScanPopup>
     <startWithScanPopupOn>0</startWithScanPopupOn>
