@@ -58,9 +58,9 @@ KEYTIMEOUT=1
 #
 # DOTFILES
 #
-if [[ -f "$HOME/dotfiles/config.yaml" ]]; then
+if [ -f "$HOME/dotfiles/config.yaml" ]; then
     export DOTDROP_CONFIG="$HOME/dotfiles/config.yaml"
-elif [[ -f "$HOME/projects/dotfiles/config.yaml" ]]; then
+elif [ -f "$HOME/projects/dotfiles/config.yaml" ]; then
     export DOTDROP_CONFIG="$HOME/projects/dotfiles/config.yaml"
 fi
 
@@ -133,7 +133,7 @@ alias fd='fd --hidden --exclude .git' #-p
 
 # fzf
 # fzf, use fd instead of find (fd reads ~/.fdignore)
-local _fzf_preview_argument="if [[ -d {} ]]; \
+local _fzf_preview_argument="if [ -d {} ]; \
   then eza -a --tree -L1 --color=always --icons=always {} | head -n 200; \
   else bat --color=always --line-range=:500 {}; \
   fi"
