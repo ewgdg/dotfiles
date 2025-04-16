@@ -1,7 +1,7 @@
 {
     "log-driver": "json-file",
     "log-opts": {
-        "max-file": "1",
+        "max-file": "2",
         "max-size": "1m"
     },
     "runtimes": {
