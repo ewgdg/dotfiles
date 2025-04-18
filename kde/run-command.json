@@ -1,0 +1,14 @@
+[
+    {
+        "command": "loginctl lock-session",
+        "name": "Lock Screen"
+    },
+    {
+        "command": "loginctl unlock-session",
+        "name": "Unlock Screen"
+    },
+    {
+        "command": "ydotool mousemove -x 1 -y 1",
+        "name": "mouse move"
+    },
+]
