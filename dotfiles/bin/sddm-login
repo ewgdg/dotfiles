@@ -9,15 +9,54 @@ fi
 # exit immediately if any command fails
 set -e
 
-if [ "$#" -lt 1 ]; then
+# Default session type
+SESSION_TYPE="x11"
+
+# Parse command line arguments
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -w|--wayland)
+            SESSION_TYPE="wayland"
+            shift
+            ;;
+        -x|--x11)
+            SESSION_TYPE="x11"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS] [USERNAME]"
+            echo "Options:"
+            echo "  -w, --wayland    Use Wayland session"
+            echo "  -x, --x11        Use X11 session (default)"
+            echo "  -h, --help       Show this help message"
+            exit 0
+            ;;
+        *)
+            USER_NAME="$1"
+            shift
+            ;;
+    esac
+done
+
+# Set default username if not provided
+if [ -z "$USER_NAME" ]; then
     USER_NAME="$(logname)"
     echo "User is $USER_NAME"
 else
-    USER_NAME=$1
+    echo "User is $USER_NAME"
 fi
 
 # Input arguments
 CONFIG_FILE="/etc/sddm.conf"
+
+# Set session based on session type
+if [ "$SESSION_TYPE" = "wayland" ]; then
+    SESSION="plasma"
+    echo "Using Wayland session"
+else
+    SESSION="plasmax11"
+    echo "Using X11 session"
+fi
 
 assert_result() {
     if [ $? -ne 0 ]; then
@@ -40,7 +79,7 @@ enable_auto_login() {
     fi
 
     disable_auto_login
-    sed -i "/^\[Autologin\]/aUser=$USER_NAME\nSession=plasma" "$CONFIG_FILE"
+    sed -i "/^\[Autologin\]/aUser=$USER_NAME\nSession=$SESSION" "$CONFIG_FILE"
 
     assert_result
 }
