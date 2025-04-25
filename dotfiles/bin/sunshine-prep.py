@@ -202,7 +202,8 @@ def restore_monitor_config():
 
             for monitor_info in saved_config:
                 monitor_name = monitor_info.get("name")
-                if not monitor_name:
+
+                if not monitor_name or not monitor_info.get("connected", False):
                     continue
 
                 # Check if monitor is enabled in saved config
