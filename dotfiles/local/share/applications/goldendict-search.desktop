@@ -1,5 +1,5 @@
 [Desktop Entry]
-Exec=flatpak run org.goldendict.GoldenDict $(wl-paste)
+Exec=flatpak run org.goldendict.GoldenDict $(if [ "$XDG_SESSION_TYPE" == "wayland" ]; then wl-paste; else xclip -o; fi)
 Name=goldendict-search
 # NoDisplay=true
 StartupNotify=false
