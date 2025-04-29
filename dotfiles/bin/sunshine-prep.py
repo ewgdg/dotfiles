@@ -160,9 +160,9 @@ def enable_monitor(monitor_data, monitor, mode):
     )
 
     # Save the PID
-    with open(INHIBIT_PID_FILE, "w") as f:
-        f.write(str(inhibit_process.pid))
-    print(f"systemd-inhibit process id: {inhibit_process}")
+    # with open(INHIBIT_PID_FILE, "w") as f:
+    #     f.write(str(inhibit_process.pid))
+    print(f"systemd-inhibit process id: {inhibit_process.pid}")
 
     return True
 
