@@ -1,2 +1,2 @@
+global_prep_cmd = [{"do":"sh -c \"/home/$USER/bin/sunshine-prep.py do --width ${SUNSHINE_CLIENT_WIDTH} --height ${SUNSHINE_CLIENT_HEIGHT} --fps ${SUNSHINE_CLIENT_FPS}\"","undo":"sh -c \"/home/$USER/bin/sunshine-prep.py undo\""}]
 address_family = both
-global_prep_cmd = [{"do":"sh -c \"/home/$USER/bin/sunshine-prep.py do --width ${SUNSHINE_CLIENT_WIDTH} --height ${SUNSHINE_CLIENT_HEIGHT} --fps ${SUNSHINE_CLIENT_FPS}\"","undo":"/home/$USER/bin/sunshine-prep.py undo"}]
