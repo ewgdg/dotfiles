@@ -56,7 +56,7 @@ def remove_nodes(cur: ET.Element, paths_to_remove: list):
         for path_to_remove in paths_to_remove:
             # Check if the current path matches the pattern to ignore
             if fnmatch.fnmatch(cur_path, path_to_remove):
-                print(f"Removing element: {cur_path}")
+                # print(f"Removing element: {cur_path}")
                 if parent is not None:
                     parent.remove(cur)
                 else:
