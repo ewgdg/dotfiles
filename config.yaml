@@ -251,7 +251,7 @@ profiles:
     - f_local_share_applications_goldendict-search.desktop
     actions:
     - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
-      kcalc kwalletmanager ffmpegthumbs'
+      kcalc kwalletmanager kio-extras ffmpegthumbs'
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}

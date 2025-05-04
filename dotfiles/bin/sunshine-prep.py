@@ -213,7 +213,7 @@ def restore_monitor_config():
                     if current_mode:
                         restore_command += f" output.{monitor_name}.enable output.{monitor_name}.mode.{current_mode}"
                         # Set primary if it was primary
-                        if monitor_info.get("primary", False):
+                        if monitor_info.get("priority", 0) == 1:
                             restore_command += f" output.{monitor_name}.primary"
                         break
                 else:
