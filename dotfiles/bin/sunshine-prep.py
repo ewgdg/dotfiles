@@ -53,8 +53,29 @@ def save_monitor_config():
     directory = os.path.dirname(MONITOR_CONFIG_FILE)
     if not os.path.exists(directory):
         os.makedirs(directory)  # Create the directory if it doesn't exist
+
+    monitor_data_to_save = []
+    for monitor_info in monitor_data:
+        monitor_name = monitor_info.get("name")
+        if not monitor_name:
+            continue
+
+        connected = monitor_info.get("connected", False)
+        if not connected:
+            continue
+
+        # Save the current state of the monitor
+        monitor_data_to_save.append(
+            {
+                "name": monitor_name,
+                "enabled": monitor_info.get("enabled", False),
+                "currentModeId": monitor_info.get("currentModeId"),
+                "priority": monitor_info.get("priority"),
+            }
+        )
+
     with open(MONITOR_CONFIG_FILE, "w") as f:
-        f.write(json.dumps(monitor_data))
+        f.write(json.dumps(monitor_data_to_save))
     return monitor_data
 
 
@@ -203,24 +224,27 @@ def restore_monitor_config():
             for monitor_info in saved_config:
                 monitor_name = monitor_info.get("name")
 
-                if not monitor_name or not monitor_info.get("connected", False):
+                if not monitor_name or not monitor_info.get("connected", True):
                     continue
 
                 # Check if monitor is enabled in saved config
                 if monitor_info.get("enabled", False):
+                    restore_command += f" output.{monitor_name}.enable"
                     # Get the current mode information
                     current_mode = monitor_info.get("currentModeId")
                     if current_mode:
-                        restore_command += f" output.{monitor_name}.enable output.{monitor_name}.mode.{current_mode}"
-                        # Set primary if it was primary
-                        if monitor_info.get("priority", 0) == 1:
-                            restore_command += f" output.{monitor_name}.primary"
-                        break
+                        restore_command += f" output.{monitor_name}.mode.{current_mode}"
+                    # Set primary if it was primary
+                    if monitor_info.get("priority", 0) == 1:
+                        restore_command += f" output.{monitor_name}.primary"
                 else:
                     # Disable monitor if it was disabled
                     restore_command += f" output.{monitor_name}.disable"
 
             # Execute the restore command
+            if restore_command == "kscreen-doctor":
+                print("No changes to restore.")
+                return
             print("Restoring monitor configuration with command:")
             print(restore_command)
             run_command(restore_command)
