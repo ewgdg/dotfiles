@@ -140,6 +140,7 @@ def enable_monitor(monitor_data, monitor, mode):
     print(f"Enabling monitor {monitor} with mode {mode}...")
 
     try:
+        command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{mode}"
         # Disable all other monitors
         for monitor_info in monitor_data:
             monitor_name = monitor_info.get("name")
@@ -148,11 +149,11 @@ def enable_monitor(monitor_data, monitor, mode):
 
             if monitor_name != monitor:
                 print(f"Disabling monitor {monitor_name}...")
-                run_command(f"kscreen-doctor output.{monitor_name}.disable")
+                command += f" output.{monitor_name}.disable"
 
         # Enable the target monitor, set it as primary, and configure the resolution and refresh rate
         # command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{width}x{height}@{fps}"
-        command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{mode}"
+        print(f"Executing command: {command}")
         result = run_command(command)
 
         if result is None:
