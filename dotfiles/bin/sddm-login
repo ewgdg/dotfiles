@@ -10,7 +10,7 @@ fi
 set -e
 
 # Default session type
-SESSION_TYPE="x11"
+SESSION_TYPE="wayland"
 
 # Parse command line arguments
 while [ "$#" -gt 0 ]; do
