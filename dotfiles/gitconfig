@@ -10,8 +10,8 @@
 	name = Xian Zhang
 	email = xianzzz@outlook.com
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFV3YS3s5RPAeSJV+JW7gGF/oKmHXJAsCK9B+H+CUlJw
-[url "ssh://git@github.com"]
-    insteadOf = "https://github.com"
+# [url "ssh://git@github.com"]
+#     insteadOf = "https://github.com"
 [gpg]
 	format = ssh
 [gpg "ssh"]
