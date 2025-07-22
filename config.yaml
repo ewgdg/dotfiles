@@ -76,6 +76,7 @@ dotfiles:
     - '*/credentials/*'
     - '*state.json'
     - sunshine.conf
+    - tests/*
     upignore: *sunshine_ignore
     actions:
     - |
