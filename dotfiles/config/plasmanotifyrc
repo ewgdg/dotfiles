@@ -1,6 +1,9 @@
 [Applications][google-chrome]
 Seen=true
 
+[Applications][org.kde.spectacle]
+ShowPopups=false
+
 [Notifications]
 PopupPosition=TopRight
 PopupTimeout=3000
