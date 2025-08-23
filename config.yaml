@@ -183,6 +183,9 @@ dotfiles:
     src: local/share/applications/goldendict-search.desktop
     dst: ~/.local/share/applications/goldendict-search.desktop
     chmod: '600'
+  f_zshenv:
+    src: zshenv
+    dst: ~/.zshenv
 profiles:
   base:
     dotfiles:
@@ -208,6 +211,7 @@ profiles:
   posix_utils:
     dotfiles:
     - d_bin
+    - f_zshenv
   os_linux:
     include:
     - posix_base

@@ -1,0 +1,4 @@
+# my scripts
+export PATH="$HOME/bin:$PATH"
+# uv
+export PATH="$HOME/.local/bin:$PATH"
