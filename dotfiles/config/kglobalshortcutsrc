@@ -8,6 +8,42 @@ Switch to Last-Used Keyboard Layout=Meta+Alt+L,Meta+Alt+L,Switch to Last-Used Ke
 Switch to Next Keyboard Layout=Meta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
 _k_friendly_name=Keyboard Layout Switcher
 
+[chrome-bcmmjkglicliekcndffbfgcfopnidllp-Default]
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard=,none,Open dashboard
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard-with-running-scripts=,none,Open dashboard with the current tab's URL used as filter
+05C7FA5411BCC97AA158C1B40F93FBE6-open-new-script=,none,Open new script tab
+05C7FA5411BCC97AA158C1B40F93FBE6-toggle-enable=,none,Toggle enable state
+258539E4502AD35EACD9765866C3E54D-lock=,none,Lock the extension
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-picker-mode=,none,Create a custom filter
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-zapper-mode=,none,Remove an element
+EA5D8860E4C9DD7D76111F1DE55A29BC-auto_down=,none,Auto Download
+EA5D8860E4C9DD7D76111F1DE55A29BC-catch=,none,Capture
+EA5D8860E4C9DD7D76111F1DE55A29BC-clear=,none,Clear
+EA5D8860E4C9DD7D76111F1DE55A29BC-enable=,none,Pause / Enable
+EA5D8860E4C9DD7D76111F1DE55A29BC-m3u8=,none,M3U8 Parser
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-quick_clip=,none,Quick clip
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_highlighter=,none,Toggle highlighter mode
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_reader=,none,Toggle reading view
+_k_friendly_name=Google AI Studio
+
+[chrome-ocgdinbkeenikfhckcjjkeajfhcgonmg-Default]
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard=none,none,Open dashboard
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
+05C7FA5411BCC97AA158C1B40F93FBE6-open-new-script=none,none,Open new script tab
+05C7FA5411BCC97AA158C1B40F93FBE6-toggle-enable=none,none,Toggle enable state
+258539E4502AD35EACD9765866C3E54D-lock=none,none,Lock the extension
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-picker-mode=none,none,Create a custom filter
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-zapper-mode=none,none,Remove an element
+EA5D8860E4C9DD7D76111F1DE55A29BC-auto_down=none,none,Auto Download
+EA5D8860E4C9DD7D76111F1DE55A29BC-catch=none,none,Capture
+EA5D8860E4C9DD7D76111F1DE55A29BC-clear=none,none,Clear
+EA5D8860E4C9DD7D76111F1DE55A29BC-enable=none,none,Pause / Enable
+EA5D8860E4C9DD7D76111F1DE55A29BC-m3u8=none,none,M3U8 Parser
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-quick_clip=none,none,Quick clip
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_highlighter=none,none,Toggle highlighter mode
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_reader=none,none,Toggle reading view
+_k_friendly_name=Open WebUI
+
 [com.google.Chrome]
 _k_friendly_name=com.google.Chrome
 enter-zapper-mode=none,none,Enter element zapper mode
@@ -19,6 +55,24 @@ open-new-script=none,none,Open new script tab
 quick-translator=Alt+D,Alt+D,Quick translator
 toggle=Ctrl+E,Ctrl+E,Turn on/off Trancy Video
 toggle-enable=none,none,Toggle enable state
+
+[google-chrome]
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard=none,none,Open dashboard
+05C7FA5411BCC97AA158C1B40F93FBE6-open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
+05C7FA5411BCC97AA158C1B40F93FBE6-open-new-script=none,none,Open new script tab
+05C7FA5411BCC97AA158C1B40F93FBE6-toggle-enable=none,none,Toggle enable state
+258539E4502AD35EACD9765866C3E54D-lock=none,none,Lock the extension
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-picker-mode=none,none,Create a custom filter
+765F8D4D8E51E3F068B9B5D4EA3AADDD-enter-zapper-mode=none,none,Remove an element
+EA5D8860E4C9DD7D76111F1DE55A29BC-auto_down=none,none,Auto Download
+EA5D8860E4C9DD7D76111F1DE55A29BC-catch=none,none,Capture
+EA5D8860E4C9DD7D76111F1DE55A29BC-clear=none,none,Clear
+EA5D8860E4C9DD7D76111F1DE55A29BC-enable=none,none,Pause / Enable
+EA5D8860E4C9DD7D76111F1DE55A29BC-m3u8=none,none,M3U8 Parser
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-quick_clip=none,none,Quick clip
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_highlighter=none,none,Toggle highlighter mode
+FDC3A4CE6F9D3FCCDEE5D60EEC06ACA3-toggle_reader=none,none,Toggle reading view
+_k_friendly_name=Google Chrome
 
 [kaccess]
 Toggle Screen Reader On and Off=Meta+Alt+S,Meta+Alt+S,Toggle Screen Reader On and Off
