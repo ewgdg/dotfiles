@@ -186,6 +186,13 @@ dotfiles:
   f_zshenv:
     src: zshenv
     dst: ~/.zshenv
+  f_npmrc:
+    src: npmrc
+    dst: ~/.npmrc
+    chmod: '600'
+  f_zprofile:
+    src: zprofile
+    dst: ~/.zprofile
 profiles:
   base:
     dotfiles:
@@ -201,7 +208,10 @@ profiles:
     dotfiles:
     #- d_config_wezterm
     - f_zshrc
+    - f_zshenv
+    - f_zprofile
     - d_config_zsh
+    - f_npmrc
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
@@ -211,7 +221,6 @@ profiles:
   posix_utils:
     dotfiles:
     - d_bin
-    - f_zshenv
   os_linux:
     include:
     - posix_base
