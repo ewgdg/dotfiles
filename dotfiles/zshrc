@@ -197,8 +197,6 @@ fi
 # eval "$(zoxide init --cmd cd zsh)"
 eval "$(zoxide init --cmd z zsh)"
 
-source /usr/share/nvm/init-nvm.sh
-
 # bind keys
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
@@ -206,13 +204,13 @@ bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
 
 # alias
-if [[ -o interactive ]]; then
-  alias ls='eza --icons=auto'
-  alias tree='eza --icons=auto --tree'
-  alias grep='rg'
-  alias cd='z'
-fi
+alias ls='eza --icons=auto'
+alias tree='eza --icons=auto --tree'
+alias grep='rg'
+alias cd='z'
 
+# my scripts
+export PATH="$HOME/bin:$PATH"
 # custom env
 export PROJECTS_PATH=~/projects
 

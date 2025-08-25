@@ -1,4 +1,3 @@
-# my scripts
-export PATH="$HOME/bin:$PATH"
 # uv
-export PATH="$HOME/.local/bin:$PATH"
+# moved to .zprofile to avoid being included twice
+# export PATH="$HOME/.local/bin:$PATH"
