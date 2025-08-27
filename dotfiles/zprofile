@@ -4,5 +4,4 @@
 {%@@ if os == "darwin" @@%}
 eval "$(/opt/homebrew/bin/brew shellenv)"
 {%@@ endif @@%}
-
 export PATH="$HOME/.local/bin:$PATH"
