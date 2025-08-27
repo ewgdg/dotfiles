@@ -2,23 +2,23 @@
 
 # Check if host argument is provided
 if [ -z "$1" ]; then
-    echo "Usage: ssh-wake <hostname>" >&2
-    exit 1
+  echo "Usage: ssh-wake <hostname>" >&2
+  exit 1
 fi
 
 HOST="$1"
 
 # Test SSH connection first
 if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$HOST" "exit" 2>/dev/null; then
-    echo "Error: Cannot connect to $HOST via SSH" >&2
-    exit 1
+  echo "Error: Cannot connect to $HOST via SSH" >&2
+  exit 1
 fi
 
 # Wake the remote system with multiple mouse movements
 echo "Waking up $HOST..."
-if ssh -A "$HOST" "ydotool mousemove 1 0; sleep 0.1; ydotool mousemove 0 1; sleep 0.1; ydotool mousemove -1 0; sleep 0.1; ydotool mousemove 0 -1" 2>/dev/null; then
-    echo "Wake signal sent successfully to $HOST"
+if ssh -A "$HOST" "ydotool mousemove -x 1 -y 0" 2>/dev/null; then
+  echo "Wake signal sent successfully to $HOST"
 else
-    echo "Error: Failed to send wake signal to $HOST" >&2
-    exit 1
+  echo "Error: Failed to send wake signal to $HOST" >&2
+  exit 1
 fi

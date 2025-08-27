@@ -173,7 +173,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
+    trans_update: xml_sort_attr_rm_nodes 
+      "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
     trans_install: xml_merge
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
@@ -235,8 +236,8 @@ profiles:
     - f_var_app_org.goldendict.goldendict_config_goldendict_config
   os_arch:
     variables:
-      install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
-        {0}
+      install_cmd: yay -S --needed --answerdiff=None --answeredit=None 
+        --removemake {0}
     include:
     - os_linux
     dotfiles:
@@ -264,8 +265,8 @@ profiles:
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
     actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
-      kcalc kwalletmanager kio-extras ffmpegthumbs'
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
+      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -287,8 +288,8 @@ actions:
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
 trans_update:
-  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py'
-    {0} {1} --sort_attributes --remove_nodes {2}
+  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
 trans_install:
-  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ _dotfile_abs_dst
-    @@}}' {1} --merge_file {0}
+  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
+    _dotfile_abs_dst @@}}' {1} --merge_file {0}
