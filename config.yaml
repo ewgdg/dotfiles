@@ -271,6 +271,7 @@ profiles:
       install_cmd: brew install --quiet {0}
     include:
     - posix_base
+    - posix_utils
   xian-linux-server:
     include:
     - os_arch
