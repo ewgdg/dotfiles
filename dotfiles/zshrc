@@ -212,7 +212,6 @@ if [[ -o interactive ]]; then
   alias tree='eza --icons=auto --tree'
   alias grep='rg'
   alias cd='z'
-  alias claude='claude --dangerously-skip-permissions'
 fi
 
 # my scripts
@@ -224,7 +223,8 @@ claudecode() {
     # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
     # ANTHROPIC_AUTH_TOKEN="litellm" \
     # ANTHROPIC_SMALL_FAST_MODEL="gpt-mini" \
-    ANTHROPIC_BASE_URL="http://localhost:8787" \
+    # ANTHROPIC_BASE_URL="http://0.0.0.0:8787" \
+    ANTHROPIC_BASE_URL="https://claude-router.service.xianzzz.com" \
     \claude --dangerously-skip-permissions "$@"
 }
 
