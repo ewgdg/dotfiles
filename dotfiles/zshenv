@@ -1,3 +1,6 @@
+# Ensure PATH/path arrays remain unique across all zsh invocations
+typeset -U PATH path
+
 # uv
 # moved to .zprofile to avoid being included twice
 # export PATH="$HOME/.local/bin:$PATH"

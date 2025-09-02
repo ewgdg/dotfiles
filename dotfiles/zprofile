@@ -4,4 +4,5 @@
 {%@@ if os == "darwin" @@%}
 eval "$(/opt/homebrew/bin/brew shellenv)"
 {%@@ endif @@%}
-export PATH="$HOME/.local/bin:$PATH"
+# Prepend user bins; uniqueness is enforced by .zshenv (typeset -U PATH path)
+path=("$HOME/.local/bin" "$HOME/bin" $path)
