@@ -214,8 +214,6 @@ if [[ -o interactive ]]; then
   alias cd='z'
 fi
 
-# my scripts
-export PATH="$HOME/bin:$PATH"
 # custom env
 export PROJECTS_PATH=~/projects
 
