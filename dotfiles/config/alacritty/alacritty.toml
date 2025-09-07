@@ -26,6 +26,7 @@ selection = { text = "CellBackground", cursor = "#F1C2A6" }
 vi_mode_style = { shape = "Block", blinking = "Off" }
 
 [keyboard]
-bindings = [
-  { key = "Slash", mods = "Control", chars = "\u001f" }
-]
+# bindings = [
+#   { key = "Slash", mods = "Control", chars = "\u001f" }
+# ]
+# Note: Ctrl+/ already produces ^_ on this system; explicit binding is redundant.
