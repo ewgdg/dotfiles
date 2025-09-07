@@ -131,9 +131,10 @@ alias fd='fd --hidden --exclude .git' #-p
 
 # fzf
 # fzf, use fd instead of find (fd reads ~/.fdignore)
+# Always wrap: bat wraps to preview width; fzf preview pane also wraps as backup.
 local _fzf_preview_argument="if [ -d {} ]; \
   then eza -a --tree -L1 --color=always --icons=always {} | head -n 200; \
-  else bat --color=always --line-range=:500 {}; \
+  else bat --color=always --wrap=auto --terminal-width=\${FZF_PREVIEW_COLUMNS:-\${COLUMNS}} --line-range=:500 {}; \
   fi"
 export FZF_DEFAULT_COMMAND="fd -H -E .git --type d --type f"
 # Ctrl + T command
@@ -142,8 +143,8 @@ export FZF_CTRL_T_COMMAND="${FZF_DEFAULT_COMMAND}"
 export FZF_ALT_C_COMMAND="fd -H -E .git --type d"
 export FZF_CTRL_T_OPTS="--bind 'ctrl-/:toggle-preview' ${FZF_CTRL_T_OPTS:-} --preview '${_fzf_preview_argument}' --preview-window wrap"
 export FZF_ALT_C_OPTS="--bind 'ctrl-/:toggle-preview' ${FZF_ALT_C_OPTS:-} --preview '${_fzf_preview_argument}' --preview-window wrap"
-# allow color from fd
-export FZF_DEFAULT_OPTS="--ansi"
+# allow color from fd and set sane preview defaults globally
+export FZF_DEFAULT_OPTS="--ansi ${FZF_DEFAULT_OPTS:-}"
 # "**" command syntax
 _fzf_compgen_path() {
     fd -H -E .git --type d --type f . "$1"
