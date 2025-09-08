@@ -304,6 +304,8 @@ def main():
             height = args.height
             fps = args.fps
 
+        run_command("ydotool mousemove -x 1 -y 1")
+
         # Save current configuration before making changes
         monitor_data = save_monitor_config()
 
