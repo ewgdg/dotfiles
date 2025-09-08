@@ -78,16 +78,9 @@ dotfiles:
     - sunshine.conf
     - tests/*
     upignore: *sunshine_ignore
-    actions:
-    - |
-      sh
-      'if [[ {{@@ desktop @@}} == kde ]]; then
-        trash {{@@ _dotfile_abs_dst @@}}/sunshine.conf;
-        ln -s {{@@ _dotfile_abs_dst @@}}/sunshine.conf.kde {{@@ _dotfile_abs_dst @@}}/sunshine.conf
-      elif [[ {{@@ desktop @@}} == gnome ]]; then
-        trash {{@@ _dotfile_abs_dst @@}}/sunshine.conf;
-        ln -s {{@@ _dotfile_abs_dst @@}}/sunshine.conf.gnome {{@@ _dotfile_abs_dst @@}}/sunshine.conf
-      fi'
+  f_config_sunshine_conf:
+    src: 'config/sunshine/sunshine-{{@@ desktop @@}}.conf'
+    dst: ~/.config/sunshine/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
@@ -251,6 +244,7 @@ profiles:
       desktop: gnome
     dotfiles:
     - d_config_ibus_rime
+    - f_config_sunshine_conf
     actions:
     - install seahorse #password manager UI
   de_kde:
@@ -264,9 +258,15 @@ profiles:
     - f_config_plasmashellrc
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
+    - f_config_sunshine_conf
     actions:
     - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
       kate kcalc kwalletmanager kio-extras ffmpegthumbs'
+  de_hypr:
+    variables:
+      desktop: hypr
+    dotfiles:
+    - f_config_sunshine_conf
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
