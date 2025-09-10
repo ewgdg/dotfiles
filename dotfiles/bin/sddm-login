@@ -10,25 +10,30 @@ fi
 set -e
 
 # Default session type
-SESSION_TYPE="wayland"
+SESSION_TYPE="hypr"
 
 # Parse command line arguments
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        -w|--wayland)
-            SESSION_TYPE="wayland"
+        --kde)
+            SESSION_TYPE="kde"
             shift
             ;;
-        -x|--x11)
+        --x11)
             SESSION_TYPE="x11"
+            shift
+            ;;
+        --hypr)
+            SESSION_TYPE="hypr"
             shift
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS] [USERNAME]"
             echo "Options:"
-            echo "  -w, --wayland    Use Wayland session"
-            echo "  -x, --x11        Use X11 session (default)"
-            echo "  -h, --help       Show this help message"
+            echo "  --x11        Use kde X11 session"
+            echo "  --kde        Use kde plasma session"
+            echo "  --hypr       Use Hyprland session (default)"
+            echo "  --help       Show this help message"
             exit 0
             ;;
         *)
@@ -50,9 +55,12 @@ fi
 CONFIG_FILE="/etc/sddm.conf"
 
 # Set session based on session type
-if [ "$SESSION_TYPE" = "wayland" ]; then
+if [ "$SESSION_TYPE" = "kde" ]; then
     SESSION="plasma"
-    echo "Using Wayland session"
+    echo "Using KDE session"
+elif [ "$SESSION_TYPE" = "hypr" ]; then
+    SESSION="hyprland-uwsm"
+    echo "Using Hyprland session"
 else
     SESSION="plasmax11"
     echo "Using X11 session"
