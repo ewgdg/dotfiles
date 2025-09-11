@@ -438,8 +438,14 @@ def guard_action(
     timeout: Optional[int],
     mode: str,
     monitor: Optional[str],
+    initial_delay: int = 0,
 ) -> None:
     """Background guard: watches either a process or headless activity and restores when done."""
+    # Initial delay to allow monitor connection to stabilize
+    if initial_delay > 0:
+        debug_write(f"DEBUG: Guard waiting {initial_delay}s for monitor stabilization...\n")
+        time.sleep(initial_delay)
+    
     start = time.time()
     misses = 0
 
@@ -603,6 +609,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_guard.add_argument(
         "--monitor", type=str, help="Monitor to watch in activity mode"
     )
+    p_guard.add_argument(
+        "--initial-delay", type=int, default=0, help="Initial delay before starting guard"
+    )
     return parser.parse_args(argv)
 
 
@@ -634,6 +643,9 @@ def main(argv: List[str]) -> None:
             debug_write(f"ERROR: Error during do_action: {e}\n")
         # Spawn a background guard unless disabled
         if not args.no_guard:
+            # Pass delay to guard process instead of blocking main process
+            guard_delay = max(0, args.guard_delay)
+            
             # Auto-switch guard mode to proc if headless was not created
             guard_mode = args.guard_mode
             if guard_mode == "activity" and not headless_created:
@@ -650,6 +662,8 @@ def main(argv: List[str]) -> None:
                 str(args.guard_grace),
                 "--mode",
                 guard_mode,
+                "--initial-delay",
+                str(guard_delay),
             ]
             if args.guard_mode == "pid" and os.getppid() > 1:
                 cmd += ["--pid", str(os.getppid())]
@@ -657,12 +671,6 @@ def main(argv: List[str]) -> None:
             cmd += ["--monitor", args.guard_monitor or args.name]
             if args.guard_timeout:
                 cmd += ["--timeout", str(args.guard_timeout)]
-            
-            # Add delay before starting guard to allow monitor connection to stabilize
-            guard_delay = max(0, args.guard_delay)
-            if guard_delay > 0:
-                debug_write(f"DEBUG: Waiting {guard_delay}s before starting guard...\n")
-                time.sleep(guard_delay)
             
             try:
                 subprocess.Popen(
@@ -690,6 +698,7 @@ def main(argv: List[str]) -> None:
             timeout,
             args.mode,
             args.monitor,
+            args.initial_delay,
         )
 
 
