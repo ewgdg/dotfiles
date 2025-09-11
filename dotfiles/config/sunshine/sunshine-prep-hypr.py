@@ -165,6 +165,15 @@ def output_exists(name: str) -> bool:
     return any(m.get("name") == name for m in mons)
 
 
+def get_monitor_id(name: str) -> Optional[int]:
+    """Get monitor ID by name."""
+    mons = get_monitors(include_disabled=True) or []
+    for m in mons:
+        if m.get("name") == name:
+            return m.get("id")
+    return None
+
+
 def is_headless_name(name: Optional[str], preferred: Optional[str]) -> bool:
     if not name:
         return False
@@ -178,19 +187,27 @@ def is_headless_name(name: Optional[str], preferred: Optional[str]) -> bool:
     return False
 
 
-def clients_on_monitor(name: str) -> int:
-    """Return count of mapped clients on a given monitor."""
+def clients_on_monitor_id(monitor_id: int) -> int:
+    """Return count of mapped clients on a given monitor ID."""
     data = hypr_json("clients")
     if not isinstance(data, list):
         return 0
     cnt = 0
     for c in data:
         try:
-            if c.get("mapped") and c.get("monitor") == name:
+            if c.get("mapped") and c.get("monitor") == monitor_id:
                 cnt += 1
         except Exception:
             continue
     return cnt
+
+
+def clients_on_monitor(name: str) -> int:
+    """Return count of mapped clients on a given monitor name."""
+    monitor_id = get_monitor_id(name)
+    if monitor_id is None:
+        return 0
+    return clients_on_monitor_id(monitor_id)
 
 
 def install_guard_signal_traps() -> None:
@@ -298,7 +315,7 @@ def do_action(
     solo: bool,
     scale_arg: Optional[str] = None,
     mode: str = "detected",
-) -> None:
+) -> Optional[int]:
     if not which("hyprctl"):
         debug_write("ERROR: hyprctl not found. Are you running Hyprland?\n")
         sys.exit(1)
@@ -325,7 +342,7 @@ def do_action(
                 disable_other_monitors(created_name)
             debug_write(f"INFO: Using headless output: {created_name} at {width}x{height}@{fps}\n")
             enable_runtime_inhibit()
-            return
+            return get_monitor_id(created_name)
         else:
             # Fallback to detected mode if headless creation fails
             debug_write("DEBUG: Headless output creation failed; falling back to detected mode.\n")
@@ -369,6 +386,7 @@ def do_action(
             disable_other_monitors(selected)
         
         enable_runtime_inhibit()
+        return get_monitor_id(selected)
 
 
 def _kill_guard_processes() -> None:
@@ -439,6 +457,7 @@ def guard_action(
     mode: str,
     monitor: Optional[str],
     initial_delay: int = 0,
+    monitor_id: Optional[int] = None,
 ) -> None:
     """Background guard: watches either a process or headless activity and restores when done."""
     # Initial delay to allow monitor connection to stabilize
@@ -449,7 +468,8 @@ def guard_action(
     start = time.time()
     misses = 0
 
-    # Resolve monitor name: prefer explicit; fall back to conventional default
+    # Resolve monitor: prefer ID, fall back to name, then default
+    mon_id = monitor_id
     mon_name = monitor or DEFAULT_HEADLESS_NAME
 
     def _alive_proc() -> bool:
@@ -462,6 +482,10 @@ def guard_action(
         return True
 
     def _alive_activity() -> bool:
+        # Prefer monitor ID for robustness
+        if mon_id is not None:
+            return clients_on_monitor_id(mon_id) > 0
+        # Fallback to monitor name
         if not mon_name or not output_exists(mon_name):
             # If the output was already removed, we can consider not alive
             return False
@@ -607,7 +631,10 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         default=os.environ.get("SUNSHINE_GUARD_MODE", "activity"),
     )
     p_guard.add_argument(
-        "--monitor", type=str, help="Monitor to watch in activity mode"
+        "--monitor", type=str, help="Monitor name to watch in activity mode"
+    )
+    p_guard.add_argument(
+        "--monitor-id", type=int, help="Monitor ID to watch in activity mode (preferred over --monitor)"
     )
     p_guard.add_argument(
         "--initial-delay", type=int, default=0, help="Initial delay before starting guard"
@@ -632,11 +659,10 @@ def main(argv: List[str]) -> None:
                 "ERROR: Missing required --width/--height/--fps (or SUNSHINE_CLIENT_* envs).\n"
             )
             sys.exit(1)
-        headless_created = False
+        selected_monitor_id = None
         # Try to create headless and configure
         try:
-            do_action(width, height, fps, args.name, args.solo, args.scale, args.mode)
-            headless_created = output_exists(args.name)
+            selected_monitor_id = do_action(width, height, fps, args.name, args.solo, args.scale, args.mode)
         except SystemExit:
             raise
         except Exception as e:
@@ -646,10 +672,8 @@ def main(argv: List[str]) -> None:
             # Pass delay to guard process instead of blocking main process
             guard_delay = max(0, args.guard_delay)
             
-            # Auto-switch guard mode to proc if headless was not created
+            # Use the requested guard mode - activity mode works for both headless and physical monitors
             guard_mode = args.guard_mode
-            if guard_mode == "activity" and not headless_created:
-                guard_mode = "proc"
             cmd = [
                 sys.executable or "python3",
                 sys.argv[0],
@@ -667,8 +691,12 @@ def main(argv: List[str]) -> None:
             ]
             if args.guard_mode == "pid" and os.getppid() > 1:
                 cmd += ["--pid", str(os.getppid())]
-            # Always pass the monitor name for activity guard
-            cmd += ["--monitor", args.guard_monitor or args.name]
+            # Always pass the monitor ID for activity guard
+            if selected_monitor_id is not None:
+                cmd += ["--monitor-id", str(selected_monitor_id)]
+            elif args.guard_monitor:
+                # Fallback to monitor name if ID not available
+                cmd += ["--monitor", args.guard_monitor]
             if args.guard_timeout:
                 cmd += ["--timeout", str(args.guard_timeout)]
             
@@ -699,6 +727,7 @@ def main(argv: List[str]) -> None:
             args.mode,
             args.monitor,
             args.initial_delay,
+            args.monitor_id,
         )
 
 
