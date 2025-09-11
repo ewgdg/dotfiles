@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 """
 Prepare Hyprland outputs for Sunshine streaming using a headless (virtual) output
