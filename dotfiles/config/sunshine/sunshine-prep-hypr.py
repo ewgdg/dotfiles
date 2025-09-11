@@ -195,7 +195,11 @@ def clients_on_monitor_id(monitor_id: int) -> int:
     cnt = 0
     for c in data:
         try:
-            if c.get("mapped") and c.get("monitor") == monitor_id:
+            # Check if client is mapped and on the correct monitor
+            # Note: c.get("monitor") might return name or ID depending on Hyprland version
+            client_monitor = c.get("monitor")
+            mapped = c.get("mapped", False)
+            if mapped and (client_monitor == monitor_id or client_monitor == str(monitor_id)):
                 cnt += 1
         except Exception:
             continue
@@ -547,9 +551,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         help="Disable all non-headless outputs during session",
     )
     p_do.add_argument(
-        "--no-guard",
-        action="store_true",
-        help="Do not start a background guard for cleanup",
+        "--guard",
+        action="store_true", 
+        help="Enable background guard for auto-cleanup (disabled by default)",
     )
     p_do.add_argument(
         "--guard-proc",
@@ -667,8 +671,8 @@ def main(argv: List[str]) -> None:
             raise
         except Exception as e:
             debug_write(f"ERROR: Error during do_action: {e}\n")
-        # Spawn a background guard unless disabled
-        if not args.no_guard:
+        # Spawn a background guard if enabled
+        if args.guard:
             # Pass delay to guard process instead of blocking main process
             guard_delay = max(0, args.guard_delay)
             
