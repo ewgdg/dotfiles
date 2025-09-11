@@ -5,11 +5,15 @@ Prepare Hyprland outputs for Sunshine streaming using a headless (virtual) outpu
 when possible, then restore/cleanup.
 
 Usage:
-  sunshine-prep-hypr.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo]
+  sunshine-prep-hypr.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo] [--mode MODE]
   sunshine-prep-hypr.py undo
 
+Modes:
+- detected (default): Uses existing monitor that supports the requested resolution/fps
+- headless: Creates a virtual headless output named 'HEADLESS-sunshine'
+
 Defaults:
-- Creates a headless output named 'Sunshine-HEADLESS' and sets it to WxH@FPS.
+- Uses detected mode to find a suitable existing monitor
 - Does NOT disable physical monitors unless `--solo` is passed.
 
 Notes:
@@ -29,9 +33,60 @@ from typing import Any, Dict, List, Optional, Tuple
 import time
 
 
-DEFAULT_HEADLESS_NAME = os.environ.get("SUNSHINE_HEADLESS_NAME", "Sunshine-HEADLESS")
+DEFAULT_HEADLESS_NAME = os.environ.get("SUNSHINE_HEADLESS_NAME", "HEADLESS-sunshine")
 INHIBIT_WHO = "sunshine"
 INHIBIT_REASON = "sunshine-connection"
+DEBUG_LOG = "/tmp/sunshine-prep-debug.log"
+
+# Global flags to control debug logging
+ENABLE_FILE_LOGGING = False
+ENABLE_CONSOLE_LOGGING = True  # Default to True
+
+
+def debug_write(message: str) -> None:
+    """Write debug message to file and/or console if logging is enabled."""
+    if ENABLE_FILE_LOGGING:
+        try:
+            with open(DEBUG_LOG, "a") as f:
+                f.write(message)
+        except Exception:
+            pass  # Silently ignore logging errors
+    
+    if ENABLE_CONSOLE_LOGGING:
+        print(message.rstrip())  # Remove trailing newlines for console
+
+
+def ensure_hyprland_signature() -> bool:
+    """Ensure HYPRLAND_INSTANCE_SIGNATURE is set by detecting it from socket directory."""
+    
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        debug_write(f"DEBUG: HYPRLAND_INSTANCE_SIGNATURE already set: {os.environ.get('HYPRLAND_INSTANCE_SIGNATURE')}\n")
+        return True
+    
+    try:
+        user_id = os.getuid()
+        hypr_dir = f"/run/user/{user_id}/hypr"
+        debug_write(f"DEBUG: Looking for signature in: {hypr_dir}\n")
+        
+        if not os.path.exists(hypr_dir):
+            debug_write(f"DEBUG: Hypr directory does not exist: {hypr_dir}\n")
+            return False
+        
+        # Get the signature directory (should be the only subdirectory)
+        entries = os.listdir(hypr_dir)
+        debug_write(f"DEBUG: Found entries in hypr dir: {entries}\n")
+        for entry in entries:
+            entry_path = os.path.join(hypr_dir, entry)
+            if os.path.isdir(entry_path):
+                os.environ["HYPRLAND_INSTANCE_SIGNATURE"] = entry
+                debug_write(f"DEBUG: Set HYPRLAND_INSTANCE_SIGNATURE to: {entry}\n")
+                return True
+        
+        debug_write(f"DEBUG: No valid signature directory found\n")
+        return False
+    except (OSError, PermissionError) as e:
+        debug_write(f"DEBUG: Exception in ensure_hyprland_signature: {e}\n")
+        return False
 
 
 def run_command(cmd: str, returncode_ok: bool = False) -> Optional[str]:
@@ -47,7 +102,7 @@ def run_command(cmd: str, returncode_ok: bool = False) -> Optional[str]:
         # If returncode_ok is True, we still want stdout regardless of rc
         return (res.stdout or "").strip()
     except subprocess.CalledProcessError as e:
-        sys.stderr.write(f"Command failed: {cmd}\n{e.stderr}\n")
+        debug_write(f"ERROR: Command failed: {cmd}\n{e.stderr}\n")
         return None
 
 
@@ -223,10 +278,10 @@ def enable_runtime_inhibit() -> Optional[int]:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        print(f"systemd-inhibit PID: {p.pid}")
+        debug_write(f"DEBUG: systemd-inhibit PID: {p.pid}\n")
         return p.pid
     except Exception as e:
-        sys.stderr.write(f"Failed to start systemd-inhibit: {e}\n")
+        debug_write(f"ERROR: Failed to start systemd-inhibit: {e}\n")
         return None
 
 
@@ -242,59 +297,78 @@ def do_action(
     name: str,
     solo: bool,
     scale_arg: Optional[str] = None,
+    mode: str = "detected",
 ) -> None:
     if not which("hyprctl"):
-        print("hyprctl not found. Are you running Hyprland?")
+        debug_write("ERROR: hyprctl not found. Are you running Hyprland?\n")
+        sys.exit(1)
+    
+    if not ensure_hyprland_signature():
+        debug_write("ERROR: HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)\n")
         sys.exit(1)
 
     # tiny wake so remote cursor shows up quickly (optional)
     if which("ydotool"):
         run_command("ydotool mousemove -x 1 -y 1", returncode_ok=True)
 
-    # Prefer headless virtual output for simplicity
-    created_name = create_headless_output(name)
-    if created_name:
-        # Nothing to persist; we operate statelessly now
-        # Compute scale (supports --scale auto heuristic)
-        scale = compute_scale(scale_arg, width, height)
-        # Set requested mode on the headless output
-        spec = f"{created_name},{width}x{height}@{fps},auto,{scale}"
-        set_monitor_keyword(spec)
-        if solo:
-            disable_other_monitors(created_name)
-        print(f"Using headless output: {created_name} at {width}x{height}@{fps}")
-        enable_runtime_inhibit()
-        return
+    if mode == "headless":
+        # Use headless virtual output
+        created_name = create_headless_output(name)
+        if created_name:
+            # Nothing to persist; we operate statelessly now
+            # Compute scale (supports --scale auto heuristic)
+            scale = compute_scale(scale_arg, width, height)
+            # Set requested mode on the headless output
+            spec = f"{created_name},{width}x{height}@{fps},auto,{scale}"
+            set_monitor_keyword(spec)
+            if solo:
+                disable_other_monitors(created_name)
+            debug_write(f"INFO: Using headless output: {created_name} at {width}x{height}@{fps}\n")
+            enable_runtime_inhibit()
+            return
+        else:
+            # Fallback to detected mode if headless creation fails
+            debug_write("DEBUG: Headless output creation failed; falling back to detected mode.\n")
+            mode = "detected"
 
-    # Fallback path: no headless backend available, try existing monitors
-    print("Headless output creation failed; falling back to existing monitors.")
-    mons = [
-        m
-        for m in (get_monitors(include_disabled=False) or [])
-        if int(m.get("width", 0)) > 0
-    ]
-    mons.sort(
-        key=lambda m: 0
-        if str(m.get("name", "")).startswith(("DP-", "eDP-", "DP"))
-        else 1
-    )
-    selected: Optional[str] = None
-    for m in mons:
-        mname = m.get("name")
-        if not mname:
-            continue
-        if try_set_monitor_mode(mname, width, height, fps):
-            selected = mname
-            break
-    if not selected:
-        print(f"No monitor accepted {width}x{height}@{fps}.")
-        sys.exit(1)
-    # Apply scale to selected monitor as well
-    scale = compute_scale(scale_arg, width, height)
-    set_monitor_keyword(f"{selected},{width}x{height}@{fps},auto,{scale}")
-    print(f"Selected monitor: {selected}")
-    disable_other_monitors(selected)
-    enable_runtime_inhibit()
+    if mode == "detected":
+        # Default mode: detected - find existing monitor that supports requested mode
+        debug_write(f"DEBUG: Looking for monitor supporting {width}x{height}@{fps}...\n")
+        mons = [
+            m
+            for m in (get_monitors(include_disabled=True) or [])
+            if m.get("name") and not is_headless_name(m.get("name"), None)
+        ]
+        # Prioritize DP monitors
+        mons.sort(
+            key=lambda m: 0
+            if str(m.get("name", "")).startswith(("DP-", "eDP-", "DP"))
+            else 1
+        )
+        
+        selected: Optional[str] = None
+        for m in mons:
+            mname = m.get("name")
+            if not mname:
+                continue
+            debug_write(f"DEBUG: Trying monitor {mname}\n")
+            if try_set_monitor_mode(mname, width, height, fps):
+                selected = mname
+                break
+        
+        if not selected:
+            debug_write(f"ERROR: No monitor supports {width}x{height}@{fps}.\n")
+            sys.exit(1)
+        
+        # Apply scale to selected monitor
+        scale = compute_scale(scale_arg, width, height)
+        set_monitor_keyword(f"{selected},{width}x{height}@{fps},auto,{scale}")
+        debug_write(f"INFO: Using monitor: {selected} at {width}x{height}@{fps}\n")
+        
+        if solo:
+            disable_other_monitors(selected)
+        
+        enable_runtime_inhibit()
 
 
 def _kill_guard_processes() -> None:
@@ -314,24 +388,46 @@ def _kill_guard_processes() -> None:
 def restore_action(
     monitor_to_disable: Optional[str] = None, *, from_guard: bool = False
 ) -> None:
+    debug_write("DEBUG: Starting restore action\n")
+    
+    # Check if Hyprland is running
+    if not ensure_hyprland_signature():
+        debug_write("DEBUG: HYPRLAND_INSTANCE_SIGNATURE not set, skipping monitor restore\n")
+        debug_write("WARNING: Hyprland not running or signature not found. Skipping monitor restore.\n")
+        # Still try to kill processes
+        if not from_guard:
+            _kill_guard_processes()
+        kill_runtime_inhibit()
+        return
+    
     # If undo() is called manually, proactively stop any background guards
     if not from_guard:
+        debug_write("DEBUG: Killing background guard processes\n")
         _kill_guard_processes()
 
+    debug_write("DEBUG: Killing runtime inhibit processes\n")
     kill_runtime_inhibit()
 
     # Single pass: disable headless, (re)enable physicals at preferred
+    debug_write("DEBUG: Getting monitor list for restore\n")
     mons = get_monitors(include_disabled=True) or []
+    debug_write(f"DEBUG: Found {len(mons)} monitors\n")
+    
     for m in mons:
         name = m.get("name")
         if not name:
             continue
+        debug_write(f"DEBUG: Processing monitor: {name}\n")
         if is_headless_name(name, monitor_to_disable):
+            debug_write(f"DEBUG: Disabling headless monitor: {name}\n")
             set_monitor_keyword(f"{name},disable")
             continue
         active = bool(m.get("active", False)) and int(m.get("width", 0)) > 0
         if not active:
+            debug_write(f"DEBUG: Re-enabling physical monitor: {name}\n")
             set_monitor_keyword(f"{name},preferred,auto,1")
+    
+    debug_write("DEBUG: Restore action completed\n")
 
 
 def guard_action(
@@ -377,12 +473,12 @@ def guard_action(
 
     while True:
         if timeout and time.time() - start > timeout:
-            print("guard: timeout reached; performing restore.")
+            debug_write("DEBUG: guard: timeout reached; performing restore.\n")
             break
         if not _alive():
             misses += 1
             if misses >= max(grace, 1):
-                print("guard: condition met; performing restore.")
+                debug_write("DEBUG: guard: condition met; performing restore.\n")
                 break
         else:
             misses = 0
@@ -391,7 +487,7 @@ def guard_action(
     try:
         restore_action(mon_name if mode == "activity" else None, from_guard=True)
     except Exception as e:
-        sys.stderr.write(f"guard: restore failed: {e}\n")
+        debug_write(f"ERROR: guard: restore failed: {e}\n")
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
@@ -407,7 +503,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_do.add_argument(
         "--name",
         type=str,
-        default=os.environ.get("SUNSHINE_HEADLESS_NAME", "Sunshine-HEADLESS"),
+        default=os.environ.get("SUNSHINE_HEADLESS_NAME", "HEADLESS-sunshine"),
         help="Headless output name",
     )
     p_do.add_argument(
@@ -455,6 +551,29 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         type=str,
         help="Monitor name to watch in activity mode (defaults to created headless)",
     )
+    p_do.add_argument(
+        "--log-file",
+        action="store_true",
+        help="Enable debug logging to file",
+    )
+    p_do.add_argument(
+        "--no-log-console",
+        action="store_true",
+        help="Disable debug logging to console",
+    )
+    p_do.add_argument(
+        "--guard-delay",
+        type=int,
+        default=3,
+        help="Delay in seconds before starting guard process (default: 3)",
+    )
+    p_do.add_argument(
+        "--mode",
+        type=str,
+        choices=["detected", "headless"],
+        default="detected",
+        help="Output mode: detected (use existing monitor, default) or headless (create virtual output)",
+    )
 
     p_undo = sub.add_parser(
         "undo", help="Restore monitors and remove headless output(s)"
@@ -490,27 +609,29 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 def main(argv: List[str]) -> None:
     args = parse_args(argv)
     if not args.action:
-        print(__doc__)
+        debug_write(__doc__ + "\n")
         sys.exit(1)
 
     if args.action == "do":
         width = args.width or int(os.environ.get("SUNSHINE_CLIENT_WIDTH", "0") or 0)
         height = args.height or int(os.environ.get("SUNSHINE_CLIENT_HEIGHT", "0") or 0)
         fps = args.fps or int(os.environ.get("SUNSHINE_CLIENT_FPS", "0") or 0)
+        debug_write(f"DEBUG: Resolved values - width: {width}, height: {height}, fps: {fps}\n")
         if not (width and height and fps):
-            print(
-                "Missing required --width/--height/--fps (or SUNSHINE_CLIENT_* envs)."
+            debug_write("DEBUG: Missing width/height/fps - exiting with code 1\n")
+            debug_write(
+                "ERROR: Missing required --width/--height/--fps (or SUNSHINE_CLIENT_* envs).\n"
             )
             sys.exit(1)
         headless_created = False
         # Try to create headless and configure
         try:
-            do_action(width, height, fps, args.name, args.solo, args.scale)
+            do_action(width, height, fps, args.name, args.solo, args.scale, args.mode)
             headless_created = output_exists(args.name)
         except SystemExit:
             raise
         except Exception as e:
-            sys.stderr.write(f"Error during do_action: {e}\n")
+            debug_write(f"ERROR: Error during do_action: {e}\n")
         # Spawn a background guard unless disabled
         if not args.no_guard:
             # Auto-switch guard mode to proc if headless was not created
@@ -536,15 +657,28 @@ def main(argv: List[str]) -> None:
             cmd += ["--monitor", args.guard_monitor or args.name]
             if args.guard_timeout:
                 cmd += ["--timeout", str(args.guard_timeout)]
+            
+            # Add delay before starting guard to allow monitor connection to stabilize
+            guard_delay = max(0, args.guard_delay)
+            if guard_delay > 0:
+                debug_write(f"DEBUG: Waiting {guard_delay}s before starting guard...\n")
+                time.sleep(guard_delay)
+            
             try:
                 subprocess.Popen(
                     cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
-                print("Started background guard for auto-restore.")
+                debug_write("INFO: Started background guard for auto-restore.\n")
             except Exception as e:
-                sys.stderr.write(f"Failed to start guard: {e}\n")
+                debug_write(f"DEBUG: Failed to start guard: {e}\n")
+                debug_write(f"ERROR: Failed to start guard: {e}\n")
     elif args.action == "undo":
-        restore_action(args.name)
+        try:
+            restore_action(args.name)
+        except Exception as e:
+            debug_write(f"DEBUG: Error during undo: {e}\n")
+            debug_write(f"ERROR: Error during undo: {e}\n")
+            sys.exit(1)
     elif args.action == "guard":
         install_guard_signal_traps()
         timeout = args.timeout if args.timeout and args.timeout > 0 else None
@@ -560,4 +694,26 @@ def main(argv: List[str]) -> None:
 
 
 if __name__ == "__main__":
+    # Check for logging flags early
+    if "--log-file" in sys.argv:
+        ENABLE_FILE_LOGGING = True
+    if "--no-log-console" in sys.argv:
+        ENABLE_CONSOLE_LOGGING = False
+    
+    # Initial debug logging only if enabled
+    if ENABLE_FILE_LOGGING:
+        import datetime
+        is_main_do_command = len(sys.argv) > 1 and sys.argv[1] == "do"
+        mode = "w" if is_main_do_command else "a"
+        
+        try:
+            with open(DEBUG_LOG, mode) as f:
+                f.write(f"\n=== {datetime.datetime.now()} - ENTRY POINT ===\n")
+                f.write(f"DEBUG: Full sys.argv: {sys.argv}\n")
+                f.write(f"DEBUG: CWD: {os.getcwd()}\n")
+                f.write(f"DEBUG: Script path: {sys.argv[0]}\n")
+                f.flush()
+        except Exception:
+            pass  # Silently ignore logging errors
+    
     main(sys.argv[1:])
