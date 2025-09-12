@@ -10,7 +10,7 @@ fi
 set -e
 
 # Default session type
-SESSION_TYPE="hypr"
+SESSION_TYPE="kde"
 
 # Parse command line arguments
 while [ "$#" -gt 0 ]; do

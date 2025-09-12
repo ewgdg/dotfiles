@@ -276,7 +276,7 @@ profiles:
   xian-linux-server:
     include:
     - os_arch
-    - de_hypr
+    - de_kde
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
