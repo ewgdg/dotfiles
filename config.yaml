@@ -79,7 +79,7 @@ dotfiles:
     - tests/*
     upignore: *sunshine_ignore
   f_config_sunshine_conf:
-    src: 'config/sunshine/sunshine-{{@@ desktop @@}}.conf'
+    src: config/sunshine/sunshine-{{@@ desktop @@}}.conf
     dst: ~/.config/sunshine/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
@@ -166,8 +166,7 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes 
-      "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
+    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
     trans_install: xml_merge
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
@@ -187,6 +186,15 @@ dotfiles:
   f_zprofile:
     src: zprofile
     dst: ~/.zprofile
+  f_config_chrome-flags.conf:
+    src: config/chrome-flags.conf
+    dst: ~/.config/chrome-flags.conf
+  f_config_chromium-flags.conf:
+    src: config/chromium-flags.conf
+    dst: ~/.config/chromium-flags.conf
+  d_config_environment.d:
+    src: config/environment.d
+    dst: ~/.config/environment.d
 profiles:
   base:
     dotfiles:
@@ -227,15 +235,18 @@ profiles:
     - d_config_autostart
     - d_local_share_flatpak_overrides
     - f_var_app_org.goldendict.goldendict_config_goldendict_config
+    - d_config_environment.d
   os_arch:
     variables:
-      install_cmd: yay -S --needed --answerdiff=None --answeredit=None 
-        --removemake {0}
+      install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
+        {0}
     include:
     - os_linux
     dotfiles:
     - f_etc_makepkg.conf
     - f_etc_fonts_local.conf
+    - f_config_chrome-flags.conf
+    - f_config_chromium-flags.conf
   os_arch_kernel:
     dotfiles:
     - f_etc_mkinitcpio.conf
@@ -260,8 +271,8 @@ profiles:
     - f_local_share_applications_goldendict-search.desktop
     - f_config_sunshine_conf
     actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
-      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
+      kcalc kwalletmanager kio-extras ffmpegthumbs'
   de_hypr:
     variables:
       desktop: hypr
@@ -288,8 +299,8 @@ actions:
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
 trans_update:
-  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
+  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py'
+    {0} {1} --sort_attributes --remove_nodes {2}
 trans_install:
-  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
-    _dotfile_abs_dst @@}}' {1} --merge_file {0}
+  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ _dotfile_abs_dst
+    @@}}' {1} --merge_file {0}
