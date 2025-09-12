@@ -1,6 +1,6 @@
 [Context]
-filesystems=home;
-sockets=wayland;
+sockets=wayland
+filesystems=home
 
 [Environment]
 GTK_IM_MODULE=fcitx
