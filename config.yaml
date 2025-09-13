@@ -302,6 +302,7 @@ actions:
   install: '{{@@ install_cmd @@}}'
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
+  git-clone: 'if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git clone --depth=1 {0} "{1}"; fi'
 trans_update:
   xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py'
     {0} {1} --sort_attributes --remove_nodes {2}
