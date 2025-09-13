@@ -1,0 +1,11 @@
+[Greeter]
+WallpaperPlugin=org.kde.color
+
+[Greeter][LnF][General]
+showMediaControls=false
+
+[Greeter][Wallpaper][org.kde.color][General]
+Color=118,99,105
+
+[Daemon]
+LockOnStart=true

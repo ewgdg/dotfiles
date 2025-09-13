@@ -141,7 +141,7 @@ dotfiles:
     actions:
     - install tmux
     cmpignore: &tmux_ignore
-    - 'plugins/*'
+    - plugins/*
     upignore: *tmux_ignore
     instignore: *tmux_ignore
   d_config_fd:
@@ -199,6 +199,10 @@ dotfiles:
   d_config_environment.d:
     src: config/environment.d
     dst: ~/.config/environment.d
+  f_config_kscreenlockerrc:
+    src: config/kscreenlockerrc
+    dst: ~/.config/kscreenlockerrc
+    chmod: '600'
 profiles:
   base:
     dotfiles:
@@ -274,6 +278,7 @@ profiles:
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
     - f_config_sunshine_conf
+    - f_config_kscreenlockerrc
     actions:
     - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
       kcalc kwalletmanager kio-extras ffmpegthumbs'
@@ -302,7 +307,8 @@ actions:
   install: '{{@@ install_cmd @@}}'
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
-  git-clone: 'if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git clone --depth=1 {0} "{1}"; fi'
+  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git clone
+    --depth=1 {0} "{1}"; fi
 trans_update:
   xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py'
     {0} {1} --sort_attributes --remove_nodes {2}
