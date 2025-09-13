@@ -203,6 +203,9 @@ dotfiles:
     src: config/kscreenlockerrc
     dst: ~/.config/kscreenlockerrc
     chmod: '600'
+  f_etc_sddm.conf:
+    src: etc/sddm.conf
+    dst: /etc/sddm.conf
 profiles:
   base:
     dotfiles:
@@ -279,6 +282,7 @@ profiles:
     - f_local_share_applications_goldendict-search.desktop
     - f_config_sunshine_conf
     - f_config_kscreenlockerrc
+    - f_etc_sddm.conf
     actions:
     - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
       kcalc kwalletmanager kio-extras ffmpegthumbs'
