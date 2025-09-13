@@ -206,6 +206,8 @@ dotfiles:
   f_etc_sddm.conf:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
+    actions:
+    - install where-is-my-sddm-theme-git 
 profiles:
   base:
     dotfiles:
