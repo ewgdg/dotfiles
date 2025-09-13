@@ -1,6 +1,3 @@
-[PlasmaTransientsConfig]
-PreloadWeight=0
-
 [PlasmaViews][Panel 118]
 floating=0
 floatingApplets=1
