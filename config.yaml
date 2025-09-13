@@ -140,6 +140,10 @@ dotfiles:
     dst: ~/.config/tmux
     actions:
     - install tmux
+    cmpignore: &tmux_ignore
+    - 'plugins/*'
+    upignore: *tmux_ignore
+    instignore: *tmux_ignore
   d_config_fd:
     src: config/fd
     dst: ~/.config/fd
