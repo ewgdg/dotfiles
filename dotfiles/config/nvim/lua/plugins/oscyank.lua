@@ -1,10 +1,15 @@
 return {
 	"ojroques/vim-oscyank",
+	event = "VeryLazy",
 	config = function()
 		-- Only set up OSCYank in SSH sessions or when explicitly needed
-		if os.getenv("SSH_CLIENT") or os.getenv("SSH_TTY") or os.getenv("SSH_CONNECTION") or vim.fn.has("clipboard_working") == 0 then
+		if
+			os.getenv("SSH_CLIENT")
+			or os.getenv("SSH_TTY")
+			or os.getenv("SSH_CONNECTION")
+			or vim.fn.has("clipboard_working") == 0
+		then
 			-- Configure OSCYank
-			vim.g.oscyank_term = "default"
 			vim.g.oscyank_silent = false
 
 			-- Auto-sync yanks to system clipboard via OSC52
@@ -23,4 +28,3 @@ return {
 		end
 	end,
 }
-
