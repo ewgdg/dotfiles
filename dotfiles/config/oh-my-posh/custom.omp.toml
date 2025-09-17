@@ -3,137 +3,137 @@ version = 3
 final_space = true
 
 [palette]
-  black = '#262B44'
-  blue = '#4B95E9'
-  green = '#59C9A5'
-  orange = '#F07623'
-  red = '#D81E5B'
-  white = '#E0DEF4'
-  yellow = '#F3AE35'
-  dark-pink = '#9c4e5c'
-  pink = '#F1C2A6'
-  charcoal = '#333333'
-  burgundy = '#800020'
-  gold = '#D4AF37'
-  grey = '#A1A1A1'
+black = '#262B44'
+blue = '#4B95E9'
+green = '#59C9A5'
+orange = '#F07623'
+red = '#D81E5B'
+white = '#E0DEF4'
+yellow = '#F3AE35'
+dark-pink = '#9c4e5c'
+pink = '#F1C2A6'
+charcoal = '#333333'
+burgundy = '#800020'
+gold = '#D4AF37'
+grey = '#A1A1A1'
 
 [secondary_prompt]
-  template = "<d>> </d>"
-  foreground = 'default'
-  background = 'transparent'
+template = "<d>> </d>"
+foreground = 'default'
+background = 'transparent'
 
 [transient_prompt]
-  template = "<d>[{{ now | date \"15:04:05\"}}]  {{ base .PWD }}\n❯ </d>"
-  foreground = 'default'
-  background = 'transparent'
+template = "<d>[{{ now | date \"15:04:05\"}}]  {{ base .PWD }}\n❯ </d>"
+foreground = 'default'
+background = 'transparent'
 
 [upgrade]
-  source = 'cdn'
-  interval = '168h'
-  auto = false
-  notice = false
+source = 'cdn'
+interval = '168h'
+auto = false
+notice = false
 
 [[blocks]]
-  type = 'prompt'
-  alignment = 'left'
+type = 'prompt'
+alignment = 'left'
 
-  [[blocks.segments]]
-    template = "{{ if .SSHSession }} {{ end }}{{ .UserName }} "
-    foreground = 'p:pink'
-    type = 'session'
-    style = 'plain'
+[[blocks.segments]]
+template = "{{ if .SSHSession }} {{ end }}{{ .UserName }} "
+foreground = 'p:pink'
+type = 'session'
+style = 'plain'
 
-  [[blocks.segments]]
-    template = ' {{ .Path }} '
-    foreground = "lightCyan"
-    type = 'path'
-    style = 'plain'
+[[blocks.segments]]
+template = ' {{ .Path }} '
+foreground = "lightCyan"
+type = 'path'
+style = 'plain'
 
-    [blocks.segments.properties]
-      style = 'folder'
+[blocks.segments.properties]
+style = 'folder'
 
-  [[blocks.segments]]
-    template = '{{ if .UpstreamURL }}{{ .UpstreamIcon }} {{ end }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} \ueb4b {{ .StashCount }}{{ end }} '
-    foreground = 'lightGreen'
-    type = 'git'
-    style = 'plain'
-    foreground_templates = [
-        '{{ if or (.Working.Changed) (.Staging.Changed)}}yellow{{ end }}',
-        '{{ if and (gt .Ahead 0) (gt .Behind 0) }}red{{ end }}',
-        '{{ if or (gt .Ahead 0) (gt .Behind 0) }}lightRed{{ end }}'
-    ]
+[[blocks.segments]]
+template = '{{ if .UpstreamURL }}{{ .UpstreamIcon }} {{ end }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} '
+foreground = 'lightGreen'
+type = 'git'
+style = 'plain'
+foreground_templates = [
+  '{{ if or (.Working.Changed) (.Staging.Changed)}}yellow{{ end }}',
+  '{{ if and (gt .Ahead 0) (gt .Behind 0) }}red{{ end }}',
+  '{{ if or (gt .Ahead 0) (gt .Behind 0) }}lightRed{{ end }}',
+]
 
-    [blocks.segments.properties]
-      branch_template = '{{ trunc 25 .Branch }}'
-      fetch_status = true
-      fetch_upstream_icon = true
-      fetch_stash_count = true
+[blocks.segments.properties]
+branch_template = '{{ trunc 25 .Branch }}'
+fetch_status = true
+fetch_upstream_icon = true
+fetch_stash_count = true
 
-  [[blocks.segments]]
-    template = ' '
-    foreground = 'yellow'
-    type = 'root'
-    style = 'plain'
+[[blocks.segments]]
+template = ' '
+foreground = 'yellow'
+type = 'root'
+style = 'plain'
 
-  [[blocks.segments]]
-    template = '{{ if .Error }} {{ end }}'
-    foreground = 'lightRed'
-    type = 'status'
-    style = 'plain'
+[[blocks.segments]]
+template = '{{ if .Error }} {{ end }}'
+foreground = 'lightRed'
+type = 'status'
+style = 'plain'
 
-    [blocks.segments.properties]
-      always_enabled = false
+[blocks.segments.properties]
+always_enabled = false
 
 [[blocks]]
-  type = 'rprompt'
+type = 'rprompt'
 
-  [[blocks.segments]]
-    template = ' '
-    foreground = 'green'
-    background = 'transparent'
-    type = 'node'
-    style = 'plain'
+[[blocks.segments]]
+template = ' '
+foreground = 'green'
+background = 'transparent'
+type = 'node'
+style = 'plain'
 
-    [blocks.segments.properties]
-      display_mode = 'files'
-      fetch_package_manager = false
-      home_enabled = false
+[blocks.segments.properties]
+display_mode = 'files'
+fetch_package_manager = false
+home_enabled = false
 
-  [[blocks.segments]]
-    template = ' '
-    foreground = 'blue'
-    background = 'transparent'
-    type = 'go'
-    style = 'plain'
+[[blocks.segments]]
+template = ' '
+foreground = 'blue'
+background = 'transparent'
+type = 'go'
+style = 'plain'
 
-    [blocks.segments.properties]
-      fetch_version = false
+[blocks.segments.properties]
+fetch_version = false
 
-  [[blocks.segments]]
-    template = ' '
-    foreground = 'yellow'
-    background = 'transparent'
-    type = 'python'
-    style = 'plain'
+[[blocks.segments]]
+template = ' '
+foreground = 'yellow'
+background = 'transparent'
+type = 'python'
+style = 'plain'
 
-    [blocks.segments.properties]
-      display_mode = 'files'
-      fetch_version = false
-      fetch_virtual_env = false
+[blocks.segments.properties]
+display_mode = 'files'
+fetch_version = false
+fetch_virtual_env = false
 
-  [[blocks.segments]]
-    template = " <b>{{ .Name }}</b> "
-    foreground = 'lightBlue'
-    background = 'transparent'
-    type = 'shell'
-    style = 'plain'
+[[blocks.segments]]
+template = " <b>{{ .Name }}</b> "
+foreground = 'lightBlue'
+background = 'transparent'
+type = 'shell'
+style = 'plain'
 
-  [[blocks.segments]]
-    template = '[{{ .CurrentDate | date "15:04:05" }}]'
-    foreground = 'lightBlue'
-    background = 'transparent'
-    type = 'time'
-    style = 'plain'
+[[blocks.segments]]
+template = '[{{ .CurrentDate | date "15:04:05" }}]'
+foreground = 'lightBlue'
+background = 'transparent'
+type = 'time'
+style = 'plain'
 
 [[blocks]]
 newline = true
@@ -143,26 +143,26 @@ alignment = 'left'
 type = "text"
 style = "plain"
 foreground = 'p:pink'
-template = "❯" #❯ \ue602
+template = "❯"        #❯ \ue602
 [blocks.segments.properties]
 always_enabled = true
 
 [[tooltips]]
-  template = '  {{ .Profile }}{{ if .Region }}@{{ .Region }}{{ end }} '
-  foreground = 'yellow'
-  type = 'aws'
-  style = 'plain'
-  tips = ['aws']
+template = '  {{ .Profile }}{{ if .Region }}@{{ .Region }}{{ end }} '
+foreground = 'yellow'
+type = 'aws'
+style = 'plain'
+tips = ['aws']
 
-  [tooltips.properties]
-    display_default = true
+[tooltips.properties]
+display_default = true
 
 [[tooltips]]
-  template = '  {{ .Name }} '
-  foreground = 'blue'
-  type = 'az'
-  style = 'plain'
-  tips = ['az']
+template = '  {{ .Name }} '
+foreground = 'blue'
+type = 'az'
+style = 'plain'
+tips = ['az']
 
-  [tooltips.properties]
-    display_default = true
+[tooltips.properties]
+display_default = true

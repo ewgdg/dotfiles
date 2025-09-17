@@ -1,7 +1,5 @@
 [general]
-import = [
-    "~/.config/alacritty/themes/gruvbox_everforest_dark.toml"
-]
+import = ["~/.config/alacritty/themes/gruvbox_everforest_dark.toml"]
 
 [window]
 dimensions = { columns = 100, lines = 25 }
