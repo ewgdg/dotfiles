@@ -63,6 +63,30 @@ elif [ -f "$HOME/projects/dotfiles/config.yaml" ]; then
 fi
 
 #
+# PLUGINS
+#
+# zimfw
+ZSH_PLUGIN_DIR=~/.zsh-plugins
+ZIM_HOME=$ZSH_PLUGIN_DIR
+ZIM_CONFIG_FILE=~/.config/zsh/.zimrc
+
+zstyle ':zim:zmodule' use 'degit'
+
+# Download zimfw plugin manager if missing.
+if [[ ! -e ${ZIM_HOME}/zimfw.zsh ]]; then
+    curl -fsSL --create-dirs -o ${ZIM_HOME}/zimfw.zsh \
+        https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
+fi
+
+# Install missing modules and update ${ZIM_HOME}/init.zsh if missing or outdated.
+if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
+    source ${ZIM_HOME}/zimfw.zsh init
+fi
+
+# Initialize modules.
+source ${ZIM_HOME}/init.zsh
+
+#
 # Vim Mode
 #
 bindkey -v
@@ -71,28 +95,48 @@ export SYSTEMD_EDITOR=nvim
 
 # change cursor
 _fix_cursor() {
-    local _key=${1:-$KEYMAP}
-    local _shape=0
-    case ${_key} in
-        vicmd|visual) _shape=1 ;; # block
-        viins|main|command|isearch) _shape=5 ;; # beam
-        viopp) _shape=0 ;; # block
-        *) _shape=0 ;; # block
+    local keymap=${1:-$KEYMAP}
+    local shape=0
+    case ${keymap} in
+        vicmd|visual) shape=1 ;; # block
+        viins|main|command|isearch) shape=5 ;; # beam
+        viopp) shape=0 ;; # block
+        *) shape=0 ;; # block
     esac
-    printf $'\e[%d q' "${_shape}"
+    printf $'\e[%d q' "${shape}"
 }
-zle-keymap-select () {
-    _fix_cursor $KEYMAP
+
+__cursor_keymap_select() {
+    _fix_cursor "${KEYMAP}"
 }
-zle -N zle-keymap-select
-zle-line-init() {
-    _fix_cursor $KEYMAP
+
+__cursor_line_init() {
+    _fix_cursor "${KEYMAP}"
 }
-zle -N zle-line-init
-zle-line-finish() {
+
+__cursor_line_finish() {
     _fix_cursor vicmd
 }
-zle -N zle-line-finish
+
+autoload -Uz add-zle-hook-widget
+
+if (( ${+widgets[zle-keymap-select]} )); then
+    add-zle-hook-widget keymap-select __cursor_keymap_select
+else
+    zle -N zle-keymap-select __cursor_keymap_select
+fi
+
+if (( ${+widgets[zle-line-init]} )); then
+    add-zle-hook-widget line-init __cursor_line_init
+else
+    zle -N zle-line-init __cursor_line_init
+fi
+
+if (( ${+widgets[zle-line-finish]} )); then
+    add-zle-hook-widget line-finish __cursor_line_finish
+else
+    zle -N zle-line-finish __cursor_line_finish
+fi
 
 #
 # Theme
@@ -101,10 +145,6 @@ zle -N zle-line-finish
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
     eval "$(oh-my-posh init zsh --config ${HOME}/.config/oh-my-posh/custom.omp.toml)"
 fi
-
-#
-# PLUGINS
-#
 
 # ohmyzsh vi mode
 VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=false
@@ -167,27 +207,6 @@ alias fzfp="fzf --preview '${_fzf_preview_argument}' --preview-window wrap"
 
 source <(fzf --zsh)
 
-# zimfw
-ZSH_PLUGIN_DIR=~/.zsh-plugins
-ZIM_HOME=$ZSH_PLUGIN_DIR
-ZIM_CONFIG_FILE=~/.config/zsh/.zimrc
-
-zstyle ':zim:zmodule' use 'degit'
-
-# Download zimfw plugin manager if missing.
-if [[ ! -e ${ZIM_HOME}/zimfw.zsh ]]; then
-    curl -fsSL --create-dirs -o ${ZIM_HOME}/zimfw.zsh \
-        https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
-fi
-
-# Install missing modules and update ${ZIM_HOME}/init.zsh if missing or outdated.
-if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
-    source ${ZIM_HOME}/zimfw.zsh init
-fi
-
-# Initialize modules.
-source ${ZIM_HOME}/init.zsh
-
 # zoxide
 # export _ZO_DATA_DIR=$HOME/.local/share
 export _ZO_ECHO=1
@@ -203,6 +222,17 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
+autoload -Uz edit-command-line
+zle -N edit-command-line
+zle -A edit-command-line __cursor_edit_command_line_orig
+__cursor_edit_command_line() {
+    zle __cursor_edit_command_line_orig "$@"
+    local ret=$?
+    _fix_cursor "${KEYMAP:-viins}"
+    return ${ret}
+}
+zle -N edit-command-line __cursor_edit_command_line
+bindkey '^X^E' edit-command-line
 
 # alias
 # normally the zshrc is only loaded for interactive shell,
