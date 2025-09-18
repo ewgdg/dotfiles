@@ -123,6 +123,7 @@ if [[ -o interactive ]]; then
         if (( check_status == 0 )); then
             if [[ -n ${output} ]]; then
                 printf '%s\n' "${output}"
+                printf '%s\n' "[zimfw] Updates available. Run 'zimfw update' to apply."
             fi
             printf '%s\n' "${now}" >| "${stamp}"
         fi
