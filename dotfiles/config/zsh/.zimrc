@@ -1,5 +1,5 @@
-#zmodule ohmyzsh/ohmyzsh --root plugins/vi-mode
-#zmodule jeffreytse/zsh-vi-mode
+# zmodule ohmyzsh/ohmyzsh --root plugins/vi-mode
+# zmodule jeffreytse/zsh-vi-mode
 zmodule input
 
 # Additional completion definitions for Zsh.
@@ -10,6 +10,7 @@ zmodule completion
 
 # The zimfw/fzf config
 #zmodule fzf
+zmodule Aloxaf/fzf-tab
 
 # Fish-like syntax highlighting for Zsh.
 zmodule zsh-users/zsh-autosuggestions
