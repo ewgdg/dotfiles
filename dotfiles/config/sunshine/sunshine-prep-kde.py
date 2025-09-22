@@ -13,6 +13,7 @@ import json
 import subprocess
 import signal
 import argparse
+import time
 
 # Temporary files to store configuration
 MONITOR_CONFIG_FILE = "/tmp/sunshine-prep/sunshine-monitor-config.json"
@@ -320,6 +321,7 @@ def main():
             if not enable_monitor(monitor_data, monitor, mode):
                 print("Failed to enable monitor. Exiting.")
                 sys.exit(1)
+            time.sleep(1)  # Give some time for the settings to take effect
         else:
             print("Failed to find a suitable monitor. Exiting.")
             sys.exit(1)
