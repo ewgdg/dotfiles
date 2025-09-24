@@ -68,6 +68,45 @@
 				<false/>
 			</dict>
 		</array>
+		<key>54DCED12-EBDC-41E2-8C54-1813A0E6EFC3</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>574E7EC5-22A2-4004-BEAA-5B58569FF5DF</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>55FCCF66-5323-47E4-85D4-415544D50336</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>574E7EC5-22A2-4004-BEAA-5B58569FF5DF</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>574E7EC5-22A2-4004-BEAA-5B58569FF5DF</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>8993B0EE-14E4-44E0-884C-1E16F7D09F9C</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>73B3FAE5-F0A9-4600-840D-C69B082F0C52</key>
 		<array>
 			<dict>
@@ -106,6 +145,19 @@
 			<dict>
 				<key>destinationuid</key>
 				<string>219E1723-ECE3-4055-8ED5-DDB5A8413CC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>8993B0EE-14E4-44E0-884C-1E16F7D09F9C</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>B781C12D-FEC7-4F1E-9C09-AE1DE9CDE7F7</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -177,6 +229,101 @@
 	<string>Notes</string>
 	<key>objects</key>
 	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>2</integer>
+				<key>keyword</key>
+				<string>{var:last_note_keyword}</string>
+				<key>skipuniversalaction</key>
+				<true/>
+				<key>subtext</key>
+				<string>Edit most recently modified note</string>
+				<key>text</key>
+				<string>Open Last Note</string>
+				<key>withspace</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.keyword</string>
+			<key>uid</key>
+			<string>54DCED12-EBDC-41E2-8C54-1813A0E6EFC3</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>// Helpers
+function envVar(varName) {
+  return $.NSProcessInfo
+    .processInfo
+    .environment
+    .objectForKey(varName).js
+}
+
+// Main
+const ignoredFolders = envVar("ignored_folders").split("\n")
+
+Application("Notes").notes().find(noteReference =&gt; !ignoredFolders.find(ignoredFolder =&gt; ignoredFolder === noteReference.container().name())).id()</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>7</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>574E7EC5-22A2-4004-BEAA-5B58569FF5DF</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>55FCCF66-5323-47E4-85D4-415544D50336</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.transform</string>
+			<key>uid</key>
+			<string>8993B0EE-14E4-44E0-884C-1E16F7D09F9C</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
 		<dict>
 			<key>config</key>
 			<dict>
@@ -284,20 +431,25 @@ readonly state_file="${alfred_workflow_cache}/state.txt"
 
 # Helper to show results and exit
 function show_data {
-  &lt; "${cache_file}"
-  exit 0
+  &lt; "${cache_file}" &amp;&amp; exit 0
+
+  # If cache somehow failed to load, show message and delete state
+  echo '{ "items": [{ "title": "Unable to Load Results",
+    "subtitle": "Open the debugger and try again",
+    "valid": false }] }'
+  rm -f "${state_file}"
+  exit 1
 }
 
 # Get latest state
-readonly state="$(osascript -l JavaScript -e 'Application("Notes").notes[0].properties()')"
+readonly state="$(osascript -l JavaScript -e 'Application("Notes").notes[0].properties()' || uuidgen)"
 
 # Exit early if state has not changed
 [[ "${state}" == "$(&lt; "${state_file}")" ]] &amp;&amp; show_data
 
 # Update cache and state
 mkdir -p "${alfred_workflow_cache}"
-./get-notes &gt; "${cache_file}"
-echo "${state}" &gt; "${state_file}"
+./get-data &gt; "${cache_file}" &amp;&amp; echo "${state}" &gt; "${state_file}"
 show_data</string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
@@ -370,6 +522,8 @@ show_data</string>
 			<integer>2</integer>
 		</dict>
 		<dict>
+			<key>config</key>
+			<dict/>
 			<key>type</key>
 			<string>alfred.workflow.utility.junction</string>
 			<key>uid</key>
@@ -378,12 +532,43 @@ show_data</string>
 			<integer>1</integer>
 		</dict>
 		<dict>
+			<key>config</key>
+			<dict/>
 			<key>type</key>
 			<string>alfred.workflow.utility.junction</string>
 			<key>uid</key>
 			<string>021446E7-D0A0-446F-BF2A-8237DCF82771</string>
 			<key>version</key>
 			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>DBE6075C-D835-49C5-9027-C2CED6C19DBE</string>
+			<key>version</key>
+			<integer>2</integer>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -484,35 +669,6 @@ function run(argv) {
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>action</key>
-				<integer>0</integer>
-				<key>argument</key>
-				<integer>0</integer>
-				<key>focusedappvariable</key>
-				<false/>
-				<key>focusedappvariablename</key>
-				<string></string>
-				<key>hotkey</key>
-				<integer>0</integer>
-				<key>hotmod</key>
-				<integer>0</integer>
-				<key>leftcursor</key>
-				<false/>
-				<key>modsmode</key>
-				<integer>0</integer>
-				<key>relatedAppsMode</key>
-				<integer>0</integer>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.trigger.hotkey</string>
-			<key>uid</key>
-			<string>DBE6075C-D835-49C5-9027-C2CED6C19DBE</string>
-			<key>version</key>
-			<integer>2</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
 				<key>argument</key>
 				<string></string>
 				<key>passthroughargument</key>
@@ -542,9 +698,13 @@ Search notes via the `ns` keyword.
 * &lt;kbd&gt;⌃&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Delete note.
 * &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;⌃&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Force cache flush.
 
-Create a new quick note from within Alfred via the `nn` keyword.
+Create a new note from within Alfred via the `nn` keyword.
 
 ![Creating new note](images/about/new.png)
+
+Quickly open the last modified note via the `nl` keyword.
+
+![Opening last modified note](images/about/last.png)
 
 Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey/) for faster triggering.</string>
 	<key>uidata</key>
@@ -554,7 +714,7 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 			<key>xpos</key>
 			<real>490</real>
 			<key>ypos</key>
-			<real>345</real>
+			<real>610</real>
 		</dict>
 		<key>18947147-6454-4699-87F1-C2657E18C435</key>
 		<dict>
@@ -563,56 +723,86 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 			<key>xpos</key>
 			<real>905</real>
 			<key>ypos</key>
-			<real>205</real>
+			<real>470</real>
 		</dict>
 		<key>2147E2B1-6709-40D6-8EC6-F626C40612D7</key>
 		<dict>
 			<key>xpos</key>
 			<real>490</real>
 			<key>ypos</key>
-			<real>205</real>
+			<real>470</real>
 		</dict>
 		<key>219E1723-ECE3-4055-8ED5-DDB5A8413CC0</key>
 		<dict>
 			<key>xpos</key>
 			<real>805</real>
 			<key>ypos</key>
-			<real>235</real>
+			<real>500</real>
 		</dict>
 		<key>3D6923D0-3ECA-4EA0-8413-38A266E560CA</key>
 		<dict>
 			<key>xpos</key>
 			<real>490</real>
 			<key>ypos</key>
-			<real>425</real>
+			<real>690</real>
 		</dict>
-		<key>73B3FAE5-F0A9-4600-840D-C69B082F0C52</key>
+		<key>54DCED12-EBDC-41E2-8C54-1813A0E6EFC3</key>
 		<dict>
 			<key>xpos</key>
 			<real>265</real>
 			<key>ypos</key>
 			<real>65</real>
 		</dict>
+		<key>55FCCF66-5323-47E4-85D4-415544D50336</key>
+		<dict>
+			<key>note</key>
+			<string>Open last note</string>
+			<key>xpos</key>
+			<real>80</real>
+			<key>ypos</key>
+			<real>175</real>
+		</dict>
+		<key>574E7EC5-22A2-4004-BEAA-5B58569FF5DF</key>
+		<dict>
+			<key>xpos</key>
+			<real>490</real>
+			<key>ypos</key>
+			<real>175</real>
+		</dict>
+		<key>73B3FAE5-F0A9-4600-840D-C69B082F0C52</key>
+		<dict>
+			<key>xpos</key>
+			<real>265</real>
+			<key>ypos</key>
+			<real>330</real>
+		</dict>
 		<key>7F63EE2D-456F-430A-A305-DCD2CDC8EF81</key>
 		<dict>
 			<key>xpos</key>
 			<real>680</real>
 			<key>ypos</key>
-			<real>425</real>
+			<real>690</real>
+		</dict>
+		<key>8993B0EE-14E4-44E0-884C-1E16F7D09F9C</key>
+		<dict>
+			<key>xpos</key>
+			<real>645</real>
+			<key>ypos</key>
+			<real>205</real>
 		</dict>
 		<key>A7A42BF8-7C9C-42A6-9585-A098322102E4</key>
 		<dict>
 			<key>xpos</key>
 			<real>420</real>
 			<key>ypos</key>
-			<real>455</real>
+			<real>720</real>
 		</dict>
 		<key>B781C12D-FEC7-4F1E-9C09-AE1DE9CDE7F7</key>
 		<dict>
 			<key>xpos</key>
 			<real>490</real>
 			<key>ypos</key>
-			<real>65</real>
+			<real>330</real>
 		</dict>
 		<key>BC343D4E-85E5-4616-8C24-8432C511B220</key>
 		<dict>
@@ -621,7 +811,7 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 			<key>xpos</key>
 			<real>80</real>
 			<key>ypos</key>
-			<real>65</real>
+			<real>330</real>
 		</dict>
 		<key>DBE6075C-D835-49C5-9027-C2CED6C19DBE</key>
 		<dict>
@@ -630,7 +820,7 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 			<key>xpos</key>
 			<real>80</real>
 			<key>ypos</key>
-			<real>425</real>
+			<real>690</real>
 		</dict>
 		<key>F614E007-E2C0-4CC6-8658-98ADC7175B55</key>
 		<dict>
@@ -639,14 +829,14 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 			<key>xpos</key>
 			<real>905</real>
 			<key>ypos</key>
-			<real>65</real>
+			<real>330</real>
 		</dict>
 		<key>FC435CEF-F487-4965-B6B9-777B08CFD7D2</key>
 		<dict>
 			<key>xpos</key>
 			<real>265</real>
 			<key>ypos</key>
-			<real>425</real>
+			<real>690</real>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
@@ -685,13 +875,34 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 				<true/>
 			</dict>
 			<key>description</key>
-			<string>Keywords to interact with notes.</string>
+			<string></string>
 			<key>label</key>
 			<string>New Note Keyword</string>
 			<key>type</key>
 			<string>textfield</string>
 			<key>variable</key>
 			<string>new_note_keyword</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>nl</string>
+				<key>placeholder</key>
+				<string></string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Keywords to interact with notes.</string>
+			<key>label</key>
+			<string>Last Note Keyword</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>last_note_keyword</string>
 		</dict>
 		<dict>
 			<key>config</key>
@@ -737,7 +948,7 @@ Configure the [Hotkeys](https://www.alfredapp.com/help/workflows/triggers/hotkey
 		</dict>
 	</array>
 	<key>version</key>
-	<string>2025.3</string>
+	<string>25.1</string>
 	<key>webaddress</key>
 	<string>https://github.com/alfredapp/notes-workflow/</string>
 </dict>
