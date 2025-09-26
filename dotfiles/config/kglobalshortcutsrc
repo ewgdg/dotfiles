@@ -54,7 +54,7 @@ open-dashboard=none,none,Open dashboard
 open-dashboard-with-running-scripts=none,none,Open dashboard with the current tab's URL used as filter
 open-new-script=none,none,Open new script tab
 quick-translator=Alt+D,Alt+D,Quick translator
-toggle=Ctrl+E,Ctrl+E,Turn on/off Trancy Video
+toggle=none,Ctrl+E,Turn on/off Trancy Video
 toggle-enable=none,none,Toggle enable state
 
 [google-chrome]
@@ -308,8 +308,8 @@ activate task manager entry 7=Meta+7,Meta+7,Activate Task Manager Entry 7
 activate task manager entry 8=Meta+8,Meta+8,Activate Task Manager Entry 8
 activate task manager entry 9=Meta+9,Meta+9,Activate Task Manager Entry 9
 activate widget 174=none,none,Activate Application Launcher Widget
-activate widget 202=none,none,Activate Icons-Only Task Manager Widget
 activate widget 230=none,none,Activate Digital Clock Widget
+activate widget 232=none,none,Activate Icons-Only Task Manager Widget
 activate widget 29=none,none,Activate Icons-Only Task Manager Widget
 activate widget 90=none,none,Activate Icons-Only Task Manager Widget
 clear-history=none,,Clear Clipboard History
