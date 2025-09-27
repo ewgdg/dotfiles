@@ -208,6 +208,16 @@ dotfiles:
     dst: /etc/sddm.conf
     actions:
     - install where-is-my-sddm-theme-git
+  f_codex_agents.md:
+    src: codex/AGENTS.md
+    dst: ~/.codex/AGENTS.md
+  f_codex_config.toml:
+    src: codex/config.toml
+    dst: ~/.codex/config.toml
+    chmod: '600'
+  f_claude_claude.md:
+    src: claude/CLAUDE.md
+    dst: ~/.claude/CLAUDE.md
 profiles:
   base:
     dotfiles:
@@ -299,13 +309,20 @@ profiles:
     include:
     - posix_base
     - posix_utils
+    - app_ai
   xian-linux-server:
     include:
     - os_arch
     - de_kde
+    - app_ai
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
+  app_ai:
+    dotfiles:
+    - f_codex_agents.md
+    - f_codex_config.toml
+    - f_claude_claude.md
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -s {0} {1}

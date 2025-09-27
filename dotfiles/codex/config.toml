@@ -1,0 +1,22 @@
+approval_policy = "on-failure"
+sandbox_mode = "workspace-write"
+model = "gpt-5"
+model_reasoning_effort = "medium"
+
+# Extra settings that only apply when `sandbox = "workspace-write"`.
+[sandbox_workspace_write]
+# Allow the command being run inside the sandbox to make outbound network
+# requests. Disabled by default.
+network_access = true
+writable_roots = ["$HOME/.local/share/Trash"]
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+
+# [mcp_servers.mcp-web-context]
+# command = "uvx"
+# args = ["mcp-proxy", "--transport", "streamablehttp", "https://scraper.service.xianzzz.com/mcp"]
+
+[tools]
+web_search = true
