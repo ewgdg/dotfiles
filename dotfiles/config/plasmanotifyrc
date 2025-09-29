@@ -4,6 +4,9 @@ Seen=true
 [Applications][org.kde.spectacle]
 ShowPopups=false
 
+[Badges]
+InTaskManager=false
+
 [Notifications]
 PopupPosition=TopRight
 PopupTimeout=3000
