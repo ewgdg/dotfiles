@@ -321,7 +321,7 @@ def main():
             if not enable_monitor(monitor_data, monitor, mode):
                 print("Failed to enable monitor. Exiting.")
                 sys.exit(1)
-            time.sleep(1)  # Give some time for the settings to take effect
+            # time.sleep(1)  # Give some time for the settings to take effect
         else:
             print("Failed to find a suitable monitor. Exiting.")
             sys.exit(1)
