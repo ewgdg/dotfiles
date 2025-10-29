@@ -75,8 +75,8 @@ def save_monitor_config():
             }
         )
 
-    with open(MONITOR_CONFIG_FILE, "w") as f:
-        f.write(json.dumps(monitor_data_to_save))
+    # with open(MONITOR_CONFIG_FILE, "w") as f:
+    #     f.write(json.dumps(monitor_data_to_save))
     return monitor_data
 
 
