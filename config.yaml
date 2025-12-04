@@ -155,10 +155,6 @@ dotfiles:
     dst: /etc/docker
     actions:
     - install 'docker docker-compose lazydocker'
-  f_config_plasmanotifyrc:
-    src: config/plasmanotifyrc
-    dst: ~/.config/plasmanotifyrc
-    chmod: '600'
   f_config_plasmashellrc:
     src: config/plasmashellrc
     dst: ~/.config/plasmashellrc
