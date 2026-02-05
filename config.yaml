@@ -284,7 +284,6 @@ profiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
     - d_config_fcitx5
-    - f_config_plasmanotifyrc
     - f_config_plasmashellrc
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
