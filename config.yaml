@@ -78,9 +78,8 @@ dotfiles:
     - sunshine.conf
     - tests/*
     upignore: *sunshine_ignore
-  f_config_sunshine_conf:
-    src: config/sunshine/sunshine-{{@@ desktop @@}}.conf
-    dst: ~/.config/sunshine/sunshine.conf
+    actions:
+    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf {{@@_dotfile_abs_dst@@}}/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
@@ -274,7 +273,6 @@ profiles:
       desktop: gnome
     dotfiles:
     - d_config_ibus_rime
-    - f_config_sunshine_conf
     actions:
     - install seahorse #password manager UI
   de_kde:
@@ -287,7 +285,6 @@ profiles:
     - f_config_plasmashellrc
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
-    - f_config_sunshine_conf
     - f_config_kscreenlockerrc
     - f_etc_sddm.conf
     actions:
@@ -297,7 +294,6 @@ profiles:
     variables:
       desktop: hypr
     dotfiles:
-    - f_config_sunshine_conf
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -320,7 +316,7 @@ profiles:
     - f_claude_claude.md
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
-  symlink_cmd: ln -s {0} {1}
+  symlink_cmd: ln -sfn {0} {1}
 actions:
   install: '{{@@ install_cmd @@}}'
   symlink: '{{@@ symlink_cmd @@}}'
