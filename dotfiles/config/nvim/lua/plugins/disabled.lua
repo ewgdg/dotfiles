@@ -1,4 +1,4 @@
 return {
-	-- disable trouble
-	-- { "saghen/blink.cmp", enabled = false },
+  { "echasnovski/mini.pairs", enabled = false },
+  -- { "saghen/blink.cmp", enabled = false },
 }
