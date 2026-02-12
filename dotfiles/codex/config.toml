@@ -2,7 +2,12 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 model_reasoning_effort = "medium"
 web_search = "live"
+model = "gpt-5.2"
 personality = "pragmatic"
+
+[profiles.general]
+model = "gpt-5.2"
+model_reasoning_effort = "medium"
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]
@@ -16,7 +21,8 @@ command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 
 [notice.model_migrations]
-"gpt-5.2" = "gpt-5.2-codex"
+"gpt-5.2" = "gpt-5.3-codex"
+"gpt-5.1-codex-mini" = "gpt-5.2-codex"
 
 # [mcp_servers.mcp-web-context]
 # command = "uvx"
