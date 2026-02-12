@@ -14,7 +14,7 @@ model_reasoning_effort = "medium"
 # Allow the command being run inside the sandbox to make outbound network
 # requests. Disabled by default.
 network_access = true
-writable_roots = ["$HOME/.local/share/Trash"]
+writable_roots = ["~/.local/share/Trash"]
 
 [mcp_servers.context7]
 command = "npx"
