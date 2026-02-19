@@ -27,7 +27,6 @@ vi_mode_style = { shape = "Block", blinking = "Off" }
 osc52 = "OnlyCopy"
 
 [keyboard]
-# bindings = [
-#   { key = "Slash", mods = "Control", chars = "\u001f" }
-# ]
-# Note: Ctrl+/ already produces ^_ on this system; explicit binding is redundant.
+bindings = [
+  { key = "S", mods = "Command", chars = "\u0013" }
+]

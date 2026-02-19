@@ -79,7 +79,8 @@ dotfiles:
     - tests/*
     upignore: *sunshine_ignore
     actions:
-    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf {{@@_dotfile_abs_dst@@}}/sunshine.conf
+    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf 
+      {{@@_dotfile_abs_dst@@}}/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
@@ -165,7 +166,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
+    trans_update: xml_sort_attr_rm_nodes 
+      "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
     trans_install: xml_merge
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
@@ -267,8 +269,8 @@ profiles:
     - d_config_environment.d
   os_arch:
     variables:
-      install_cmd: yay -S --needed --answerdiff=None --answeredit=None --removemake
-        {0}
+      install_cmd: yay -S --needed --answerdiff=None --answeredit=None 
+        --removemake {0}
     include:
     - os_linux
     dotfiles:
@@ -302,12 +304,11 @@ profiles:
     - f_etc_sddm.conf
     - f_etc_plasmalogin.conf
     actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
-      kcalc kwalletmanager kio-extras ffmpegthumbs'
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
+      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   de_hypr:
     variables:
       desktop: hypr
-    dotfiles:
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -335,11 +336,11 @@ actions:
   install: '{{@@ install_cmd @@}}'
   symlink: '{{@@ symlink_cmd @@}}'
   sh: sh -c "{0}"
-  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git clone
-    --depth=1 {0} "{1}"; fi
+  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
+    clone --depth=1 {0} "{1}"; fi
 trans_update:
-  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py'
-    {0} {1} --sort_attributes --remove_nodes {2}
+  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
 trans_install:
-  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ _dotfile_abs_dst
-    @@}}' {1} --merge_file {0}
+  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
+    _dotfile_abs_dst @@}}' {1} --merge_file {0}
