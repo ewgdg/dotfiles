@@ -1,48 +1,3 @@
-[PlasmaViews][Panel 118]
-floating=0
-floatingApplets=1
-panelLengthMode=1
-panelOpacity=2
-panelVisibility=1
-
-[PlasmaViews][Panel 118][Defaults]
-maxLength=2537
-minLength=2537
-thickness=44
-
-[PlasmaViews][Panel 118][Horizontal2596]
-maxLength=2537
-minLength=2537
-
-[PlasmaViews][Panel 145]
-floating=0
-floatingApplets=1
-panelLengthMode=1
-panelOpacity=2
-panelVisibility=1
-
-[PlasmaViews][Panel 145][Defaults]
-maxLength=2537
-minLength=2537
-thickness=44
-
-[PlasmaViews][Panel 145][Horizontal2596]
-maxLength=2537
-minLength=2537
-
-[PlasmaViews][Panel 173]
-floating=1
-
-[PlasmaViews][Panel 173][Defaults]
-maxLength=1818
-minLength=1818
-offset=0
-thickness=32
-
-[PlasmaViews][Panel 173][Horizontal2596]
-maxLength=1818
-minLength=1818
-
 [PlasmaViews][Panel 199]
 floating=0
 floatingApplets=0
@@ -56,52 +11,6 @@ minLength=2537
 thickness=56
 
 [PlasmaViews][Panel 199][Horizontal2596]
-maxLength=2537
-minLength=2537
-
-[PlasmaViews][Panel 3]
-alignment=132
-floating=0
-panelLengthMode=1
-panelOpacity=2
-panelVisibility=2
-
-[PlasmaViews][Panel 3][Defaults]
-thickness=56
-
-[PlasmaViews][Panel 36]
-floating=1
-
-[PlasmaViews][Panel 36][Defaults]
-maxLength=2537
-minLength=2537
-thickness=44
-
-[PlasmaViews][Panel 36][Horizontal2596]
-maxLength=2537
-minLength=2537
-
-[PlasmaViews][Panel 62]
-floating=1
-
-[PlasmaViews][Panel 62][Defaults]
-maxLength=2537
-minLength=2537
-thickness=44
-
-[PlasmaViews][Panel 62][Horizontal2596]
-maxLength=2537
-minLength=2537
-
-[PlasmaViews][Panel 92]
-floating=1
-
-[PlasmaViews][Panel 92][Defaults]
-maxLength=2537
-minLength=2537
-thickness=44
-
-[PlasmaViews][Panel 92][Horizontal2596]
 maxLength=2537
 minLength=2537
 

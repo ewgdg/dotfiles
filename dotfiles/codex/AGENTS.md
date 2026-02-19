@@ -2,7 +2,7 @@
 
 ## Libraries and Dependencies
 
-- Use latest libraries and frameworks, reference docs with context7
+- Use latest libraries and frameworks, reference docs with `context7`
 
 ## File Operations
 
@@ -13,9 +13,10 @@
 - document for features or techniques of a project, that worth mention or review
 - if you need to write doc, store docs in `./docs/` directory
 
-## Shell Related
+## Privileged Commands
 
-- use `pkexec` for root privileges
+- use `sudo -A` in Linux
+- use `osascript` in Mac OS
 
 ## Python Related
 
