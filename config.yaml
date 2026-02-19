@@ -203,6 +203,9 @@ dotfiles:
     dst: /etc/sddm.conf
     actions:
     - install where-is-my-sddm-theme-git
+  f_etc_plasmalogin.conf:
+    src: etc/plasmalogin.conf
+    dst: /etc/plasmalogin.conf
   f_codex_agents.md:
     src: codex/AGENTS.md
     dst: ~/.codex/AGENTS.md
@@ -287,6 +290,7 @@ profiles:
     - f_local_share_applications_goldendict-search.desktop
     - f_config_kscreenlockerrc
     - f_etc_sddm.conf
+    - f_etc_plasmalogin.conf
     actions:
     - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight kate
       kcalc kwalletmanager kio-extras ffmpegthumbs'
