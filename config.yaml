@@ -198,6 +198,14 @@ dotfiles:
     src: config/kscreenlockerrc
     dst: ~/.config/kscreenlockerrc
     chmod: '600'
+  f_config_kdeglobals:
+    src: config/kdeglobals
+    dst: ~/.config/kdeglobals
+    chmod: '600'
+  f_config_kwinrulesrc:
+    src: config/kwinrulesrc
+    dst: ~/.config/kwinrulesrc
+    chmod: '600'
   f_etc_sddm.conf:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
@@ -289,6 +297,8 @@ profiles:
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
     - f_config_kscreenlockerrc
+    - f_config_kdeglobals
+    - f_config_kwinrulesrc
     - f_etc_sddm.conf
     - f_etc_plasmalogin.conf
     actions:

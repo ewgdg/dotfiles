@@ -1,0 +1,28 @@
+[3dc542e4-32f4-474f-b8e2-78d64fe403b2]
+ignoregeometry=true
+ignoregeometryrule=3
+
+[General]
+count=2
+rules=d05e75a8-67ed-4f5d-a328-ca7ac670b9f0,d542e57b-4050-4feb-ade7-a120778ba76c
+
+[d05e75a8-67ed-4f5d-a328-ca7ac670b9f0]
+Description=Application settings for steam_app_230410
+clientmachine=localhost
+disableglobalshortcutsrule=2
+wmclass=steam_app_230410
+wmclassmatch=1
+
+[d542e57b-4050-4feb-ade7-a120778ba76c]
+Description=Window settings for org.kde.ksecretd
+above=true
+aboverule=2
+fpplevel=3
+fpplevelrule=2
+fsplevel=3
+fsplevelrule=2
+title=KDE Wallet Service
+types=1
+wmclass=ksecretd org.kde.ksecretd
+wmclasscomplete=true
+wmclassmatch=1
