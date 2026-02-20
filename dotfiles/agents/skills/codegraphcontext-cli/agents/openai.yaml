@@ -1,0 +1,4 @@
+display_name: CodeGraphContext CLI
+short_description: Use `cgc` to index and query code graphs (call graph, deps, search) via the local CLI.
+default_prompt: |
+  Use the `cgc` CLI (CodeGraphContext) for structural code questions. Prefer `cgc <command> --help` for flag discovery. Index with `cgc index .`, verify with `cgc list`/`cgc stats`, then use `cgc find`/`cgc analyze` or `cgc query` as needed. Include the exact commands run and summarize results with concrete file paths and symbol names.

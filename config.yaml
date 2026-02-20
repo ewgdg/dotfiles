@@ -226,6 +226,14 @@ dotfiles:
   f_claude_claude.md:
     src: claude/CLAUDE.md
     dst: ~/.claude/CLAUDE.md
+  d_agents:
+    src: agents
+    dst: ~/.agents
+    cmpignore: &agents_ignore
+    - 'skills/agent-web-context/references/openapi_cache/*'
+    - '*/__pycache__/*'
+    upignore: *agents_ignore
+    instignore: *agents_ignore
 profiles:
   base:
     dotfiles:
@@ -324,6 +332,7 @@ profiles:
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
+    - d_agents
   app_ai:
     dotfiles:
     - f_codex_agents.md

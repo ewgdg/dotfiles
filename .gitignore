@@ -7,3 +7,6 @@ alfred/Alfred.alfredpreferences/workflows/*/[Cc]ache/
 # Ignore Alfred workflow logs
 alfred/Alfred.alfredpreferences/workflows/*/[Ll]ogs/
 alfred/Alfred.alfredpreferences/workflows/*/[Ll]og/
+
+# Ignore Python bytecode caches
+**/__pycache__/

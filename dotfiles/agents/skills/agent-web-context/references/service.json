@@ -1,0 +1,5 @@
+{
+  "base_url": "https://scraper.service.xianzzz.com",
+  "example": "http://localhost:8000",
+  "notes": "Set base_url to the root URL where /openapi.json is reachable."
+}
