@@ -1,6 +1,6 @@
 ---
 name: codegraphcontext-cli
-description: Use CodeGraphContext (cgc) CLI to index repos and answer code-structure questions (callers/callees, dependencies, search) without enabling MCP tools by default.
+description: Use CodeGraphContext (cgc) CLI to index repos and answer code-structure questions (callers/callees, dependencies, search), especially for large codebases to improve token efficiency.
 ---
 
 # CodeGraphContext CLI (cgc)
