@@ -230,7 +230,7 @@ dotfiles:
     src: agents
     dst: ~/.agents
     cmpignore: &agents_ignore
-    - 'skills/agent-web-context/references/openapi_cache/*'
+    - skills/agent-web-context/references/openapi_cache/*
     - '*/__pycache__/*'
     upignore: *agents_ignore
     instignore: *agents_ignore
