@@ -1,6 +1,6 @@
 ---
 name: codegraphcontext-cli
-description: Use CodeGraphContext (cgc) CLI to index repos and answer code-structure questions (callers/callees, dependencies, search), especially for large codebases to improve token efficiency.
+description: Use CodeGraphContext (cgc) CLI to index repos and answer code-structure questions (callers/callees, dependencies, search), especially for medium to large files and codebases to improve token efficiency.
 ---
 
 # CodeGraphContext CLI (cgc)
@@ -10,18 +10,22 @@ Use this skill when you need *structural* answers that `rg` can’t give reliabl
 ## Default workflow
 
 1) **Discover commands/flags**
+
 - `cgc help`
 - `cgc <command> --help` (prefer this over guessing flags)
 
 2) **Index the repo**
+
 - From the repo root: `cgc index .`
 - Verify: `cgc list` and/or `cgc stats`
 
 3) **Answer questions using the smallest relevant command**
+
 - Prefer high-level subcommands first: `cgc find ...` / `cgc analyze ...`
 - Use raw Cypher only when needed: `cgc query ...`
 
 4) **Report results**
+
 - Include the exact `cgc ...` commands you ran.
 - Summarize with concrete identifiers (symbol names, file paths, relationship direction).
 
@@ -30,11 +34,13 @@ Use this skill when you need *structural* answers that `rg` can’t give reliabl
 `cgc help` and `--help` output is plain text but often includes box-drawing frames (Rich). Treat it as normal text; copy/paste is fine.
 
 If you need cleaner logs for parsing, pipe through `cat`:
+
 - `cgc help | cat`
 
 ## Local database location (FalkorDB Lite default)
 
 By default, CGC stores FalkorDB Lite data here:
+
 - `~/.codegraphcontext/falkordb.db`
 - `~/.codegraphcontext/falkordb.sock`
 

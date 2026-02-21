@@ -18,6 +18,10 @@
 - use `sudo -A` in Linux
 - use `osascript` in Mac OS
 
+## Code Quality
+
+- Use descriptive, intention-revealing names; prioritize readability over brevity.
+
 ## Python Related
 
 - Use `uv` for python package management
