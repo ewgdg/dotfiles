@@ -323,6 +323,9 @@ profiles:
     include:
     - posix_base
     - posix_utils
+  xian-macbook-air:
+    include:
+    - os_mac
     - app_ai
   xian-linux-server:
     include:
@@ -332,12 +335,12 @@ profiles:
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
-    - d_agents
   app_ai:
     dotfiles:
     - f_codex_agents.md
     - f_codex_config.toml
     - f_claude_claude.md
+    - d_agents
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -sfn {0} {1}
