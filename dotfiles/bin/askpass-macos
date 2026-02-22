@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+# sudo passes its prompt as argv[1] to the askpass helper.
+prompt="${1:-Enter your password:}"
+
+password="$(
+  /usr/bin/osascript - "$prompt" <<'APPLESCRIPT'
+on run argv
+    set promptText to item 1 of argv
+    tell application "System Events"
+        activate
+        display dialog promptText default answer "" with hidden answer buttons {"Cancel", "OK"} default button "OK"
+        return text returned of result
+    end tell
+end run
+APPLESCRIPT
+)" || exit $?
+
+printf '%s\n' "$password"
+

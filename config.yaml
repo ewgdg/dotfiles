@@ -323,7 +323,7 @@ profiles:
     include:
     - posix_base
     - posix_utils
-  xian-macbook-air:
+  xian-macbook-air.local:
     include:
     - os_mac
     - app_ai
