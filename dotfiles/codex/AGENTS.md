@@ -15,8 +15,7 @@
 
 ## Privileged Commands
 
-- use `sudo -A` in Linux
-- use `osascript` in Mac OS
+- use `sudo -A`
 
 ## Code Quality
 
