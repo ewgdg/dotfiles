@@ -2,8 +2,12 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
 web_search = "live"
-model = "gpt-5.3-codex"
+model = "gpt-5.2"
 personality = "pragmatic"
+
+[profiles.obsidian]
+model = "gpt-5.1-codex-mini"
+model_reasoning_effort = "medium"
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]
@@ -15,6 +19,10 @@ writable_roots = ["~/.local/share/Trash"]
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
+
+[notice]
+hide_full_access_warning = true
+hide_rate_limit_model_nudge = true
 
 [notice.model_migrations]
 "gpt-5.2" = "gpt-5.3-codex"
