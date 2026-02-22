@@ -23,7 +23,7 @@ foreground = 'default'
 background = 'transparent'
 
 [transient_prompt]
-template = "<d>[{{ now | date \"15:04:05\"}}]  {{ base .PWD }}\n❯ </d>"
+template = "<d>[{{ now | date \"15:04:05\"}}] {{ base .PWD }}\n❯ </d>"
 foreground = 'default'
 background = 'transparent'
 
@@ -38,13 +38,13 @@ type = 'prompt'
 alignment = 'left'
 
 [[blocks.segments]]
-template = "{{ if .SSHSession }} {{ end }}{{ .UserName }} "
+template = "{{ if .SSHSession }}{{ end }}{{ .UserName }} "
 foreground = 'p:pink'
 type = 'session'
 style = 'plain'
 
 [[blocks.segments]]
-template = ' {{ .Path }} '
+template = '{{ .Path }} '
 foreground = "lightCyan"
 type = 'path'
 style = 'plain'
@@ -53,7 +53,7 @@ style = 'plain'
 style = 'folder'
 
 [[blocks.segments]]
-template = '{{ if .UpstreamURL }}{{ .UpstreamIcon }} {{ end }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} '
+template = '{{ if .UpstreamURL }}{{ .UpstreamIcon }}{{ end }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if .Staging.Changed }} {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} {{ .StashCount }}{{ end }} '
 foreground = 'lightGreen'
 type = 'git'
 style = 'plain'
@@ -70,13 +70,13 @@ fetch_upstream_icon = true
 fetch_stash_count = true
 
 [[blocks.segments]]
-template = ' '
+template = ''
 foreground = 'yellow'
 type = 'root'
 style = 'plain'
 
 [[blocks.segments]]
-template = '{{ if .Error }} {{ end }}'
+template = '{{ if .Error }}{{ end }}'
 foreground = 'lightRed'
 type = 'status'
 style = 'plain'
@@ -88,7 +88,7 @@ always_enabled = false
 type = 'rprompt'
 
 [[blocks.segments]]
-template = ' '
+template = ''
 foreground = 'green'
 background = 'transparent'
 type = 'node'
@@ -100,7 +100,7 @@ fetch_package_manager = false
 home_enabled = false
 
 [[blocks.segments]]
-template = ' '
+template = ''
 foreground = 'blue'
 background = 'transparent'
 type = 'go'
@@ -110,7 +110,7 @@ style = 'plain'
 fetch_version = false
 
 [[blocks.segments]]
-template = ' '
+template = ''
 foreground = 'yellow'
 background = 'transparent'
 type = 'python'
@@ -122,7 +122,7 @@ fetch_version = false
 fetch_virtual_env = false
 
 [[blocks.segments]]
-template = " <b>{{ .Name }}</b> "
+template = "<b>{{ .Name }}</b> "
 foreground = 'lightBlue'
 background = 'transparent'
 type = 'shell'
@@ -148,7 +148,7 @@ template = "❯"        #❯ \ue602
 always_enabled = true
 
 [[tooltips]]
-template = '  {{ .Profile }}{{ if .Region }}@{{ .Region }}{{ end }} '
+template = ' {{ .Profile }}{{ if .Region }}@{{ .Region }}{{ end }} '
 foreground = 'yellow'
 type = 'aws'
 style = 'plain'
@@ -158,7 +158,7 @@ tips = ['aws']
 display_default = true
 
 [[tooltips]]
-template = '  {{ .Name }} '
+template = ' {{ .Name }} '
 foreground = 'blue'
 type = 'az'
 style = 'plain'
