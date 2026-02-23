@@ -15,8 +15,9 @@ vim.api.nvim_create_autocmd("User", {
 	pattern = "LazyCheck",
 	group = augroup("autoupdate"),
 	callback = function()
-		require("lazy").update({
-			show = false,
-		})
+		-- require("lazy").update({
+		-- 	show = true,
+		-- })
+		-- run :Mason then U to update LSP servers.
 	end,
 })
