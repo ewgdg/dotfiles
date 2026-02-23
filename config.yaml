@@ -159,6 +159,9 @@ dotfiles:
     src: config/plasmashellrc
     dst: ~/.config/plasmashellrc
     chmod: '600'
+    actions:
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
+      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   d_local_share_flatpak_overrides:
     src: local/share/flatpak/overrides
     dst: ~/.local/share/flatpak/overrides
@@ -311,9 +314,6 @@ profiles:
     - f_config_kwinrulesrc
     - f_etc_sddm.conf
     - f_etc_plasmalogin.conf
-    actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
-      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   de_hypr:
     variables:
       desktop: hypr
