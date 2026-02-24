@@ -183,6 +183,9 @@ dotfiles:
   f_zshenv:
     src: zshenv
     dst: ~/.zshenv
+  f_profile:
+    src: profile
+    dst: ~/.profile
   f_npmrc:
     src: npmrc
     dst: ~/.npmrc
@@ -253,6 +256,7 @@ profiles:
     #- d_config_wezterm
     - f_zshrc
     - f_zshenv
+    - f_profile
     - f_zprofile
     - d_config_zsh
     - f_npmrc

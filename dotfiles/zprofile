@@ -1,16 +1,1 @@
-# {{@@ header() @@}}
-# os: {{@@ os @@}}
-
-{%@@ if os == "darwin" @@%}
-eval "$(/opt/homebrew/bin/brew shellenv)"
-{%@@ endif @@%}
-# Prepend user bins; uniqueness is enforced by .zshenv (typeset -U PATH path)
-path=("$HOME/.local/bin" "$HOME/bin" $path)
-
-{%@@ if os == "darwin" @@%}
-export SUDO_ASKPASS="$HOME/bin/askpass-macos"
-{%@@ endif @@%}
-
-{%@@ if desktop is defined and desktop == "kde" @@%}
-export SUDO_ASKPASS=/usr/bin/ksshaskpass
-{%@@ endif @@%}
+[ -r "$HOME/.profile" ] && . "$HOME/.profile"

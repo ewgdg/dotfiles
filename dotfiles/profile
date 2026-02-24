@@ -1,0 +1,29 @@
+# {{@@ header() @@}}
+# os: {{@@ os @@}}
+
+path_prepend() {
+  # Prepend a directory to PATH if it exists and is not already present.
+  if [ -d "$1" ]; then
+    case ":$PATH:" in
+      *":$1:"*) ;;
+      *) PATH="$1:$PATH" ;;
+    esac
+  fi
+}
+
+{%@@ if os == "darwin" @@%}
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+{%@@ endif @@%}
+
+path_prepend "$HOME/.local/bin"
+path_prepend "$HOME/bin"
+
+export PATH
+
+{%@@ if os == "darwin" @@%}
+export SUDO_ASKPASS="$HOME/bin/askpass-macos"
+{%@@ elif desktop is defined and desktop == "kde" @@%}
+export SUDO_ASKPASS=/usr/bin/ksshaskpass
+{%@@ endif @@%}
