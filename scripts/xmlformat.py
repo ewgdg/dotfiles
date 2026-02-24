@@ -3,30 +3,81 @@ import xml.etree.ElementTree as ET
 import fnmatch
 import argparse
 import xml.dom.minidom
+import copy
 
 
 def merge_nodes(
     layer1: ET.Element, layer2: ET.Element, paths_to_merge: list[str] | None = None
 ):
+    def element_identity_key(element: ET.Element) -> tuple[tuple[str, str], ...] | None:
+        identity_parts: list[tuple[str, str]] = []
+        for attribute_name in ("id", "name", "key", "uuid"):
+            attribute_value = element.attrib.get(attribute_name)
+            if attribute_value is not None:
+                identity_parts.append((attribute_name, attribute_value))
+
+        text_value = (element.text or "").strip()
+        if text_value:
+            identity_parts.append(("text", text_value))
+
+        if not identity_parts:
+            return None
+
+        return tuple(identity_parts)
+
     def merge_nodes_recursion(
         layer1: ET.Element,
         layer2: ET.Element,
         cur_path: str,
         paths_to_merge: list[str] | None = None,
     ):
-        layer1_child_map = {child.tag: (child, i) for i, child in enumerate(layer1)}
+        children_by_tag: dict[str, list[tuple[int, ET.Element]]] = {}
+        children_by_identity: dict[
+            tuple[str, tuple[tuple[str, str], ...]], list[tuple[int, ET.Element]]
+        ] = {}
+
+        for index, child in enumerate(list(layer1)):
+            children_by_tag.setdefault(child.tag, []).append((index, child))
+            identity_key = element_identity_key(child)
+            if identity_key is not None:
+                children_by_identity.setdefault((child.tag, identity_key), []).append(
+                    (index, child)
+                )
+
+        used_indices: set[int] = set()
+
+        def find_matching_child(
+            target: ET.Element,
+        ) -> tuple[int, ET.Element] | None:
+            identity_key = element_identity_key(target)
+            if identity_key is not None:
+                for index, child in children_by_identity.get(
+                    (target.tag, identity_key), []
+                ):
+                    if index not in used_indices:
+                        return (index, child)
+                return None
+
+            for index, child in children_by_tag.get(target.tag, []):
+                if index not in used_indices:
+                    return (index, child)
+
+            return None
+
         for layer2_child in layer2:
             child_path = f"{cur_path}/{layer2_child.tag}"
+            match = find_matching_child(layer2_child)
             should_merge = False
             if paths_to_merge:
                 for path_to_merge in paths_to_merge:
                     if fnmatch.fnmatch(child_path, path_to_merge):
                         should_merge = True
-            elif len(layer2_child) == 0 or layer2_child.tag not in layer1_child_map:
+            elif len(layer2_child) == 0 or match is None:
                 should_merge = True
 
-            if layer2_child.tag in layer1_child_map:
-                layer1_child, layer1_child_i = layer1_child_map[layer2_child.tag]
+            if match is not None:
+                layer1_child_i, layer1_child = match
+                used_indices.add(layer1_child_i)
                 if should_merge:
                     # print(f"Merging element {child_path} to index {layer1_child_i}")
                     layer1[layer1_child_i] = layer2_child
@@ -41,6 +92,16 @@ def merge_nodes(
                 # Add new child node if not present
                 # print(f"Adding new element: {child_path}")
                 layer1.append(layer2_child)
+                appended_index = len(layer1) - 1
+                used_indices.add(appended_index)
+                children_by_tag.setdefault(layer2_child.tag, []).append(
+                    (appended_index, layer2_child)
+                )
+                appended_identity_key = element_identity_key(layer2_child)
+                if appended_identity_key is not None:
+                    children_by_identity.setdefault(
+                        (layer2_child.tag, appended_identity_key), []
+                    ).append((appended_index, layer2_child))
 
     merge_nodes_recursion(layer1, layer2, layer1.tag, paths_to_merge)
 
@@ -78,6 +139,21 @@ def sort_attributes(root: ET.Element):
         elem.attrib.update(sorted_attributes)
 
 
+def strip_whitespace_text_nodes(root: ET.Element) -> None:
+    for elem in root.iter():
+        if elem.text is not None and elem.text.strip() == "":
+            elem.text = None
+        if elem.tail is not None and elem.tail.strip() == "":
+            elem.tail = None
+
+
+def normalized_xml_for_compare(root: ET.Element) -> str:
+    normalized = copy.deepcopy(root)
+    strip_whitespace_text_nodes(normalized)
+    sort_attributes(normalized)
+    return ET.tostring(normalized, encoding="unicode")
+
+
 def process_xml(
     input_file,
     output_file,
@@ -85,10 +161,16 @@ def process_xml(
     sort_attrs=False,
     merge_file=None,
     patterns_for_merge=None,
+    write_input_unchanged_if_no_effect=False,
 ):
     tree = None
+    input_bytes = None
+    before_root = None
     if os.path.isfile(input_file):
+        with open(input_file, "rb") as f:
+            input_bytes = f.read()
         tree = ET.parse(input_file)
+        before_root = copy.deepcopy(tree.getroot())
 
     if merge_file and os.path.isfile(merge_file):
         merge_tree = ET.parse(merge_file)
@@ -114,6 +196,16 @@ def process_xml(
 
     if sort_attrs:
         sort_attributes(root)
+
+    if (
+        write_input_unchanged_if_no_effect
+        and before_root is not None
+        and input_bytes is not None
+        and normalized_xml_for_compare(before_root) == normalized_xml_for_compare(root)
+    ):
+        with open(output_file, "wb") as output:
+            output.write(input_bytes)
+        return
 
     # Convert ElementTree object to a string
     xml_string = ET.tostring(root, encoding="unicode")
@@ -156,6 +248,12 @@ if __name__ == "__main__":
         help="only merge the given nodes.",
     )
 
+    parser.add_argument(
+        "--write_input_unchanged_if_no_effect",
+        action="store_true",
+        help="If changes are semantically a no-op, write the original input bytes to output.",
+    )
+
     args = parser.parse_args()
 
     process_xml(
@@ -169,4 +267,5 @@ if __name__ == "__main__":
         patterns_for_merge=args.merge_nodes.split(",")
         if args.merge_nodes is not None and args.merge_nodes != ""
         else None,
+        write_input_unchanged_if_no_effect=args.write_input_unchanged_if_no_effect,
     )
