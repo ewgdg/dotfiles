@@ -359,4 +359,5 @@ trans_update:
     @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
 trans_install:
   xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
-    _dotfile_abs_dst @@}}' {1} --merge_file {0} --write_input_unchanged_if_no_effect
+    _dotfile_abs_dst @@}}' {1} --merge_file {0} 
+    --write_input_unchanged_if_no_effect

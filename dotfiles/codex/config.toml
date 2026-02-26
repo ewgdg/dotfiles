@@ -8,6 +8,7 @@ personality = "pragmatic"
 [profiles.obsidian]
 model = "gpt-5.1-codex-mini"
 model_reasoning_effort = "medium"
+approval_policy = "on-request"
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]

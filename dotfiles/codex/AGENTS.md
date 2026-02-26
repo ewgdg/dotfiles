@@ -26,6 +26,10 @@
 - Use `uv` for python package management
 - Use `uv run` for running python scripts
 
+## Github
+
+- When create an issue report, always find the relevant template to use first.
+
 ## CLI Tools
 
 - `gh` for github
