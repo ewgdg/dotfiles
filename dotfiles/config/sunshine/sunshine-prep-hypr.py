@@ -429,27 +429,16 @@ def restore_action(
 
     debug_write("DEBUG: Killing runtime inhibit processes\n")
     kill_runtime_inhibit()
-
-    # Single pass: disable headless, (re)enable physicals at preferred
-    debug_write("DEBUG: Getting monitor list for restore\n")
+    # Disable headless output(s) and reload Hyprland config to return to a clean state.
+    # This is intentionally a 'reset to config' (like after reboot), not a precise pre-stream restore.
     mons = get_monitors(include_disabled=True) or []
-    debug_write(f"DEBUG: Found {len(mons)} monitors\n")
-    
     for m in mons:
-        name = m.get("name")
-        if not name:
-            continue
-        debug_write(f"DEBUG: Processing monitor: {name}\n")
-        if is_headless_name(name, monitor_to_disable):
-            debug_write(f"DEBUG: Disabling headless monitor: {name}\n")
+        name = m.get("name") if isinstance(m, dict) else None
+        if name and is_headless_name(name, monitor_to_disable):
             set_monitor_keyword(f"{name},disable")
-            continue
-        active = bool(m.get("active", False)) and int(m.get("width", 0)) > 0
-        if not active:
-            debug_write(f"DEBUG: Re-enabling physical monitor: {name}\n")
-            set_monitor_keyword(f"{name},preferred,auto,1")
-    
-    debug_write("DEBUG: Restore action completed\n")
+
+    run_command("hyprctl reload", returncode_ok=True)
+    debug_write("DEBUG: Ran hyprctl reload for clean-state restore\n")
 
 
 def guard_action(
