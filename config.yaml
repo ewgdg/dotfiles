@@ -130,6 +130,9 @@ dotfiles:
   f_etc_makepkg.conf:
     src: etc/makepkg.conf
     dst: /etc/makepkg.conf
+  f_etc_pacman.conf:
+    src: etc/pacman.conf
+    dst: /etc/pacman.conf
   d_config_alacritty:
     src: config/alacritty
     dst: ~/.config/alacritty
@@ -199,6 +202,12 @@ dotfiles:
   f_config_chromium-flags.conf:
     src: config/chromium-flags.conf
     dst: ~/.config/chromium-flags.conf
+  d_config_paru:
+    src: config/paru
+    dst: ~/.config/paru
+  d_config_yay:
+    src: config/yay
+    dst: ~/.config/yay
   d_config_environment.d:
     src: config/environment.d
     dst: ~/.config/environment.d
@@ -289,10 +298,13 @@ profiles:
     include:
     - os_linux
     dotfiles:
+    - f_etc_pacman.conf
     - f_etc_makepkg.conf
     - f_etc_fonts_local.conf
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
+    - d_config_paru
+    - d_config_yay
   os_arch_kernel:
     dotfiles:
     - f_etc_mkinitcpio.conf
