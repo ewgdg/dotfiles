@@ -15,7 +15,7 @@
 
 ## Privileged Commands
 
-- use `sudo -A`
+- use `sudo -A` when inside a sub-shell like TUI
 
 ## Code Quality
 
