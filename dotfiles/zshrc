@@ -309,7 +309,7 @@ bindkey '^X^E' edit-command-line
 if [[ -o interactive ]]; then
   alias ls='eza --icons=auto'
   alias tree='eza --icons=auto --tree'
-  alias grep='rg'
+  # alias grep='rg'
   alias cd='z'
 fi
 
