@@ -105,6 +105,8 @@ dotfiles:
     src: gitconfig
     dst: ~/.gitconfig
     chmod: '600'
+    actions:
+    - install git lazygit
   d_config_1password_ssh:
     src: config/1Password/ssh
     dst: ~/.config/1Password/ssh
@@ -273,7 +275,6 @@ profiles:
     - d_config_tmux
     - d_config_fd
     actions:
-    - install 'git lazygit'
     - install ripgrep
   posix_utils:
     dotfiles:
@@ -293,8 +294,7 @@ profiles:
     - d_config_environment.d
   os_arch:
     variables:
-      install_cmd: yay -S --needed --answerdiff=None --answeredit=None 
-        --removemake {0}
+      install_cmd: yay -S --needed --answerdiff=None --answeredit=None {0}
     include:
     - os_linux
     dotfiles:
