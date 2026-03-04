@@ -2,7 +2,7 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
 web_search = "live"
-model = "gpt-5.2"
+model = "gpt-5.3-codex"
 personality = "pragmatic"
 
 [profiles.obsidian]
