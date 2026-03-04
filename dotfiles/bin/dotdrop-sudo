@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v dotdrop >/dev/null 2>&1; then
+  echo "dotdrop not found in PATH" >&2
+  exit 127
+fi
+
+dotdrop_cmd="$(command -v dotdrop)"
+operation="update"
+
+if (( $# > 0 )); then
+  case "$1" in
+    update|install)
+      operation="$1"
+      shift
+      ;;
+    -*)
+      ;;
+    *)
+      echo "unsupported command '$1'; expected 'update' or 'install'" >&2
+      exit 2
+      ;;
+  esac
+fi
+
+command_args=("$@")
+base_args=()
+files_args=()
+explicit_targets=()
+key_mode=false
+force_mode=false
+profile_from_args=""
+update_ignore_patterns=()
+
+matches_ignore_pattern() {
+  local path="$1"
+  local pattern="$2"
+  local subpath="$path"
+
+  while true; do
+    if [[ "$subpath" == $pattern ]]; then
+      return 0
+    fi
+
+    if [[ "$subpath" == "/" ]]; then
+      break
+    fi
+
+    subpath="$(dirname "$subpath")"
+  done
+
+  return 1
+}
+
+path_is_ignored() {
+  local path="$1"
+  shift
+  local -a all_patterns=("$@")
+  local -a neg_patterns=()
+  local positive_match_count=0
+  local pattern=""
+
+  for pattern in "${all_patterns[@]}"; do
+    if [[ "$pattern" == "!"* ]]; then
+      neg_patterns+=("${pattern#!}")
+      continue
+    fi
+
+    if matches_ignore_pattern "$path" "$pattern"; then
+      positive_match_count=$((positive_match_count + 1))
+    fi
+  done
+
+  if (( positive_match_count < 1 )); then
+    return 1
+  fi
+
+  for pattern in "${neg_patterns[@]}"; do
+    if matches_ignore_pattern "$path" "$pattern" && (( positive_match_count > 0 )); then
+      positive_match_count=$((positive_match_count - 1))
+    fi
+  done
+
+  if (( positive_match_count < 1 )); then
+    return 1
+  fi
+
+  if (( ${#neg_patterns[@]} > 0 )) && { [[ -d "$path" ]] || [[ ! -e "$path" ]]; }; then
+    return 1
+  fi
+
+  return 0
+}
+
+key_is_fully_ignored_for_update() {
+  local key_dst="$1"
+  local key_src="$2"
+  local -a raw_patterns=("${@:3}")
+  local -a prefixes=("$key_dst")
+  local -a absolute_patterns=()
+  local raw_pattern=""
+  local pattern=""
+  local prefix=""
+  local is_negative=false
+
+  if [[ -n "$key_src" ]]; then
+    prefixes+=("$key_src")
+  fi
+
+  for raw_pattern in "${raw_patterns[@]}"; do
+    pattern="$raw_pattern"
+    is_negative=false
+    if [[ "$pattern" == "!"* ]]; then
+      is_negative=true
+      pattern="${pattern#!}"
+    fi
+
+    if [[ "$pattern" == /* ]]; then
+      :
+    elif [[ "$pattern" == *"*"* && ( "$pattern" == "*"* || "$pattern" == /* ) ]]; then
+      :
+    else
+      for prefix in "${prefixes[@]}"; do
+        if [[ "$is_negative" == true ]]; then
+          absolute_patterns+=("!${prefix}/${pattern}")
+        else
+          absolute_patterns+=("${prefix}/${pattern}")
+        fi
+      done
+      continue
+    fi
+
+    if [[ "$is_negative" == true ]]; then
+      absolute_patterns+=("!$pattern")
+    else
+      absolute_patterns+=("$pattern")
+    fi
+  done
+
+  if path_is_ignored "$key_dst" "${absolute_patterns[@]}"; then
+    return 0
+  fi
+
+  if [[ -n "$key_src" ]] && path_is_ignored "$key_src" "${absolute_patterns[@]}"; then
+    return 0
+  fi
+
+  return 1
+}
+
+# Parse args for execution, key discovery, and explicit targets.
+args=("${command_args[@]}")
+arg_count=${#args[@]}
+after_double_dash=false
+for ((idx = 0; idx < arg_count; idx++)); do
+  arg="${args[$idx]}"
+
+  if [[ "$after_double_dash" == true ]]; then
+    explicit_targets+=("$arg")
+    continue
+  fi
+
+  case "$arg" in
+    --)
+      after_double_dash=true
+      ;;
+    -k|--key)
+      if [[ "$operation" == "update" ]]; then
+        key_mode=true
+      else
+        base_args+=("$arg")
+      fi
+      ;;
+    -f|--force)
+      force_mode=true
+      base_args+=("$arg")
+      ;;
+    -c|--cfg|-p|--profile)
+      if (( idx + 1 >= arg_count )); then
+        echo "missing value for $arg" >&2
+        exit 2
+      fi
+      value="${args[$((idx + 1))]}"
+      if [[ "$arg" == "-p" || "$arg" == "--profile" ]]; then
+        profile_from_args="$value"
+      fi
+      base_args+=("$arg" "$value")
+      files_args+=("$arg" "$value")
+      idx=$((idx + 1))
+      ;;
+    --cfg=*|--profile=*)
+      if [[ "$arg" == --profile=* ]]; then
+        profile_from_args="${arg#--profile=}"
+      fi
+      base_args+=("$arg")
+      files_args+=("$arg")
+      ;;
+    -V|--verbose|-b|--no-banner)
+      base_args+=("$arg")
+      files_args+=("$arg")
+      ;;
+    -w|--workers)
+      if (( idx + 1 >= arg_count )); then
+        echo "missing value for $arg" >&2
+        exit 2
+      fi
+      base_args+=("$arg" "${args[$((idx + 1))]}")
+      idx=$((idx + 1))
+      ;;
+    -i|--ignore)
+      if (( idx + 1 >= arg_count )); then
+        echo "missing value for $arg" >&2
+        exit 2
+      fi
+      value="${args[$((idx + 1))]}"
+      update_ignore_patterns+=("$value")
+      base_args+=("$arg" "$value")
+      idx=$((idx + 1))
+      ;;
+    --workers=*)
+      base_args+=("$arg")
+      ;;
+    --ignore=*)
+      update_ignore_patterns+=("${arg#--ignore=}")
+      base_args+=("$arg")
+      ;;
+    -*)
+      if [[ "$arg" == --force || ( "$arg" != --* && "$arg" == *f* ) ]]; then
+        force_mode=true
+      fi
+      base_args+=("$arg")
+      ;;
+    *)
+      explicit_targets+=("$arg")
+      ;;
+  esac
+done
+
+dotfiles_output="$("$dotdrop_cmd" files -G "${files_args[@]}")"
+
+all_keys=()
+all_dsts=()
+declare -A source_by_key=()
+declare -A destination_by_key=()
+while IFS= read -r line; do
+  [[ "$line" == *,dst:* ]] || continue
+  key="${line%%,*}"
+  dst_part="${line#*,dst:}"
+  dst="${dst_part%%,*}"
+  src=""
+  if [[ "$line" == *,src:* ]]; then
+    src_part="${line#*,src:}"
+    src="${src_part%%,*}"
+  fi
+  all_keys+=("$key")
+  all_dsts+=("$dst")
+  source_by_key["$key"]="$src"
+  destination_by_key["$key"]="$dst"
+done <<< "$dotfiles_output"
+
+user_keys=()
+system_keys=()
+append_split_key() {
+  local split_key="$1"
+  local split_dst="$2"
+  local split_src="$3"
+
+  if [[ "$operation" == "update" && ${#update_ignore_patterns[@]} -gt 0 ]]; then
+    if key_is_fully_ignored_for_update "$split_dst" "$split_src" "${update_ignore_patterns[@]}"; then
+      return
+    fi
+  fi
+
+  if [[ "$split_dst" == "$HOME" || "$split_dst" == "$HOME/"* ]]; then
+    user_keys+=("$split_key")
+  else
+    system_keys+=("$split_key")
+  fi
+}
+
+if (( ${#explicit_targets[@]} > 0 )); then
+  if [[ "$operation" == "update" && "$key_mode" != true ]]; then
+    echo "explicit path targets are not supported; use -k for explicit keys" >&2
+    exit 2
+  fi
+
+  for requested_key in "${explicit_targets[@]}"; do
+    if [[ -z "${destination_by_key[$requested_key]+x}" ]]; then
+      echo "unknown dotdrop key '$requested_key' for current profile/config" >&2
+      exit 2
+    fi
+
+    append_split_key "$requested_key" "${destination_by_key[$requested_key]}" "${source_by_key[$requested_key]}"
+  done
+else
+  for ((key_idx = 0; key_idx < ${#all_keys[@]}; key_idx++)); do
+    key_name="${all_keys[$key_idx]}"
+    append_split_key "$key_name" "${all_dsts[$key_idx]}" "${source_by_key[$key_name]}"
+  done
+fi
+
+if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
+  effective_profile="$profile_from_args"
+  if [[ -z "$effective_profile" ]]; then
+    while IFS= read -r profile_line; do
+      case "$profile_line" in
+        'Dotfile(s) for profile "'*'":')
+          effective_profile="${profile_line#Dotfile(s) for profile \"}"
+          effective_profile="${effective_profile%\":}"
+          break
+          ;;
+      esac
+    done < <("$dotdrop_cmd" files -b "${files_args[@]}" 2>/dev/null || true)
+  fi
+  if [[ -z "$effective_profile" ]]; then
+    effective_profile="<unknown>"
+  fi
+
+  operation_word="Update"
+  if [[ "$operation" == "install" ]]; then
+    operation_word="Install"
+  fi
+
+  confirmation_prompt="$operation_word all dotfiles for profile \"$effective_profile\" [y/N] ? "
+
+  if [[ -t 0 ]]; then
+    read -r -p "$confirmation_prompt" confirmation_answer
+  else
+    echo "confirmation required but no interactive tty is available; pass explicit keys to skip prompt" >&2
+    exit 2
+  fi
+
+  case "${confirmation_answer:-}" in
+    y|Y|yes|YES)
+      ;;
+    *)
+      echo "aborted" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+run_operation_for_keys() {
+  local run_with_sudo="$1"
+  shift
+  local operation_keys=("$@")
+  local dotdrop_call=("$dotdrop_cmd" "$operation" "${base_args[@]}")
+
+  if [[ "$operation" == "update" ]]; then
+    dotdrop_call+=(-k "${operation_keys[@]}")
+  else
+    dotdrop_call+=("${operation_keys[@]}")
+  fi
+
+  if [[ "$run_with_sudo" == "true" ]]; then
+    if [[ -n "${DOTDROP_CONFIG:-}" ]]; then
+      sudo env PATH="$PATH" DOTDROP_CONFIG="$DOTDROP_CONFIG" "${dotdrop_call[@]}"
+    else
+      sudo env PATH="$PATH" "${dotdrop_call[@]}"
+    fi
+  else
+    "${dotdrop_call[@]}"
+  fi
+}
+
+overall_exit_code=0
+run_phase() {
+  local phase_name="$1"
+  local run_with_sudo="$2"
+  shift 2
+  local phase_keys=("$@")
+
+  set +e
+  run_operation_for_keys "$run_with_sudo" "${phase_keys[@]}"
+  local phase_exit_code=$?
+  set -e
+
+  if (( phase_exit_code != 0 )); then
+    echo "$phase_name phase exited with status $phase_exit_code" >&2
+    if (( overall_exit_code == 0 )); then
+      overall_exit_code=$phase_exit_code
+    fi
+  fi
+}
+
+if (( ${#user_keys[@]} > 0 )); then
+  run_phase "user" false "${user_keys[@]}"
+fi
+
+if (( ${#system_keys[@]} > 0 )); then
+  run_phase "system" true "${system_keys[@]}"
+fi
+
+exit "$overall_exit_code"
