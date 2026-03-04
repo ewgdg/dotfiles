@@ -32,6 +32,22 @@ key_mode=false
 force_mode=false
 profile_from_args=""
 update_ignore_patterns=()
+update_target_mode="keys"
+
+expand_home_path() {
+  local raw_path="$1"
+  case "$raw_path" in
+    "~")
+      printf '%s\n' "$HOME"
+      ;;
+    "~/"*)
+      printf '%s\n' "$HOME/${raw_path#~/}"
+      ;;
+    *)
+      printf '%s\n' "$raw_path"
+      ;;
+  esac
+}
 
 matches_ignore_pattern() {
   local path="$1"
@@ -281,18 +297,40 @@ append_split_key() {
 
 if (( ${#explicit_targets[@]} > 0 )); then
   if [[ "$operation" == "update" && "$key_mode" != true ]]; then
-    echo "explicit path targets are not supported; use -k for explicit keys" >&2
-    exit 2
+    update_target_mode="paths"
+
+    for requested_path in "${explicit_targets[@]}"; do
+      expanded_path="$(expand_home_path "$requested_path")"
+      matched_key=""
+      for known_key in "${all_keys[@]}"; do
+        if [[ "${destination_by_key[$known_key]}" == "$expanded_path" ]]; then
+          matched_key="$known_key"
+          break
+        fi
+      done
+
+      if [[ -n "$matched_key" ]]; then
+        matched_dst="${destination_by_key[$matched_key]}"
+      else
+        matched_dst="$expanded_path"
+      fi
+
+      if [[ -z "$matched_key" || "$matched_dst" == "$HOME" || "$matched_dst" == "$HOME/"* ]]; then
+        user_keys+=("$requested_path")
+      else
+        system_keys+=("$requested_path")
+      fi
+    done
+  else
+    for requested_key in "${explicit_targets[@]}"; do
+      if [[ -z "${destination_by_key[$requested_key]+x}" ]]; then
+        echo "unknown dotdrop key '$requested_key' for current profile/config" >&2
+        exit 2
+      fi
+
+      append_split_key "$requested_key" "${destination_by_key[$requested_key]}" "${source_by_key[$requested_key]}"
+    done
   fi
-
-  for requested_key in "${explicit_targets[@]}"; do
-    if [[ -z "${destination_by_key[$requested_key]+x}" ]]; then
-      echo "unknown dotdrop key '$requested_key' for current profile/config" >&2
-      exit 2
-    fi
-
-    append_split_key "$requested_key" "${destination_by_key[$requested_key]}" "${source_by_key[$requested_key]}"
-  done
 else
   for ((key_idx = 0; key_idx < ${#all_keys[@]}; key_idx++)); do
     key_name="${all_keys[$key_idx]}"
@@ -327,7 +365,7 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   if [[ -t 0 ]]; then
     read -r -p "$confirmation_prompt" confirmation_answer
   else
-    echo "confirmation required but no interactive tty is available; pass explicit keys to skip prompt" >&2
+    echo "confirmation required but no interactive tty is available; pass explicit targets to skip prompt" >&2
     exit 2
   fi
 
@@ -341,16 +379,16 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   esac
 fi
 
-run_operation_for_keys() {
+run_operation_for_targets() {
   local run_with_sudo="$1"
   shift
-  local operation_keys=("$@")
+  local operation_targets=("$@")
   local dotdrop_call=("$dotdrop_cmd" "$operation" "${base_args[@]}")
 
-  if [[ "$operation" == "update" ]]; then
-    dotdrop_call+=(-k "${operation_keys[@]}")
+  if [[ "$operation" == "update" && "$update_target_mode" == "keys" ]]; then
+    dotdrop_call+=(-k "${operation_targets[@]}")
   else
-    dotdrop_call+=("${operation_keys[@]}")
+    dotdrop_call+=("${operation_targets[@]}")
   fi
 
   if [[ "$run_with_sudo" == "true" ]]; then
@@ -369,10 +407,10 @@ run_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
   shift 2
-  local phase_keys=("$@")
+  local phase_targets=("$@")
 
   set +e
-  run_operation_for_keys "$run_with_sudo" "${phase_keys[@]}"
+  run_operation_for_targets "$run_with_sudo" "${phase_targets[@]}"
   local phase_exit_code=$?
   set -e
 
