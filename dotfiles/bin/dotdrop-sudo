@@ -11,20 +11,26 @@ operation="update"
 
 if (( $# > 0 )); then
   case "$1" in
-    update|install)
+    update|install|import)
       operation="$1"
       shift
       ;;
     -*)
       ;;
     *)
-      echo "unsupported command '$1'; expected 'update' or 'install'" >&2
+      echo "unsupported command '$1'; expected 'update', 'install', or 'import'" >&2
       exit 2
       ;;
   esac
 fi
 
 command_args=("$@")
+
+if [[ "$operation" == "import" ]]; then
+  "$dotdrop_cmd" "$operation" "${command_args[@]}"
+  exit $?
+fi
+
 base_args=()
 files_args=()
 explicit_targets=()
