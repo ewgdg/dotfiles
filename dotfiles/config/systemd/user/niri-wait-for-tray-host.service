@@ -1,0 +1,13 @@
+[Unit]
+Description=Wait for tray host readiness in Niri
+Before=xdg-desktop-autostart.target
+Before=graphical-session.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=20
+ExecStart=/home/xian/bin/wait-for-tray-host
+RemainAfterExit=yes
+
+[Install]
+WantedBy=niri.service

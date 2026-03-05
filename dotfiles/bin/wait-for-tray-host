@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+watcher_destinations=(
+  org.kde.StatusNotifierWatcher
+  org.freedesktop.StatusNotifierWatcher
+)
+watcher_interfaces=(
+  org.kde.StatusNotifierWatcher
+  org.freedesktop.StatusNotifierWatcher
+)
+re_bool_type='"type"[[:space:]]*:[[:space:]]*"b"'
+re_true_data='"data"[[:space:]]*:[[:space:]]*true'
+
+watcher_is_ready() {
+  local destination interface output
+
+  for destination in "${watcher_destinations[@]}"; do
+    for interface in "${watcher_interfaces[@]}"; do
+      output="$(
+        busctl --user --no-pager --json=short get-property \
+          "$destination" \
+          /StatusNotifierWatcher \
+          "$interface" \
+          IsStatusNotifierHostRegistered \
+          2>/dev/null || true
+      )"
+
+      if [[ -n "$output" ]] &&
+        grep -Eq "$re_bool_type" <<<"$output" &&
+        grep -Eq "$re_true_data" <<<"$output"; then
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
+for ((attempt = 0; attempt < 80; attempt++)); do
+  if watcher_is_ready; then
+    exit 0
+  fi
+
+  sleep 0.25
+done
+
+exit 1

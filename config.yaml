@@ -28,6 +28,9 @@ dotfiles:
   f_config_systemd_user_keyd-application-mapper.service:
     src: config/systemd/user/keyd-application-mapper.service
     dst: ~/.config/systemd/user/keyd-application-mapper.service
+  f_config_systemd_user_niri-wait-for-tray-host.service:
+    src: config/systemd/user/niri-wait-for-tray-host.service
+    dst: ~/.config/systemd/user/niri-wait-for-tray-host.service
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
@@ -251,6 +254,9 @@ dotfiles:
     - '*/__pycache__/*'
     upignore: *agents_ignore
     instignore: *agents_ignore
+  f_config_electron-flags.conf:
+    src: config/electron-flags.conf
+    dst: ~/.config/electron-flags.conf
 profiles:
   base:
     dotfiles:
@@ -303,6 +309,7 @@ profiles:
     - f_etc_fonts_local.conf
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
+    - f_config_electron-flags.conf
     - d_config_paru
     - d_config_yay
   os_arch_kernel:
@@ -333,6 +340,9 @@ profiles:
   de_hypr:
     variables:
       desktop: hypr
+  de_niri:
+    dotfiles:
+    - f_config_systemd_user_niri-wait-for-tray-host.service
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -347,6 +357,7 @@ profiles:
     include:
     - os_arch
     - de_kde
+    - de_niri
     - app_ai
     dotfiles:
     - d_config_sunshine
