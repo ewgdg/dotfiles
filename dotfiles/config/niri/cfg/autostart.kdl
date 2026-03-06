@@ -5,6 +5,8 @@
 // Start it once per session.
 // spawn-at-startup "dms" "run"
 spawn-at-startup "qs" "-c" "noctalia-shell"
+// KDE Secret Service bridge for KWallet in a plain niri session.
+spawn-at-startup "ksecretd"
 // spawn-sh-at-startup "~/.config/niri/bin/start-swayidle.sh"
 
 // Lock immediately after autologin boots into niri.

@@ -245,6 +245,10 @@ dotfiles:
     src: config/kwinrulesrc
     dst: ~/.config/kwinrulesrc
     chmod: '600'
+  f_config_kwalletrc:
+    src: config/kwalletrc
+    dst: ~/.config/kwalletrc
+    chmod: '600'
   f_etc_sddm.conf:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
@@ -352,6 +356,7 @@ profiles:
     - f_config_kscreenlockerrc
     - f_config_kdeglobals
     - f_config_kwinrulesrc
+    - f_config_kwalletrc
     - f_etc_sddm.conf
     - f_etc_plasmalogin.conf
   de_hypr:
