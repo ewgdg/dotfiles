@@ -359,7 +359,7 @@ profiles:
       desktop: hypr
   de_niri:
     actions:
-    - install 'bibata-cursor-theme-bin papirus-icon-theme'
+    - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look'
     dotfiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
