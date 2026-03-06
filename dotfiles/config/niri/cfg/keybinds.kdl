@@ -105,6 +105,8 @@ binds {
     // Workspace Switching
     Mod+U              { focus-workspace-down; }
     Mod+I              { focus-workspace-up; }
+    Mod+Shift+U        { move-workspace-down; }
+    Mod+Shift+I        { move-workspace-up; }
     Mod+Ctrl+U         { move-column-to-workspace-down; }
     Mod+Ctrl+I         { move-column-to-workspace-up; }
     // Mod+S              { focus-workspace "scratchpad"; }

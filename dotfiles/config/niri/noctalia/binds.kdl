@@ -4,6 +4,7 @@
 binds {
     // Core Noctalia actions
     MOD+SPACE hotkey-overlay-title="Open Launcher" { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "launcher" "toggle"; }
+    MOD+SHIFT+SPACE hotkey-overlay-title="Open Launcher Windows" { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "launcher" "windows"; }
     // MOD+S hotkey-overlay-title="Open Control Center" { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "controlCenter" "toggle"; }
     // MOD+COMMA hotkey-overlay-title="Open Settings" { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "settings" "toggle"; }
 

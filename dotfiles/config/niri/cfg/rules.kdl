@@ -38,6 +38,12 @@ window-rule {
     default-floating-position x=10 y=10 relative-to="bottom-right"
 }
 
+window-rule {
+    // Open Steam's main window on the dedicated game workspace.
+    match app-id="steam"
+    open-on-workspace "game"
+}
+
 // window-rule {
 //     // Fcitx5 indicator/candidate windows: float without focus ring/border.
 //     // Fcitx5 window should not steal focus.
@@ -95,8 +101,8 @@ window-rule {
 window-rule {
     match app-id=r#"^steam_app_[0-9]+$"#
     match app-id=r#"\.exe$"#
+    open-floating true
 }
-
 
 layer-rule {
     // dms: Tell niri to place the wallpaper on the overview.
