@@ -34,9 +34,13 @@ dotfiles:
   d_config_niri:
     src: config/niri
     dst: ~/.config/niri
+    actions:
+    - install 'niri xwayland-satellite xdg-desktop-portal-gnome gnome-keyring seahorse'
   d_config_noctalia:
     src: config/noctalia
     dst: ~/.config/noctalia
+    actions:
+    - install 'noctalia-config noctalia-qs noctalia-shell cava'
     cmpignore: &noctalia_ignore
     - plugins/*
     upignore: *noctalia_ignore
@@ -354,6 +358,8 @@ profiles:
     variables:
       desktop: hypr
   de_niri:
+    actions:
+    - install 'bibata-cursor-theme-bin papirus-icon-theme'
     dotfiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
