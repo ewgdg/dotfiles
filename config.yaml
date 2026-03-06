@@ -31,6 +31,9 @@ dotfiles:
   f_config_systemd_user_niri-wait-for-tray-host.service:
     src: config/systemd/user/niri-wait-for-tray-host.service
     dst: ~/.config/systemd/user/niri-wait-for-tray-host.service
+  d_config_niri:
+    src: config/niri
+    dst: ~/.config/niri
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
@@ -48,6 +51,9 @@ dotfiles:
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
+  f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json:
+    src: etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
+    dst: /etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
   d_config_nvim:
     src: config/nvim
     dst: ~/.config/nvim
@@ -342,6 +348,8 @@ profiles:
       desktop: hypr
   de_niri:
     dotfiles:
+    - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
+    - d_config_niri
     - f_config_systemd_user_niri-wait-for-tray-host.service
   os_mac:
     variables:

@@ -1,0 +1,30 @@
+// ────────────── Output Configuration ──────────────
+// You can run `niri msg outputs` to get the correct name for your displays.
+// You will have to remove "/-" and edit it before it takes effect.
+// https://github.com/YaLTeR/niri/wiki/Configuration:-Outputs
+
+/- output "DP-1" {
+    mode "2560x1440@359.979" // Set resolution and refresh rate
+    scale 1 // No scaling (use 2 for HiDPI)
+}
+
+output "HDMI-A-1" {
+    // mode "1920x1080@60.000"
+    // scale 1
+    // focus-at-startup
+    // Layout config overrides just for this output.
+    layout {
+        // default-column-width { proportion 1.0; }
+    }
+}
+
+// You can configure a custom mode (not offered by the monitor) by setting custom=true. 
+// In this case, the refresh rate is mandatory.
+// Custom modes may damage your monitor, especially if it's a CRT. 
+// Follow the maximum supported limits in your monitor's instructions.
+// If scale is unset, niri will guess an appropriate scale based on the physical dimensions and the resolution of the monitor.
+output "Dummy" {
+    mode custom=true "3440x1440@144.000"
+    // scale 1.33
+    // variable-refresh-rate // on-demand=true   
+}

@@ -1,0 +1,30 @@
+// This config is in the KDL format: https://kdl.dev
+// "/-" comments out the following node.
+// Check the wiki for a full description of the configuration:
+// https://niri-wm.github.io/niri/Configuration:-Introduction
+
+include "cfg/autostart.kdl"
+include "cfg/keybinds.kdl"
+include "cfg/input.kdl"
+include "cfg/output.kdl"
+include "cfg/layout.kdl"
+include "cfg/rules.kdl"
+include "cfg/animation.kdl"
+include "cfg/misc.kdl"
+include "cfg/workspaces.kdl"
+include "cfg/switch-events.kdl"
+include "cfg/recent-windows.kdl"
+include "cfg/debug.kdl"
+
+
+// dankmaterialshell configs
+// Add to the end of ~/.config/niri/config.kdl
+// include "dms/colors.kdl"
+// include "dms/layout.kdl"
+// include "dms/alttab.kdl"
+// include "dms/binds.kdl"
+
+include "noctalia/binds.kdl"
+
+include "./noctalia.kdl"
+

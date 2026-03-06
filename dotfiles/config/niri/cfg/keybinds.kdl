@@ -1,0 +1,223 @@
+// https://github.com/niri-wm/niri/wiki/Configuration:-Key-Bindings
+
+binds {
+    // Mod-Shift-/, which is usually the same as Mod-?,
+    // shows a list of important hotkeys.
+    MOD+SHIFT+Slash { show-hotkey-overlay; }
+
+    // Applications
+    MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
+    // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
+    MOD+B hotkey-overlay-title="Open Browser" { spawn "google-chrome-stable"; }
+    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
+    MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
+    // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
+
+    // Please choose your own file manager.
+    MOD+E repeat=false hotkey-overlay-title="File Manager" { spawn "nautilus"; }
+
+    // Audio Controls
+    // XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
+    // XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
+    // XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    // XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+
+    // Example media keys mapping using playerctl.
+    // This will work with any MPRIS-enabled media player.
+    // XF86AudioPlay        allow-when-locked=true { spawn-sh "playerctl play-pause"; }
+    // XF86AudioStop        allow-when-locked=true { spawn-sh "playerctl stop"; }
+    // XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
+    // XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
+
+    // Example brightness key mappings for brightnessctl.
+    // You can use regular spawn with multiple arguments too (to avoid going through "sh"),
+    // but you need to manually put each argument in separate "" quotes.
+    // XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
+    // XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+
+    // Window Movement and Focus
+
+    // Open/close the Overview: a zoomed-out view of workspaces and windows.
+    // You can also move the mouse into the top-left hot corner,
+    // or do a four-finger swipe up on a touchpad.
+    MOD+W repeat=false { toggle-overview; }
+
+    MOD+Q { close-window; }
+
+    Mod+Left  { focus-column-or-monitor-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-or-monitor-right; }
+    Mod+H     { focus-column-or-monitor-left; }
+    // Mod+J     { focus-window-down; }
+    Mod+J     { focus-window-or-workspace-down; }
+    // Mod+K     { focus-window-up; }
+    Mod+K     { focus-window-or-workspace-up; }
+    Mod+L     { focus-column-or-monitor-right; }
+
+    Mod+Ctrl+Left  { move-column-left-or-to-monitor-left; }
+    Mod+Ctrl+Down  { move-window-down; }
+    Mod+Ctrl+Up    { move-window-up; }
+    Mod+Ctrl+Right { move-column-right-or-to-monitor-right; }
+    Mod+Ctrl+H     { move-column-left-or-to-monitor-left; }
+    // Mod+Ctrl+J     { move-window-down; }
+    Mod+Ctrl+J     { move-window-down-or-to-workspace-down; }
+    // Mod+Ctrl+K     { move-window-up; }
+    Mod+Ctrl+K     { move-window-up-or-to-workspace-up; }
+    Mod+Ctrl+L     { move-column-right-or-to-monitor-right; }
+    
+    Mod+Comma { focus-column-first; }
+    Mod+Period { focus-column-last; }
+    Mod+Ctrl+Comma { move-column-to-first; }
+    Mod+Ctrl+Period { move-column-to-last; }
+    Mod+Y { focus-column-first; }
+    Mod+O { focus-column-last; }
+    Mod+Ctrl+Y { move-column-to-first; }
+    Mod+Ctrl+O { move-column-to-last; }
+
+    // Monitor Focus
+    Mod+Shift+Left  { focus-monitor-left; }
+    Mod+Shift+Down  { focus-monitor-down; }
+    Mod+Shift+Up    { focus-monitor-up; }
+    Mod+Shift+Right { focus-monitor-right; }
+    Mod+Shift+H     { focus-monitor-left; }
+    Mod+Shift+J     { focus-monitor-down; }
+    Mod+Shift+K     { focus-monitor-up; }
+    Mod+Shift+L     { focus-monitor-right; }
+
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+H     { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+J     { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+K     { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+L     { move-column-to-monitor-right; }
+
+    // Alternatively, there are commands to move just a single window:
+    // Mod+Shift+Ctrl+Left  { move-window-to-monitor-left; }
+    // ...
+
+    // And you can also move a whole workspace to another monitor:
+    // Mod+Shift+Ctrl+Left  { move-workspace-to-monitor-left; }
+    // ...
+
+    // Workspace Switching
+    Mod+U              { focus-workspace-down; }
+    Mod+I              { focus-workspace-up; }
+    Mod+Ctrl+U         { move-column-to-workspace-down; }
+    Mod+Ctrl+I         { move-column-to-workspace-up; }
+    // Mod+S              { focus-workspace "scratchpad"; }
+    // Mod+Ctrl+S         { move-window-to-workspace "scratchpad" focus=false; }
+
+    MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
+    MOD+WHEELSCROLLUP cooldown-ms=150 { focus-workspace-up; }
+    MOD+CTRL+WHEELSCROLLDOWN cooldown-ms=150 { move-column-to-workspace-down; }
+    MOD+CTRL+WHEELSCROLLUP cooldown-ms=150 { move-column-to-workspace-up; }
+
+    MOD+WHEELSCROLLRIGHT { focus-column-right; }
+    MOD+WHEELSCROLLLEFT { focus-column-left; }
+    MOD+CTRL+WHEELSCROLLRIGHT { move-column-right; }
+    MOD+CTRL+WHEELSCROLLLEFT { move-column-left; }
+
+    MOD+SHIFT+WHEELSCROLLDOWN { focus-column-right; }
+    MOD+SHIFT+WHEELSCROLLUP { focus-column-left; }
+    MOD+SHIFT+WHEELSCROLLRIGHT { focus-column-right; }
+    MOD+SHIFT+WHEELSCROLLLEFT { focus-column-left; }
+    MOD+CTRL+SHIFT+WHEELSCROLLDOWN { move-column-right; }
+    MOD+CTRL+SHIFT+WHEELSCROLLUP { move-column-left; }
+
+    // Alternatively, there are commands to move just a single window:
+    // Mod+Ctrl+Page_Down { move-window-to-workspace-down; }
+    // ...
+
+    MOD+1 { focus-workspace 1; }
+    MOD+2 { focus-workspace 2; }
+    MOD+3 { focus-workspace 3; }
+    MOD+4 { focus-workspace 4; }
+    MOD+5 { focus-workspace 5; }
+    MOD+6 { focus-workspace 6; }
+    MOD+7 { focus-workspace 7; }
+    MOD+8 { focus-workspace 8; }
+    MOD+9 { focus-workspace 9; }
+
+    MOD+CTRL+1 { move-column-to-workspace 1; }
+    MOD+CTRL+2 { move-column-to-workspace 2; }
+    MOD+CTRL+3 { move-column-to-workspace 3; }
+    MOD+CTRL+4 { move-column-to-workspace 4; }
+    MOD+CTRL+5 { move-column-to-workspace 5; }
+    MOD+CTRL+6 { move-column-to-workspace 6; }
+    MOD+CTRL+7 { move-column-to-workspace 7; }
+    MOD+CTRL+8 { move-column-to-workspace 8; }
+    MOD+CTRL+9 { move-column-to-workspace 9; }
+
+    // Alternatively, there are commands to move just a single window:
+    // Mod+Ctrl+1 { move-window-to-workspace 1; }
+
+    // Window switcher uses `recent-windows` defaults (Mod+Tab / Mod+Shift+Tab) or (Alt+Tab).
+
+    // Switches focus between the current and the previous workspace.
+    // Mod+Tab { focus-workspace-previous; }
+
+    // The following binds move the focused window in and out of a column.
+    // If the window is alone, they will consume it into the nearby column to the side.
+    // If the window is already in a column, they will expel it out.
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+Ctrl+BracketLeft  { consume-window-into-column; }
+    Mod+Ctrl+BracketRight { expel-window-from-column; }
+
+    // Consume one window from the right to the bottom of the focused column.
+    // Mod+Comma  { consume-window-into-column; }
+    // Expel the bottom window from the focused column to the right.
+    // Mod+Period { expel-window-from-column; }
+
+    Mod+R { switch-preset-column-width; }
+    // Cycling through the presets in reverse order is also possible.
+    // Mod+R { switch-preset-column-width-back; }
+    Mod+Shift+R { switch-preset-window-height; }
+    Mod+Ctrl+R { reset-window-height; }
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+
+    // While maximize-column leaves gaps and borders around the window,
+    // maximize-window-to-edges doesn't: the window expands to the edges of the screen.
+    // This bind corresponds to normal window maximizing,
+    // e.g. by double-clicking on the titlebar.
+    Mod+M { maximize-window-to-edges; }
+
+    // Expand the focused column to space not taken up by other fully visible columns.
+    MOD+CTRL+F { expand-column-to-available-width; }
+    MOD+C { center-column; }
+    // Center all fully visible columns on screen.
+    MOD+CTRL+C { center-visible-columns; }
+    MOD+MINUS { set-column-width "-10%"; }
+    MOD+EQUAL { set-column-width "+10%"; }
+    MOD+Backspace { set-column-width "50%"; }
+    MOD+SHIFT+MINUS { set-window-height "-10%"; }
+    MOD+SHIFT+EQUAL { set-window-height "+10%"; }
+
+    // Move the focused window between the floating and the tiling layout.
+    Mod+V       { toggle-window-floating; }
+    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    Mod+S       { toggle-window-floating; }
+    Mod+Shift+S { switch-focus-between-floating-and-tiling; }
+
+    // Toggle tabbed column display mode.
+    MOD+T { toggle-column-tabbed-display; }
+
+    // Screenshots
+    Print { screenshot; }
+    CTRL+SHIFT+5 { screenshot; }
+    Shift+Print { screenshot-screen show-pointer=false write-to-disk=false; }
+    CTRL+Print { screenshot-window write-to-disk=false; }
+
+    // Emergency Escape Key
+    // Use this when a fullscreen app blocks your keybinds.
+    // It disables any active keyboard shortcut inhibitor, restoring control.
+    MOD+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
+
+    // Exit / Power
+    Mod+Ctrl+Shift+DELETE { quit; } // Also quits Niri
+    MOD+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
+}

@@ -1,0 +1,8 @@
+// https://yalter.github.io/niri/Configuration:-Recent-Windows.html
+recent-windows {
+    previews {
+        // Smaller Alt-Tab previews.
+        // max-height 320
+        max-scale 0.3
+    }
+}

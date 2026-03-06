@@ -1,0 +1,7 @@
+// https://niri-wm.github.io/niri/Configuration%3A-Debug-Options.html
+
+debug {
+  // Allows notification actions and window activation from Noctalia.
+  // bc some of the apps does not implement the valid activation token correctly?
+  honor-xdg-activation-with-invalid-serial
+}
