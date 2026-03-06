@@ -12,7 +12,8 @@ Usage:
 Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
 - `undo` does a simple stateless restore by reloading Niri config.
-- Optionally uses `systemd-inhibit --what=idle` while active to prevent the session idling (pass `--inhibit`).
+- Optionally uses `systemd-inhibit --what=idle` and Noctalia's idle inhibitor IPC
+  while active to prevent the session idling (pass `--inhibit`).
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 
 INHIBIT_REASON = "sunshine-connection"
@@ -45,14 +46,27 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
     return subprocess.run(argv, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+def set_noctalia_idle_inhibitor(enabled: bool) -> None:
+    if not which("qs"):
+        return
+
+    action = "enable" if enabled else "disable"
+    subprocess.run(
+        ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 def kill_runtime_inhibit() -> None:
-    # Best-effort; match other prep scripts.
+    set_noctalia_idle_inhibitor(False)
     subprocess.run(["pkill", "-f", INHIBIT_REASON], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def start_runtime_inhibit() -> Optional[int]:
+def start_runtime_inhibit() -> None:
+    kill_runtime_inhibit()
     try:
-        p = subprocess.Popen(
+        subprocess.Popen(
             [
                 "systemd-inhibit",
                 f"--who={INHIBIT_WHO}",
@@ -65,9 +79,9 @@ def start_runtime_inhibit() -> Optional[int]:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        return p.pid
     except Exception:
-        return None
+        pass
+    set_noctalia_idle_inhibitor(True)
 
 
 def should_inhibit(inhibit_flag: bool) -> bool:
@@ -539,7 +553,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_do.add_argument(
         "--inhibit",
         action="store_true",
-        help="Use systemd-inhibit to prevent idle actions while streaming",
+        help="Use systemd-inhibit plus `qs -c noctalia-shell ipc call idleInhibitor ...`",
     )
     p_do.add_argument(
         "--autodiscover-socket",
