@@ -26,8 +26,9 @@ window-rule {
 
 window-rule {
     // Focus the keyring unlock prompt when it appears.
-    match app-id="^gcr-prompter$"
-    open-floating true
+    match app-id=r#"(?i)^gcr-prompter$"#
+    match title=r#"(?i)unlock keyring$"#
+    // open-floating true
     open-focused true
 }
 

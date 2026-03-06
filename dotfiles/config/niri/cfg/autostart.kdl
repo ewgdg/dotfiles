@@ -9,7 +9,7 @@ spawn-at-startup "qs" "-c" "noctalia-shell"
 
 // Lock immediately after autologin boots into niri.
 // Triggers on greetd env flag or a loginctl service name matching autologin.
-// spawn-sh-at-startup "autolock=0; if [ \"${NIRI_AUTOLOCK_ON_START:-0}\" = \"1\" ]; then autolock=1; elif [ -n \"${XDG_SESSION_ID:-}\" ] && command -v loginctl >/dev/null 2>&1; then service=\"$(loginctl show-session \"$XDG_SESSION_ID\" -p Service --value 2>/dev/null || true)\"; printf '%s' \"$service\" | grep -Eqi '(^|[-_])autologin($|[-_])' && autolock=1; fi; if [ \"$autolock\" = \"1\" ]; then for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do qs -c noctalia-shell ipc call lockScreen lock >/dev/null 2>&1 && break; sleep 0.5; done; fi"
+spawn-sh-at-startup "autolock=0; if [ \"${NIRI_AUTOLOCK_ON_START:-0}\" = \"1\" ]; then autolock=1; elif [ -n \"${XDG_SESSION_ID:-}\" ] && command -v loginctl >/dev/null 2>&1; then service=\"$(loginctl show-session \"$XDG_SESSION_ID\" -p Service --value 2>/dev/null || true)\"; printf '%s' \"$service\" | grep -Eqi '(^|[-_])autologin($|[-_])' && autolock=1; fi; if [ \"$autolock\" = \"1\" ]; then for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do qs -c noctalia-shell ipc call lockScreen lock >/dev/null 2>&1 && break; sleep 0.5; done; fi"
 
 // Optional: if you are *not* using quick-shell's polkit integration, start a polkit auth agent.
 // spawn-sh-at-startup "/usr/lib/polkit-kde-authentication-agent-1 &" // Polkit (KDE)
