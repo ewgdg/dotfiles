@@ -34,6 +34,13 @@ dotfiles:
   d_config_niri:
     src: config/niri
     dst: ~/.config/niri
+  d_config_noctalia:
+    src: config/noctalia
+    dst: ~/.config/noctalia
+    cmpignore: &noctalia_ignore
+    - plugins/*
+    upignore: *noctalia_ignore
+    instignore: *noctalia_ignore
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
@@ -350,6 +357,7 @@ profiles:
     dotfiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
+    - d_config_noctalia
     - f_config_systemd_user_niri-wait-for-tray-host.service
   os_mac:
     variables:
