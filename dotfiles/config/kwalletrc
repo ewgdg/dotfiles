@@ -1,5 +1,5 @@
 [Auto Allow]
-kdewallet=xdg-desktop-portal
+kdewallet=xdg-desktop-portal,KDE System
 
 [Auto Deny]
 kdewallet=
