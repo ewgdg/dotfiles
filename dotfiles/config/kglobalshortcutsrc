@@ -361,6 +361,11 @@ _launch=Search\tAlt+F2\tAlt+Space\tMeta+Space
 [services][org.kde.plasma-systemmonitor.desktop]
 _launch=none
 
+[services][org.kde.spectacle.desktop]
+CurrentMonitorScreenShot=
+OpenWithoutScreenshot=
+_launch=Print
+
 [services][org.kde.touchpadshortcuts.desktop]
 ToggleTouchpad=none
 
