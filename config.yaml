@@ -35,8 +35,7 @@ dotfiles:
     src: config/niri
     dst: ~/.config/niri
     actions:
-    - install 'niri xwayland-satellite xdg-desktop-portal-gnome gnome-keyring 
-      seahorse'
+    - install 'niri xwayland-satellite xdg-desktop-portal-gnome'
   d_config_noctalia:
     src: config/noctalia
     dst: ~/.config/noctalia
