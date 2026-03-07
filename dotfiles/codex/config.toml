@@ -33,7 +33,12 @@ hide_rate_limit_model_nudge = true
 multi_agent = true
 
 [tui]
-status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining"]
+status_line = [
+  "model-with-reasoning",
+  "current-dir",
+  "git-branch",
+  "context-remaining",
+]
 
 # [mcp_servers.mcp-web-context]
 # command = "uvx"

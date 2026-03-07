@@ -30,11 +30,11 @@ def write_plist(path: pathlib.Path, data: dict[str, Any], fmt: str) -> None:
         plistlib.dump(data, handle, fmt=plist_format, sort_keys=True)
 
 
-def write_existing_bytes_if_semantically_unchanged(
+def get_existing_bytes_if_semantically_unchanged(
     path: pathlib.Path, data: dict[str, Any]
-) -> bool:
+) -> bytes | None:
     if not path.exists():
-        return False
+        return None
 
     with path.open("rb") as handle:
         existing_bytes = handle.read()
@@ -42,14 +42,12 @@ def write_existing_bytes_if_semantically_unchanged(
     try:
         existing_data = plistlib.loads(existing_bytes)
     except Exception:
-        return False
+        return None
 
     if existing_data != data:
-        return False
+        return None
 
-    with path.open("wb") as handle:
-        handle.write(existing_bytes)
-    return True
+    return existing_bytes
 
 
 def mirror_mode(src: pathlib.Path, dst: pathlib.Path) -> None:
@@ -101,11 +99,23 @@ def main() -> int:
         filtered_data = merged_data
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    compare_path = pathlib.Path(args.compare_file) if args.compare_file else output_path
-    if write_existing_bytes_if_semantically_unchanged(compare_path, filtered_data):
+    # For install transforms we merge managed keys into the existing destination plist.
+    # If that merge is semantically unchanged, preserve the destination bytes exactly
+    # so dotdrop does not see no-op rewrites caused by plistlib re-serialization.
+    compare_path = (
+        pathlib.Path(args.compare_file)
+        if args.compare_file
+        else pathlib.Path(args.merge_file)
+        if args.merge_file
+        else output_path
+    )
+    existing_bytes = get_existing_bytes_if_semantically_unchanged(
+        compare_path, filtered_data
+    )
+    if existing_bytes is not None:
+        with output_path.open("wb") as handle:
+            handle.write(existing_bytes)
         if compare_path != output_path:
-            with compare_path.open("rb") as src, output_path.open("wb") as dst:
-                dst.write(src.read())
             mirror_mode(compare_path, output_path)
         return 0
     write_plist(output_path, filtered_data, args.output_format)
