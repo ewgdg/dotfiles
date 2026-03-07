@@ -31,6 +31,9 @@ dotfiles:
   f_config_systemd_user_niri-wait-for-tray-host.service:
     src: config/systemd/user/niri-wait-for-tray-host.service
     dst: ~/.config/systemd/user/niri-wait-for-tray-host.service
+  f_config_systemd_user_network-virtual-mic.service:
+    src: config/systemd/user/network-virtual-mic.service
+    dst: ~/.config/systemd/user/network-virtual-mic.service
   d_config_niri:
     src: config/niri
     dst: ~/.config/niri
@@ -328,6 +331,7 @@ profiles:
     - f_etc_keyd_default.conf
     - d_config_keyd
     - f_config_systemd_user_keyd-application-mapper.service
+    - f_config_systemd_user_network-virtual-mic.service
     - d_etc_docker
     - d_config_autostart
     - d_local_share_flatpak_overrides

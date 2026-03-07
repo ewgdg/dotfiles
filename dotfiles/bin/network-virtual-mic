@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+: "${NVM_INPUT_URL:=udp://0.0.0.0:55041?listen=1}"
+: "${NVM_INPUT_FORMAT:=mpegts}"
+: "${NVM_SINK_NAME:=sink-network-virtual-mic}"
+: "${NVM_SOURCE_NAME:=source-network-virtual-mic}"
+: "${NVM_SINK_DESCRIPTION:=NetworkSink}"
+: "${NVM_SOURCE_DESCRIPTION:=NetworkMic}"
+: "${NVM_SAMPLE_RATE:=48000}"
+: "${NVM_CHANNELS:=2}"
+: "${NVM_STREAM_NAME:=network-virtual-mic}"
+: "${NVM_APP_NAME:=Network Virtual Mic}"
+: "${NVM_FFMPEG_LOGLEVEL:=warning}"
+: "${NVM_FFMPEG_EXTRA_INPUT_ARGS:=}"
+: "${NVM_FFMPEG_EXTRA_OUTPUT_ARGS:=}"
+
+created_sink_module_id=""
+created_source_module_id=""
+
+escape_pulse_value() {
+  printf '%s' "${1}" | sed 's/\\/\\\\/g; s/ /\\ /g'
+}
+
+source_monitor_name() {
+  printf '%s.monitor' "${NVM_SINK_NAME}"
+}
+
+have_sink() {
+  pactl list short sinks | awk '{print $2}' | grep -Fxq "${NVM_SINK_NAME}"
+}
+
+have_source() {
+  pactl list short sources | awk '{print $2}' | grep -Fxq "${NVM_SOURCE_NAME}"
+}
+
+create_sink() {
+  local sink_description_escaped
+
+  if have_sink; then
+    return
+  fi
+
+  sink_description_escaped="$(escape_pulse_value "${NVM_SINK_DESCRIPTION}")"
+  created_sink_module_id="$(
+    pactl load-module module-null-sink \
+      "sink_name=${NVM_SINK_NAME}" \
+      "rate=${NVM_SAMPLE_RATE}" \
+      "channels=${NVM_CHANNELS}" \
+      "sink_properties=device.description=${sink_description_escaped}"
+  )"
+}
+
+create_source() {
+  local source_description_escaped
+
+  if have_source; then
+    return
+  fi
+
+  source_description_escaped="$(escape_pulse_value "${NVM_SOURCE_DESCRIPTION}")"
+  created_source_module_id="$(
+    pactl load-module module-remap-source \
+      "master=$(source_monitor_name)" \
+      "source_name=${NVM_SOURCE_NAME}" \
+      "source_properties=device.description=${source_description_escaped}"
+  )"
+}
+
+cleanup() {
+  if [[ -n "${created_source_module_id}" ]]; then
+    pactl unload-module "${created_source_module_id}" >/dev/null 2>&1 || true
+  fi
+
+  if [[ -n "${created_sink_module_id}" ]]; then
+    pactl unload-module "${created_sink_module_id}" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT INT TERM
+
+create_sink
+create_source
+
+ffmpeg_input_args=()
+if [[ -n "${NVM_INPUT_FORMAT}" ]]; then
+  ffmpeg_input_args+=("-f" "${NVM_INPUT_FORMAT}")
+fi
+
+if [[ -n "${NVM_FFMPEG_EXTRA_INPUT_ARGS}" ]]; then
+  # Intentionally split on shell words so the env file can pass multiple flags.
+  read -r -a extra_input_args <<<"${NVM_FFMPEG_EXTRA_INPUT_ARGS}"
+  ffmpeg_input_args+=("${extra_input_args[@]}")
+fi
+
+ffmpeg_output_args=()
+if [[ -n "${NVM_FFMPEG_EXTRA_OUTPUT_ARGS}" ]]; then
+  read -r -a extra_output_args <<<"${NVM_FFMPEG_EXTRA_OUTPUT_ARGS}"
+  ffmpeg_output_args+=("${extra_output_args[@]}")
+fi
+
+ffmpeg \
+  -hide_banner \
+  -loglevel "${NVM_FFMPEG_LOGLEVEL}" \
+  -nostdin \
+  "${ffmpeg_input_args[@]}" \
+  -i "${NVM_INPUT_URL}" \
+  -vn \
+  -ar "${NVM_SAMPLE_RATE}" \
+  -ac "${NVM_CHANNELS}" \
+  -f pulse \
+  -name "${NVM_APP_NAME}" \
+  -stream_name "${NVM_STREAM_NAME}" \
+  -device "${NVM_SINK_NAME}" \
+  "${ffmpeg_output_args[@]}" \
+  "${NVM_STREAM_NAME}"

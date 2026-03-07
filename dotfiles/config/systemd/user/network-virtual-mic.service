@@ -1,0 +1,26 @@
+[Unit]
+Description=Receive network audio into a virtual microphone
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Wants=pipewire.service pipewire-pulse.service wireplumber.service
+
+[Service]
+Type=simple
+Environment="NVM_INPUT_URL=udp://0.0.0.0:55041?listen=1"
+Environment="NVM_INPUT_FORMAT=mpegts"
+Environment="NVM_SINK_NAME=sink-network-virtual-mic"
+Environment="NVM_SOURCE_NAME=source-network-virtual-mic"
+Environment="NVM_SINK_DESCRIPTION=NetworkSink"
+Environment="NVM_SOURCE_DESCRIPTION=NetworkMic"
+Environment="NVM_SAMPLE_RATE=48000"
+Environment="NVM_CHANNELS=2"
+Environment="NVM_STREAM_NAME=network-virtual-mic"
+Environment="NVM_APP_NAME=Network Virtual Mic"
+Environment="NVM_FFMPEG_LOGLEVEL=warning"
+Environment="NVM_FFMPEG_EXTRA_INPUT_ARGS=-fflags nobuffer -flags low_delay"
+Environment="NVM_FFMPEG_EXTRA_OUTPUT_ARGS="
+ExecStart=%h/bin/network-virtual-mic
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
