@@ -377,6 +377,8 @@ profiles:
     variables:
       desktop: hypr
   de_niri:
+    variables:
+      desktop: niri
     actions:
     - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme 
       nwg-look'
@@ -402,7 +404,6 @@ profiles:
     include:
     - os_arch
     - de_kde
-    - de_niri
     - app_ai
     dotfiles:
     - d_config_sunshine
