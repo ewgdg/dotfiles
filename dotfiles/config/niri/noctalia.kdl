@@ -1,35 +1,35 @@
 layout {
 
     focus-ring {
-        active-color   "#ebbcba"
-        inactive-color "#191724"
-        urgent-color   "#eb6f92"
+        active-color   "#b8bb26"
+        inactive-color "#282828"
+        urgent-color   "#fb4934"
     }
 
     border {
-        active-color   "#ebbcba"
-        inactive-color "#191724"
-        urgent-color   "#eb6f92"
+        active-color   "#b8bb26"
+        inactive-color "#282828"
+        urgent-color   "#fb4934"
     }
 
     shadow {
-        color "#19172470"
+        color "#28282870"
     }
 
     tab-indicator {
-        active-color   "#ebbcba"
-        inactive-color "#ce2b24"
-        urgent-color   "#eb6f92"
+        active-color   "#b8bb26"
+        inactive-color "#444507"
+        urgent-color   "#fb4934"
     }
 
     insert-hint {
-        color "#ebbcba80"
+        color "#b8bb2680"
     }
 }
 
 recent-windows {
     highlight {
-        active-color "#ebbcba"
-        urgent-color "#eb6f92"
+        active-color "#b8bb26"
+        urgent-color "#fb4934"
     }
 }

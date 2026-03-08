@@ -405,8 +405,11 @@ profiles:
     - os_mac
     - app_ai
   xian-linux-server:
+    variables:
+      desktop: kde
     include:
     - os_arch
+    - de_niri
     - de_kde
     - app_ai
     dotfiles:
