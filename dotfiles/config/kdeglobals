@@ -97,6 +97,9 @@ LastUsedCustomAccentColor=255,112,120
 TerminalApplication=alacritty
 TerminalService=Alacritty.desktop
 
+[Icons]
+Theme=Papirus-Dark
+
 [KDE]
 LookAndFeelPackage=Xian Curated
 contrast=4
