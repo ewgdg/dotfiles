@@ -241,6 +241,23 @@ dotfiles:
   d_config_environment.d:
     src: config/environment.d
     dst: ~/.config/environment.d
+  d_config_gtk-3.0:
+    src: config/gtk-3.0
+    dst: ~/.config/gtk-3.0
+    chmod: '700'
+    cmpignore: &gtk3_ignore
+    - assets/*
+    - bookmarks
+    - '*.backup.*'
+    upignore: *gtk3_ignore
+    instignore: *gtk3_ignore
+  d_config_gtk-4.0:
+    src: config/gtk-4.0
+    dst: ~/.config/gtk-4.0
+    chmod: '700'
+  d_config_xdg-desktop-portal:
+    src: config/xdg-desktop-portal
+    dst: ~/.config/xdg-desktop-portal
   f_config_kscreenlockerrc:
     src: config/kscreenlockerrc
     dst: ~/.config/kscreenlockerrc
@@ -326,10 +343,19 @@ profiles:
   posix_utils:
     dotfiles:
     - d_bin
+  framework_gtk:
+    dotfiles:
+    - d_config_gtk-3.0
+    - d_config_gtk-4.0
+    actions:
+    - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath 
+      @@}}/../scripts/sync_gtk_gsettings.py' ~/.config/gtk-3.0/settings.ini 
+      ~/.config/gtk-4.0/settings.ini"
   os_linux:
     include:
     - posix_base
     - posix_utils
+    - framework_gtk
     dotfiles:
     - f_etc_keyd_default.conf
     - d_config_keyd
@@ -340,6 +366,7 @@ profiles:
     - d_local_share_flatpak_overrides
     - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - d_config_environment.d
+    - d_config_xdg-desktop-portal
   os_arch:
     variables:
       install_cmd: yay -S --needed --answerdiff=None --answeredit=None {0}
