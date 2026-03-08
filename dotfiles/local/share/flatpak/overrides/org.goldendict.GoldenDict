@@ -1,8 +1,8 @@
 [Context]
-sockets=wayland
-filesystems=home
+filesystems=home;host-etc
 
 [Environment]
 GTK_IM_MODULE=fcitx
 QT_IM_MODULE=fcitx
 XMODIFIERS=@im=fcitx
+QT_FONT_DPI=109
