@@ -1,0 +1,124 @@
+#!/usr/bin/env sh
+
+set -eu
+
+SCRIPT_NAME=$(basename "$0")
+AUTLOGIN_FILE=/etc/sddm.conf.d/zz-autologin.conf
+SUNSHINE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sunshine"
+SUNSHINE_LINK="$SUNSHINE_DIR/sunshine.conf"
+DESKTOP_USER=${SUDO_USER:-${USER:-$(id -un)}}
+
+usage() {
+    cat <<EOF
+Usage: $SCRIPT_NAME <kde|niri|status>
+
+Switch the active desktop by:
+  - updating $AUTLOGIN_FILE
+  - relinking $SUNSHINE_LINK
+
+Examples:
+  $SCRIPT_NAME kde
+  $SCRIPT_NAME niri
+  $SCRIPT_NAME status
+EOF
+}
+
+sudo_cmd() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo -A "$@"
+    fi
+}
+
+desktop_session() {
+    case "$1" in
+        kde) printf '%s\n' plasma ;;
+        niri) printf '%s\n' niri ;;
+        *)
+            printf 'Unsupported desktop: %s\n' "$1" >&2
+            exit 1
+            ;;
+    esac
+}
+
+sunshine_target() {
+    printf '%s\n' "$SUNSHINE_DIR/sunshine-$1.conf"
+}
+
+print_status() {
+    current_session="missing"
+    current_target="missing"
+
+    if [ -f "$AUTLOGIN_FILE" ]; then
+        current_session=$(sed -n 's/^Session=//p' "$AUTLOGIN_FILE" | tail -n 1)
+        [ -n "$current_session" ] || current_session="unset"
+    fi
+
+    if [ -L "$SUNSHINE_LINK" ]; then
+        current_target=$(readlink "$SUNSHINE_LINK")
+    elif [ -e "$SUNSHINE_LINK" ]; then
+        current_target="exists but is not a symlink"
+    fi
+
+    printf 'Autologin session: %s\n' "$current_session"
+    printf 'Sunshine config: %s\n' "$current_target"
+}
+
+write_autologin() {
+    desktop=$1
+    session=$(desktop_session "$desktop")
+    tmp_file=$(mktemp)
+
+    cat >"$tmp_file" <<EOF
+[Autologin]
+User=$DESKTOP_USER
+Session=$session
+Relogin=false
+EOF
+
+    sudo_cmd mkdir -p "$(dirname "$AUTLOGIN_FILE")"
+    sudo_cmd install -m 0644 "$tmp_file" "$AUTLOGIN_FILE"
+    rm -f "$tmp_file"
+}
+
+link_sunshine() {
+    desktop=$1
+    target=$(sunshine_target "$desktop")
+
+    if [ ! -e "$target" ]; then
+        printf 'Missing Sunshine config: %s\n' "$target" >&2
+        exit 1
+    fi
+
+    mkdir -p "$SUNSHINE_DIR"
+    ln -sfn "$target" "$SUNSHINE_LINK"
+}
+
+main() {
+    if [ $# -ne 1 ]; then
+        usage >&2
+        exit 1
+    fi
+
+    case "$1" in
+        -h|--help)
+            usage
+            ;;
+        status)
+            print_status
+            ;;
+        kde|niri)
+            write_autologin "$1"
+            link_sunshine "$1"
+            printf 'Switched desktop to %s\n' "$1"
+            print_status
+            ;;
+        *)
+            usage >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
