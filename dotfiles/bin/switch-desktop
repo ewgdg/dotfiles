@@ -3,7 +3,7 @@
 set -eu
 
 SCRIPT_NAME=$(basename "$0")
-AUTLOGIN_FILE=/etc/sddm.conf.d/zz-autologin.conf
+AUTLOGIN_FILE=/etc/sddm.conf.d/zzz-autologin.local.conf
 SUNSHINE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sunshine"
 SUNSHINE_LINK="$SUNSHINE_DIR/sunshine.conf"
 DESKTOP_USER=${SUDO_USER:-${USER:-$(id -un)}}
@@ -61,6 +61,7 @@ print_status() {
         current_target="exists but is not a symlink"
     fi
 
+    printf 'Autologin file: %s\n' "$AUTLOGIN_FILE"
     printf 'Autologin session: %s\n' "$current_session"
     printf 'Sunshine config: %s\n' "$current_target"
 }

@@ -109,6 +109,9 @@ dotfiles:
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
+    cmpignore: &sddm_conf_d_ignore
+    - zzz-autologin.local.conf
+    upignore: *sddm_conf_d_ignore
   f_etc_mkinitcpio.conf:
     src: etc/mkinitcpio.conf
     dst: /etc/mkinitcpio.conf
