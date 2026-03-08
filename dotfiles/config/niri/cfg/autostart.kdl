@@ -1,6 +1,7 @@
 // ────────────── Startup Applications ──────────────
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
+spawn-sh-at-startup "dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME"
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
 // Start it once per session.
 // spawn-at-startup "dms" "run"
