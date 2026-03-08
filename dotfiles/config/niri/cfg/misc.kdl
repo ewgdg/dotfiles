@@ -2,7 +2,7 @@
 
 // Also ask windows to omit client-side decorations, so that
 // they don't draw their own window shadows.
-// prefer-no-csd
+prefer-no-csd true
 
 // The path is formatted with strftime(3) to give you the screenshot date and time.
 // screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
@@ -20,6 +20,8 @@ environment {
     QT_QPA_PLATFORM "wayland"
     // QT_QPA_PLATFORMTHEME "gtk3"
     // QT_QPA_PLATFORMTHEME "qt6ct"
+    // QT_QPA_PLATFORMTHEME "kde"
+    // QT_WAYLAND_DISABLE_WINDOWDECORATION "1"
     QS_ICON_THEME "Papirus-Dark"
 
     // Input Module
@@ -52,6 +54,6 @@ clipboard {
 
 // hotkey help overlay
 hotkey-overlay {
-    // skip-at-startup
+    skip-at-startup
     // hide-not-bound
 }

@@ -12,7 +12,6 @@ window-rule {
     // Keep utility windows floating.
     // Includes 1Password (and Quick Access) and GoldenDict.
     match app-id=r#"(?i)^1password(-quickaccess)?$"#
-    match app-id=r#"(?i)goldendict"#
     // Open DMS windows as floating by default
     // match app-id=r#"org.quickshell$"#
     open-floating true
@@ -25,9 +24,19 @@ window-rule {
 }
 
 window-rule {
+    match app-id=r#"(?i)goldendict"#
+    open-floating true
+    default-window-height { fixed 600; }
+    default-column-width { fixed 800; }
+    max-height 600
+    max-width 800
+}
+
+window-rule {
     // Focus the keyring unlock prompt when it appears.
     match app-id=r#"(?i)^gcr-prompter$"#
-    match title=r#"(?i)unlock keyring$"#
+    match title=r#"(?i)unlock keyring"#
+    match app-id=r#"org.kde.ksecretd"#
     // open-floating true
     open-focused true
 }
@@ -44,23 +53,31 @@ window-rule {
     open-on-workspace "game"
 }
 
-// window-rule {
-//     // Fcitx5 indicator/candidate windows: float without focus ring/border.
-//     // Fcitx5 window should not steal focus.
-//     match app-id=r#"(?i)^fcitx$"# title="^Fcitx5 Input Window$"
-//     // open-floating true
-//     open-focused false
-//     // focus-ring {
-//     //     off
-//     // }
-//     // border {
-//     //     off   
-//     // }
-// }
+window-rule {
+    // Fcitx5 indicator/candidate windows: float without focus ring/border.
+    // Fcitx5 window should not steal focus.
+    match app-id=r#"(?i)^fcitx$"# title="^Fcitx5 Input Window$"
+    open-floating true
+    open-focused false
+    clip-to-geometry false
+    tiled-state true
+    default-floating-position x=0 y=0 relative-to="bottom-right"
+    focus-ring {
+        off
+    }
+    border {
+        off   
+    }
+    shadow {
+        off
+    }
+}
 
 window-rule {
     match is-active=false
-    // opacity 0.9
+    opacity 0.9
+    // we want a colored background for the translucent window
+    draw-border-with-background true
 }
 
 window-rule {
@@ -102,6 +119,12 @@ window-rule {
     match app-id=r#"^steam_app_[0-9]+$"#
     match app-id=r#"\.exe$"#
     open-floating true
+    focus-ring {
+        off
+    }
+    border {
+        off 
+    }
 }
 
 layer-rule {
