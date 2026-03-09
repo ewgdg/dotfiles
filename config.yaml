@@ -62,7 +62,7 @@ dotfiles:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install 'fzf bat fd eza rg'
+    - install 'fzf bat fd eza ripgrep jq'
     - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
@@ -340,8 +340,6 @@ profiles:
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
-    actions:
-    - install ripgrep
   posix_utils:
     dotfiles:
     - d_bin
