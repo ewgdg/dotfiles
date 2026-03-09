@@ -8,23 +8,24 @@
     scale 1 // No scaling (use 2 for HiDPI)
 }
 
-output "HDMI-A-1" {
-    // mode "1920x1080@60.000"
-    // scale 1
-    // focus-at-startup
-    // Layout config overrides just for this output.
-    layout {
-        // default-column-width { proportion 1.0; }
-    }
-}
+// output "HDMI-A-1" {
+//     // mode "1920x1080@60.000"
+//     // scale 1
+//     // focus-at-startup
+//     // Layout config overrides just for this output.
+//     layout {
+//         // default-column-width { proportion 1.0; }
+//     }
+// }
 
 // You can configure a custom mode (not offered by the monitor) by setting custom=true. 
 // In this case, the refresh rate is mandatory.
 // Custom modes may damage your monitor, especially if it's a CRT. 
 // Follow the maximum supported limits in your monitor's instructions.
 // If scale is unset, niri will guess an appropriate scale based on the physical dimensions and the resolution of the monitor.
-output "Dummy" {
-    mode custom=true "3440x1440@144.000"
-    // scale 1.33
-    // variable-refresh-rate // on-demand=true   
+output "LG Electronics DUMMY 306NTNH1T791" {
+    // mode custom=true "3440x1440@144.000"
+    mode "3440x1440@144.000"
+    scale 1.33
+    variable-refresh-rate // on-demand=true   
 }
