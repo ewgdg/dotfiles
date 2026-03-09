@@ -60,7 +60,7 @@ This repo also syncs a small shared subset into GSettings for Wayland session in
 - `gtk-icon-theme-name` is sourced from `gtk-4.0/settings.ini`
 - `gtk-cursor-theme-name` is sourced from `gtk-4.0/settings.ini`
 - `gtk-cursor-theme-size` is sourced from `gtk-4.0/settings.ini`
-- `gtk-application-prefer-dark-theme` is sourced from `gtk-4.0/settings.ini` and mapped to `org.gnome.desktop.interface color-scheme`
+- `gtk-application-prefer-dark-theme` is sourced from `gtk-3.0/settings.ini` and mapped to `org.gnome.desktop.interface color-scheme`
 
 The sync script lives at `scripts/sync_gtk_gsettings.py` and is invoked from the shared `framework_gtk` profile in `config.yaml`.
 

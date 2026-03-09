@@ -43,7 +43,7 @@ def build_gsettings_updates(
                 ("org.gnome.desktop.interface", gsettings_key, setting_value)
             )
 
-    prefer_dark_theme = gtk4_settings.get("gtk-application-prefer-dark-theme")
+    prefer_dark_theme = gtk3_settings.get("gtk-application-prefer-dark-theme")
     if prefer_dark_theme is not None:
         color_scheme = "prefer-dark" if prefer_dark_theme.lower() == "true" else "default"
         updates.append(
