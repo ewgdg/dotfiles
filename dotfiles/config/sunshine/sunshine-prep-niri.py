@@ -19,7 +19,6 @@ Notes:
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import os
 import shutil
@@ -95,6 +94,8 @@ def should_inhibit(inhibit_flag: bool) -> bool:
 
 
 def parse_niri_json(stdout: str) -> Any:
+    import json
+
     data = json.loads(stdout or "null")
     if isinstance(data, dict) and "Err" in data:
         raise RuntimeError(f"niri IPC error: {data['Err']}")
@@ -437,7 +438,7 @@ def apply_output_transform(output_name: str, transform: str) -> None:
 
 
 def apply_output_position(output_name: str, *, x: int, y: int) -> None:
-    niri_msg("output", output_name, "position", f"x={x}", f"y={y}", check=True)
+    niri_msg("output", output_name, "position", "set", str(x), str(y), check=True)
 
 
 def do_action(
@@ -500,6 +501,7 @@ def do_action(
 def try_reload_niri_config() -> bool:
     # Best-effort: Niri's IPC surface may change between versions.
     candidates: List[List[str]] = [
+        ["action", "load-config-file"],
         ["reload-config"],
         ["reload"],
         ["config", "reload"],
