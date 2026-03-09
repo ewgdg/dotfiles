@@ -34,7 +34,7 @@ if [ "$same_workspace" -eq 1 ]; then
     )"
 fi
 
-if printf '%s\n' "$focused_app_id" | grep -Eq "$app_id_pattern"; then
+if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
     exec "$@"
 fi
 
