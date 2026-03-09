@@ -4,31 +4,99 @@ set -eu
 
 SCRIPT_NAME=$(basename "$0")
 AUTLOGIN_FILE=/etc/sddm.conf.d/zzz-autologin.local.conf
-SUNSHINE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sunshine"
-SUNSHINE_LINK="$SUNSHINE_DIR/sunshine.conf"
-DESKTOP_USER=${SUDO_USER:-${USER:-$(id -un)}}
+DESKTOP=
+DESKTOP_USER=
+DESKTOP_HOME=
+SUNSHINE_DIR=
+SUNSHINE_LINK=
 
 usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME <kde|niri|status>
+Usage: $SCRIPT_NAME [--user USERNAME] <kde|niri|status>
 
 Switch the active desktop by:
   - updating $AUTLOGIN_FILE
-  - relinking $SUNSHINE_LINK
+  - relinking USER_HOME/.config/sunshine/sunshine.conf
 
 Examples:
   $SCRIPT_NAME kde
   $SCRIPT_NAME niri
   $SCRIPT_NAME status
+  $SCRIPT_NAME --user xian kde
 EOF
 }
 
-sudo_cmd() {
-    if [ "$(id -u)" -eq 0 ]; then
-        "$@"
-    else
-        sudo -A "$@"
+parse_args() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --user)
+                if [ $# -lt 2 ]; then
+                    printf 'Missing value for --user\n' >&2
+                    usage >&2
+                    exit 1
+                fi
+                DESKTOP_USER=$2
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            kde|niri|status)
+                if [ -n "${DESKTOP:-}" ]; then
+                    printf 'Unexpected extra argument: %s\n' "$1" >&2
+                    usage >&2
+                    exit 1
+                fi
+                DESKTOP=$1
+                shift
+                ;;
+            *)
+                printf 'Unsupported argument: %s\n' "$1" >&2
+                usage >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ -z "${DESKTOP:-}" ]; then
+        usage >&2
+        exit 1
     fi
+}
+
+ensure_root_for_switch() {
+    if [ "$DESKTOP" = "status" ] || [ "$(id -u)" -eq 0 ]; then
+        return
+    fi
+
+    exec sudo "$0" "$@"
+}
+
+resolve_desktop_user() {
+    if [ -n "${DESKTOP_USER:-}" ]; then
+        return
+    fi
+
+    if [ -n "${SUDO_USER:-}" ]; then
+        DESKTOP_USER=$SUDO_USER
+        return
+    fi
+
+    DESKTOP_USER=$(id -un)
+}
+
+resolve_desktop_home() {
+    DESKTOP_HOME=$(getent passwd "$DESKTOP_USER" | cut -d: -f6)
+    if [ -z "${DESKTOP_HOME:-}" ]; then
+        printf 'Unable to resolve home directory for user: %s\n' "$DESKTOP_USER" >&2
+        exit 1
+    fi
+}
+
+setup_paths() {
+    SUNSHINE_DIR=$DESKTOP_HOME/.config/sunshine
+    SUNSHINE_LINK=$SUNSHINE_DIR/sunshine.conf
 }
 
 desktop_session() {
@@ -62,6 +130,7 @@ print_status() {
     fi
 
     printf 'Autologin file: %s\n' "$AUTLOGIN_FILE"
+    printf 'Target user: %s\n' "$DESKTOP_USER"
     printf 'Autologin session: %s\n' "$current_session"
     printf 'Sunshine config: %s\n' "$current_target"
 }
@@ -70,6 +139,7 @@ write_autologin() {
     desktop=$1
     session=$(desktop_session "$desktop")
     tmp_file=$(mktemp)
+    trap 'rm -f "$tmp_file"' EXIT INT TERM
 
     cat >"$tmp_file" <<EOF
 [Autologin]
@@ -78,9 +148,10 @@ Session=$session
 Relogin=false
 EOF
 
-    sudo_cmd mkdir -p "$(dirname "$AUTLOGIN_FILE")"
-    sudo_cmd install -m 0644 "$tmp_file" "$AUTLOGIN_FILE"
+    mkdir -p "$(dirname "$AUTLOGIN_FILE")"
+    install -m 0644 "$tmp_file" "$AUTLOGIN_FILE"
     rm -f "$tmp_file"
+    trap - EXIT INT TERM
 }
 
 link_sunshine() {
@@ -97,26 +168,24 @@ link_sunshine() {
 }
 
 main() {
-    if [ $# -ne 1 ]; then
-        usage >&2
-        exit 1
-    fi
+    parse_args "$@"
+    ensure_root_for_switch "$@"
+    resolve_desktop_user
+    resolve_desktop_home
+    setup_paths
 
-    case "$1" in
-        -h|--help)
-            usage
-            ;;
+    case "$DESKTOP" in
         status)
             print_status
             ;;
         kde|niri)
-            write_autologin "$1"
-            link_sunshine "$1"
-            printf 'Switched desktop to %s\n' "$1"
+            write_autologin "$DESKTOP"
+            link_sunshine "$DESKTOP"
+            printf 'Switched desktop to %s\n' "$DESKTOP"
             print_status
             ;;
         *)
-            usage >&2
+            printf 'Unsupported desktop: %s\n' "$DESKTOP" >&2
             exit 1
             ;;
     esac
