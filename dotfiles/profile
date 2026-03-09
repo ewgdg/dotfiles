@@ -24,6 +24,6 @@ export PATH
 
 {%@@ if os == "darwin" @@%}
 export SUDO_ASKPASS="$HOME/bin/askpass-macos"
-{%@@ elif desktop is defined and desktop == "kde" @@%}
-export SUDO_ASKPASS=/usr/bin/ksshaskpass
+{%@@ elif os == "linux" @@%}
+export SUDO_ASKPASS="$HOME/bin/askpass-gui"
 {%@@ endif @@%}

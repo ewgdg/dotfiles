@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+set -eu
+
+prompt=${1:-"Enter your password:"}
+
+if ! command -v zenity >/dev/null 2>&1; then
+    printf 'zenity is required for askpass-gui\n' >&2
+    exit 1
+fi
+
+password=$(
+    zenity --password \
+        --title="Authentication Required" \
+        --text="$prompt" \
+        2>/dev/null
+) || exit $?
+
+printf '%s\n' "$password"
