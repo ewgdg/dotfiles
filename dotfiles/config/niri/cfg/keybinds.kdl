@@ -8,13 +8,13 @@ binds {
     // Applications
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
-    MOD+B hotkey-overlay-title="Open Browser" { spawn "google-chrome-stable"; }
+    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" '^google-chrome$' google-chrome-stable"; }
     MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
 
     // Please choose your own file manager.
-    MOD+E repeat=false hotkey-overlay-title="File Manager" { spawn "nautilus"; }
+    MOD+E repeat=false hotkey-overlay-title="File Manager" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" --same-workspace '^(dolphin|org.kde.dolphin)$' dolphin"; }
 
     // Audio Controls
     // XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
