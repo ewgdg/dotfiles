@@ -10,6 +10,7 @@ config:
   impignore: &global_ignore
   - '*.log'
   - '*.DS_Store'
+  - '__pycache__/'
   cmpignore: *global_ignore
   upignore: *global_ignore
   instignore: *global_ignore
