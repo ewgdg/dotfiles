@@ -371,7 +371,7 @@ profiles:
     - d_config_xdg-desktop-portal
   os_arch:
     variables:
-      install_cmd: yay -S --needed --answerdiff=None --answeredit=None {0}
+      install_cmd: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_arch_packages.sh' {0}
     include:
     - os_linux
     dotfiles:
