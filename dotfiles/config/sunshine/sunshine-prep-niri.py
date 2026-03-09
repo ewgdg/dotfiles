@@ -11,7 +11,8 @@ Usage:
 
 Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
-- `undo` does a simple stateless restore by reloading Niri config.
+- `undo` reloads Niri config, then explicitly re-enables any connected outputs
+  that are still disabled.
 - Optionally uses `systemd-inhibit --what=idle` and Noctalia's idle inhibitor IPC
   while active to prevent the session idling (pass `--inhibit`).
 """
@@ -21,6 +22,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -187,6 +189,55 @@ def outputs_from_reply(reply: Any) -> List[Dict[str, Any]]:
     if isinstance(reply, list):
         return [x for x in reply if isinstance(x, dict)]
     raise RuntimeError(f"Unexpected `niri msg --json outputs` reply: {type(reply)}")
+
+
+def niri_output_config_path() -> Path:
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config"))
+    return config_home / "niri" / "cfg" / "output.kdl"
+
+
+def configured_off_output_names() -> Optional[set[str]]:
+    path = niri_output_config_path()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    output_names: set[str] = set()
+    current_name: Optional[str] = None
+    current_explicitly_off = False
+    depth = 0
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("//") or line.startswith("/-"):
+            continue
+
+        if current_name is None:
+            match = re.match(r'^output\s+"([^"]+)"\s*\{', line)
+            if match:
+                current_name = match.group(1).strip()
+                current_explicitly_off = False
+                depth = line.count("{") - line.count("}")
+                if depth <= 0:
+                    if current_explicitly_off:
+                        output_names.add(current_name)
+                    current_name = None
+                    depth = 0
+            continue
+
+        if re.match(r"^off(?:\s+true)?(?:\s*//.*)?$", line):
+            current_explicitly_off = True
+
+        depth += line.count("{") - line.count("}")
+        if depth <= 0:
+            if current_name and current_explicitly_off:
+                output_names.add(current_name)
+            current_name = None
+            current_explicitly_off = False
+            depth = 0
+
+    return output_names
 
 
 def output_stable_name(o: Dict[str, Any]) -> str:
@@ -515,6 +566,22 @@ def try_reload_niri_config() -> bool:
     return False
 
 
+def reenable_disabled_outputs() -> None:
+    off_names = configured_off_output_names()
+    outputs = outputs_from_reply(niri_msg_json("outputs"))
+    for output in outputs:
+        connector = str(output.get("name") or "").strip()
+        if not connector:
+            continue
+        if output.get("current_mode") is not None:
+            continue
+        stable_name = output_stable_name(output)
+        if off_names is not None:
+            if connector in off_names or stable_name in off_names:
+                continue
+        niri_msg("output", connector, "on", check=True)
+
+
 def restore_action() -> None:
     if not which("niri"):
         # Still try to cleanup inhibit even if we're not in a niri session.
@@ -524,6 +591,7 @@ def restore_action() -> None:
     kill_runtime_inhibit()
     if not try_reload_niri_config():
         raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
+    reenable_disabled_outputs()
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
