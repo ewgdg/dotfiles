@@ -46,6 +46,7 @@ dotfiles:
     - install 'noctalia-config noctalia-qs noctalia-shell cava'
     cmpignore: &noctalia_ignore
     - plugins/*
+    - '!plugins/*/settings.json'
     upignore: *noctalia_ignore
     instignore: *noctalia_ignore
   d_config_ibus_rime:
