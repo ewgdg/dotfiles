@@ -356,6 +356,8 @@ profiles:
     - posix_base
     - posix_utils
     - framework_gtk
+    actions:
+    - install zenity
     dotfiles:
     - f_etc_keyd_default.conf
     - d_config_keyd
