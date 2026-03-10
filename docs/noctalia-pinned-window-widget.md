@@ -14,6 +14,11 @@ Behavior:
 - The widget hides itself when no window is pinned
 - The source of truth stays in `$XDG_RUNTIME_DIR/niri-pinned-window.json`
 
+Implementation note:
+
+- The widget now hydrates an initial `niri msg -j windows` and `niri msg -j workspaces` snapshot so a newly pinned window can render immediately.
+- After the initial snapshot it keeps tracking Niri IPC updates from `event-stream`, including `WindowsChanged`, `WindowOpenedOrChanged`, and `WindowClosed`.
+
 Related files:
 
 - `dotfiles/config/niri/bin/pinned-window.sh`

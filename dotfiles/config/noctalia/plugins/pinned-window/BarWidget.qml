@@ -109,6 +109,15 @@ Item {
     root.syncPinnedWindow();
   }
 
+  function refreshNiriSnapshots() {
+    if (!windowsSnapshotProcess.running) {
+      windowsSnapshotProcess.running = true;
+    }
+    if (!workspacesSnapshotProcess.running) {
+      workspacesSnapshotProcess.running = true;
+    }
+  }
+
   function applyWindowsSnapshot(windows) {
     const nextWindowsById = {};
     for (let i = 0; i < windows.length; i++) {
@@ -127,6 +136,61 @@ Item {
     }
     root.workspacesById = nextWorkspacesById;
     root.syncPinnedWindow();
+  }
+
+  function applyWindowUpdate(windowData) {
+    if (!windowData || windowData.id === undefined || windowData.id === null) {
+      return;
+    }
+
+    const nextWindowsById = Object.assign({}, root.windowsById);
+    nextWindowsById[String(windowData.id)] = windowData;
+    root.windowsById = nextWindowsById;
+    root.syncPinnedWindow();
+  }
+
+  function applyWindowClosed(windowId) {
+    const closedId = String(windowId || "");
+    if (closedId === "" || root.windowsById[closedId] === undefined) {
+      return;
+    }
+
+    const nextWindowsById = Object.assign({}, root.windowsById);
+    delete nextWindowsById[closedId];
+    root.windowsById = nextWindowsById;
+    root.syncPinnedWindow();
+  }
+
+  function handleWindowsSnapshotLine(line) {
+    const snapshotLine = line.trim();
+    if (snapshotLine === "") {
+      return;
+    }
+
+    try {
+      const windows = JSON.parse(snapshotLine);
+      if (Array.isArray(windows)) {
+        root.applyWindowsSnapshot(windows);
+      }
+    } catch (error) {
+      Logger.w("PinnedWindow", "Failed to parse windows snapshot:", error);
+    }
+  }
+
+  function handleWorkspacesSnapshotLine(line) {
+    const snapshotLine = line.trim();
+    if (snapshotLine === "") {
+      return;
+    }
+
+    try {
+      const workspaces = JSON.parse(snapshotLine);
+      if (Array.isArray(workspaces)) {
+        root.applyWorkspacesSnapshot(workspaces);
+      }
+    } catch (error) {
+      Logger.w("PinnedWindow", "Failed to parse workspaces snapshot:", error);
+    }
   }
 
   function syncPinnedWindow() {
@@ -169,6 +233,12 @@ Item {
       const eventData = JSON.parse(eventLine);
       if (eventData.WindowsChanged && eventData.WindowsChanged.windows) {
         root.applyWindowsSnapshot(eventData.WindowsChanged.windows);
+      }
+      if (eventData.WindowOpenedOrChanged && eventData.WindowOpenedOrChanged.window) {
+        root.applyWindowUpdate(eventData.WindowOpenedOrChanged.window);
+      }
+      if (eventData.WindowClosed && eventData.WindowClosed.id !== undefined) {
+        root.applyWindowClosed(eventData.WindowClosed.id);
       }
       if (eventData.WorkspacesChanged && eventData.WorkspacesChanged.workspaces) {
         root.applyWorkspacesSnapshot(eventData.WorkspacesChanged.workspaces);
@@ -247,7 +317,10 @@ Item {
       property string id: ""
     }
 
-    onLoaded: root.applyPinnedState()
+    onLoaded: {
+      root.applyPinnedState();
+      root.refreshNiriSnapshots();
+    }
     onFileChanged: stateFileView.reload()
 
     onLoadFailed: error => {
@@ -257,6 +330,30 @@ Item {
         stateAdapter.pinned = false;
         stateAdapter.id = "";
         root.applyPinnedState();
+    }
+  }
+
+  Process {
+    id: windowsSnapshotProcess
+    command: ["niri", "msg", "-j", "windows"]
+    running: false
+    stdout: SplitParser {
+      onRead: line => root.handleWindowsSnapshotLine(line)
+    }
+    stderr: SplitParser {
+      onRead: line => Logger.w("PinnedWindow", "windows snapshot:", line)
+    }
+  }
+
+  Process {
+    id: workspacesSnapshotProcess
+    command: ["niri", "msg", "-j", "workspaces"]
+    running: false
+    stdout: SplitParser {
+      onRead: line => root.handleWorkspacesSnapshotLine(line)
+    }
+    stderr: SplitParser {
+      onRead: line => Logger.w("PinnedWindow", "workspaces snapshot:", line)
     }
   }
 
@@ -277,6 +374,8 @@ Item {
       }
     }
   }
+
+  Component.onCompleted: root.refreshNiriSnapshots()
 
   Rectangle {
     id: pinnedRect
