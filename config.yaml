@@ -8,9 +8,9 @@ config:
   link_on_import: nolink
   longkey: true
   impignore: &global_ignore
-  - '*.log'
-  - '*.DS_Store'
-  - '__pycache__/'
+    - "*.log"
+    - "*.DS_Store"
+    - "__pycache__/*"
   cmpignore: *global_ignore
   upignore: *global_ignore
   instignore: *global_ignore
@@ -19,12 +19,12 @@ dotfiles:
     src: etc/keyd/default.conf
     dst: /etc/keyd/default.conf
     actions:
-    - install keyd
+      - install keyd
   d_config_keyd:
     src: config/keyd
     dst: ~/.config/keyd
     cmpignore: &keyd_app_ignore
-    - app.lock
+      - app.lock
     upignore: *keyd_app_ignore
   f_config_systemd_user_keyd-application-mapper.service:
     src: config/systemd/user/keyd-application-mapper.service
@@ -39,57 +39,55 @@ dotfiles:
     src: config/niri
     dst: ~/.config/niri
     actions:
-    - install 'niri xwayland-satellite xdg-desktop-portal-gnome'
+      - install 'niri xwayland-satellite xdg-desktop-portal-gnome'
   d_config_noctalia:
     src: config/noctalia
     dst: ~/.config/noctalia
     actions:
-    - install 'noctalia-config noctalia-qs noctalia-shell cava'
+      - install 'noctalia-config noctalia-qs noctalia-shell cava'
     cmpignore: &noctalia_ignore
-    - plugins/*
-    - '!plugins/*/settings.json'
+      - plugins/*
+      - "!plugins/*/settings.json"
     upignore: *noctalia_ignore
     instignore: *noctalia_ignore
   d_config_ibus_rime:
     src: config/ibus/rime
     dst: ~/.config/ibus/rime
     cmpignore: &rime_ignore
-    - '*'
-    - '!/!(sync)/*.custom.yaml'
+      - "*"
+      - "!/!(sync)/*.custom.yaml"
     upignore: *rime_ignore
-    chmod: '700'
+    chmod: "700"
   f_zshrc:
     src: zshrc
     dst: ~/.zshrc
     actions:
-    - install 'fzf bat fd eza ripgrep jq'
-    - install zoxide
+      - install 'fzf bat fd eza ripgrep jq'
+      - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
   f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json:
-    src: 
-      etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
-    dst: 
-      /etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
+    src: etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
+    dst: /etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json
   d_config_nvim:
     src: config/nvim
     dst: ~/.config/nvim
     actions:
-    - install neovim
+      - install neovim
     cmpignore: &nvim_ignore
-    - '*lock.json'
-    - .nvimlog
+      - "*lock.json"
+      - .nvimlog
     upignore: *nvim_ignore
   d_config_zsh:
     src: config/zsh
     dst: ~/.config/zsh
-    chmod: '700'
+    chmod: "700"
   d_config_oh-my-posh:
     src: config/oh-my-posh
     dst: ~/.config/oh-my-posh
     actions:
-    - install oh-my-posh
+      - install oh-my-posh
   d_config_wezterm:
     src: config/wezterm
     dst: ~/.config/wezterm
@@ -100,19 +98,19 @@ dotfiles:
     src: config/sunshine
     dst: ~/.config/sunshine
     cmpignore: &sunshine_ignore
-    - '*/credentials/*'
-    - '*state.json'
-    - sunshine.conf
-    - tests/*
+      - "*/credentials/*"
+      - "*state.json"
+      - sunshine.conf
+      - tests/*
     upignore: *sunshine_ignore
     actions:
-    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf 
-      {{@@_dotfile_abs_dst@@}}/sunshine.conf
+      - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf
+        {{@@_dotfile_abs_dst@@}}/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
     dst: /etc/sddm.conf.d
     cmpignore: &sddm_conf_d_ignore
-    - zzz-autologin.local.conf
+      - zzz-autologin.local.conf
     upignore: *sddm_conf_d_ignore
   f_etc_mkinitcpio.conf:
     src: etc/mkinitcpio.conf
@@ -120,40 +118,40 @@ dotfiles:
   d_config_fcitx5:
     src: config/fcitx5
     dst: ~/.config/fcitx5
-    chmod: '700'
+    chmod: "700"
     cmpignore: &fcitx_ignore
-    - conf/cached_layouts
+      - conf/cached_layouts
     upignore: *fcitx_ignore
     actions:
-    - install fcitx5-im
-    - install fcitx5-chinese-addons
+      - install fcitx5-im
+      - install fcitx5-chinese-addons
   f_config_kglobalshortcutsrc:
     src: config/kglobalshortcutsrc
     dst: ~/.config/kglobalshortcutsrc
-    chmod: '600'
+    chmod: "600"
   f_gitconfig:
     src: gitconfig
     dst: ~/.gitconfig
-    chmod: '600'
+    chmod: "600"
     actions:
-    - install git lazygit
+      - install git lazygit
   d_config_1password_ssh:
     src: config/1Password/ssh
     dst: ~/.config/1Password/ssh
-    chmod: '700'
+    chmod: "700"
   d_config_systemd_user_sunshine.service.d:
     src: config/systemd/user/sunshine.service.d
     dst: ~/.config/systemd/user/sunshine.service.d
   d_ssh:
     src: ssh
     dst: ~/.ssh
-    chmod: '700'
+    chmod: "700"
     template: false
     cmpignore: &ssh_ignore
-    - known_hosts*
-    # the config is a template file and should have a separate entry 
-    # to avoid being overwritten during update
-    - config
+      - known_hosts*
+      # the config is a template file and should have a separate entry
+      # to avoid being overwritten during update
+      - config
     upignore: *ssh_ignore
     instignore: *ssh_ignore
   f_ssh_config:
@@ -169,14 +167,14 @@ dotfiles:
     src: config/alacritty
     dst: ~/.config/alacritty
     actions:
-    - install alacritty
+      - install alacritty
   d_config_tmux:
     src: config/tmux
     dst: ~/.config/tmux
     actions:
-    - install tmux
+      - install tmux
     cmpignore: &tmux_ignore
-    - plugins/*
+      - plugins/*
     upignore: *tmux_ignore
     instignore: *tmux_ignore
   d_config_fd:
@@ -189,14 +187,14 @@ dotfiles:
     src: etc/docker
     dst: /etc/docker
     actions:
-    - install 'docker docker-compose lazydocker'
+      - install 'docker docker-compose lazydocker'
   f_config_plasmashellrc:
     src: config/plasmashellrc
     dst: ~/.config/plasmashellrc
-    chmod: '600'
+    chmod: "600"
     actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
-      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
+      - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight
+        kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   d_local_share_flatpak_overrides:
     src: local/share/flatpak/overrides
     dst: ~/.local/share/flatpak/overrides
@@ -204,17 +202,17 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes 
+    trans_update: xml_sort_attr_rm_nodes
       "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
     trans_install: xml_merge
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
-    chmod: '600'
+    chmod: "600"
   f_local_share_applications_goldendict-search.desktop:
     src: local/share/applications/goldendict-search.desktop
     dst: ~/.local/share/applications/goldendict-search.desktop
-    chmod: '600'
+    chmod: "600"
   f_zshenv:
     src: zshenv
     dst: ~/.zshenv
@@ -224,7 +222,7 @@ dotfiles:
   f_npmrc:
     src: npmrc
     dst: ~/.npmrc
-    chmod: '600'
+    chmod: "600"
   f_zprofile:
     src: zprofile
     dst: ~/.zprofile
@@ -246,41 +244,41 @@ dotfiles:
   d_config_gtk-3.0:
     src: config/gtk-3.0
     dst: ~/.config/gtk-3.0
-    chmod: '700'
+    chmod: "700"
     cmpignore: &gtk3_ignore
-    - assets/*
-    - bookmarks
-    - '*.backup.*'
+      - assets/*
+      - bookmarks
+      - "*.backup.*"
     upignore: *gtk3_ignore
     instignore: *gtk3_ignore
   d_config_gtk-4.0:
     src: config/gtk-4.0
     dst: ~/.config/gtk-4.0
-    chmod: '700'
+    chmod: "700"
   d_config_xdg-desktop-portal:
     src: config/xdg-desktop-portal
     dst: ~/.config/xdg-desktop-portal
   f_config_kscreenlockerrc:
     src: config/kscreenlockerrc
     dst: ~/.config/kscreenlockerrc
-    chmod: '600'
+    chmod: "600"
   f_config_kdeglobals:
     src: config/kdeglobals
     dst: ~/.config/kdeglobals
-    chmod: '600'
+    chmod: "600"
   f_config_kwinrulesrc:
     src: config/kwinrulesrc
     dst: ~/.config/kwinrulesrc
-    chmod: '600'
+    chmod: "600"
   f_config_kwalletrc:
     src: config/kwalletrc
     dst: ~/.config/kwalletrc
-    chmod: '600'
+    chmod: "600"
   f_etc_sddm.conf:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
     actions:
-    - install where-is-my-sddm-theme-git
+      - install where-is-my-sddm-theme-git
   f_etc_plasmalogin.conf:
     src: etc/plasmalogin.conf
     dst: /etc/plasmalogin.conf
@@ -290,7 +288,7 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    chmod: '600'
+    chmod: "600"
   f_claude_claude.md:
     src: claude/CLAUDE.md
     dst: ~/.claude/CLAUDE.md
@@ -298,8 +296,8 @@ dotfiles:
     src: agents
     dst: ~/.agents
     cmpignore: &agents_ignore
-    - skills/agent-web-context/references/openapi_cache/*
-    - '*/__pycache__/*'
+      - skills/agent-web-context/references/openapi_cache/*
+      - "*/__pycache__/*"
     upignore: *agents_ignore
     instignore: *agents_ignore
   f_config_electron-flags.conf:
@@ -308,107 +306,107 @@ dotfiles:
   f_Library_Preferences_GlobalPreferences.plist:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
-    chmod: '600'
+    chmod: "600"
     trans_update: globalpreferences_to_xml
     trans_install: globalpreferences_merge_to_binary
   f_Library_Preferences_com_apple_symbolichotkeys.plist:
     src: Library/Preferences/com.apple.symbolichotkeys.plist
     dst: ~/Library/Preferences/com.apple.symbolichotkeys.plist
-    chmod: '600'
+    chmod: "600"
     trans_update: plist_to_xml_compare
     trans_install: plist_to_binary
 profiles:
   base:
     dotfiles:
-    - d_config_nvim
-    - f_gitconfig
-    - d_ssh
-    - f_ssh_config
-    - d_config_1password_ssh
-    - d_config_alacritty
+      - d_config_nvim
+      - f_gitconfig
+      - d_ssh
+      - f_ssh_config
+      - d_config_1password_ssh
+      - d_config_alacritty
   posix_base:
     include:
-    - base
+      - base
     dotfiles:
-    #- d_config_wezterm
-    - f_zshrc
-    - f_zshenv
-    - f_profile
-    - f_zprofile
-    - d_config_zsh
-    - f_npmrc
-    - d_config_oh-my-posh
-    - d_config_tmux
-    - d_config_fd
+      #- d_config_wezterm
+      - f_zshrc
+      - f_zshenv
+      - f_profile
+      - f_zprofile
+      - d_config_zsh
+      - f_npmrc
+      - d_config_oh-my-posh
+      - d_config_tmux
+      - d_config_fd
   posix_utils:
     dotfiles:
-    - d_bin
+      - d_bin
   framework_gtk:
     dotfiles:
-    - d_config_gtk-3.0
-    - d_config_gtk-4.0
+      - d_config_gtk-3.0
+      - d_config_gtk-4.0
     actions:
-    - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath 
-      @@}}/../scripts/sync_gtk_gsettings.py' ~/.config/gtk-3.0/settings.ini 
-      ~/.config/gtk-4.0/settings.ini"
+      - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath
+        @@}}/../scripts/sync_gtk_gsettings.py' ~/.config/gtk-3.0/settings.ini
+        ~/.config/gtk-4.0/settings.ini"
   os_linux:
     include:
-    - posix_base
-    - posix_utils
-    - framework_gtk
+      - posix_base
+      - posix_utils
+      - framework_gtk
     actions:
-    - install zenity
+      - install zenity
     dotfiles:
-    - f_etc_keyd_default.conf
-    - d_config_keyd
-    - f_config_systemd_user_keyd-application-mapper.service
-    - f_config_systemd_user_network-virtual-mic.service
-    - d_etc_docker
-    - d_config_autostart
-    - d_local_share_flatpak_overrides
-    - f_var_app_org.goldendict.goldendict_config_goldendict_config
-    - d_config_environment.d
-    - d_config_xdg-desktop-portal
+      - f_etc_keyd_default.conf
+      - d_config_keyd
+      - f_config_systemd_user_keyd-application-mapper.service
+      - f_config_systemd_user_network-virtual-mic.service
+      - d_etc_docker
+      - d_config_autostart
+      - d_local_share_flatpak_overrides
+      - f_var_app_org.goldendict.goldendict_config_goldendict_config
+      - d_config_environment.d
+      - d_config_xdg-desktop-portal
   os_arch:
     variables:
       install_cmd: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_arch_packages.sh' {0}
     include:
-    - os_linux
+      - os_linux
     dotfiles:
-    - f_etc_pacman.conf
-    - f_etc_makepkg.conf
-    - f_etc_fonts_local.conf
-    - f_config_chrome-flags.conf
-    - f_config_chromium-flags.conf
-    - f_config_electron-flags.conf
-    - d_config_paru
-    - d_config_yay
+      - f_etc_pacman.conf
+      - f_etc_makepkg.conf
+      - f_etc_fonts_local.conf
+      - f_config_chrome-flags.conf
+      - f_config_chromium-flags.conf
+      - f_config_electron-flags.conf
+      - d_config_paru
+      - d_config_yay
   os_arch_kernel:
     dotfiles:
-    - f_etc_mkinitcpio.conf
+      - f_etc_mkinitcpio.conf
   de_gnome:
     variables:
       desktop: gnome
     dotfiles:
-    - d_config_ibus_rime
+      - d_config_ibus_rime
     actions:
-    - install seahorse #password manager UI
+      - install seahorse #password manager UI
   de_kde:
     variables:
       desktop: kde
     dotfiles:
-    - d_etc_sddm.conf.d
-    - f_config_kglobalshortcutsrc
-    - d_config_fcitx5
-    - f_config_plasmashellrc
-    - f_local_share_applications_1password-quickaccess.desktop
-    - f_local_share_applications_goldendict-search.desktop
-    - f_config_kscreenlockerrc
-    - f_config_kdeglobals
-    - f_config_kwinrulesrc
-    - f_config_kwalletrc
-    - f_etc_sddm.conf
-    - f_etc_plasmalogin.conf
+      - d_etc_sddm.conf.d
+      - f_config_kglobalshortcutsrc
+      - d_config_fcitx5
+      - f_config_plasmashellrc
+      - f_local_share_applications_1password-quickaccess.desktop
+      - f_local_share_applications_goldendict-search.desktop
+      - f_config_kscreenlockerrc
+      - f_config_kdeglobals
+      - f_config_kwinrulesrc
+      - f_config_kwalletrc
+      - f_etc_sddm.conf
+      - f_etc_plasmalogin.conf
   de_hypr:
     variables:
       desktop: hypr
@@ -416,91 +414,91 @@ profiles:
     variables:
       desktop: niri
     actions:
-    - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme 
-      nwg-look'
+      - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme
+        nwg-look'
     dotfiles:
-    - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
-    - d_config_niri
-    - d_config_noctalia
-    - f_config_systemd_user_niri-wait-for-tray-host.service
+      - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
+      - d_config_niri
+      - d_config_noctalia
+      - f_config_systemd_user_niri-wait-for-tray-host.service
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
     include:
-    - posix_base
-    - posix_utils
+      - posix_base
+      - posix_utils
     dotfiles:
-    - f_Library_Preferences_GlobalPreferences.plist
-    - f_Library_Preferences_com_apple_symbolichotkeys.plist
+      - f_Library_Preferences_GlobalPreferences.plist
+      - f_Library_Preferences_com_apple_symbolichotkeys.plist
   xian-macbook-air.local:
     include:
-    - os_mac
-    - app_ai
+      - os_mac
+      - app_ai
   xian-linux-server:
     variables:
-      desktop: kde
+      desktop: niri
     include:
-    - os_arch
-    - de_niri
-    - de_kde
-    - app_ai
+      - os_arch
+      - de_niri
+      - de_kde
+      - app_ai
     dotfiles:
-    - d_config_sunshine
-    - d_config_systemd_user_sunshine.service.d
+      - d_config_sunshine
+      - d_config_systemd_user_sunshine.service.d
   app_ai:
     dotfiles:
-    - f_codex_agents.md
-    - f_codex_config.toml
-    - f_claude_claude.md
-    - d_agents
+      - f_codex_agents.md
+      - f_codex_config.toml
+      - f_claude_claude.md
+      - d_agents
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -sfn {0} {1}
 actions:
-  install: '{{@@ install_cmd @@}}'
-  symlink: '{{@@ symlink_cmd @@}}'
+  install: "{{@@ install_cmd @@}}"
+  symlink: "{{@@ symlink_cmd @@}}"
   sh: sh -c "{0}"
-  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
+  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git
     clone --depth=1 {0} "{1}"; fi
 trans_update:
-  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
+  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath
     @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
   plist_to_xml: plutil -convert xml1 -o {1} {0}
-  plist_to_xml_compare: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src 
+  plist_to_xml_compare: python3 '{{@@ _dotdrop_dotpath
+    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src
     @@}}' --output-format xml
-  globalpreferences_to_xml: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src 
-    @@}}' --output-format xml --keep-key NSUserKeyEquivalents --keep-key 
-    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key 
-    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key 
-    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection 
-    --keep-key com.apple.trackpad.forceClick --keep-key 
-    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key 
-    com.apple.scrollwheel.scaling --keep-key 
-    NSAutomaticSpellingCorrectionEnabled --keep-key 
-    NSAutomaticCapitalizationEnabled --keep-key 
-    NSAutomaticDashSubstitutionEnabled --keep-key 
-    NSAutomaticPeriodSubstitutionEnabled --keep-key 
-    NSAutomaticQuoteSubstitutionEnabled --keep-key 
+  globalpreferences_to_xml: python3 '{{@@ _dotdrop_dotpath
+    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src
+    @@}}' --output-format xml --keep-key NSUserKeyEquivalents --keep-key
+    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key
+    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key
+    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection
+    --keep-key com.apple.trackpad.forceClick --keep-key
+    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key
+    com.apple.scrollwheel.scaling --keep-key
+    NSAutomaticSpellingCorrectionEnabled --keep-key
+    NSAutomaticCapitalizationEnabled --keep-key
+    NSAutomaticDashSubstitutionEnabled --keep-key
+    NSAutomaticPeriodSubstitutionEnabled --keep-key
+    NSAutomaticQuoteSubstitutionEnabled --keep-key
     NSAutomaticTextCompletionEnabled
 trans_install:
-  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
-    _dotfile_abs_dst @@}}' {1} --merge_file {0} 
+  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@
+    _dotfile_abs_dst @@}}' {1} --merge_file {0}
     --write_input_unchanged_if_no_effect
   plist_to_binary: plutil -convert binary1 -o {1} {0}
-  globalpreferences_merge_to_binary: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --merge-file '{{@@ _dotfile_abs_dst 
-    @@}}' --output-format binary --keep-key NSUserKeyEquivalents --keep-key 
-    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key 
-    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key 
-    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection 
-    --keep-key com.apple.trackpad.forceClick --keep-key 
-    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key 
-    com.apple.scrollwheel.scaling --keep-key 
-    NSAutomaticSpellingCorrectionEnabled --keep-key 
-    NSAutomaticCapitalizationEnabled --keep-key 
-    NSAutomaticDashSubstitutionEnabled --keep-key 
-    NSAutomaticPeriodSubstitutionEnabled --keep-key 
-    NSAutomaticQuoteSubstitutionEnabled --keep-key 
+  globalpreferences_merge_to_binary: python3 '{{@@ _dotdrop_dotpath
+    @@}}/../scripts/plisttool.py' {0} {1} --merge-file '{{@@ _dotfile_abs_dst
+    @@}}' --output-format binary --keep-key NSUserKeyEquivalents --keep-key
+    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key
+    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key
+    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection
+    --keep-key com.apple.trackpad.forceClick --keep-key
+    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key
+    com.apple.scrollwheel.scaling --keep-key
+    NSAutomaticSpellingCorrectionEnabled --keep-key
+    NSAutomaticCapitalizationEnabled --keep-key
+    NSAutomaticDashSubstitutionEnabled --keep-key
+    NSAutomaticPeriodSubstitutionEnabled --keep-key
+    NSAutomaticQuoteSubstitutionEnabled --keep-key
     NSAutomaticTextCompletionEnabled
