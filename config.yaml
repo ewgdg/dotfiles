@@ -20,6 +20,7 @@ dotfiles:
     dst: /etc/keyd/default.conf
     actions:
       - install keyd
+      - ensure-systemd-service-enabled system keyd.service
   d_config_keyd:
     src: config/keyd
     dst: ~/.config/keyd
@@ -29,12 +30,21 @@ dotfiles:
   f_config_systemd_user_keyd-application-mapper.service:
     src: config/systemd/user/keyd-application-mapper.service
     dst: ~/.config/systemd/user/keyd-application-mapper.service
+    actions:
+      - ensure-systemd-service-enabled user keyd-application-mapper.service
   f_config_systemd_user_niri-wait-for-tray-host.service:
     src: config/systemd/user/niri-wait-for-tray-host.service
     dst: ~/.config/systemd/user/niri-wait-for-tray-host.service
+  f_config_systemd_user_noctalia-shell.service:
+    src: config/systemd/user/noctalia-shell.service
+    dst: ~/.config/systemd/user/noctalia-shell.service
+    actions:
+      - ensure-systemd-service-enabled user noctalia-shell.service
   f_config_systemd_user_network-virtual-mic.service:
     src: config/systemd/user/network-virtual-mic.service
     dst: ~/.config/systemd/user/network-virtual-mic.service
+    actions:
+      - ensure-systemd-service-enabled user network-virtual-mic.service
   d_config_niri:
     src: config/niri
     dst: ~/.config/niri
@@ -142,6 +152,9 @@ dotfiles:
   d_config_systemd_user_sunshine.service.d:
     src: config/systemd/user/sunshine.service.d
     dst: ~/.config/systemd/user/sunshine.service.d
+    actions:
+      - install sunshine
+      - ensure-systemd-service-enabled user sunshine.service
   d_ssh:
     src: ssh
     dst: ~/.ssh
@@ -420,7 +433,7 @@ profiles:
       - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
       - d_config_niri
       - d_config_noctalia
-      - f_config_systemd_user_niri-wait-for-tray-host.service
+      - f_config_systemd_user_noctalia-shell.service
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -457,6 +470,7 @@ variables:
 actions:
   install: "{{@@ install_cmd @@}}"
   symlink: "{{@@ symlink_cmd @@}}"
+  ensure-systemd-service-enabled: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/ensure_systemd_service_enabled.sh' {0} {1}
   sh: sh -c "{0}"
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git
     clone --depth=1 {0} "{1}"; fi
