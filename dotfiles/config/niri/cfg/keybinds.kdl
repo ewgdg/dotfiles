@@ -10,7 +10,9 @@ binds {
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" '^google-chrome$' google-chrome-stable"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
-    MOD+P repeat=false hotkey-overlay-title="Open Main Workspace" { focus-workspace "main"; }
+    MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" toggle"; }
+    MOD+CTRL+P repeat=false hotkey-overlay-title="Send Window To Main Workspace" { move-window-to-workspace "main" focus=false; }
+    MOD+SHIFT+P repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
     MOD+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
     MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
@@ -182,7 +184,7 @@ binds {
     // Mod+R { switch-preset-column-width-back; }
     Mod+Shift+R { switch-preset-window-height; }
     Mod+Ctrl+R { reset-window-height; }
-    Mod+F repeat=false { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
+    Mod+F repeat=false hotkey-overlay-title="Maximize Column or Window" { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
     Mod+Shift+F { fullscreen-window; }
 
     Mod+M { maximize-window-to-edges; }
@@ -218,5 +220,5 @@ binds {
 
     // Exit / Power
     Mod+Ctrl+Shift+DELETE { quit; } // Also quits Niri
-    MOD+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
+    MOD+CTRL+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
 }

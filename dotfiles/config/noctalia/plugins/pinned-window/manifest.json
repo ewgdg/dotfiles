@@ -1,0 +1,29 @@
+{
+    "id": "pinned-window",
+    "name": "Pinned Window",
+    "version": "0.2.0",
+    "minNoctaliaVersion": "3.6.0",
+    "author": "xian",
+    "license": "MIT",
+    "description": "Shows the currently pinned Niri window in the bar with its app icon and title.",
+    "tags": [
+        "Bar",
+        "Niri",
+        "Window"
+    ],
+    "entryPoints": {
+        "barWidget": "BarWidget.qml"
+    },
+    "dependencies": {
+        "plugins": []
+    },
+    "metadata": {
+        "showIcon": true,
+        "hideMode": "hidden",
+        "scrollingMode": "hover",
+        "maxWidth": 170,
+        "useFixedWidth": false,
+        "colorizeIcons": false,
+        "textColor": "none"
+    }
+}
