@@ -3,7 +3,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s [--float] [--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--float] [--hide|--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 }
 
@@ -20,7 +20,7 @@ while [ "$#" -gt 0 ]; do
             float_window=true
             shift
             ;;
-        --hide-to-scratchpad)
+        --hide|--hide-to-scratchpad)
             hide_to_scratchpad=true
             shift
             ;;

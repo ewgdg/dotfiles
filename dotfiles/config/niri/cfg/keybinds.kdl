@@ -8,7 +8,7 @@ binds {
     // Applications
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
-    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" '^google-chrome$' google-chrome-stable"; }
+    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --hide '^google-chrome$' google-chrome-stable"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" toggle"; }
     MOD+CTRL+P repeat=false hotkey-overlay-title="Send Window To Main Workspace" { move-window-to-workspace "main" focus=false; }
