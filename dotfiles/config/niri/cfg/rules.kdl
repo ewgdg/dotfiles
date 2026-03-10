@@ -50,7 +50,21 @@ window-rule {
 window-rule {
     // Open Steam's main window on the dedicated game workspace.
     match app-id="steam"
-    open-on-workspace "game"
+    match app-id="lutris"
+    open-on-workspace "games"
+}
+
+window-rule {
+    match title=r#"(?i)^ChatGPT\b"# app-id=r#"(?i)^chrome-"#
+    match title=r#"(?i)^Google AI Studio\b"# app-id=r#"(?i)^chrome-"#
+    open-on-workspace "AI"
+}
+
+window-rule {
+    // Keep note-taking apps on the dedicated notes workspace.
+    match app-id=r#"(?i)^obsidian$"#
+    match title=r#"(?i)\bmemos\b"#
+    open-on-workspace "notes"
 }
 
 window-rule {

@@ -10,7 +10,8 @@ binds {
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" '^google-chrome$' google-chrome-stable"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
-    MOD+N hotkey-overlay-title="Summon Obsidian" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --hide-to-scratchpad '^obsidian$' obsidian"; }
+    MOD+P repeat=false hotkey-overlay-title="Open Main Workspace" { focus-workspace "main"; }
+    MOD+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
     MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}

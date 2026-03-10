@@ -1,0 +1,123 @@
+#!/bin/sh
+
+set -eu
+
+usage() {
+    printf 'usage: %s <app-name> [desktop-file-regex]\n' "$0" >&2
+    exit 2
+}
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    usage
+fi
+
+app_name="$1"
+desktop_file_regex="${2:-.*}"
+query="$(printf '%s' "$app_name" | tr '[:upper:]' '[:lower:]')"
+
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+applications_dirs="
+$data_home/applications
+/usr/local/share/applications
+/usr/share/applications
+"
+
+best_file=
+best_score=999
+best_priority=999
+best_length=999999
+
+desktop_name() {
+    awk '
+        /^Name=/ {
+            sub(/^Name=/, "", $0)
+            print
+            exit
+        }
+    ' "$1"
+}
+
+score_candidate() {
+    stem_lc="$1"
+    name_lc="$2"
+
+    case "$stem_lc" in
+        "$query") printf '%s\n' 0; return ;;
+    esac
+
+    case "$name_lc" in
+        "$query") printf '%s\n' 1; return ;;
+    esac
+
+    case "$stem_lc" in
+        "$query"*) printf '%s\n' 2; return ;;
+    esac
+
+    case "$name_lc" in
+        "$query"*) printf '%s\n' 3; return ;;
+    esac
+
+    case "$stem_lc" in
+        *"$query"*) printf '%s\n' 4; return ;;
+    esac
+
+    case "$name_lc" in
+        *"$query"*) printf '%s\n' 5; return ;;
+    esac
+
+    return 1
+}
+
+candidate_priority() {
+    case "$1" in
+        "$data_home"/applications/*) printf '%s\n' 0 ;;
+        /usr/local/share/applications/*) printf '%s\n' 1 ;;
+        /usr/share/applications/*) printf '%s\n' 2 ;;
+        *) printf '%s\n' 9 ;;
+    esac
+}
+
+for applications_dir in $applications_dirs; do
+    [ -d "$applications_dir" ] || continue
+
+    for desktop_file in "$applications_dir"/*.desktop; do
+        [ -e "$desktop_file" ] || continue
+        desktop_basename="$(basename "$desktop_file")"
+        if ! printf '%s\n' "$desktop_basename" | grep -Eq "$desktop_file_regex"; then
+            continue
+        fi
+
+        desktop_stem="${desktop_basename%.desktop}"
+        desktop_name_value="$(desktop_name "$desktop_file" || true)"
+
+        desktop_stem_lc="$(printf '%s' "$desktop_stem" | tr '[:upper:]' '[:lower:]')"
+        desktop_name_lc="$(printf '%s' "$desktop_name_value" | tr '[:upper:]' '[:lower:]')"
+
+        score="$(score_candidate "$desktop_stem_lc" "$desktop_name_lc" || true)"
+        [ -n "$score" ] || continue
+
+        priority="$(candidate_priority "$desktop_file")"
+        length="$(printf '%s' "$desktop_basename" | wc -c | awk '{print $1}')"
+
+        if [ "$score" -lt "$best_score" ] \
+            || { [ "$score" -eq "$best_score" ] && [ "$priority" -lt "$best_priority" ]; } \
+            || { [ "$score" -eq "$best_score" ] && [ "$priority" -eq "$best_priority" ] && [ "$length" -lt "$best_length" ]; }
+        then
+            best_file="$desktop_file"
+            best_score="$score"
+            best_priority="$priority"
+            best_length="$length"
+        fi
+    done
+done
+
+if [ -z "$best_file" ]; then
+    printf 'launch-desktop-app: no desktop file matched app name %s' "$app_name" >&2
+    if [ -n "${2:-}" ]; then
+        printf ' with filename regex %s' "$desktop_file_regex" >&2
+    fi
+    printf '\n' >&2
+    exit 1
+fi
+
+exec gio launch "$best_file"
