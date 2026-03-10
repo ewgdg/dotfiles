@@ -1,7 +1,7 @@
 // ────────────── Startup Applications ──────────────
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
-spawn-sh-at-startup "dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME"
+spawn-sh-at-startup "dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME QS_ICON_THEME"
 // Hook the session up to pam_kwallet when login actually went through PAM.
 // This is useful for password-based logins, but autologin still will not unlock the wallet.
 spawn-at-startup "/usr/lib/pam_kwallet_init"
@@ -10,7 +10,8 @@ spawn-at-startup "/usr/lib/pam_kwallet_init"
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
 // Start it once per session.
 // spawn-at-startup "dms" "run"
-spawn-at-startup "qs" "-c" "noctalia-shell"
+// Managed by the user systemd unit `noctalia-shell.service` so crashes restart cleanly
+// and tray-dependent autostarts wait until the host is registered.
 // KDE Secret Service bridge for KWallet in a plain niri session.
 // spawn-sh-at-startup "~/.config/niri/bin/start-swayidle.sh"
 

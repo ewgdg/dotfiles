@@ -1,0 +1,18 @@
+[Unit]
+Description=Noctalia Quick Shell for Niri
+After=niri.service
+BindsTo=niri.service
+PartOf=niri.service
+Before=xdg-desktop-autostart.target
+Before=graphical-session.target
+
+[Service]
+Type=exec
+TimeoutStartSec=20
+ExecStart=/usr/bin/qs -c noctalia-shell
+ExecStartPost=/home/xian/bin/wait-for-tray-host
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=niri.service
