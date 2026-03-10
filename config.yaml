@@ -173,6 +173,11 @@ dotfiles:
   f_etc_makepkg.conf:
     src: etc/makepkg.conf
     dst: /etc/makepkg.conf
+  f_etc_locale.gen:
+    src: etc/locale.gen
+    dst: /etc/locale.gen
+    actions:
+      - sh 'locale-gen'
   f_etc_pacman.conf:
     src: etc/pacman.conf
     dst: /etc/pacman.conf
@@ -402,6 +407,7 @@ profiles:
     dotfiles:
       - f_etc_pacman.conf
       - f_etc_makepkg.conf
+      - f_etc_locale.gen
       - f_etc_fonts_local.conf
       - f_config_chrome-flags.conf
       - f_config_chromium-flags.conf
