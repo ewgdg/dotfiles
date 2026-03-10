@@ -150,8 +150,8 @@
 			<dict>
 				<key>parameters</key>
 				<array>
-					<integer>8388608</integer>
-					<integer>4286578687</integer>
+					<integer>1048584</integer>
+					<integer>18446744073708503031</integer>
 				</array>
 				<key>type</key>
 				<string>modifier</string>

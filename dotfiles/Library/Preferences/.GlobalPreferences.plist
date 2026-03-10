@@ -28,6 +28,8 @@
 		<string>@~^$l</string>
 		<key>Show All</key>
 		<string>@^h</string>
+		<key>Start Dictation</key>
+		<string>@⎋</string>
 	</dict>
 	<key>com.apple.keyboard.fnState</key>
 	<false/>
