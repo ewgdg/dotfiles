@@ -322,7 +322,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    chmod: '600'
+    trans_update: toml_strip_keys model model_reasoning_effort
+    trans_install: toml_merge_keys model model_reasoning_effort
   f_claude_claude.md:
     src: claude/CLAUDE.md
     dst: ~/.claude/CLAUDE.md
@@ -500,6 +501,8 @@ actions:
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
     clone --depth=1 {0} "{1}"; fi
 trans_update:
+  toml_strip_keys: python3 '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/toml_transform.py' {0} {1} --mode strip --key {2} --key {3}
   xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
   plist_to_xml: plutil -convert xml1 -o {1} {0}
@@ -522,6 +525,9 @@ trans_update:
     NSAutomaticQuoteSubstitutionEnabled --keep-key 
     NSAutomaticTextCompletionEnabled
 trans_install:
+  toml_merge_keys: python3 '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/toml_transform.py' {0} {1} --mode merge --merge-file '{{@@ 
+    _dotfile_abs_dst @@}}' --key {2} --key {3}
   xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
     _dotfile_abs_dst @@}}' {1} --merge_file {0} 
     --write_input_unchanged_if_no_effect

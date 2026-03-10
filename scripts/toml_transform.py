@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+import re
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
+
+import tomllib
+import tomli_w
+
+
+def load_toml(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+
+    with path.open("rb") as file:
+        data = tomllib.load(file)
+
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} does not contain a TOML table at the root")
+
+    return data
+
+
+def write_text_if_changed(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    path.write_text(content, encoding="utf-8")
+
+
+def strip_keys_text(input_path: Path, output_path: Path, key_paths: list[tuple[str, ...]]) -> None:
+    # This line-based transformer preserves comments and formatting, but it only
+    # safely edits existing single-line assignments. If we need robust multiline
+    # TOML value handling later, switch this script to a comment-preserving TOML
+    # library instead of extending regex edits further.
+    key_paths_by_table: dict[tuple[str, ...], set[str]] = {}
+    for key_path in key_paths:
+        table_path, key_name = split_key_path(key_path)
+        key_paths_by_table.setdefault(table_path, set()).add(key_name)
+
+    lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    stripped_lines: list[str] = []
+    current_table_path: tuple[str, ...] = ()
+
+    for line in lines:
+        header_match = re.match(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$", line)
+        if header_match:
+            current_table_path = parse_key_path(header_match.group(1))
+            stripped_lines.append(line)
+            continue
+
+        target_keys = key_paths_by_table.get(current_table_path)
+        if target_keys is None:
+            stripped_lines.append(line)
+            continue
+
+        assignment_match = re.match(r"^\s*([A-Za-z0-9_-]+)\s*=", line)
+        if assignment_match and assignment_match.group(1) in target_keys:
+            continue
+
+        stripped_lines.append(line)
+
+    write_text_if_changed(output_path, "".join(stripped_lines))
+
+
+def merge_keys_text(
+    input_path: Path,
+    output_path: Path,
+    merge_config: Mapping[str, Any],
+    key_paths: list[tuple[str, ...]],
+) -> None:
+    lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
+
+    for key_path in key_paths:
+        merged_value = get_value(merge_config, key_path)
+        if merged_value is None:
+            continue
+        lines = merge_key_into_lines(lines, key_path, merged_value)
+
+    write_text_if_changed(output_path, "".join(lines))
+
+
+def parse_key_path(raw_key: str) -> tuple[str, ...]:
+    key_path = tuple(part.strip() for part in raw_key.split(".") if part.strip())
+    if not key_path:
+        raise ValueError("key paths must not be empty")
+    return key_path
+
+
+def split_key_path(key_path: tuple[str, ...]) -> tuple[tuple[str, ...], str]:
+    return key_path[:-1], key_path[-1]
+
+
+def get_table(config: Mapping[str, Any], table_path: tuple[str, ...]) -> Mapping[str, Any] | None:
+    current: Any = config
+    for part in table_path:
+        if not isinstance(current, Mapping):
+            return None
+        current = current.get(part)
+
+    if not isinstance(current, Mapping):
+        return None
+
+    return current
+
+
+def get_mutable_table(config: dict[str, Any], table_path: tuple[str, ...]) -> dict[str, Any] | None:
+    current: Any = config
+    for part in table_path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+        if not isinstance(current, dict):
+            return None
+
+    if not isinstance(current, dict):
+        return None
+
+    return current
+
+
+def get_value(config: Mapping[str, Any], key_path: tuple[str, ...]) -> Any | None:
+    table_path, key_name = split_key_path(key_path)
+    table = get_table(config, table_path)
+    if table is None or key_name not in table:
+        return None
+    return table[key_name]
+
+
+def merge_key_into_lines(
+    lines: list[str],
+    key_path: tuple[str, ...],
+    value: Any,
+) -> list[str]:
+    table_path, key_name = split_key_path(key_path)
+    start_index, end_index = find_table_bounds(lines, table_path)
+    if start_index is None or end_index is None:
+        return lines
+
+    assignment_lines = render_assignment_lines(key_name, value)
+    assignment_pattern = re.compile(rf"^\s*{re.escape(key_name)}\s*=")
+
+    for line_index in range(start_index, end_index):
+        if assignment_pattern.match(lines[line_index]):
+            return lines[:line_index] + assignment_lines + lines[line_index + 1 :]
+
+    insert_index = end_index
+    while insert_index > start_index and lines[insert_index - 1].strip() == "":
+        insert_index -= 1
+
+    prefix = [] if insert_index == 0 or lines[insert_index - 1].endswith("\n") else ["\n"]
+    suffix = [] if insert_index >= len(lines) or lines[insert_index].strip() == "" else ["\n"]
+    return lines[:insert_index] + prefix + assignment_lines + suffix + lines[insert_index:]
+
+
+def find_table_bounds(
+    lines: list[str],
+    table_path: tuple[str, ...],
+) -> tuple[int | None, int | None]:
+    if not table_path:
+        for index, line in enumerate(lines):
+            if re.match(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$", line):
+                return 0, index
+        return 0, len(lines)
+
+    current_table_path: tuple[str, ...] | None = ()
+    section_start: int | None = None
+
+    for index, line in enumerate(lines):
+        header_match = re.match(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$", line)
+        if not header_match:
+            continue
+
+        current_table_path = parse_key_path(header_match.group(1))
+        if section_start is not None:
+            return section_start, index
+
+        if current_table_path == table_path:
+            section_start = index + 1
+
+    if section_start is not None:
+        return section_start, len(lines)
+
+    return None, None
+
+
+def render_assignment_lines(key_name: str, value: Any) -> list[str]:
+    rendered_assignment = tomli_w.dumps({key_name: value})
+    return rendered_assignment.splitlines(keepends=True)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Strip or merge selected TOML keys for dotdrop transformers."
+    )
+    parser.add_argument("input_path", type=Path)
+    parser.add_argument("output_path", type=Path)
+    parser.add_argument("--mode", choices=["strip", "merge"], required=True)
+    parser.add_argument("--merge-file", type=Path)
+    parser.add_argument(
+        "--key",
+        action="append",
+        required=True,
+        help="Dot-separated TOML key path, for example model or profiles.obsidian.model.",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    key_paths = [parse_key_path(raw_key) for raw_key in args.key]
+
+    if args.mode == "strip":
+        strip_keys_text(args.input_path, args.output_path, key_paths)
+        return 0
+
+    if args.merge_file is None:
+        raise ValueError("--merge-file is required when --mode=merge")
+
+    merge_config = load_toml(args.merge_file)
+    merge_keys_text(args.input_path, args.output_path, merge_config, key_paths)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
