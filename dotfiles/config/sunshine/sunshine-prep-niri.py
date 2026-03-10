@@ -44,7 +44,9 @@ def which(cmd: str) -> bool:
 
 
 def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(argv, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.run(
+        argv, check=check, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 def set_noctalia_idle_inhibitor(enabled: bool) -> None:
@@ -61,7 +63,11 @@ def set_noctalia_idle_inhibitor(enabled: bool) -> None:
 
 def kill_runtime_inhibit() -> None:
     set_noctalia_idle_inhibitor(False)
-    subprocess.run(["pkill", "-f", INHIBIT_REASON], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        ["pkill", "-f", INHIBIT_REASON],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def start_runtime_inhibit() -> None:
@@ -114,7 +120,9 @@ def _is_unix_socket(path: str) -> bool:
 
 
 def try_autodiscover_niri_socket() -> bool:
-    runtime_dir = (os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}").strip()
+    runtime_dir = (
+        os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    ).strip()
     if not runtime_dir:
         return False
 
@@ -172,7 +180,11 @@ def niri_msg(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]
 
 
 def outputs_from_reply(reply: Any) -> List[Dict[str, Any]]:
-    if isinstance(reply, dict) and "Outputs" in reply and isinstance(reply["Outputs"], list):
+    if (
+        isinstance(reply, dict)
+        and "Outputs" in reply
+        and isinstance(reply["Outputs"], list)
+    ):
         return reply["Outputs"]
     if isinstance(reply, dict):
         # Newer niri versions return outputs as a connector-keyed map.
@@ -357,7 +369,10 @@ def compute_scale(
             f"[sunshine-prep-niri] scale mode=manual requested={scale_arg} applied_scale={formatted}",
         )
     except Exception:
-        return None, f"[sunshine-prep-niri] scale mode=invalid requested={scale_arg!r} (ignored)"
+        return (
+            None,
+            f"[sunshine-prep-niri] scale mode=invalid requested={scale_arg!r} (ignored)",
+        )
 
 
 def transform_to_config_string(val: Any) -> Optional[str]:
@@ -401,7 +416,9 @@ def transform_to_config_string(val: Any) -> Optional[str]:
     return mapping.get(low) or mapping.get(v)  # try exact then lower
 
 
-def find_best_mode(o: Dict[str, Any], width: int, height: int, fps: int) -> Optional[Dict[str, Any]]:
+def find_best_mode(
+    o: Dict[str, Any], width: int, height: int, fps: int
+) -> Optional[Dict[str, Any]]:
     modes = o.get("modes")
     if not isinstance(modes, list):
         return None
@@ -473,7 +490,9 @@ def choose_output(
     return scored[0][1], scored[0][2]
 
 
-def apply_output_mode(output_name: str, *, width: int, height: int, refresh_mhz: int) -> None:
+def apply_output_mode(
+    output_name: str, *, width: int, height: int, refresh_mhz: int
+) -> None:
     hz = mhz_to_hz_3dp(refresh_mhz)
     mode_str = f"{width}x{height}@{hz}"
     # Uses the same syntax as the config file.
@@ -507,7 +526,11 @@ def do_action(
 
     # tiny wake so remote cursor shows up quickly (optional)
     if which("ydotool"):
-        subprocess.run(["ydotool", "mousemove", "-x", "1", "-y", "1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ["ydotool", "mousemove", "-x", "1", "-y", "1"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     outputs = outputs_from_reply(niri_msg_json("outputs"))
 
@@ -553,9 +576,6 @@ def try_reload_niri_config() -> bool:
     # Best-effort: Niri's IPC surface may change between versions.
     candidates: List[List[str]] = [
         ["action", "load-config-file"],
-        ["reload-config"],
-        ["reload"],
-        ["config", "reload"],
     ]
     for args in candidates:
         try:
@@ -589,8 +609,8 @@ def restore_action() -> None:
         return
 
     kill_runtime_inhibit()
-    if not try_reload_niri_config():
-        raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
+    # if not try_reload_niri_config():
+    #     raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
     reenable_disabled_outputs()
 
 
@@ -653,7 +673,10 @@ def main(argv: List[str]) -> None:
         height = args.height or int(os.environ.get("SUNSHINE_CLIENT_HEIGHT", "0") or 0)
         fps = args.fps or int(os.environ.get("SUNSHINE_CLIENT_FPS", "0") or 0)
         if not (width and height and fps):
-            print("ERROR: Missing --width/--height/--fps (or SUNSHINE_CLIENT_* env vars).", file=sys.stderr)
+            print(
+                "ERROR: Missing --width/--height/--fps (or SUNSHINE_CLIENT_* env vars).",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         try:
