@@ -3,18 +3,39 @@
 set -eu
 
 if [ "$#" -lt 2 ]; then
-    printf 'usage: %s [--same-workspace] <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--same-workspace] [--switch-back-if-focused] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 fi
 
 same_workspace=0
-if [ "${1:-}" = "--same-workspace" ]; then
-    same_workspace=1
-    shift
-fi
+switch_back_if_focused=0
+
+while [ "$#" -gt 0 ]; do
+    case "${1:-}" in
+        --same-workspace)
+            same_workspace=1
+            shift
+            ;;
+        --switch-back-if-focused)
+            switch_back_if_focused=1
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            printf 'usage: %s [--same-workspace] [--switch-back-if-focused] <app-id-regex> <command> [args...]\n' "$0" >&2
+            exit 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 if [ "$#" -lt 2 ]; then
-    printf 'usage: %s [--same-workspace] <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--same-workspace] [--switch-back-if-focused] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 fi
 
@@ -35,6 +56,10 @@ if [ "$same_workspace" -eq 1 ]; then
 fi
 
 if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
+    if [ "$switch_back_if_focused" -eq 1 ]; then
+        exec niri msg action focus-window-previous
+    fi
+
     exec "$@"
 fi
 
