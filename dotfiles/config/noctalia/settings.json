@@ -15,7 +15,8 @@
         "iconMode": "tabler",
         "ignoreMouseInput": false,
         "overviewLayer": false,
-        "pinnedApps": [],
+        "pinnedApps": [
+        ],
         "position": "center",
         "screenshotAnnotationTool": "",
         "showCategories": true,
@@ -26,7 +27,8 @@
         "viewMode": "list"
     },
     "audio": {
-        "mprisBlacklist": [],
+        "mprisBlacklist": [
+        ],
         "preferredPlayer": "",
         "spectrumFrameRate": 30,
         "visualizerType": "linear",
@@ -55,7 +57,8 @@
         "middleClickAction": "none",
         "middleClickCommand": "",
         "middleClickFollowMouse": false,
-        "monitors": [],
+        "monitors": [
+        ],
         "mouseWheelAction": "none",
         "mouseWheelWrap": true,
         "outerCorners": false,
@@ -64,7 +67,8 @@
         "rightClickAction": "controlCenter",
         "rightClickCommand": "",
         "rightClickFollowMouse": true,
-        "screenOverrides": [],
+        "screenOverrides": [
+        ],
         "showCapsule": false,
         "showOnWorkspaceSwitch": false,
         "showOutline": false,
@@ -136,16 +140,6 @@
                     "usePadding": false
                 },
                 {
-                    "colorizeIcons": false,
-                    "hideMode": "hidden",
-                    "id": "ActiveWindow",
-                    "maxWidth": 145,
-                    "scrollingMode": "hover",
-                    "showIcon": true,
-                    "textColor": "none",
-                    "useFixedWidth": false
-                },
-                {
                     "compactMode": false,
                     "hideMode": "hidden",
                     "hideWhenIdle": false,
@@ -164,7 +158,8 @@
             ],
             "right": [
                 {
-                    "blacklist": [],
+                    "blacklist": [
+                    ],
                     "chevronColor": "none",
                     "colorizeIcons": false,
                     "drawerEnabled": true,
@@ -215,6 +210,13 @@
                     "useDistroLogo": false
                 },
                 {
+                    "displayMode": "alwaysHide",
+                    "iconColor": "none",
+                    "id": "Microphone",
+                    "middleClickCommand": "pwvucontrol || pavucontrol",
+                    "textColor": "none"
+                },
+                {
                     "defaultSettings": {
                         "activeColor": "primary",
                         "enableToast": true,
@@ -239,7 +241,8 @@
         }
     },
     "brightness": {
-        "backlightDeviceMappings": [],
+        "backlightDeviceMappings": [
+        ],
         "brightnessStep": 5,
         "enableDdcSupport": false,
         "enforceMinimum": true
@@ -298,7 +301,7 @@
             }
         ],
         "diskPath": "/",
-        "position": "center",
+        "position": "close_to_bar_button",
         "shortcuts": {
             "left": [
                 {
@@ -333,7 +336,8 @@
     "desktopWidgets": {
         "enabled": false,
         "gridSnap": false,
-        "monitorWidgets": [],
+        "monitorWidgets": [
+        ],
         "overviewEnabled": true
     },
     "dock": {
@@ -355,9 +359,11 @@
         "indicatorThickness": 3,
         "launcherIconColor": "none",
         "launcherPosition": "end",
-        "monitors": [],
+        "monitors": [
+        ],
         "onlySameOutput": true,
-        "pinnedApps": [],
+        "pinnedApps": [
+        ],
         "pinnedStatic": false,
         "position": "bottom",
         "showDockIndicator": false,
@@ -412,7 +418,8 @@
         "lockScreenAnimations": false,
         "lockScreenBlur": 0.1,
         "lockScreenCountdownDuration": 10000,
-        "lockScreenMonitors": [],
+        "lockScreenMonitors": [
+        ],
         "lockScreenTint": 0,
         "passwordChars": false,
         "radiusRatio": 1,
@@ -504,7 +511,8 @@
         "enabled": true,
         "location": "top_right",
         "lowUrgencyDuration": 3,
-        "monitors": [],
+        "monitors": [
+        ],
         "normalUrgencyDuration": 8,
         "overlayLayer": true,
         "respectExpireTimeout": true,
@@ -533,7 +541,8 @@
             2
         ],
         "location": "top_right",
-        "monitors": [],
+        "monitors": [
+        ],
         "overlayLayer": true
     },
     "plugins": {
@@ -656,11 +665,13 @@
         "directory": "/home/xian/Pictures/Wallpapers",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
-        "favorites": [],
+        "favorites": [
+        ],
         "fillColor": "#000000",
         "fillMode": "crop",
         "hideWallpaperFilenames": false,
-        "monitorDirectories": [],
+        "monitorDirectories": [
+        ],
         "overviewBlur": 0.4,
         "overviewEnabled": false,
         "overviewTint": 0.6,
