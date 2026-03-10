@@ -3,9 +3,19 @@
 set -eu
 
 usage() {
-    printf 'usage: %s <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 }
+
+if [ "$#" -lt 2 ]; then
+    usage
+fi
+
+hide_to_scratchpad=false
+if [ "${1:-}" = "--hide-to-scratchpad" ]; then
+    hide_to_scratchpad=true
+    shift
+fi
 
 if [ "$#" -lt 2 ]; then
     usage
@@ -14,13 +24,21 @@ fi
 app_id_pattern="$1"
 shift
 
+hide_focused_window() {
+    if [ "$hide_to_scratchpad" = "true" ]; then
+        exec niri msg action move-window-to-workspace --focus false scratchpad
+    fi
+
+    exec niri msg action close-window
+}
+
 focused_window_json="$(
     niri msg -j focused-window 2>/dev/null || printf '{}'
 )"
 focused_app_id="$(printf '%s' "$focused_window_json" | jq -r '.app_id // empty')"
 
 if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
-    exec niri msg action close-window
+    hide_focused_window
 fi
 
 focused_workspace_ref="$(

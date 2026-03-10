@@ -2,6 +2,8 @@
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
 spawn-sh-at-startup "dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME QS_ICON_THEME"
+// Start on the main workspace even though named workspaces are declared in a different order.
+spawn-sh-at-startup "for _ in 1 2 3 4 5 6 7 8 9 10; do niri msg action focus-workspace main >/dev/null 2>&1 && break; sleep 0.2; done"
 // Hook the session up to pam_kwallet when login actually went through PAM.
 // This is useful for password-based logins, but autologin still will not unlock the wallet.
 spawn-at-startup "/usr/lib/pam_kwallet_init"

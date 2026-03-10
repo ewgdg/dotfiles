@@ -1,10 +1,10 @@
 // https://github.com/niri-wm/niri/wiki/Configuration:-Named-Workspaces
 
-workspace "main"
-workspace "game"
+workspace "scratchpad" {
+    // Layout config overrides just for this named workspace.
+    layout {
+    }
+}
 
-// workspace "scratchpad" {
-//     // Layout config overrides just for this named workspace.
-//     layout {
-//     }
-// }
+workspace "game"
+workspace "main"
