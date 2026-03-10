@@ -370,7 +370,7 @@
         "animationDisabled": false,
         "animationSpeed": 2,
         "autoStartAuth": false,
-        "avatarImage": "/home/xian/.face",
+        "avatarImage": "",
         "boxRadiusRatio": 1,
         "clockFormat": "hh\\nmm",
         "clockStyle": "custom",
