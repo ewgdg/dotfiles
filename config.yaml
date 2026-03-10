@@ -54,7 +54,7 @@ dotfiles:
     src: config/noctalia
     dst: ~/.config/noctalia
     actions:
-    - install 'noctalia-config noctalia-qs noctalia-shell cava'
+    - install 'noctalia-qs noctalia-shell cava'
     cmpignore: &noctalia_ignore
     - plugins/*
     - '!plugins/*/settings.json'
