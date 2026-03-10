@@ -222,10 +222,24 @@ dotfiles:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
     chmod: "600"
+    actions:
+      - install 1password
   f_local_share_applications_goldendict-search.desktop:
     src: local/share/applications/goldendict-search.desktop
     dst: ~/.local/share/applications/goldendict-search.desktop
     chmod: "600"
+    actions:
+      - install flatpak
+      - sh 'flatpak install --noninteractive flathub org.goldendict.GoldenDict'
+  # Temporary Steam launcher override for Wayland IME input.
+  # See docs/steam-ime-workaround.md and remove this once Steam's native
+  # Wayland text input works reliably.
+  f_local_share_applications_steam.desktop:
+    src: local/share/applications/steam.desktop
+    dst: ~/.local/share/applications/steam.desktop
+    chmod: "600"
+    actions:
+      - install steam
   f_zshenv:
     src: zshenv
     dst: ~/.zshenv
@@ -414,6 +428,7 @@ profiles:
       - f_config_plasmashellrc
       - f_local_share_applications_1password-quickaccess.desktop
       - f_local_share_applications_goldendict-search.desktop
+      - f_local_share_applications_steam.desktop
       - f_config_kscreenlockerrc
       - f_config_kdeglobals
       - f_config_kwinrulesrc
