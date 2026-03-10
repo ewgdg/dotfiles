@@ -3,7 +3,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s [--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--float] [--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 }
 
@@ -11,11 +11,31 @@ if [ "$#" -lt 2 ]; then
     usage
 fi
 
+float_window=false
 hide_to_scratchpad=false
-if [ "${1:-}" = "--hide-to-scratchpad" ]; then
-    hide_to_scratchpad=true
-    shift
-fi
+
+while [ "$#" -gt 0 ]; do
+    case "${1:-}" in
+        --float)
+            float_window=true
+            shift
+            ;;
+        --hide-to-scratchpad)
+            hide_to_scratchpad=true
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            usage
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 if [ "$#" -lt 2 ]; then
     usage
@@ -108,8 +128,12 @@ niri msg action move-window-to-workspace --window-id "$target_id" --focus false 
 niri msg action focus-window --id "$target_id"
 
 target_floating="$(target_is_floating "$(matching_windows_json)" "$target_id")"
-if [ "$target_floating" != "true" ]; then
+if [ "$float_window" = "true" ] && [ "$target_floating" != "true" ]; then
     niri msg action move-window-to-floating --id "$target_id"
 fi
 
-exec niri msg action center-window --id "$target_id"
+if [ "$float_window" = "true" ]; then
+    exec niri msg action center-window --id "$target_id"
+fi
+
+exit 0

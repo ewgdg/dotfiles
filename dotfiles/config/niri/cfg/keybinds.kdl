@@ -9,7 +9,8 @@ binds {
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" '^google-chrome$' google-chrome-stable"; }
-    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
+    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
+    MOD+N hotkey-overlay-title="Summon Obsidian" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --hide-to-scratchpad '^obsidian$' obsidian"; }
     MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
@@ -110,8 +111,8 @@ binds {
     Mod+Shift+I        { move-workspace-up; }
     Mod+Ctrl+U         { move-column-to-workspace-down; }
     Mod+Ctrl+I         { move-column-to-workspace-up; }
-    // Mod+S              { focus-workspace "scratchpad"; }
-    // Mod+Ctrl+S         { move-window-to-workspace "scratchpad" focus=false; }
+    Mod+S              { focus-workspace "scratchpad"; }
+    Mod+Ctrl+S         { move-window-to-workspace "scratchpad" focus=false; }
 
     MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
     MOD+WHEELSCROLLUP cooldown-ms=150 { focus-workspace-up; }
@@ -180,13 +181,9 @@ binds {
     // Mod+R { switch-preset-column-width-back; }
     Mod+Shift+R { switch-preset-window-height; }
     Mod+Ctrl+R { reset-window-height; }
-    Mod+F { maximize-column; }
+    Mod+F repeat=false { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
     Mod+Shift+F { fullscreen-window; }
 
-    // While maximize-column leaves gaps and borders around the window,
-    // maximize-window-to-edges doesn't: the window expands to the edges of the screen.
-    // This bind corresponds to normal window maximizing,
-    // e.g. by double-clicking on the titlebar.
     Mod+M { maximize-window-to-edges; }
 
     // Expand the focused column to space not taken up by other fully visible columns.
@@ -201,10 +198,8 @@ binds {
     MOD+SHIFT+EQUAL { set-window-height "+10%"; }
 
     // Move the focused window between the floating and the tiling layout.
-    Mod+V       { toggle-window-floating; }
-    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
-    Mod+S       { toggle-window-floating; }
-    Mod+Shift+S { switch-focus-between-floating-and-tiling; }
+    Mod+Z       { toggle-window-floating; }
+    Mod+Shift+Z { switch-focus-between-floating-and-tiling; }
 
     // Toggle tabbed column display mode.
     MOD+T { toggle-column-tabbed-display; }
