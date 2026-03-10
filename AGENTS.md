@@ -4,6 +4,11 @@
 
 This repository manages user and system configuration with `dotdrop`. The main mapping lives in `config.yaml`; Managed files are stored under `dotfiles/`, mirroring destination paths such as `dotfiles/config/nvim`, `dotfiles/bin`, and `dotfiles/etc`. Helper scripts live in `scripts/`. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
 
+## Develop Guidelines
+
+When add a new config file to dotdrop, also add an appropriate post/pre action for it if necessary, for example, installing the corresponding app for the config.
+The action need to be idempotent.
+
 ## Build, Test, and Development Commands
 
 There is no application build step. The core workflow is syncing and validating managed files.
