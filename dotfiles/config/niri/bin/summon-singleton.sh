@@ -45,20 +45,26 @@ app_id_pattern="$1"
 shift
 
 hide_focused_window() {
+    focused_window_id="$1"
+
+    niri msg action focus-window-previous >/dev/null 2>&1 || true
+
     if [ "$hide_to_scratchpad" = "true" ]; then
-        exec niri msg action move-window-to-workspace --focus false scratchpad
+        exec niri msg action move-window-to-workspace --window-id "$focused_window_id" --focus false scratchpad
     fi
 
-    exec niri msg action close-window
+    exec niri msg action close-window --id "$focused_window_id"
 }
 
 focused_window_json="$(
     niri msg -j focused-window 2>/dev/null || printf '{}'
 )"
+focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
 focused_app_id="$(printf '%s' "$focused_window_json" | jq -r '.app_id // empty')"
+focused_window_column_index="$(printf '%s' "$focused_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
 
 if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
-    hide_focused_window
+    hide_focused_window "$focused_window_id"
 fi
 
 focused_workspace_ref="$(
@@ -128,6 +134,10 @@ niri msg action move-window-to-workspace --window-id "$target_id" --focus false 
 niri msg action focus-window --id "$target_id"
 
 target_floating="$(target_is_floating "$(matching_windows_json)" "$target_id")"
+if [ -n "$focused_window_column_index" ] && [ "$target_floating" != "true" ] && [ "$target_id" != "$focused_window_id" ]; then
+    niri msg action move-column-to-index $((focused_window_column_index + 1))
+fi
+
 if [ "$float_window" = "true" ] && [ "$target_floating" != "true" ]; then
     niri msg action move-window-to-floating --id "$target_id"
 fi
