@@ -23,21 +23,13 @@ args = ["-y", "@upstash/context7-mcp"]
 hide_full_access_warning = true
 hide_rate_limit_model_nudge = true
 
-[notice.model_migrations]
-"gpt-5.2" = "gpt-5.3-codex"
-"gpt-5.1-codex-mini" = "gpt-5.2-codex"
-
 [features]
 multi_agent = true
+js_repl = true
+use_linux_sandbox_bwrap = true
+guardian_approval = true
+prevent_idle_sleep = true
 
 [tui]
-status_line = [
-  "model-with-reasoning",
-  "current-dir",
-  "git-branch",
-  "context-remaining",
-]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "project-root", "fast-mode"]
 
-# [mcp_servers.mcp-web-context]
-# command = "uvx"
-# args = ["mcp-proxy", "--transport", "streamablehttp", "https://scraper.service.xianzzz.com/mcp"]

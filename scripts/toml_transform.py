@@ -25,14 +25,38 @@ def load_toml(path: Path) -> dict[str, Any]:
     return data
 
 
-def write_text_if_changed(path: Path, content: str) -> None:
+def sync_mode(path: Path, reference_path: Path) -> None:
+    if not path.exists() or not reference_path.exists():
+        return
+
+    target_mode = reference_path.stat().st_mode & 0o777
+    current_mode = path.stat().st_mode & 0o777
+    if current_mode != target_mode:
+        path.chmod(target_mode)
+
+
+def write_text_if_changed(path: Path, content: str, reference_path: Path | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.read_text(encoding="utf-8") == content:
+        if reference_path is not None:
+            sync_mode(path, reference_path)
         return
     path.write_text(content, encoding="utf-8")
+    if reference_path is not None:
+        sync_mode(path, reference_path)
 
 
-def strip_keys_text(input_path: Path, output_path: Path, key_paths: list[tuple[str, ...]]) -> None:
+def matches_table_regex(table_path: tuple[str, ...], table_regexes: list[re.Pattern[str]]) -> bool:
+    raw_table_path = ".".join(table_path)
+    return any(table_regex.search(raw_table_path) for table_regex in table_regexes)
+
+
+def strip_keys_text(
+    input_path: Path,
+    output_path: Path,
+    key_paths: list[tuple[str, ...]],
+    table_regexes_to_strip: list[re.Pattern[str]],
+) -> None:
     # This line-based transformer preserves comments and formatting, but it only
     # safely edits existing single-line assignments. If we need robust multiline
     # TOML value handling later, switch this script to a comment-preserving TOML
@@ -45,12 +69,19 @@ def strip_keys_text(input_path: Path, output_path: Path, key_paths: list[tuple[s
     lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
     stripped_lines: list[str] = []
     current_table_path: tuple[str, ...] = ()
+    skip_current_table = False
 
     for line in lines:
         header_match = re.match(r"^\s*\[([^\]]+)\]\s*(?:#.*)?$", line)
         if header_match:
             current_table_path = parse_key_path(header_match.group(1))
+            skip_current_table = matches_table_regex(current_table_path, table_regexes_to_strip)
+            if skip_current_table:
+                continue
             stripped_lines.append(line)
+            continue
+
+        if skip_current_table:
             continue
 
         target_keys = key_paths_by_table.get(current_table_path)
@@ -64,7 +95,7 @@ def strip_keys_text(input_path: Path, output_path: Path, key_paths: list[tuple[s
 
         stripped_lines.append(line)
 
-    write_text_if_changed(output_path, "".join(stripped_lines))
+    write_text_if_changed(output_path, "".join(stripped_lines), reference_path=input_path)
 
 
 def merge_keys_text(
@@ -73,7 +104,7 @@ def merge_keys_text(
     merge_config: Mapping[str, Any],
     key_paths: list[tuple[str, ...]],
 ) -> None:
-    lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    lines = output_path.read_text(encoding="utf-8").splitlines(keepends=True)
 
     for key_path in key_paths:
         merged_value = get_value(merge_config, key_path)
@@ -81,7 +112,7 @@ def merge_keys_text(
             continue
         lines = merge_key_into_lines(lines, key_path, merged_value)
 
-    write_text_if_changed(output_path, "".join(lines))
+    write_text_if_changed(output_path, "".join(lines), reference_path=input_path)
 
 
 def parse_key_path(raw_key: str) -> tuple[str, ...]:
@@ -199,29 +230,43 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("input_path", type=Path)
     parser.add_argument("output_path", type=Path)
+    parser.add_argument("selectors", nargs="*")
     parser.add_argument("--mode", choices=["strip", "merge"], required=True)
     parser.add_argument("--merge-file", type=Path)
-    parser.add_argument(
-        "--key",
-        action="append",
-        required=True,
-        help="Dot-separated TOML key path, for example model or profiles.obsidian.model.",
-    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    key_paths = [parse_key_path(raw_key) for raw_key in args.key]
+    if not args.selectors:
+        raise ValueError("at least one selector is required")
+
+    raw_key_paths = [selector for selector in args.selectors if not selector.startswith("re:")]
+    raw_table_regexes = [selector[3:] for selector in args.selectors if selector.startswith("re:")]
+
+    key_paths = [parse_key_path(raw_key) for raw_key in raw_key_paths]
+    table_regexes_to_strip = [re.compile(raw_regex) for raw_regex in raw_table_regexes]
 
     if args.mode == "strip":
-        strip_keys_text(args.input_path, args.output_path, key_paths)
+        strip_keys_text(args.input_path, args.output_path, key_paths, table_regexes_to_strip)
         return 0
 
     if args.merge_file is None:
         raise ValueError("--merge-file is required when --mode=merge")
 
-    merge_config = load_toml(args.merge_file)
+    merge_config = load_toml(args.input_path)
+    if args.merge_file.exists():
+        write_text_if_changed(
+            args.output_path,
+            args.merge_file.read_text(encoding="utf-8"),
+            reference_path=args.merge_file,
+        )
+    else:
+        write_text_if_changed(
+            args.output_path,
+            args.input_path.read_text(encoding="utf-8"),
+            reference_path=args.input_path,
+        )
     merge_keys_text(args.input_path, args.output_path, merge_config, key_paths)
     return 0
 
