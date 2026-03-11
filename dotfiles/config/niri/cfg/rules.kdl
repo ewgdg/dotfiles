@@ -65,6 +65,12 @@ window-rule {
     match app-id=r#"(?i)^obsidian$"#
     match title=r#"(?i)\bmemos\b"#
     open-on-workspace "notes"
+    open-maximized true
+}
+
+window-rule {
+    match app-id=r#"(?i)^(code|code-url-handler)$"#
+    open-maximized true
 }
 
 window-rule {
