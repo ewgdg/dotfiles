@@ -463,6 +463,8 @@ profiles:
     dotfiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
+    - f_config_systemd_user_niri-event-stream-rules.service
+    - f_config_systemd_user_niri-wait-for-tray-host.service
     - d_config_noctalia
     - f_config_systemd_user_noctalia-shell.service
   os_mac:

@@ -21,6 +21,7 @@ WINDOW_STATE_EVENT_MARKERS = (
     '"WindowsChanged"',
     '"WindowOpenedOrChanged"',
     '"WindowClosed"',
+    '"WindowFocusChanged"',
 )
 
 
@@ -274,6 +275,22 @@ def apply_event_to_snapshot(
             if updated_windows is windows_by_id:
                 updated_windows = dict(windows_by_id)
             updated_windows.pop(window_id, None)
+
+    window_focus_changed = event_data.get("WindowFocusChanged")
+    if isinstance(window_focus_changed, dict):
+        focused_window_id = str(window_focus_changed.get("id", "") or "")
+        if updated_windows is windows_by_id:
+            updated_windows = dict(windows_by_id)
+        for existing_window_id, existing_window in updated_windows.items():
+            should_be_focused = bool(
+                focused_window_id and existing_window_id == focused_window_id
+            )
+            if existing_window.get("is_focused") is should_be_focused:
+                continue
+            updated_windows[existing_window_id] = {
+                **existing_window,
+                "is_focused": should_be_focused,
+            }
 
     return updated_windows
 
