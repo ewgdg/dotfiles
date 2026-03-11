@@ -1,8 +1,8 @@
 {
   "rules": [
     {
-      "name": "close-floating-goldendict-on-focus-loss",
-      "event": "focus-changed",
+      "name": "close-floating-goldendict-on-active-window-loss",
+      "event": "active-window-changed",
       "match": {
         "previous": {
           "app_id": {

@@ -6,10 +6,10 @@ from dataclasses import dataclass
 import json
 import os
 import re
-import subprocess
+import socket
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 
 RULES_PATH = (
@@ -17,12 +17,17 @@ RULES_PATH = (
     / "niri"
     / "event-stream-rules.json"
 )
-WINDOW_STATE_EVENT_MARKERS = (
-    '"WindowsChanged"',
-    '"WindowOpenedOrChanged"',
-    '"WindowClosed"',
-    '"WindowFocusChanged"',
-)
+NIRI_SOCKET_PATH = os.environ.get("NIRI_SOCKET", "")
+SUPPORTED_RULE_EVENTS = {"active-window-changed", "focus-changed"}
+RELEVANT_EVENT_TYPES = {
+    "WorkspacesChanged",
+    "WorkspaceActivated",
+    "WorkspaceActiveWindowChanged",
+    "WindowsChanged",
+    "WindowOpenedOrChanged",
+    "WindowClosed",
+    "WindowFocusChanged",
+}
 
 
 @dataclass(frozen=True)
@@ -48,55 +53,56 @@ class RuleCache:
     rules: tuple[CompiledRule, ...] = ()
 
 
-def niri_json(*args: str) -> Any:
-    result = subprocess.run(
-        ["niri", "msg", "-j", *args],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-    )
-    return json.loads(result.stdout or "null")
+def niri_connect() -> socket.socket:
+    if not NIRI_SOCKET_PATH:
+        raise RuntimeError("NIRI_SOCKET is not set")
+
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.connect(NIRI_SOCKET_PATH)
+    return client
 
 
-def windows_snapshot() -> dict[str, dict[str, Any]]:
-    try:
-        data = niri_json("windows")
-    except Exception:
-        return {}
-
-    if not isinstance(data, list):
-        return {}
-
-    windows_by_id: dict[str, dict[str, Any]] = {}
-    for window in data:
-        if not isinstance(window, dict):
-            continue
-        window_id = str(window.get("id", "") or "")
-        if not window_id:
-            continue
-        windows_by_id[window_id] = dict(window)
-
-    return windows_by_id
+def send_json_line(sock: socket.socket, payload: Any) -> None:
+    encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    sock.sendall(encoded)
+    sock.sendall(b"\n")
 
 
-def focused_window_from_snapshot(windows_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    for window in windows_by_id.values():
-        if window.get("is_focused") is True:
-            return dict(window)
-    return {}
+def read_json_line(file_obj: TextIO) -> Any:
+    response_line = file_obj.readline()
+    if not response_line:
+        raise RuntimeError("unexpected EOF from niri IPC")
+    return json.loads(response_line)
+
+
+def unwrap_ok_reply(reply: Any) -> Any:
+    if not isinstance(reply, dict) or len(reply) != 1:
+        raise RuntimeError(f"unexpected IPC reply shape: {reply!r}")
+
+    kind, payload = next(iter(reply.items()))
+    if kind == "Ok":
+        return payload
+    if kind == "Err":
+        raise RuntimeError(str(payload))
+
+    raise RuntimeError(f"unexpected IPC reply discriminator: {kind!r}")
+
+
+def niri_request(payload: Any) -> Any:
+    with niri_connect() as sock:
+        send_json_line(sock, payload)
+        with sock.makefile("r", encoding="utf-8", newline="\n") as file_obj:
+            return unwrap_ok_reply(read_json_line(file_obj))
 
 
 def close_window(window_id: str) -> None:
     if not window_id:
         return
-    subprocess.run(
-        ["niri", "msg", "action", "close-window", "--id", window_id],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        text=True,
-    )
+
+    try:
+        niri_request({"Action": {"CloseWindow": {"id": int(window_id)}}})
+    except Exception:
+        return
 
 
 def compile_field_matcher(field_name: str, expected: Any) -> FieldMatcher:
@@ -128,6 +134,9 @@ def compile_matchers(match_spec: Any) -> tuple[FieldMatcher, ...]:
 
 def compile_rule(rule: dict[str, Any]) -> CompiledRule:
     event_name = str(rule.get("event", "") or "")
+    if event_name not in SUPPORTED_RULE_EVENTS:
+        raise ValueError(f"unsupported event {event_name!r}")
+
     action = rule.get("action", {})
     if not isinstance(action, dict):
         raise ValueError("action must be an object")
@@ -211,9 +220,6 @@ def matchers_match(matchers: tuple[FieldMatcher, ...], candidate: dict[str, Any]
 
 
 def rule_matches(rule: CompiledRule, previous: dict[str, Any], current: dict[str, Any]) -> bool:
-    if rule.event != "focus-changed":
-        return False
-
     if rule.previous_matchers and not matchers_match(rule.previous_matchers, previous):
         return False
 
@@ -231,27 +237,79 @@ def apply_action(rule: CompiledRule, previous: dict[str, Any], current: dict[str
         close_window(window_id)
 
 
-def apply_event_to_snapshot(
-    event_data: dict[str, Any], windows_by_id: dict[str, dict[str, Any]]
-) -> dict[str, dict[str, Any]]:
+def replace_windows(payload: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(payload, list):
+        return {}
+
+    next_windows: dict[str, dict[str, Any]] = {}
+    for window in payload:
+        if not isinstance(window, dict):
+            continue
+        window_id = str(window.get("id", "") or "")
+        if window_id:
+            next_windows[window_id] = dict(window)
+    return next_windows
+
+
+def replace_workspaces(payload: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(payload, list):
+        return {}
+
+    next_workspaces: dict[str, dict[str, Any]] = {}
+    for workspace in payload:
+        if not isinstance(workspace, dict):
+            continue
+        workspace_id = str(workspace.get("id", "") or "")
+        if workspace_id:
+            next_workspaces[workspace_id] = dict(workspace)
+    return next_workspaces
+
+
+def apply_event_to_state(
+    event_type: str,
+    payload: Any,
+    windows_by_id: dict[str, dict[str, Any]],
+    workspaces_by_id: dict[str, dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     updated_windows = windows_by_id
+    updated_workspaces = workspaces_by_id
 
-    windows_changed = event_data.get("WindowsChanged")
-    if isinstance(windows_changed, dict):
-        windows_payload = windows_changed.get("windows")
-        if isinstance(windows_payload, list):
-            next_windows: dict[str, dict[str, Any]] = {}
-            for window in windows_payload:
-                if not isinstance(window, dict):
-                    continue
-                window_id = str(window.get("id", "") or "")
-                if window_id:
-                    next_windows[window_id] = dict(window)
-            updated_windows = next_windows
+    if event_type == "WorkspacesChanged" and isinstance(payload, dict):
+        updated_workspaces = replace_workspaces(payload.get("workspaces"))
+    elif event_type == "WorkspaceActivated" and isinstance(payload, dict):
+        workspace_id = str(payload.get("id", "") or "")
+        focused = payload.get("focused")
+        workspace = workspaces_by_id.get(workspace_id)
+        if workspace_id and isinstance(workspace, dict):
+            if updated_workspaces is workspaces_by_id:
+                updated_workspaces = dict(workspaces_by_id)
 
-    window_opened_or_changed = event_data.get("WindowOpenedOrChanged")
-    if isinstance(window_opened_or_changed, dict):
-        window_payload = window_opened_or_changed.get("window")
+            output_name = workspace.get("output")
+            for existing_workspace_id, existing_workspace in updated_workspaces.items():
+                next_workspace = existing_workspace
+                if existing_workspace.get("output") == output_name:
+                    next_workspace = {
+                        **next_workspace,
+                        "is_active": existing_workspace_id == workspace_id,
+                    }
+                if focused is True:
+                    next_workspace = {
+                        **next_workspace,
+                        "is_focused": existing_workspace_id == workspace_id,
+                    }
+                updated_workspaces[existing_workspace_id] = next_workspace
+    elif event_type == "WorkspaceActiveWindowChanged" and isinstance(payload, dict):
+        workspace_id = str(payload.get("workspace_id", "") or "")
+        if workspace_id and workspace_id in workspaces_by_id:
+            if updated_workspaces is workspaces_by_id:
+                updated_workspaces = dict(workspaces_by_id)
+            workspace = dict(updated_workspaces[workspace_id])
+            workspace["active_window_id"] = payload.get("active_window_id")
+            updated_workspaces[workspace_id] = workspace
+    elif event_type == "WindowsChanged" and isinstance(payload, dict):
+        updated_windows = replace_windows(payload.get("windows"))
+    elif event_type == "WindowOpenedOrChanged" and isinstance(payload, dict):
+        window_payload = payload.get("window")
         if isinstance(window_payload, dict):
             window_id = str(window_payload.get("id", "") or "")
             if window_id:
@@ -267,18 +325,14 @@ def apply_event_to_snapshot(
                                 "is_focused": False,
                             }
                 updated_windows[window_id] = dict(window_payload)
-
-    window_closed = event_data.get("WindowClosed")
-    if isinstance(window_closed, dict):
-        window_id = str(window_closed.get("id", "") or "")
+    elif event_type == "WindowClosed" and isinstance(payload, dict):
+        window_id = str(payload.get("id", "") or "")
         if window_id and window_id in updated_windows:
             if updated_windows is windows_by_id:
                 updated_windows = dict(windows_by_id)
             updated_windows.pop(window_id, None)
-
-    window_focus_changed = event_data.get("WindowFocusChanged")
-    if isinstance(window_focus_changed, dict):
-        focused_window_id = str(window_focus_changed.get("id", "") or "")
+    elif event_type == "WindowFocusChanged" and isinstance(payload, dict):
+        focused_window_id = str(payload.get("id", "") or "")
         if updated_windows is windows_by_id:
             updated_windows = dict(windows_by_id)
         for existing_window_id, existing_window in updated_windows.items():
@@ -292,45 +346,127 @@ def apply_event_to_snapshot(
                 "is_focused": should_be_focused,
             }
 
-    return updated_windows
+    return updated_windows, updated_workspaces
+
+
+def focused_window_from_state(windows_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    for window in windows_by_id.values():
+        if window.get("is_focused") is True:
+            return dict(window)
+    return {}
+
+
+def active_window_from_state(
+    windows_by_id: dict[str, dict[str, Any]],
+    workspaces_by_id: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    preferred_workspace: dict[str, Any] | None = None
+    for workspace in workspaces_by_id.values():
+        if workspace.get("is_focused") is True:
+            preferred_workspace = workspace
+            break
+
+    if preferred_workspace is None:
+        active_workspaces = [
+            workspace
+            for workspace in workspaces_by_id.values()
+            if workspace.get("is_active") is True
+        ]
+        if len(active_workspaces) == 1:
+            preferred_workspace = active_workspaces[0]
+
+    if preferred_workspace is None:
+        return {}
+
+    active_window_id = str(preferred_workspace.get("active_window_id", "") or "")
+    if not active_window_id:
+        return {}
+
+    window = windows_by_id.get(active_window_id)
+    if not isinstance(window, dict):
+        return {}
+
+    return dict(window)
+
+
+def process_transition(
+    event_name: str,
+    rule_cache: RuleCache,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> None:
+    previous_id = str(previous.get("id", "") or "")
+    current_id = str(current.get("id", "") or "")
+    if not previous_id or previous_id == current_id:
+        return
+
+    for rule in load_rules(rule_cache):
+        if rule.event != event_name:
+            continue
+        if rule_matches(rule, previous, current):
+            apply_action(rule, previous, current)
 
 
 def main() -> int:
     rule_cache = RuleCache()
-    windows_by_id = windows_snapshot()
-    previous = focused_window_from_snapshot(windows_by_id)
+    windows_by_id: dict[str, dict[str, Any]] = {}
+    workspaces_by_id: dict[str, dict[str, Any]] = {}
+    previous_active: dict[str, Any] = {}
+    previous_focused: dict[str, Any] = {}
 
-    process = subprocess.Popen(
-        ["niri", "msg", "-j", "event-stream"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-    )
+    try:
+        with niri_connect() as sock:
+            send_json_line(sock, "EventStream")
+            with sock.makefile("r", encoding="utf-8", newline="\n") as file_obj:
+                reply = unwrap_ok_reply(read_json_line(file_obj))
+                if reply != "Handled":
+                    print(f"event-stream-rules: unexpected EventStream reply: {reply!r}", file=sys.stderr)
+                    return 1
 
-    assert process.stdout is not None
-    for event_line in process.stdout:
-        if not any(marker in event_line for marker in WINDOW_STATE_EVENT_MARKERS):
-            continue
+                for event_line in file_obj:
+                    if not event_line.strip():
+                        continue
 
-        try:
-            event_data = json.loads(event_line)
-        except json.JSONDecodeError:
-            continue
+                    try:
+                        event = json.loads(event_line)
+                    except json.JSONDecodeError:
+                        continue
 
-        if not isinstance(event_data, dict):
-            continue
+                    if not isinstance(event, dict) or len(event) != 1:
+                        continue
 
-        windows_by_id = apply_event_to_snapshot(event_data, windows_by_id)
-        current = focused_window_from_snapshot(windows_by_id)
-        previous_id = str(previous.get("id", "") or "")
-        current_id = str(current.get("id", "") or "")
+                    event_type, payload = next(iter(event.items()))
+                    if event_type not in RELEVANT_EVENT_TYPES:
+                        continue
 
-        if previous_id and previous_id != current_id:
-            for rule in load_rules(rule_cache):
-                if rule_matches(rule, previous, current):
-                    apply_action(rule, previous, current)
+                    windows_by_id, workspaces_by_id = apply_event_to_state(
+                        event_type,
+                        payload,
+                        windows_by_id,
+                        workspaces_by_id,
+                    )
 
-        previous = current
+                    current_active = active_window_from_state(windows_by_id, workspaces_by_id)
+                    current_focused = focused_window_from_state(windows_by_id)
+
+                    process_transition(
+                        "active-window-changed",
+                        rule_cache,
+                        previous_active,
+                        current_active,
+                    )
+                    process_transition(
+                        "focus-changed",
+                        rule_cache,
+                        previous_focused,
+                        current_focused,
+                    )
+
+                    previous_active = current_active
+                    previous_focused = current_focused
+    except Exception as exc:
+        print(f"event-stream-rules: {exc}", file=sys.stderr)
+        return 1
 
     return 1
 
