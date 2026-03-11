@@ -48,4 +48,7 @@ if ! niri msg action focus-window --id "$pinned_window_id" >/dev/null 2>&1; then
     move_focused_window_to_main_workspace
 fi
 
-exec "$niri_bin_dir/summon-window.sh" --workspace "$pinned_workspace_ref" --place-near-focused-window "$focused_window_id"
+"$niri_bin_dir/summon-window.sh" --workspace "$pinned_workspace_ref" --place-near-focused-window "$focused_window_id"
+
+niri msg action focus-window --id "$pinned_window_id"
+exec niri msg action focus-window --id "$focused_window_id"
