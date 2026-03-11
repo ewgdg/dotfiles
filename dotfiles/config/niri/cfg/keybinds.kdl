@@ -115,6 +115,7 @@ binds {
     Mod+Ctrl+U         { move-column-to-workspace-down; }
     Mod+Ctrl+I         { move-column-to-workspace-up; }
     Mod+S              { focus-workspace "scratchpad"; }
+    Mod+Shift+S repeat=false hotkey-overlay-title="Summon Last Scratchpad Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-scratchpad.sh\""; }
     Mod+Ctrl+S         { move-window-to-workspace "scratchpad" focus=false; }
 
     MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
@@ -216,7 +217,8 @@ binds {
     // Emergency Escape Key
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.
-    MOD+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
+    MOD+ESCAPE repeat=false hotkey-overlay-title="Summon Last Scratchpad Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-scratchpad.sh\""; }
+    MOD+CTRL+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
 
     // Exit / Power
     Mod+Ctrl+Shift+DELETE { quit; } // Also quits Niri

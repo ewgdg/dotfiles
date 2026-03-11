@@ -61,7 +61,6 @@ focused_window_json="$(
 )"
 focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
 focused_app_id="$(printf '%s' "$focused_window_json" | jq -r '.app_id // empty')"
-focused_window_column_index="$(printf '%s' "$focused_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
 
 if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
     hide_focused_window "$focused_window_id"
@@ -130,20 +129,12 @@ else
     close_extra_windows "$matching_json" "$target_id"
 fi
 
-niri msg action move-window-to-workspace --window-id "$target_id" --focus false "$focused_workspace_ref"
-niri msg action focus-window --id "$target_id"
+set -- --workspace "$focused_workspace_ref"
 
-target_floating="$(target_is_floating "$(matching_windows_json)" "$target_id")"
-if [ -n "$focused_window_column_index" ] && [ "$target_floating" != "true" ] && [ "$target_id" != "$focused_window_id" ]; then
-    niri msg action move-column-to-index $((focused_window_column_index + 1))
-fi
-
-if [ "$float_window" = "true" ] && [ "$target_floating" != "true" ]; then
-    niri msg action move-window-to-floating --id "$target_id"
-fi
+set -- "$@" --place-near-focused-window
 
 if [ "$float_window" = "true" ]; then
-    exec niri msg action center-window --id "$target_id"
+    set -- "$@" --float
 fi
 
-exit 0
+exec "$HOME/.config/niri/bin/summon-window.sh" "$@" "$target_id"
