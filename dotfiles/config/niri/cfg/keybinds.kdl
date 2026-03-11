@@ -12,8 +12,8 @@ binds {
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)^(org\\.goldendict\\.GoldenDict|goldendict)$' flatpak run org.goldendict.GoldenDict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" toggle"; }
     MOD+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
-    MOD+Grave repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
-    MOD+CTRL+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
+    MOD+O repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
+    MOD+CTRL+O repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
     MOD+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
     MOD+CTRL+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
     MOD+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
@@ -79,10 +79,10 @@ binds {
     Mod+Period { focus-column-last; }
     Mod+Ctrl+Comma { move-column-to-first; }
     Mod+Ctrl+Period { move-column-to-last; }
-    Mod+Y { focus-column-first; }
-    Mod+O { focus-column-last; }
-    Mod+Ctrl+Y { move-column-to-first; }
-    Mod+Ctrl+O { move-column-to-last; }
+    Mod+Shift+Comma { focus-column-first; }
+    Mod+Shift+Period { focus-column-last; }
+    Mod+Ctrl+Shift+Comma { move-column-to-first; }
+    Mod+Ctrl+Shift+Period { move-column-to-last; }
 
     // Monitor Focus
     Mod+Shift+Left  { focus-monitor-left; }
