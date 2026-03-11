@@ -35,6 +35,11 @@ dotfiles:
   f_config_systemd_user_niri-wait-for-tray-host.service:
     src: config/systemd/user/niri-wait-for-tray-host.service
     dst: ~/.config/systemd/user/niri-wait-for-tray-host.service
+  f_config_systemd_user_niri-event-stream-rules.service:
+    src: config/systemd/user/niri-event-stream-rules.service
+    dst: ~/.config/systemd/user/niri-event-stream-rules.service
+    actions:
+    - ensure-systemd-service-enabled user niri-event-stream-rules.service
   f_config_systemd_user_noctalia-shell.service:
     src: config/systemd/user/noctalia-shell.service
     dst: ~/.config/systemd/user/noctalia-shell.service
