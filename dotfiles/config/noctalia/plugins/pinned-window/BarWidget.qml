@@ -216,7 +216,6 @@ Item {
                            "id": pinnedId,
                            "app_id": windowData.app_id || "",
                            "title": windowData.title || "",
-                           "is_focused": windowData.is_focused === true,
                            "is_floating": windowData.is_floating === true,
                            "workspace_name": workspaceData.name || "",
                            "workspace_id": windowData.workspace_id !== undefined ? windowData.workspace_id : null

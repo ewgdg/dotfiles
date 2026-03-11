@@ -106,7 +106,6 @@ print_status_json() {
                 id: (.id | tostring),
                 app_id: (.app_id // ""),
                 title: (.title // ""),
-                is_focused: (.is_focused // false),
                 is_floating: (.is_floating // false),
                 workspace_name: (.workspace_name // ""),
                 workspace_id: (.workspace_id // null)
