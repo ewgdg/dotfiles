@@ -560,6 +560,9 @@ def do_action(
     if scale_to_set is not None:
         apply_output_scale(connector, scale_to_set)
 
+    if should_inhibit(inhibit):
+        start_runtime_inhibit()
+
     if solo:
         for o in outputs:
             other = str(o.get("name") or "").strip()
@@ -567,9 +570,6 @@ def do_action(
                 continue
             if o.get("current_mode") is not None:
                 niri_msg("output", other, "off", check=True)
-
-    if should_inhibit(inhibit):
-        start_runtime_inhibit()
 
 
 def try_reload_niri_config() -> bool:
