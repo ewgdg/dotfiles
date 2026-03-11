@@ -217,7 +217,6 @@ binds {
     // Emergency Escape Key
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.
-    MOD+ESCAPE repeat=false hotkey-overlay-title="Summon Last Scratchpad Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-scratchpad.sh\""; }
     MOD+CTRL+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
 
     // Exit / Power

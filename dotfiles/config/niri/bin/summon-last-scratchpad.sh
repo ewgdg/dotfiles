@@ -35,10 +35,24 @@ if [ -z "$focused_workspace_ref" ] || [ "$focused_workspace_ref" = "$scratchpad_
     exit 1
 fi
 
+scratchpad_workspace_id="$(
+    niri msg -j workspaces 2>/dev/null \
+        | jq -r --arg scratchpad_workspace_name "$scratchpad_workspace_name" '
+            .[]
+            | select((.name // "") == $scratchpad_workspace_name)
+            | .id // empty
+        '
+)"
+
+if [ -z "$scratchpad_workspace_id" ]; then
+    printf 'failed to find the scratchpad workspace id\n' >&2
+    exit 1
+fi
+
 scratchpad_window_json="$(
     niri msg -j windows 2>/dev/null \
-        | jq -c --arg scratchpad_workspace_name "$scratchpad_workspace_name" '
-            map(select((.workspace_name // "") == $scratchpad_workspace_name))
+        | jq -c --argjson scratchpad_workspace_id "$scratchpad_workspace_id" '
+            map(select(.workspace_id == $scratchpad_workspace_id))
             | sort_by(.focus_timestamp.secs, .focus_timestamp.nanos)
             | last // empty
         '
