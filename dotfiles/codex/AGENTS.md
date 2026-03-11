@@ -20,6 +20,7 @@
 ## Code Quality
 
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
+- Prefer DRY code.
 
 ## Python Related
 
