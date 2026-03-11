@@ -6,6 +6,16 @@ import xml.dom.minidom
 import copy
 
 
+def sync_mode(reference_file: str, output_file: str) -> None:
+    if not os.path.isfile(reference_file) or not os.path.exists(output_file):
+        return
+
+    target_mode = os.stat(reference_file).st_mode & 0o777
+    current_mode = os.stat(output_file).st_mode & 0o777
+    if current_mode != target_mode:
+        os.chmod(output_file, target_mode)
+
+
 def merge_nodes(
     layer1: ET.Element, layer2: ET.Element, paths_to_merge: list[str] | None = None
 ):
@@ -205,6 +215,7 @@ def process_xml(
     ):
         with open(output_file, "wb") as output:
             output.write(input_bytes)
+        sync_mode(input_file, output_file)
         return
 
     # Convert ElementTree object to a string
@@ -222,6 +233,7 @@ def process_xml(
     # Write the formatted XML to a file
     with open(output_file, "w") as output:
         output.write(pretty_xml)
+    sync_mode(input_file, output_file)
 
 
 if __name__ == "__main__":

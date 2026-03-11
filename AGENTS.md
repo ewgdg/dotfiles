@@ -8,6 +8,7 @@ This repository manages user and system configuration with `dotdrop`. The main m
 
 When add a new config file to dotdrop, also add an appropriate post/pre action for it if necessary, for example, installing the corresponding app for the config.
 The action need to be idempotent.
+Dotdrop transform scripts must write the output path passed by dotdrop and preserve the source file mode on that output.
 
 ## Build, Test, and Development Commands
 
