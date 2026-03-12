@@ -289,6 +289,8 @@ dotfiles:
     src: config/gtk-3.0
     dst: ~/.config/gtk-3.0
     chmod: '700'
+    actions:
+    - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath @@}}/../scripts/sync_gtk_gsettings.py' '{{@@ _dotfile_abs_dst @@}}/settings.ini'"
     cmpignore: &gtk3_ignore
     - assets/*
     - bookmarks
@@ -388,10 +390,6 @@ profiles:
     dotfiles:
     - d_config_gtk-3.0
     - d_config_gtk-4.0
-    actions:
-    - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath 
-      @@}}/../scripts/sync_gtk_gsettings.py' ~/.config/gtk-3.0/settings.ini 
-      ~/.config/gtk-4.0/settings.ini"
   os_linux:
     include:
     - posix_base

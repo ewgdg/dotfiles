@@ -35,6 +35,7 @@ Preferred approach:
 
 - Track `gtk-3.0/settings.ini`.
 - Track `gtk-4.0/settings.ini`.
+- Treat `gtk-3.0/settings.ini` as the source of truth for shared theme state that also needs to propagate into session settings.
 - Track `gtk.css` and `colors.css` only when they are intentional overrides you want to preserve.
 - Track KDE icon/theme settings separately in `kdeglobals` when KDE apps must match.
 - If a session depends on GSettings on Wayland, set only the specific keys you care about during setup instead of backing up the whole dconf database.
@@ -56,13 +57,13 @@ Current appearance choices captured from the live system:
 
 This repo also syncs a small shared subset into GSettings for Wayland session integration.
 
-- `gtk-theme-name` is sourced from `gtk-3.0/settings.ini`, with fallback to `gtk-4.0/settings.ini`
-- `gtk-icon-theme-name` is sourced from `gtk-4.0/settings.ini`
-- `gtk-cursor-theme-name` is sourced from `gtk-4.0/settings.ini`
-- `gtk-cursor-theme-size` is sourced from `gtk-4.0/settings.ini`
+- `gtk-theme-name` is sourced from `gtk-3.0/settings.ini`
+- `gtk-icon-theme-name` is sourced from `gtk-3.0/settings.ini`
+- `gtk-cursor-theme-name` is sourced from `gtk-3.0/settings.ini`
+- `gtk-cursor-theme-size` is sourced from `gtk-3.0/settings.ini`
 - `gtk-application-prefer-dark-theme` is sourced from `gtk-3.0/settings.ini` and mapped to `org.gnome.desktop.interface color-scheme`
 
-The sync script lives at `scripts/sync_gtk_gsettings.py` and is invoked from the shared `framework_gtk` profile in `config.yaml`.
+The sync script lives at `scripts/sync_gtk_gsettings.py` and is invoked from the `d_config_gtk-3.0` dotdrop entry in `config.yaml`.
 
 ## References
 

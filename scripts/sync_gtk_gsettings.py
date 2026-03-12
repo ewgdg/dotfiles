@@ -20,7 +20,6 @@ def read_settings_file(settings_path: Path) -> configparser.SectionProxy:
 
 def build_gsettings_updates(
     gtk3_settings: configparser.SectionProxy,
-    gtk4_settings: configparser.SectionProxy,
 ) -> list[tuple[str, str, str]]:
     updates: list[tuple[str, str, str]] = []
 
@@ -30,14 +29,12 @@ def build_gsettings_updates(
         "gtk-cursor-theme-size": "cursor-size",
     }
 
-    gtk_theme_name = gtk3_settings.get("gtk-theme-name") or gtk4_settings.get(
-        "gtk-theme-name"
-    )
+    gtk_theme_name = gtk3_settings.get("gtk-theme-name")
     if gtk_theme_name:
         updates.append(("org.gnome.desktop.interface", "gtk-theme", gtk_theme_name))
 
     for gtk_setting_name, gsettings_key in shared_setting_to_key.items():
-        setting_value = gtk4_settings.get(gtk_setting_name)
+        setting_value = gtk3_settings.get(gtk_setting_name)
         if setting_value:
             updates.append(
                 ("org.gnome.desktop.interface", gsettings_key, setting_value)
@@ -61,9 +58,9 @@ def run_gsettings_set(schema_name: str, key_name: str, key_value: str) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         print(
-            "usage: sync_gtk_gsettings.py <gtk-3.0-settings.ini> <gtk-4.0-settings.ini>",
+            "usage: sync_gtk_gsettings.py <gtk-3.0-settings.ini>",
             file=sys.stderr,
         )
         return 2
@@ -73,10 +70,8 @@ def main() -> int:
         return 0
 
     gtk3_settings_path = Path(sys.argv[1]).expanduser()
-    gtk4_settings_path = Path(sys.argv[2]).expanduser()
     gtk3_settings = read_settings_file(gtk3_settings_path)
-    gtk4_settings = read_settings_file(gtk4_settings_path)
-    updates = build_gsettings_updates(gtk3_settings, gtk4_settings)
+    updates = build_gsettings_updates(gtk3_settings)
 
     for schema_name, key_name, key_value in updates:
         run_gsettings_set(schema_name, key_name, key_value)
