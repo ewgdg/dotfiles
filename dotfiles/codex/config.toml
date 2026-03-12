@@ -19,9 +19,13 @@ writable_roots = ["~/.local/share/Trash"]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 
-[mcp_servers.chrome-devtools]
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+# args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--category-performance=false", "--category-network=false", "--performance-crux=false", "--categoryEmulation=false"]
+
+[mcp_servers.playwright]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect"]
+args = ["@playwright/mcp@latest", "--extension"]
 
 [notice]
 hide_full_access_warning = true
