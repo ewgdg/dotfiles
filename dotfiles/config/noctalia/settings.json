@@ -526,15 +526,15 @@
         }
     },
     "osd": {
-        "autoHideMs": 2000,
-        "backgroundOpacity": 0.9,
+        "autoHideMs": 1000,
+        "backgroundOpacity": 0.5,
         "enabled": true,
         "enabledTypes": [
             0,
             1,
             2
         ],
-        "location": "top_right",
+        "location": "bottom",
         "monitors": [
         ],
         "overlayLayer": true
