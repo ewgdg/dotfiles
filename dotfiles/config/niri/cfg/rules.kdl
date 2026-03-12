@@ -26,20 +26,20 @@ window-rule {
 window-rule {
     match app-id=r#"(?i)goldendict"#
     open-floating true
-    default-window-height { fixed 600; }
-    default-column-width { fixed 800; }
+    // default-window-height { fixed 600; }
+    // default-column-width { fixed 800; }
     max-height 600
     max-width 800
 }
 
-window-rule {
-    // Focus the keyring unlock prompt when it appears.
-    match app-id=r#"(?i)^gcr-prompter$"#
-    match title=r#"(?i)unlock keyring"#
-    match app-id=r#"org.kde.ksecretd"#
-    // open-floating true
-    open-focused true
-}
+// window-rule {
+//     // Focus the keyring unlock prompt when it appears.
+//     match app-id=r#"(?i)^gcr-prompter$"#
+//     match title=r#"(?i)unlock keyring"#
+//     match app-id=r#"org.kde.ksecretd"#
+//     // open-floating true
+//     open-focused true
+// }
 
 window-rule {
     // Steam notification windows: float and position at bottom-right.
@@ -65,11 +65,13 @@ window-rule {
     match app-id=r#"(?i)^obsidian$"#
     match title=r#"(?i)\bmemos\b"#
     open-on-workspace "notes"
-    open-maximized true
 }
 
+// maximized apps
 window-rule {
-    match app-id=r#"(?i)^(code|code-url-handler)$"#
+    match app-id=r#"(?i)^code$"#
+    match app-id=r#"(?i)^obsidian$"#
+    match app-id=r#"(?i)^google-chrome$"#
     open-maximized true
 }
 

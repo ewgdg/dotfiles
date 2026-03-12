@@ -27,4 +27,5 @@ spawn-at-startup "launch-desktop-app" "memos" "^chrome-.*-Default[.]desktop$"
 spawn-at-startup "launch-desktop-app" "ChatGPT" "^chrome-.*-Default[.]desktop$"
 
 // Start on the main workspace even though named workspaces are declared in a different order.
-spawn-sh-at-startup "for _ in 1 2 3 4 5 6 7 8 9 10; do niri msg action focus-workspace main >/dev/null 2>&1 && break; sleep 0.2; done"
+// wont work bc of the wallet unlock prompt stealing focus?
+// spawn-sh-at-startup "for _ in 1 2 3 4 5 6 7 8 9 10; do niri msg action focus-workspace main >/dev/null 2>&1 && break; sleep 0.2; done"
