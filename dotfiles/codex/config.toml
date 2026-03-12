@@ -19,6 +19,10 @@ writable_roots = ["~/.local/share/Trash"]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect"]
+
 [notice]
 hide_full_access_warning = true
 hide_rate_limit_model_nudge = true
