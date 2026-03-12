@@ -34,7 +34,6 @@ hide_rate_limit_model_nudge = true
 [features]
 multi_agent = true
 js_repl = true
-use_linux_sandbox_bwrap = true
 guardian_approval = true
 prevent_idle_sleep = true
 
