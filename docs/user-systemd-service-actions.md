@@ -8,6 +8,7 @@ Current users of this action:
 
 - `system keyd.service`
 - `user keyd-application-mapper.service`
+- `user niri-session-setup.service`
 - `user network-virtual-mic.service`
 - `user noctalia-shell.service`
 - `user sunshine.service`

@@ -1,10 +1,6 @@
 // ────────────── Startup Applications ──────────────
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
-spawn-sh-at-startup "dbus-update-activation-environment --systemd QT_QPA_PLATFORMTHEME QS_ICON_THEME"
-// Hook the session up to pam_kwallet when login actually went through PAM.
-// This is useful for password-based logins, but autologin still will not unlock the wallet.
-spawn-at-startup "/usr/lib/pam_kwallet_init"
 // dont need to start ksecretd if we config the portal interface to use kwallet?
 // spawn-at-startup "ksecretd"
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
@@ -22,8 +18,8 @@ spawn-sh-at-startup "autolock=0; if [ \"${NIRI_AUTOLOCK_ON_START:-0}\" = \"1\" ]
 // Optional: if you are *not* using quick-shell's polkit integration, start a polkit auth agent.
 // spawn-sh-at-startup "/usr/lib/polkit-kde-authentication-agent-1 &" // Polkit (KDE)
 
-spawn-at-startup "obsidian"
 spawn-at-startup "launch-desktop-app" "memos" "^chrome-.*-Default[.]desktop$"
+spawn-at-startup "obsidian"
 spawn-at-startup "launch-desktop-app" "ChatGPT" "^chrome-.*-Default[.]desktop$"
 
 // Start on the main workspace even though named workspaces are declared in a different order.

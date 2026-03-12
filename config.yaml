@@ -40,6 +40,11 @@ dotfiles:
     dst: ~/.config/systemd/user/niri-event-stream-rules.service
     actions:
     - ensure-systemd-service-enabled user niri-event-stream-rules.service
+  f_config_systemd_user_niri-session-setup.service:
+    src: config/systemd/user/niri-session-setup.service
+    dst: ~/.config/systemd/user/niri-session-setup.service
+    actions:
+    - ensure-systemd-service-enabled user niri-session-setup.service
   f_config_systemd_user_noctalia-shell.service:
     src: config/systemd/user/noctalia-shell.service
     dst: ~/.config/systemd/user/noctalia-shell.service
@@ -341,9 +346,6 @@ dotfiles:
     - '*/__pycache__/*'
     upignore: *agents_ignore
     instignore: *agents_ignore
-  f_config_electron-flags.conf:
-    src: config/electron-flags.conf
-    dst: ~/.config/electron-flags.conf
   f_Library_Preferences_GlobalPreferences.plist:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
@@ -421,7 +423,6 @@ profiles:
     - f_etc_fonts_local.conf
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
-    - f_config_electron-flags.conf
     - d_config_paru
     - d_config_yay
   os_arch_kernel:
@@ -464,6 +465,7 @@ profiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
     - f_config_systemd_user_niri-event-stream-rules.service
+    - f_config_systemd_user_niri-session-setup.service
     - f_config_systemd_user_niri-wait-for-tray-host.service
     - d_config_noctalia
     - f_config_systemd_user_noctalia-shell.service

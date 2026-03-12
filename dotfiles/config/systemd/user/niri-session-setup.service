@@ -1,0 +1,12 @@
+[Unit]
+Description=Prepare Niri session prerequisites
+Before=niri.service
+PartOf=niri.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/niri/bin/import-session-environment.sh
+ExecStart=/usr/lib/pam_kwallet_init
+
+[Install]
+WantedBy=niri.service
