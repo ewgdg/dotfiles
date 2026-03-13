@@ -21,6 +21,7 @@
 
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
+- Add concise comments when they clarify non-obvious logic and make review easier.
 
 ## Python Related
 
