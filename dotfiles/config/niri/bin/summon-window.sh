@@ -96,13 +96,12 @@ focused_window_column_index="$(printf '%s' "$focused_window_json" | jq -r '.layo
 target_is_floating="$(printf '%s' "$target_window_json" | jq -r '.is_floating // false')"
 placement_reference_window_id=""
 placement_column_index=""
-needs_target_focus=false
 
 if [ -z "$place_after_window_id" ] && [ "$place_near_focused_window" = "true" ]; then
     place_after_window_id="$focused_window_id"
 fi
 
-if [ -n "$place_after_window_id" ]; then
+if [ -n "$place_after_window_id" ] && [ "$target_window_id" != "$place_after_window_id" ]; then
     placement_reference_window_id="$place_after_window_id"
 
     if [ "$place_after_window_id" = "$focused_window_id" ]; then
@@ -128,15 +127,8 @@ else
     niri msg action move-window-to-workspace --window-id "$target_window_id" --focus false "$target_workspace_ref"
 fi
 
-if [ -n "$placement_column_index" ] && [ "$target_is_floating" != "true" ] && [ "$target_window_id" != "$placement_reference_window_id" ]; then
-    needs_target_focus=true
-fi
-
-if [ "$needs_target_focus" = "true" ]; then
+if [ -n "$placement_column_index" ] && [ "$target_is_floating" != "true" ]; then
     niri msg action focus-window --id "$target_window_id"
-fi
-
-if [ "$needs_target_focus" = "true" ]; then
     niri msg action move-column-to-index $((placement_column_index + 1))
 fi
 
