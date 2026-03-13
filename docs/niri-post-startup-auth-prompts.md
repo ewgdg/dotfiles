@@ -14,7 +14,7 @@ workspace.
 
 The Noctalia settings hook runs `~/.config/niri/bin/move-auth-prompts-to-workspace.sh
 main` on `screenUnlock`, which moves matching KWallet and 1Password prompts onto the
-`main` workspace.
+`main` workspace. If no matching prompt is present, it falls back to focusing `main`.
 
 ## Behavior
 
@@ -24,6 +24,7 @@ main` on `screenUnlock`, which moves matching KWallet and 1Password prompts onto
   - `1password`
   - `1password-quickaccess`
 - Matching windows are moved to `main`, focused, floated, and centered.
+- If no matching window is found, the script focuses the `main` workspace directly.
 - A marker file in `$XDG_RUNTIME_DIR/noctalia-first-unlock.done` prevents
   repeated runs within the same session.
 

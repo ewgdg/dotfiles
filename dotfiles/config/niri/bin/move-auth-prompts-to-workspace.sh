@@ -41,7 +41,7 @@ prompt_window_ids="$(
 
 if [ -z "$prompt_window_ids" ]; then
     log "no matching auth prompts found for workspace=$target_workspace"
-    exit 0
+    exec niri msg action focus-workspace "$target_workspace"
 fi
 
 for prompt_window_id in $prompt_window_ids; do

@@ -146,7 +146,7 @@ if [ "$float_window" = "true" ] && [ "$target_is_floating" != "true" ]; then
 fi
 
 if [ "$center_window" = "true" ] || [ "$float_window" = "true" ]; then
-    exec niri msg action center-window --id "$target_window_id"
+    niri msg action center-window --id "$target_window_id"
 fi
 
 exec niri msg action focus-window --id "$target_window_id"
