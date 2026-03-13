@@ -136,6 +136,8 @@ fi
 # Vim Mode
 #
 bindkey -v
+bindkey -M viins '^L' redisplay
+bindkey -M vicmd '^L' redisplay
 export EDITOR=nvim
 export SYSTEMD_EDITOR=nvim
 

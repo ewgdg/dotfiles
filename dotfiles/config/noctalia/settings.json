@@ -431,11 +431,11 @@
     },
     "hooks": {
         "darkModeChange": "",
-        "enabled": false,
+        "enabled": true,
         "performanceModeDisabled": "",
         "performanceModeEnabled": "",
         "screenLock": "",
-        "screenUnlock": "",
+        "screenUnlock": "~/.config/niri/bin/move-auth-prompts-to-workspace.sh main",
         "session": "",
         "startup": "",
         "wallpaperChange": ""
