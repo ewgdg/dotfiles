@@ -5,7 +5,7 @@ set -eu
 target_workspace="${1:-main}"
 log_tag="move-auth-prompts"
 runtime_dir="${XDG_RUNTIME_DIR:-}"
-session_marker="${runtime_dir:+$runtime_dir/noctalia-first-unlock-auth-prompts.done}"
+session_marker="${runtime_dir:+$runtime_dir/noctalia-first-unlock.done}"
 
 log() {
     message="$1"

@@ -24,7 +24,7 @@ main` on `screenUnlock`, which moves matching KWallet and 1Password prompts onto
   - `1password`
   - `1password-quickaccess`
 - Matching windows are moved to `main`, focused, floated, and centered.
-- A marker file in `$XDG_RUNTIME_DIR/noctalia-first-unlock-auth-prompts.done` prevents
+- A marker file in `$XDG_RUNTIME_DIR/noctalia-first-unlock.done` prevents
   repeated runs within the same session.
 
 ## Logs
