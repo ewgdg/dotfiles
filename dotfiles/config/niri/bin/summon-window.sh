@@ -30,7 +30,7 @@ while [ "$#" -gt 0 ]; do
             place_after_window_id="$2"
             shift 2
             ;;
-        --move-tiled-column|--move-tiled-column-if-already-focused)
+        --move-tiled-column)
             move_tiled_column=true
             shift
             ;;
@@ -94,7 +94,6 @@ focused_window_json="$(
 focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
 focused_window_column_index="$(printf '%s' "$focused_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
 target_is_floating="$(printf '%s' "$target_window_json" | jq -r '.is_floating // false')"
-placement_reference_window_id=""
 placement_column_index=""
 
 if [ -z "$place_after_window_id" ] && [ "$place_near_focused_window" = "true" ]; then
@@ -102,19 +101,28 @@ if [ -z "$place_after_window_id" ] && [ "$place_near_focused_window" = "true" ];
 fi
 
 if [ -n "$place_after_window_id" ] && [ "$target_window_id" != "$place_after_window_id" ]; then
-    placement_reference_window_id="$place_after_window_id"
-
     if [ "$place_after_window_id" = "$focused_window_id" ]; then
-        placement_column_index="$focused_window_column_index"
+        placement_reference_window_json="$focused_window_json"
     else
-        placement_column_index="$(
+        placement_reference_window_json="$(
             niri msg -j windows 2>/dev/null \
-                | jq -r --arg target_window_id "$place_after_window_id" '
+                | jq -c --arg target_window_id "$place_after_window_id" '
                     .[]
                     | select((.id | tostring) == $target_window_id)
-                    | .layout.pos_in_scrolling_layout[0] // empty
                 '
         )"
+    fi
+
+    if [ -n "${placement_reference_window_json:-}" ] && [ "$(printf '%s' "$placement_reference_window_json" | jq -r --arg target_workspace_ref "$target_workspace_ref" '
+        if (.workspace_name // "") == $target_workspace_ref then
+            "true"
+        elif .workspace_id != null and ((.workspace_id | tostring) == $target_workspace_ref) then
+            "true"
+        else
+            "false"
+        end
+    ')" = "true" ]; then
+        placement_column_index="$(printf '%s' "$placement_reference_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
     fi
 fi
 
