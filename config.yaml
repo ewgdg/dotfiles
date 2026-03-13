@@ -158,6 +158,11 @@ dotfiles:
     chmod: '600'
     actions:
     - install git lazygit
+  f_config_lazygit_config.yml:
+    src: config/lazygit/config.yml
+    dst: ~/.config/lazygit/config.yml
+    actions:
+    - install lazygit
   d_config_1password_ssh:
     src: config/1Password/ssh
     dst: ~/.config/1Password/ssh
@@ -334,8 +339,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_strip_keys "model model_reasoning_effort re:^projects\."
-    trans_install: toml_merge_keys "model model_reasoning_effort"
+    trans_update: toml_strip_keys "model model_reasoning_effort re:^projects\. re:^mcp_servers\.playwright\.env$"
+    trans_install: toml_merge_keys "model model_reasoning_effort mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"
     chmod: '600'
   f_claude_claude.md:
     src: claude/CLAUDE.md
@@ -365,6 +370,7 @@ profiles:
     dotfiles:
     - d_config_nvim
     - f_gitconfig
+    - f_config_lazygit_config.yml
     - d_ssh
     - f_ssh_config
     - d_config_1password_ssh

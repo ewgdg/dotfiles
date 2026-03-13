@@ -7,6 +7,7 @@
 ## File Operations
 
 - Use soft deletion `gio trash` instead of `rm`
+- For disposable files, probes, or transient scratch data on this machine, prefer `/tmp` or `$XDG_RUNTIME_DIR` when appropriate instead of writing into regular project or user directories.
 
 ## Documentation
 

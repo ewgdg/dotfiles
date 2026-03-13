@@ -18,11 +18,6 @@ There is no application build step. The core workflow is syncing and validating 
 
 `dotdrop compare` previews drift between the repo and live targets. `dotdrop-sudo update` imports local changes, including root-owned paths. `dotdrop-sudo install` applies a profile to the machine.
 
-## Deploy Guidelines
-
-When ask to deploy the changes, do not use `dotdrop install` if possible as that requires sudo for actions involves installing.
-Just simply copy the target files to the destinations.
-
 ## Security & Configuration Tips
 
 Do not commit credentials, generated state, or local-only overrides that are already excluded by `cmpignore`/`upignore`.
