@@ -437,7 +437,7 @@
         "performanceModeDisabled": "",
         "performanceModeEnabled": "",
         "screenLock": "",
-        "screenUnlock": "~/.config/niri/bin/move-auth-prompts-to-workspace.sh main",
+        "screenUnlock": "",
         "session": "",
         "startup": "",
         "wallpaperChange": ""
