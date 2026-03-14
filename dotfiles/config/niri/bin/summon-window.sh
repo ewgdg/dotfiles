@@ -88,6 +88,18 @@ if [ -z "$target_workspace_ref" ]; then
     exit 1
 fi
 
+target_workspace_id="$(
+    niri msg -j workspaces 2>/dev/null \
+        | jq -r --arg workspace_ref "$target_workspace_ref" '
+            (
+                map(select((.name // "") == $workspace_ref)) | first
+            ) // (
+                map(select((.idx | tostring) == $workspace_ref)) | first
+            ) // empty
+            | .id // empty
+        '
+)"
+
 focused_window_json="$(
     niri msg -j focused-window 2>/dev/null || printf '{}'
 )"
@@ -113,15 +125,21 @@ if [ -n "$place_after_window_id" ] && [ "$target_window_id" != "$place_after_win
         )"
     fi
 
-    if [ -n "${placement_reference_window_json:-}" ] && [ "$(printf '%s' "$placement_reference_window_json" | jq -r --arg target_workspace_ref "$target_workspace_ref" '
-        if (.workspace_name // "") == $target_workspace_ref then
-            "true"
-        elif .workspace_id != null and ((.workspace_id | tostring) == $target_workspace_ref) then
-            "true"
-        else
-            "false"
-        end
-    ')" = "true" ]; then
+    placement_reference_on_target_workspace=false
+    if [ -n "${placement_reference_window_json:-}" ] && [ -n "$target_workspace_id" ]; then
+        placement_reference_on_target_workspace="$(
+            printf '%s' "$placement_reference_window_json" \
+                | jq -r --argjson target_workspace_id "$target_workspace_id" '
+                    if .workspace_id == $target_workspace_id then
+                        "true"
+                    else
+                        "false"
+                    end
+                '
+        )"
+    fi
+
+    if [ "$placement_reference_on_target_workspace" = "true" ]; then
         placement_column_index="$(printf '%s' "$placement_reference_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
     fi
 fi
