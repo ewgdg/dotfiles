@@ -13,11 +13,22 @@ approval_policy = "on-request"
 # Allow the command being run inside the sandbox to make outbound network
 # requests. Disabled by default.
 network_access = true
-writable_roots = ["~/.local/share/Trash"]
+writable_roots = [
+  "~/.local/share/Trash",
+  "/run/user",
+  "~/.agents",
+  "~/.agents/agent-tools",
+  "~/.codex",
+  "~/projects",
+]
 
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
+
+[mcp_servers."context-mode"]
+command = "npx"
+args = ["-y", "context-mode@latest"]
 
 # [mcp_servers.chrome-devtools]
 # command = "npx"
@@ -33,9 +44,7 @@ hide_rate_limit_model_nudge = true
 
 [features]
 multi_agent = true
-js_repl = true
-guardian_approval = true
-prevent_idle_sleep = true
+search_tool = true
 
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "project-root", "fast-mode"]
