@@ -16,10 +16,11 @@ network_access = true
 writable_roots = [
   "~/.local/share/Trash",
   "/run/user",
+  "~/.cache",
+  "~/.npm",
   "~/.agents",
   "~/.agents/agent-tools",
   "~/.codex",
-  "~/projects",
 ]
 
 [mcp_servers.context7]
