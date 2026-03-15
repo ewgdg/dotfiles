@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 import tomllib
-import tomli_w
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -220,8 +220,59 @@ def find_table_bounds(
 
 
 def render_assignment_lines(key_name: str, value: Any) -> list[str]:
-    rendered_assignment = tomli_w.dumps({key_name: value})
+    rendered_assignment = f"{key_name} = {render_toml_value(value)}\n"
     return rendered_assignment.splitlines(keepends=True)
+
+
+def render_toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return render_toml_string(value)
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        if value != value:
+            return "nan"
+        if value == float("inf"):
+            return "inf"
+        if value == float("-inf"):
+            return "-inf"
+        return repr(value)
+    if isinstance(value, dt.datetime):
+        return value.isoformat().replace("+00:00", "Z")
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    if isinstance(value, dt.time):
+        return value.isoformat()
+    if isinstance(value, list):
+        return "[" + ", ".join(render_toml_value(item) for item in value) + "]"
+    if isinstance(value, dict):
+        items = ", ".join(
+            f"{render_inline_key(str(key))} = {render_toml_value(item)}"
+            for key, item in value.items()
+        )
+        return "{ " + items + " }"
+    raise TypeError(f"unsupported TOML value type: {type(value).__name__}")
+
+
+def render_toml_string(value: str) -> str:
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\b", "\\b")
+        .replace("\t", "\\t")
+        .replace("\n", "\\n")
+        .replace("\f", "\\f")
+        .replace("\r", "\\r")
+    )
+    return f'"{escaped}"'
+
+
+def render_inline_key(value: str) -> str:
+    if re.match(r"^[A-Za-z0-9_-]+$", value):
+        return value
+    return render_toml_string(value)
 
 
 def parse_args() -> argparse.Namespace:
