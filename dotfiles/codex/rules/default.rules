@@ -1,0 +1,2 @@
+prefix_rule(pattern=["cgc"], decision="allow")
+prefix_rule(pattern=["npx", "skills"], decision="allow")

@@ -48,3 +48,5 @@
 
 - `gh` for github
 - `op` for 1password
+- Use the `find-skills` skill to discover relevant skills when possible.
+- Use `npx skills` to manage skills when possible.

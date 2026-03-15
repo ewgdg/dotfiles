@@ -342,6 +342,9 @@ dotfiles:
     trans_update: toml_strip_keys "model model_reasoning_effort re:^projects\. re:^mcp_servers\.playwright\.env$"
     trans_install: toml_merge_keys "model model_reasoning_effort mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"
     chmod: '600'
+  d_codex_rules:
+    src: codex/rules
+    dst: ~/.codex/rules
   f_claude_claude.md:
     src: claude/CLAUDE.md
     dst: ~/.claude/CLAUDE.md
@@ -501,6 +504,7 @@ profiles:
     dotfiles:
     - f_codex_agents.md
     - f_codex_config.toml
+    - d_codex_rules
     - f_claude_claude.md
     - d_agents
 variables:
