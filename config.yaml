@@ -527,8 +527,8 @@ actions:
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
     clone --depth=1 {0} "{1}"; fi
 trans_update:
-  toml_strip_keys: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/toml_transform.py' {0} {1} --mode strip {2}
+  toml_strip_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
+    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip {2}
   xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
   plist_to_xml: plutil -convert xml1 -o {1} {0}
@@ -551,9 +551,9 @@ trans_update:
     NSAutomaticQuoteSubstitutionEnabled --keep-key 
     NSAutomaticTextCompletionEnabled
 trans_install:
-  toml_merge_keys: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/toml_transform.py' {0} {1} --mode merge --merge-file '{{@@ 
-    _dotfile_abs_dst @@}}' {2}
+  toml_merge_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
+    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge 
+    --merge-file '{{@@ _dotfile_abs_dst @@}}' {2}
   xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
     _dotfile_abs_dst @@}}' {1} --merge_file {0} 
     --write_input_unchanged_if_no_effect
