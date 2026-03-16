@@ -50,6 +50,9 @@ dotfiles:
     dst: ~/.config/systemd/user/noctalia-shell.service
     actions:
     - ensure-systemd-service-enabled user noctalia-shell.service
+  f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf:
+    src: config/systemd/user/drkonqi-coredump-launcher.socket.d/override.conf
+    dst: ~/.config/systemd/user/drkonqi-coredump-launcher.socket.d/override.conf
   f_config_systemd_user_network-virtual-mic.service:
     src: config/systemd/user/network-virtual-mic.service
     dst: ~/.config/systemd/user/network-virtual-mic.service
@@ -480,6 +483,7 @@ profiles:
     - f_config_systemd_user_niri-wait-for-tray-host.service
     - d_config_noctalia
     - f_config_systemd_user_noctalia-shell.service
+    - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
