@@ -147,6 +147,7 @@ dotfiles:
     chmod: '700'
     cmpignore: &fcitx_ignore
     - conf/cached_layouts
+    - profile_*
     upignore: *fcitx_ignore
     actions:
     - install fcitx5-im
