@@ -17,6 +17,7 @@ if [ -x /opt/homebrew/bin/brew ]; then
 fi
 {%@@ endif @@%}
 
+path_prepend "$HOME/.cargo/bin"
 path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/bin"
 
