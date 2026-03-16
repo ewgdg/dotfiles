@@ -13,28 +13,41 @@ approval_policy = "on-request"
 # Allow the command being run inside the sandbox to make outbound network
 # requests. Disabled by default.
 network_access = true
-writable_roots = ["~/.local/share/Trash"]
+writable_roots = [
+  "~/.local/share/Trash",
+  "/run/user",
+  "~/.cache",
+  "~/.npm",
+  "~/.agents",
+  "~/.agents/agent-tools",
+  "~/.codex",
+  "~/projects/knowledgebase",
+]
 
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 
+[mcp_servers."context-mode"]
+command = "npx"
+args = ["-y", "context-mode@latest"]
+
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+# args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--category-performance=false", "--category-network=false", "--performance-crux=false", "--categoryEmulation=false"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest", "--extension"]
+
 [notice]
 hide_full_access_warning = true
 hide_rate_limit_model_nudge = true
 
-[notice.model_migrations]
-"gpt-5.2" = "gpt-5.3-codex"
-"gpt-5.1-codex-mini" = "gpt-5.2-codex"
-
 [features]
 multi_agent = true
+search_tool = true
 
 [tui]
-status_line = [
-  "model-with-reasoning",
-  "current-dir",
-  "git-branch",
-  "context-remaining",
-]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "project-root", "fast-mode"]
 
