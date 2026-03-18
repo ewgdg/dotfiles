@@ -377,11 +377,15 @@ dotfiles:
 profiles:
   base:
     dotfiles:
-    - d_config_nvim
     - f_gitconfig
-    - f_config_lazygit_config.yml
     - d_ssh
     - f_ssh_config
+    include:
+    - apps_base
+  apps_base:
+    dotfiles:
+    - d_config_nvim
+    - f_config_lazygit_config.yml
     - d_config_1password_ssh
     - d_config_alacritty
   posix_base:
@@ -421,8 +425,6 @@ profiles:
     - f_config_systemd_user_network-virtual-mic.service
     - d_etc_docker
     - d_config_autostart
-    - d_local_share_flatpak_overrides
-    - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - d_config_environment.d
     - d_config_xdg-desktop-portal
   os_arch:
@@ -436,8 +438,6 @@ profiles:
     - f_etc_makepkg.conf
     - f_etc_locale.gen
     - f_etc_fonts_local.conf
-    - f_config_chrome-flags.conf
-    - f_config_chromium-flags.conf
     - d_config_paru
     - d_config_yay
   os_arch_kernel:
@@ -456,11 +456,7 @@ profiles:
     dotfiles:
     - d_etc_sddm.conf.d
     - f_config_kglobalshortcutsrc
-    - d_config_fcitx5
     - f_config_plasmashellrc
-    - f_local_share_applications_1password-quickaccess.desktop
-    - f_local_share_applications_goldendict-search.desktop
-    - f_local_share_applications_steam.desktop
     - f_config_kscreenlockerrc
     - f_config_kdeglobals
     - f_config_kwinrulesrc
@@ -484,7 +480,6 @@ profiles:
     - f_config_systemd_user_niri-wait-for-tray-host.service
     - d_config_noctalia
     - f_config_systemd_user_noctalia-shell.service
-    - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
   os_mac:
     variables:
       install_cmd: brew install --quiet {0}
@@ -505,10 +500,22 @@ profiles:
     - os_arch
     - de_niri
     - de_kde
+    - apps_linux
     - app_ai
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
+  apps_linux:
+    dotfiles:
+    - d_config_fcitx5
+    - f_local_share_applications_1password-quickaccess.desktop
+    - f_local_share_applications_goldendict-search.desktop
+    - f_local_share_applications_steam.desktop
+    - f_config_chrome-flags.conf
+    - f_config_chromium-flags.conf
+    - d_local_share_flatpak_overrides
+    - f_var_app_org.goldendict.goldendict_config_goldendict_config
+    - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
   app_ai:
     dotfiles:
     - f_codex_config.toml
