@@ -171,6 +171,8 @@ dotfiles:
     src: config/1Password/ssh
     dst: ~/.config/1Password/ssh
     chmod: '700'
+    actions:
+    - install '1password 1password-cli'
   d_config_systemd_user_sunshine.service.d:
     src: config/systemd/user/sunshine.service.d
     dst: ~/.config/systemd/user/sunshine.service.d
@@ -249,8 +251,6 @@ dotfiles:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
     chmod: '600'
-    actions:
-    - install 1password
   f_local_share_applications_goldendict-search.desktop:
     src: local/share/applications/goldendict-search.desktop
     dst: ~/.local/share/applications/goldendict-search.desktop
@@ -339,9 +339,6 @@ dotfiles:
   f_etc_plasmalogin.conf:
     src: etc/plasmalogin.conf
     dst: /etc/plasmalogin.conf
-  f_codex_agents.md:
-    src: codex/AGENTS.md
-    dst: ~/.codex/AGENTS.md
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
@@ -353,9 +350,6 @@ dotfiles:
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
-  f_claude_claude.md:
-    src: claude/CLAUDE.md
-    dst: ~/.claude/CLAUDE.md
   d_agents:
     src: agents
     dst: ~/.agents
@@ -364,6 +358,10 @@ dotfiles:
     - '*/__pycache__/*'
     upignore: *agents_ignore
     instignore: *agents_ignore
+    actions:
+    - sh 'mkdir -p ~/.codex ~/.claude'
+    - symlink ~/.agents/AGENTS.md ~/.codex/AGENTS.md
+    - symlink ~/.agents/AGENTS.md ~/.claude/CLAUDE.md
   f_Library_Preferences_GlobalPreferences.plist:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
@@ -513,10 +511,8 @@ profiles:
     - d_config_systemd_user_sunshine.service.d
   app_ai:
     dotfiles:
-    - f_codex_agents.md
     - f_codex_config.toml
     - d_codex_rules
-    - f_claude_claude.md
     - d_agents
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
