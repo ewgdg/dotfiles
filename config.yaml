@@ -62,7 +62,7 @@ dotfiles:
     src: config/niri
     dst: ~/.config/niri
     actions:
-    - install 'niri xwayland-satellite xdg-desktop-portal-gnome'
+    - install 'niri xwayland-satellite xdg-desktop-portal-gnome jq'
   d_config_noctalia:
     src: config/noctalia
     dst: ~/.config/noctalia
@@ -85,9 +85,6 @@ dotfiles:
   f_zshrc:
     src: zshrc
     dst: ~/.zshrc
-    actions:
-    - install 'fzf bat fd eza ripgrep jq'
-    - install zoxide
   f_etc_fonts_local.conf:
     src: etc/fonts/local.conf
     dst: /etc/fonts/local.conf
@@ -109,6 +106,9 @@ dotfiles:
     src: config/zsh
     dst: ~/.config/zsh
     chmod: '700'
+    actions:
+    - install 'fzf bat fd eza'
+    - install zoxide
   d_config_oh-my-posh:
     src: config/oh-my-posh
     dst: ~/.config/oh-my-posh
@@ -401,6 +401,8 @@ profiles:
     - d_config_tmux
     - d_config_fd
   posix_utils:
+    actions:
+    - install 'ripgrep jq'
     dotfiles:
     - d_bin
   framework_gtk:
