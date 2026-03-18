@@ -19,7 +19,6 @@ writable_roots = [
   "~/.cache",
   "~/.npm",
   "~/.agents",
-  "~/.agents/agent-tools",
   "~/.codex",
   "~/projects/knowledgebase",
 ]
