@@ -278,7 +278,7 @@ dotfiles:
     chmod: '600'
   fake_rustup_toolchain:
     src:
-    dst: /dev/null
+    dst:
     actions:
     - sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_rustup.sh'
   f_zprofile:
