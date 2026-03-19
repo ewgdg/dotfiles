@@ -409,7 +409,7 @@ profiles:
     - d_bin
   toolchain_javascript:
     actions:
-    - install nodejs npm pnpm bun
+    - install 'nodejs npm pnpm bun fnm'
     dotfiles:
     - f_npmrc
   framework_gtk:

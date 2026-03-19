@@ -66,7 +66,7 @@ if [[ -o interactive ]]; then
 
     if [[ "$has_explicit_prefix" -eq 0 && "$is_global" -eq 1 ]]; then
       case "$npm_command" in
-        install|i|add|update|upgrade|uninstall|remove|rm|link)
+        install|i|add|update|up|upgrade|udpate|uninstall|remove|rm|r|un|unlink|link|ln)
           current_prefix="$(command npm config get prefix 2>/dev/null)"
           if [[ -n "$current_prefix" ]]; then
             prefix_probe="$current_prefix"
