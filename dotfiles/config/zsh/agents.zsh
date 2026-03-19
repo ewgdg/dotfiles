@@ -39,5 +39,5 @@ omp(){
     OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
     BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
     EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
-    command omp
+    command omp "$@"
 }
