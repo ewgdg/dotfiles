@@ -48,5 +48,5 @@ multi_agent = true
 search_tool = true
 
 [tui]
-status_line = ["model-with-reasoning", "current-dir", "context-remaining", "project-root", "fast-mode", "weekly-limit"]
+status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode"]
 

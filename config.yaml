@@ -276,6 +276,11 @@ dotfiles:
     src: npmrc
     dst: ~/.npmrc
     chmod: '600'
+  f_rustup_toolchain:
+    src:
+    dst:
+    actions:
+    - sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_rustup.sh'
   f_zprofile:
     src: zprofile
     dst: ~/.zprofile
@@ -414,8 +419,8 @@ profiles:
     dotfiles:
     - f_npmrc
   toolchain_rust:
-    actions:
-    - sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_rustup.sh'
+    dotfiles:
+    - f_rustup_toolchain
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
