@@ -392,6 +392,7 @@ profiles:
     include:
     - base
     - toolchain_javascript
+    - toolchain_rust
     dotfiles:
       #- d_config_wezterm
     - f_zshrc
@@ -412,6 +413,10 @@ profiles:
     - install 'nodejs npm pnpm bun fnm'
     dotfiles:
     - f_npmrc
+  toolchain_rust:
+    actions:
+    - install rustup
+    - ensure-rustup-default-toolchain stable
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
@@ -533,6 +538,8 @@ variables:
 actions:
   install: '{{@@ install_cmd @@}}'
   symlink: '{{@@ symlink_cmd @@}}'
+  ensure-rustup-default-toolchain: sh '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/ensure_rustup_default_toolchain.sh' {0}
   ensure-systemd-service-enabled: sh '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/ensure_systemd_service_enabled.sh' {0} {1}
   sh: sh -c "{0}"
