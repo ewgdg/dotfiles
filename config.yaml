@@ -276,7 +276,7 @@ dotfiles:
     src: npmrc
     dst: ~/.npmrc
     chmod: '600'
-  f_rustup_toolchain:
+  fake_rustup_toolchain:
     src:
     dst:
     actions:
@@ -420,7 +420,7 @@ profiles:
     - f_npmrc
   toolchain_rust:
     dotfiles:
-    - f_rustup_toolchain
+    - fake_rustup_toolchain
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
