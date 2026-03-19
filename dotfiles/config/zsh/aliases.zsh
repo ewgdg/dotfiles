@@ -20,19 +20,67 @@ if [[ -o interactive ]]; then
     alias cd='z'
   fi
 
-  # Avoid .npmrc for setting the prefix because it conflicts with nvm.
-  # Only force the user-local prefix when the active npm is not from nvm.
-  # If nvm is initialized and you want the system toolchain again, run:
-  #   nvm use system
+  # Only override the global prefix for mutating global commands when the
+  # configured prefix is not writable. This avoids sudo for system npm while
+  # leaving normal commands and user-managed toolchains alone.
   function npm() {
-    local npm_path nvm_root npm_prefix
-    npm_path="$(whence -p npm 2>/dev/null)"
-    nvm_root="$NVM_DIR"
-    npm_prefix="$HOME/.local"
+    local npm_arg npm_command current_prefix prefix_probe user_npmrc npm_prefix
+    local is_global=0 has_explicit_prefix=0 expect_location_value=0
+    npm_prefix="${XDG_DATA_HOME:-$HOME/.local/share}/npm"
 
-    if [[ -n "$npm_path" && ( -z "$nvm_root" || "$npm_path" != ${nvm_root}/* ) ]]; then
-      command npm --prefix "$npm_prefix" "$@"
-      return
+    for npm_arg in "$@"; do
+      if [[ "$expect_location_value" -eq 1 ]]; then
+        [[ "$npm_arg" == "global" ]] && is_global=1
+        expect_location_value=0
+        continue
+      fi
+
+      case "$npm_arg" in
+        -g|--global|--location=global)
+          is_global=1
+          ;;
+        --prefix|--prefix=*)
+          has_explicit_prefix=1
+          ;;
+        --location)
+          expect_location_value=1
+          ;;
+        -*)
+          ;;
+        *)
+          [[ -z "$npm_command" ]] && npm_command="$npm_arg"
+          ;;
+      esac
+    done
+
+    if [[ "$has_explicit_prefix" -eq 0 ]]; then
+      if [[ -n "${NPM_CONFIG_PREFIX:-${npm_config_prefix:-}}" ]]; then
+        has_explicit_prefix=1
+      else
+        user_npmrc="${NPM_CONFIG_USERCONFIG:-${npm_config_userconfig:-$HOME/.npmrc}}"
+        if [[ -f "$user_npmrc" ]] && grep -Eq '^[[:space:]]*prefix[[:space:]]*=' "$user_npmrc"; then
+          has_explicit_prefix=1
+        fi
+      fi
+    fi
+
+    if [[ "$has_explicit_prefix" -eq 0 && "$is_global" -eq 1 ]]; then
+      case "$npm_command" in
+        install|i|add|update|upgrade|uninstall|remove|rm|link)
+          current_prefix="$(command npm config get prefix 2>/dev/null)"
+          if [[ -n "$current_prefix" ]]; then
+            prefix_probe="$current_prefix"
+            while [[ ! -e "$prefix_probe" && "$prefix_probe" != "/" ]]; do
+              prefix_probe="${prefix_probe:h}"
+            done
+
+            if [[ ! -w "$prefix_probe" ]]; then
+              command npm --prefix "$npm_prefix" "$@"
+              return
+            fi
+          fi
+          ;;
+      esac
     fi
 
     command npm "$@"
