@@ -13,6 +13,7 @@ if [[ -o interactive ]]; then
     source "$ZSH_CONFIG_DIR/plugins/fzf-tab.zsh"
     source "$ZSH_CONFIG_DIR/plugins/zsh-plugins.zsh"
     source "$ZSH_CONFIG_DIR/plugins/fzf.zsh"
+    source "$ZSH_CONFIG_DIR/plugins/fnm.zsh"
     source "$ZSH_CONFIG_DIR/plugins/zoxide.zsh"
     source "$ZSH_CONFIG_DIR/keybindings.zsh"
     source "$ZSH_CONFIG_DIR/aliases.zsh"
