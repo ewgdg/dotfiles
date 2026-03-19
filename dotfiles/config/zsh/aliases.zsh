@@ -27,10 +27,10 @@ if [[ -o interactive ]]; then
   function npm() {
     local npm_path nvm_root npm_prefix
     npm_path="$(whence -p npm 2>/dev/null)"
-    nvm_root="${NVM_DIR:-$HOME/.nvm}"
+    nvm_root="$NVM_DIR"
     npm_prefix="$HOME/.local"
 
-    if [[ -n "$npm_path" && "$npm_path" != ${nvm_root}/* ]]; then
+    if [[ -n "$npm_path" && ( -z "$nvm_root" || "$npm_path" != ${nvm_root}/* ) ]]; then
       command npm --prefix "$npm_prefix" "$@"
       return
     fi
