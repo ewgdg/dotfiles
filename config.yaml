@@ -391,6 +391,7 @@ profiles:
   posix_base:
     include:
     - base
+    - toolchain_javascript
     dotfiles:
       #- d_config_wezterm
     - f_zshrc
@@ -398,7 +399,6 @@ profiles:
     - f_profile
     - f_zprofile
     - d_config_zsh
-    - f_npmrc
     - d_config_oh-my-posh
     - d_config_tmux
     - d_config_fd
@@ -407,6 +407,11 @@ profiles:
     - install 'ripgrep jq'
     dotfiles:
     - d_bin
+  toolchain_javascript:
+    actions:
+    - install nodejs npm pnpm bun
+    dotfiles:
+    - f_npmrc
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
@@ -492,7 +497,7 @@ profiles:
   xian-macbook-air.local:
     include:
     - os_mac
-    - app_ai
+    - apps_ai
   xian-linux-server:
     variables:
       desktop: niri
@@ -501,7 +506,7 @@ profiles:
     - de_niri
     - de_kde
     - apps_linux
-    - app_ai
+    - apps_ai
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
@@ -516,11 +521,12 @@ profiles:
     - d_local_share_flatpak_overrides
     - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
-  app_ai:
+  apps_ai:
     dotfiles:
     - f_codex_config.toml
     - d_codex_rules
     - d_agents
+
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -sfn {0} {1}
