@@ -23,6 +23,8 @@ export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 path_prepend "$HOME/.bun/bin"
+path_prepend "$XDG_DATA_HOME/npm/bin"
+path_prepend "$XDG_DATA_HOME/pnpm/bin"
 path_prepend "$HOME/.cargo/bin"
 path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/bin"
