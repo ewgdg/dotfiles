@@ -7,15 +7,6 @@ if ! command -v dotdrop >/dev/null 2>&1; then
 fi
 
 dotdrop_cmd="$(command -v dotdrop)"
-script_dir="$(
-  cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1
-  pwd -P
-)"
-repo_root="$(
-  cd -- "${script_dir}/../.." >/dev/null 2>&1
-  pwd -P
-)"
-template_update_script="${repo_root}/scripts/dotdrop_template_update.py"
 operation="update"
 
 if (( $# > 0 )); then
@@ -48,6 +39,11 @@ force_mode=false
 profile_from_args=""
 update_ignore_patterns=()
 update_target_mode="keys"
+effective_profile=""
+config_path_from_args=""
+resolved_config_path=""
+repo_root=""
+template_update_script=""
 
 expand_home_path() {
   local raw_path="$1"
@@ -60,6 +56,20 @@ expand_home_path() {
       ;;
     *)
       printf '%s\n' "$raw_path"
+      ;;
+  esac
+}
+
+make_absolute_path() {
+  local expanded_path=""
+
+  expanded_path="$(expand_home_path "$1")"
+  case "$expanded_path" in
+    /*)
+      printf '%s\n' "$expanded_path"
+      ;;
+    *)
+      printf '%s\n' "${PWD}/${expanded_path}"
       ;;
   esac
 }
@@ -180,14 +190,49 @@ key_is_fully_ignored_for_update() {
   return 1
 }
 
-contains_dotdrop_template_syntax() {
-  local source_path="$1"
+resolve_effective_profile() {
+  local files_output_human=""
 
-  if [[ ! -f "$source_path" ]]; then
-    return 1
+  if [[ -n "$profile_from_args" ]]; then
+    printf '%s\n' "$profile_from_args"
+    return
   fi
 
-  grep -Eq '\{\{@@|\{%@@|\{#@@' "$source_path"
+  files_output_human="$("$dotdrop_cmd" files -b "${files_args[@]}" 2>/dev/null || true)"
+  while IFS= read -r profile_line; do
+    case "$profile_line" in
+      'Dotfile(s) for profile "'*'":')
+        profile_line="${profile_line#Dotfile(s) for profile \"}"
+        profile_line="${profile_line%\":}"
+        printf '%s\n' "$profile_line"
+        return
+        ;;
+    esac
+  done <<< "$files_output_human"
+}
+
+resolve_config_path() {
+  if [[ -n "$config_path_from_args" ]]; then
+    make_absolute_path "$config_path_from_args"
+    return
+  fi
+
+  if [[ -n "${DOTDROP_CONFIG:-}" ]]; then
+    make_absolute_path "$DOTDROP_CONFIG"
+    return
+  fi
+
+  if [[ -f "${PWD}/config.yaml" ]]; then
+    printf '%s\n' "${PWD}/config.yaml"
+    return
+  fi
+
+  if [[ -f "${PWD}/config.toml" ]]; then
+    printf '%s\n' "${PWD}/config.toml"
+    return
+  fi
+
+  printf '%s\n' ""
 }
 
 # Parse args for execution, key discovery, and explicit targets.
@@ -225,6 +270,8 @@ for ((idx = 0; idx < arg_count; idx++)); do
       value="${args[$((idx + 1))]}"
       if [[ "$arg" == "-p" || "$arg" == "--profile" ]]; then
         profile_from_args="$value"
+      elif [[ "$arg" == "-c" || "$arg" == "--cfg" ]]; then
+        config_path_from_args="$value"
       fi
       base_args+=("$arg" "$value")
       files_args+=("$arg" "$value")
@@ -233,6 +280,8 @@ for ((idx = 0; idx < arg_count; idx++)); do
     --cfg=*|--profile=*)
       if [[ "$arg" == --profile=* ]]; then
         profile_from_args="${arg#--profile=}"
+      elif [[ "$arg" == --cfg=* ]]; then
+        config_path_from_args="${arg#--cfg=}"
       fi
       base_args+=("$arg")
       files_args+=("$arg")
@@ -278,12 +327,23 @@ for ((idx = 0; idx < arg_count; idx++)); do
   esac
 done
 
+resolved_config_path="$(resolve_config_path)"
+if [[ -z "$resolved_config_path" ]]; then
+  echo "unable to determine dotdrop config path; pass -c/--cfg or set DOTDROP_CONFIG" >&2
+  exit 2
+fi
+
+repo_root="$(dirname -- "$resolved_config_path")"
+template_update_script="${repo_root}/scripts/dotdrop_template_update.py"
+
 dotfiles_output="$("$dotdrop_cmd" files -G "${files_args[@]}")"
+effective_profile="$(resolve_effective_profile)"
 
 all_keys=()
 all_dsts=()
 declare -A source_by_key=()
 declare -A destination_by_key=()
+declare -A effective_template_by_key=()
 while IFS= read -r line; do
   [[ "$line" == *,dst:* ]] || continue
   key="${line%%,*}"
@@ -300,6 +360,27 @@ while IFS= read -r line; do
   destination_by_key["$key"]="$dst"
 done <<< "$dotfiles_output"
 
+if [[ "$operation" == "update" ]]; then
+  if [[ -z "$effective_profile" ]]; then
+    echo "unable to determine active dotdrop profile" >&2
+    exit 2
+  fi
+
+  detail_output="$("$dotdrop_cmd" detail -b "${files_args[@]}" "${all_keys[@]}")"
+  detail_key=""
+  while IFS= read -r detail_line; do
+    if [[ "$detail_line" =~ ^([^[:space:]]+)\ \(dst:\ \" ]]; then
+      detail_key="${BASH_REMATCH[1]}"
+      effective_template_by_key["$detail_key"]=0
+      continue
+    fi
+
+    if [[ -n "$detail_key" && "$detail_line" == *"(template:yes)"* ]]; then
+      effective_template_by_key["$detail_key"]=1
+    fi
+  done <<< "$detail_output"
+fi
+
 user_keys=()
 system_keys=()
 regular_user_keys=()
@@ -315,7 +396,7 @@ record_update_target() {
   local target_dst="$3"
   local target_src="$4"
 
-  if [[ "$target_kind" == "key" ]] && contains_dotdrop_template_syntax "$target_src"; then
+  if [[ "$target_kind" == "key" ]] && [[ "${effective_template_by_key[$target_value]:-0}" == "1" ]]; then
     if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
       template_user_keys+=("$target_value")
     else
@@ -377,7 +458,7 @@ if (( ${#explicit_targets[@]} > 0 )); then
       done
 
       if [[ -n "$matched_key" ]]; then
-        if contains_dotdrop_template_syntax "${source_by_key[$matched_key]}"; then
+        if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
           if [[ "${destination_by_key[$matched_key]}" == "$HOME" || "${destination_by_key[$matched_key]}" == "$HOME/"* ]]; then
             template_user_keys+=("$matched_key")
           else
@@ -410,18 +491,6 @@ else
 fi
 
 if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
-  effective_profile="$profile_from_args"
-  if [[ -z "$effective_profile" ]]; then
-    while IFS= read -r profile_line; do
-      case "$profile_line" in
-        'Dotfile(s) for profile "'*'":')
-          effective_profile="${profile_line#Dotfile(s) for profile \"}"
-          effective_profile="${effective_profile%\":}"
-          break
-          ;;
-      esac
-    done < <("$dotdrop_cmd" files -b "${files_args[@]}" 2>/dev/null || true)
-  fi
   if [[ -z "$effective_profile" ]]; then
     effective_profile="<unknown>"
   fi
