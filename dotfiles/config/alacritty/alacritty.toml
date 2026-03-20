@@ -25,8 +25,3 @@ vi_mode_style = { shape = "Block", blinking = "Off" }
 
 [terminal]
 osc52 = "OnlyCopy"
-
-[keyboard]
-bindings = [
-  { key = "S", mods = "Command", chars = "\u0013" }
-]
