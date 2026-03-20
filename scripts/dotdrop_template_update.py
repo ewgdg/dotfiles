@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +39,7 @@ class MergeStats:
     matched_lines: int = 0
     whole_block_replacements: int = 0
     partial_block_merges: int = 0
+    conflict_blocks: int = 0
     unchanged_blocks: int = 0
 
 
@@ -66,6 +68,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the merged result to stdout instead of writing a file.",
     )
+    conflict_group = parser.add_mutually_exclusive_group()
+    conflict_group.add_argument(
+        "--conflict-on-unchanged",
+        action="store_true",
+        dest="conflict_on_unchanged",
+        help="Insert Git-style conflict markers for blocks that would otherwise be left unchanged. Default behavior.",
+    )
+    conflict_group.add_argument(
+        "--keep-unchanged",
+        action="store_false",
+        dest="conflict_on_unchanged",
+        help="Leave ambiguous blocks unchanged instead of inserting conflict markers.",
+    )
+    parser.set_defaults(conflict_on_unchanged=True)
     return parser.parse_args()
 
 
@@ -207,6 +223,7 @@ def merge_literal_block(
     matches: list[MatchPair],
     matched_source_indices: set[int],
     stats: MergeStats,
+    emit_conflict_markers: bool,
 ) -> list[str]:
     block_matches = [match for match in matches if block.start <= match.source_index < block.end]
     prev_match = max((match for match in matches if match.source_index < block.start), default=None, key=lambda m: m.source_index)
@@ -253,6 +270,17 @@ def merge_literal_block(
         replacement[source_index - block.start] = live_lines[live_index]
         stats.partial_block_merges += 1
         return replacement
+
+    if emit_conflict_markers and should_emit_conflict_for_block(
+        block,
+        source_lines,
+        live_lines[live_window.start:live_window.end],
+    ):
+        stats.conflict_blocks += 1
+        return build_conflict_block(
+            [source_lines[index].text for index in range(block.start, block.end)],
+            live_lines[live_window.start:live_window.end],
+        )
 
     stats.unchanged_blocks += 1
     return [source_lines[index].text for index in range(block.start, block.end)]
@@ -384,7 +412,110 @@ def merge_block_between_matches(
     return merged_lines
 
 
-def merge_template(template_lines: list[str], live_lines: list[str]) -> tuple[list[str], MergeStats]:
+def build_conflict_block(template_block_lines: list[str], live_block_lines: list[str]) -> list[str]:
+    normalized_template_lines = ensure_trailing_newlines(template_block_lines)
+    normalized_live_lines = ensure_trailing_newlines(live_block_lines)
+    return [
+        "<<<<<<< TEMPLATE\n",
+        *normalized_template_lines,
+        "=======\n",
+        *normalized_live_lines,
+        ">>>>>>> LIVE\n",
+    ]
+
+
+def ensure_trailing_newlines(lines: list[str]) -> list[str]:
+    normalized_lines: list[str] = []
+    for line in lines:
+        if line.endswith("\n"):
+            normalized_lines.append(line)
+        else:
+            normalized_lines.append(line + "\n")
+    return normalized_lines
+
+
+def should_emit_conflict_for_block(
+    block: BlockRange,
+    source_lines: list[SourceLine],
+    live_block_lines: list[str],
+) -> bool:
+    if not live_block_lines:
+        return False
+
+    if not is_control_bounded_block(block, source_lines):
+        return True
+
+    sibling_blocks = find_branch_sibling_blocks(block, source_lines)
+    if len(sibling_blocks) == 1:
+        return True
+
+    live_text = "".join(live_block_lines).strip()
+    if not live_text:
+        return False
+
+    candidate_scores: list[tuple[float, BlockRange]] = []
+    for candidate_block in sibling_blocks:
+        candidate_text = "".join(
+            source_lines[index].text for index in range(candidate_block.start, candidate_block.end)
+        ).strip()
+        score = difflib.SequenceMatcher(None, candidate_text, live_text).ratio()
+        candidate_scores.append((score, candidate_block))
+
+    candidate_scores.sort(key=lambda item: item[0], reverse=True)
+    best_score, best_block = candidate_scores[0]
+    if best_score <= 0:
+        return False
+
+    if len(candidate_scores) > 1 and candidate_scores[1][0] == best_score:
+        return False
+
+    return best_block == block
+
+
+def find_branch_sibling_blocks(
+    block: BlockRange,
+    source_lines: list[SourceLine],
+) -> list[BlockRange]:
+    sibling_blocks = [block]
+    current_start = block.start
+    while current_start > 0:
+        control_index = current_start - 1
+        control_line = source_lines[control_index].text.rstrip("\n")
+        if not is_branching_control_line(control_line):
+            break
+        previous_index = control_index - 1
+        if previous_index < 0 or source_lines[previous_index].kind != "literal":
+            break
+        previous_start = previous_index
+        while previous_start > 0 and source_lines[previous_start - 1].kind == "literal":
+            previous_start -= 1
+        sibling_blocks.insert(0, BlockRange(previous_start, previous_index + 1))
+        current_start = previous_start
+
+    current_end = block.end
+    while current_end < len(source_lines):
+        if current_end >= len(source_lines):
+            break
+        control_line = source_lines[current_end].text.rstrip("\n")
+        if not is_branching_control_line(control_line):
+            break
+        next_index = current_end + 1
+        if next_index >= len(source_lines) or source_lines[next_index].kind != "literal":
+            break
+        next_end = next_index + 1
+        while next_end < len(source_lines) and source_lines[next_end].kind == "literal":
+            next_end += 1
+        sibling_blocks.append(BlockRange(next_index, next_end))
+        current_end = next_end
+
+    return sibling_blocks
+
+
+def merge_template(
+    template_lines: list[str],
+    live_lines: list[str],
+    emit_conflict_markers: bool = True,
+) -> tuple[list[str], MergeStats]:
     source_lines = build_source_lines(template_lines)
     matches = align_source_to_live(source_lines, live_lines)
     matched_source_indices = {match.source_index for match in matches}
@@ -406,6 +537,7 @@ def merge_template(template_lines: list[str], live_lines: list[str]) -> tuple[li
                     matches,
                     matched_source_indices,
                     stats,
+                    emit_conflict_markers,
                 )
             )
             line_index = current_block.end
@@ -450,7 +582,11 @@ def main() -> int:
 
     template_lines = load_lines(template_path)
     live_lines = load_lines(live_path)
-    merged_lines, stats = merge_template(template_lines, live_lines)
+    merged_lines, stats = merge_template(
+        template_lines,
+        live_lines,
+        emit_conflict_markers=args.conflict_on_unchanged,
+    )
     merged_content = "".join(merged_lines)
 
     if args.dry_run:
@@ -463,6 +599,7 @@ def main() -> int:
         f" matched_lines={stats.matched_lines}"
         f" whole_blocks={stats.whole_block_replacements}"
         f" partial_blocks={stats.partial_block_merges}"
+        f" conflict_blocks={stats.conflict_blocks}"
         f" unchanged_blocks={stats.unchanged_blocks}"
         f" output={output_path}"
     )

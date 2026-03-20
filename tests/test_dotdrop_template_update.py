@@ -24,10 +24,11 @@ MODULE = load_module()
 
 
 class DotdropTemplateUpdateTests(unittest.TestCase):
-    def merge(self, template: str, live: str) -> str:
+    def merge(self, template: str, live: str, *, emit_conflict_markers: bool = True) -> str:
         merged_lines, _stats = MODULE.merge_template(
             template.splitlines(keepends=True),
             live.splitlines(keepends=True),
+            emit_conflict_markers=emit_conflict_markers,
         )
         return "".join(merged_lines)
 
@@ -72,7 +73,7 @@ end
 """
         self.assertEqual(self.merge(template, live), expected)
 
-    def test_keeps_elif_else_chain_conservative_when_branch_is_ambiguous(self) -> None:
+    def test_emits_conflict_markers_by_default_for_ambiguous_branch(self) -> None:
         template = """start
 {%@@ if os == "darwin" @@%}
 darwin-value
@@ -87,8 +88,41 @@ end
 linux-new
 end
 """
-        expected = template
+        expected = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+<<<<<<< TEMPLATE
+linux-value
+=======
+linux-new
+>>>>>>> LIVE
+{%@@ else @@%}
+fallback-value
+{%@@ endif @@%}
+end
+"""
         self.assertEqual(self.merge(template, live), expected)
+
+    def test_can_explicitly_keep_ambiguous_branch_unchanged(self) -> None:
+        template = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+linux-value
+{%@@ else @@%}
+fallback-value
+{%@@ endif @@%}
+end
+"""
+        live = """start
+linux-new
+end
+"""
+        self.assertEqual(
+            self.merge(template, live, emit_conflict_markers=False),
+            template,
+        )
 
     def test_updates_plain_literal_block_with_surrounding_anchors(self) -> None:
         template = """before
