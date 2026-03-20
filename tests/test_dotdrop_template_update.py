@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
 import sys
 
 
@@ -136,3 +138,148 @@ literal-two-updated
 after
 """
     assert merge(template, live) == expected
+
+
+def test_change_status_reports_true_when_template_changes(tmp_path: Path) -> None:
+    template_path = tmp_path / "template"
+    live_path = tmp_path / "live"
+
+    template_path.write_text(
+        """start
+{%@@ if os == "linux" @@%}
+foo
+{%@@ endif @@%}
+end
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """start
+bar
+end
+""",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(template_path),
+            str(live_path),
+            "--in-place",
+            "--change-status",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.strip() == "changed=true"
+    assert result.stderr == ""
+
+
+def test_change_status_reports_false_when_template_is_unchanged(tmp_path: Path) -> None:
+    template_path = tmp_path / "template"
+    live_path = tmp_path / "live"
+
+    template_content = """before
+same
+after
+"""
+    template_path.write_text(template_content, encoding="utf-8")
+    live_path.write_text(template_content, encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(template_path),
+            str(live_path),
+            "--in-place",
+            "--change-status",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.strip() == "changed=false"
+    assert result.stderr == ""
+
+
+def test_json_mode_reports_changed_summary(tmp_path: Path) -> None:
+    template_path = tmp_path / "template"
+    live_path = tmp_path / "live"
+
+    template_path.write_text(
+        """start
+{%@@ if os == "linux" @@%}
+foo
+{%@@ endif @@%}
+end
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """start
+bar
+end
+""",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(template_path),
+            str(live_path),
+            "--in-place",
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["changed"] is True
+    assert payload["whole_blocks"] == 1
+    assert payload["output"] == str(template_path)
+    assert result.stderr == ""
+
+
+def test_json_mode_reports_unchanged_summary(tmp_path: Path) -> None:
+    template_path = tmp_path / "template"
+    live_path = tmp_path / "live"
+
+    template_content = """before
+same
+after
+"""
+    template_path.write_text(template_content, encoding="utf-8")
+    live_path.write_text(template_content, encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(template_path),
+            str(live_path),
+            "--in-place",
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["changed"] is False
+    assert payload["matched_lines"] == 3
+    assert result.stderr == ""

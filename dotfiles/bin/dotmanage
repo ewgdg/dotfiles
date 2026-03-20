@@ -27,7 +27,7 @@ fi
 command_args=("$@")
 
 if [[ "$operation" == "import" ]]; then
-  "$dotdrop_cmd" "$operation" "${command_args[@]}"
+  "$dotdrop_cmd" "$operation" -b "${command_args[@]}"
   exit $?
 fi
 
@@ -36,7 +36,6 @@ files_args=()
 explicit_targets=()
 key_mode=false
 force_mode=false
-no_banner_requested=false
 profile_from_args=""
 update_ignore_patterns=()
 update_target_mode="keys"
@@ -288,9 +287,6 @@ for ((idx = 0; idx < arg_count; idx++)); do
       files_args+=("$arg")
       ;;
     -V|--verbose|-b|--no-banner)
-      if [[ "$arg" == "-b" || "$arg" == "--no-banner" ]]; then
-        no_banner_requested=true
-      fi
       base_args+=("$arg")
       files_args+=("$arg")
       ;;
@@ -322,9 +318,6 @@ for ((idx = 0; idx < arg_count; idx++)); do
     -*)
       if [[ "$arg" == --force || ( "$arg" != --* && "$arg" == *f* ) ]]; then
         force_mode=true
-      fi
-      if [[ "$arg" == --no-banner || ( "$arg" != --* && "$arg" == *b* ) ]]; then
-        no_banner_requested=true
       fi
       base_args+=("$arg")
       ;;
@@ -526,17 +519,23 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   esac
 fi
 
-banner_printed=false
+print_phase_header() {
+  local header_text="$1"
+
+  if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-}" != "dumb" ]]; then
+    printf '\n\033[1;34m==>\033[0m \033[1m%s\033[0m\n\n' "$header_text"
+    return
+  fi
+
+  printf '\n==> %s\n\n' "$header_text"
+}
+
 run_operation_for_targets() {
   local run_with_sudo="$1"
   local target_mode="$2"
   shift 2
   local operation_targets=("$@")
-  local dotdrop_call=("$dotdrop_cmd" "$operation")
-
-  if [[ "$no_banner_requested" == true || "$banner_printed" == true ]]; then
-    dotdrop_call+=(-b)
-  fi
+  local dotdrop_call=("$dotdrop_cmd" "$operation" -b)
 
   dotdrop_call+=("${base_args[@]}")
 
@@ -556,22 +555,35 @@ run_operation_for_targets() {
     "${dotdrop_call[@]}"
   fi
 
-  if [[ "$no_banner_requested" != true ]]; then
-    banner_printed=true
-  fi
 }
 
 overall_exit_code=0
+last_template_update_changed=false
 run_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
   local target_mode="$3"
   shift 3
   local phase_targets=("$@")
+  local operation_verb=""
 
   if (( ${#phase_targets[@]} == 0 )); then
     return
   fi
+
+  case "$operation" in
+    install)
+      operation_verb="installing"
+      ;;
+    update)
+      operation_verb="updating"
+      ;;
+    *)
+      operation_verb="$operation"
+      ;;
+  esac
+
+  print_phase_header "$operation_verb $phase_name dotfiles"
 
   set +e
   run_operation_for_targets "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
@@ -592,6 +604,15 @@ run_template_update_for_key() {
   local target_dst="${destination_by_key[$key_name]}"
   local live_input="$target_dst"
   local temp_live=""
+  local helper_output=""
+  local helper_output_compact=""
+  local matched_lines=""
+  local whole_blocks=""
+  local partial_blocks=""
+  local conflict_blocks=""
+  local unchanged_blocks=""
+
+  last_template_update_changed=false
 
   if [[ ! -f "$target_src" ]]; then
     echo "template-aware update only supports file sources; key '$key_name' uses '$target_src'" >&2
@@ -618,12 +639,64 @@ run_template_update_for_key() {
   fi
 
   set +e
-  uv run "$template_update_script" "$target_src" "$live_input" --in-place
+  helper_output="$(uv run "$template_update_script" "$target_src" "$live_input" --in-place --json)"
   local update_exit_code=$?
   set -e
 
   if [[ -n "$temp_live" ]]; then
     rm -f "$temp_live"
+  fi
+
+  if (( update_exit_code != 0 )); then
+    return "$update_exit_code"
+  fi
+
+  helper_output_compact="${helper_output//$'\n'/}"
+
+  if [[ "$helper_output_compact" =~ \"changed\":true ]]; then
+    last_template_update_changed=true
+  elif [[ "$helper_output_compact" =~ \"changed\":false ]]; then
+    last_template_update_changed=false
+  else
+    echo "unexpected template update status for key '$key_name': $helper_output" >&2
+    return 2
+  fi
+
+  if [[ "$last_template_update_changed" == true ]]; then
+    if [[ "$helper_output_compact" =~ \"matched_lines\":([0-9]+) ]]; then
+      matched_lines="${BASH_REMATCH[1]}"
+    else
+      matched_lines="?"
+    fi
+    if [[ "$helper_output_compact" =~ \"whole_blocks\":([0-9]+) ]]; then
+      whole_blocks="${BASH_REMATCH[1]}"
+    else
+      whole_blocks="?"
+    fi
+    if [[ "$helper_output_compact" =~ \"partial_blocks\":([0-9]+) ]]; then
+      partial_blocks="${BASH_REMATCH[1]}"
+    else
+      partial_blocks="?"
+    fi
+    if [[ "$helper_output_compact" =~ \"conflict_blocks\":([0-9]+) ]]; then
+      conflict_blocks="${BASH_REMATCH[1]}"
+    else
+      conflict_blocks="?"
+    fi
+    if [[ "$helper_output_compact" =~ \"unchanged_blocks\":([0-9]+) ]]; then
+      unchanged_blocks="${BASH_REMATCH[1]}"
+    else
+      unchanged_blocks="?"
+    fi
+    printf \
+      'merged template update: key=%s matched_lines=%s whole_blocks=%s partial_blocks=%s conflict_blocks=%s unchanged_blocks=%s output=%s\n' \
+      "$key_name" \
+      "$matched_lines" \
+      "$whole_blocks" \
+      "$partial_blocks" \
+      "$conflict_blocks" \
+      "$unchanged_blocks" \
+      "$target_src"
   fi
 
   return "$update_exit_code"
@@ -635,10 +708,28 @@ run_template_phase() {
   local template_keys=("$@")
   local key_name=""
   local phase_exit_code=0
+  local operation_verb=""
+  local processed_count=0
+  local changed_count=0
+  local failed_count=0
 
   if (( ${#template_keys[@]} == 0 )); then
     return
   fi
+
+  case "$operation" in
+    install)
+      operation_verb="installing"
+      ;;
+    update)
+      operation_verb="updating"
+      ;;
+    *)
+      operation_verb="$operation"
+      ;;
+  esac
+
+  print_phase_header "$operation_verb $phase_name dotfiles (template-aware)"
 
   for key_name in "${template_keys[@]}"; do
     set +e
@@ -647,12 +738,30 @@ run_template_phase() {
     set -e
 
     if (( phase_exit_code != 0 )); then
+      failed_count=$((failed_count + 1))
       echo "$phase_name template update failed for key '$key_name'" >&2
       if (( overall_exit_code == 0 )); then
         overall_exit_code=$phase_exit_code
       fi
+      continue
+    fi
+
+    processed_count=$((processed_count + 1))
+    if [[ "$last_template_update_changed" == true ]]; then
+      changed_count=$((changed_count + 1))
     fi
   done
+
+  if (( failed_count > 0 )); then
+    printf '%d file(s) processed, %d updated, %d failed\n' \
+      "$processed_count" \
+      "$changed_count" \
+      "$failed_count"
+  else
+    printf '%d file(s) processed, %d updated\n' \
+      "$processed_count" \
+      "$changed_count"
+  fi
 }
 
 if [[ "$operation" != "update" ]]; then

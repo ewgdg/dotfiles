@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +68,17 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Print the merged result to stdout instead of writing a file.",
+    )
+    parser.add_argument(
+        "--change-status",
+        action="store_true",
+        help="Print only whether the template changed: 'changed=true' or 'changed=false'.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Print a machine-readable JSON result summary.",
     )
     conflict_group = parser.add_mutually_exclusive_group()
     conflict_group.add_argument(
@@ -575,6 +587,11 @@ def main() -> int:
     if args.in_place and args.output_path is not None:
         raise ValueError("use either --in-place or output_path, not both")
 
+    if args.dry_run and args.change_status:
+        raise ValueError("--change-status cannot be used with --dry-run")
+    if args.dry_run and args.json_output:
+        raise ValueError("--json cannot be used with --dry-run")
+
     if args.in_place or args.output_path is None:
         output_path = template_path
     else:
@@ -588,20 +605,39 @@ def main() -> int:
         emit_conflict_markers=args.conflict_on_unchanged,
     )
     merged_content = "".join(merged_lines)
+    template_content = "".join(template_lines)
+    changed = merged_content != template_content
+    summary = {
+        "changed": changed,
+        "matched_lines": stats.matched_lines,
+        "whole_blocks": stats.whole_block_replacements,
+        "partial_blocks": stats.partial_block_merges,
+        "conflict_blocks": stats.conflict_blocks,
+        "unchanged_blocks": stats.unchanged_blocks,
+        "output": str(output_path),
+    }
 
     if args.dry_run:
         print(merged_content, end="")
         return 0
 
     write_output(merged_content, template_path, output_path)
+    if args.json_output:
+        print(json.dumps(summary, separators=(",", ":")))
+        return 0
+
+    if args.change_status:
+        print("changed=true" if changed else "changed=false")
+        return 0
+
     print(
         "merged template update:"
-        f" matched_lines={stats.matched_lines}"
-        f" whole_blocks={stats.whole_block_replacements}"
-        f" partial_blocks={stats.partial_block_merges}"
-        f" conflict_blocks={stats.conflict_blocks}"
-        f" unchanged_blocks={stats.unchanged_blocks}"
-        f" output={output_path}"
+        f" matched_lines={summary['matched_lines']}"
+        f" whole_blocks={summary['whole_blocks']}"
+        f" partial_blocks={summary['partial_blocks']}"
+        f" conflict_blocks={summary['conflict_blocks']}"
+        f" unchanged_blocks={summary['unchanged_blocks']}"
+        f" output={summary['output']}"
     )
     return 0
 
