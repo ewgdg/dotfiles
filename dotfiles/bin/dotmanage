@@ -407,13 +407,47 @@ fi
 install_keys=()
 regular_update_paths=()
 template_update_keys=()
+declare -A regular_update_key_by_path=()
+declare -A regular_update_scope_by_path=()
+declined_update_backup_dir=""
+declare -a declined_update_backup_paths=()
+declare -a declined_update_source_paths=()
 
 record_regular_update_path() {
   local target_path="$1"
+  local target_key="${2:-}"
+  local target_scope="${3:-}"
   local normalized_path=""
+  local normalized_scope=""
+  local existing_scopes=""
 
   normalized_path="$(normalize_target_path "$target_path")"
-  regular_update_paths+=("$normalized_path")
+  if [[ -z "${regular_update_key_by_path[$normalized_path]+x}" ]]; then
+    regular_update_paths+=("$normalized_path")
+  fi
+
+  if [[ -n "$target_key" ]]; then
+    regular_update_key_by_path["$normalized_path"]="$target_key"
+  fi
+
+  if [[ -z "$target_scope" ]]; then
+    return
+  fi
+
+  normalized_scope="$(normalize_target_path "$target_scope")"
+  existing_scopes="${regular_update_scope_by_path[$normalized_path]:-}"
+
+  case $'\n'"$existing_scopes"$'\n' in
+    *$'\n'"$normalized_scope"$'\n'*)
+      ;;
+    *)
+      if [[ -n "$existing_scopes" ]]; then
+        existing_scopes+=$'\n'
+      fi
+      existing_scopes+="$normalized_scope"
+      regular_update_scope_by_path["$normalized_path"]="$existing_scopes"
+      ;;
+  esac
 }
 
 record_template_update_key() {
@@ -436,7 +470,7 @@ append_split_key() {
     if [[ "${effective_template_by_key[$split_key]:-0}" == "1" ]]; then
       record_template_update_key "$split_key"
     else
-      record_regular_update_path "$split_dst"
+      record_regular_update_path "$split_dst" "$split_key"
     fi
     return
   fi
@@ -444,23 +478,42 @@ append_split_key() {
   install_keys+=("$split_key")
 }
 
+find_matching_update_key_for_path() {
+  local requested_path="$1"
+  local known_key=""
+  local known_destination=""
+  local matched_key=""
+  local matched_length=0
+
+  for known_key in "${all_keys[@]}"; do
+    known_destination="${normalized_destination_by_key[$known_key]}"
+    if [[ "$requested_path" == "$known_destination" ]]; then
+      printf '%s\n' "$known_key"
+      return
+    fi
+
+    if [[ "$requested_path" == "$known_destination"/* ]]; then
+      if (( ${#known_destination} > matched_length )); then
+        matched_key="$known_key"
+        matched_length=${#known_destination}
+      fi
+    fi
+  done
+
+  printf '%s\n' "$matched_key"
+}
+
 if (( ${#explicit_targets[@]} > 0 )); then
   if [[ "$operation" == "update" && "$key_mode" != true ]]; then
     for requested_path in "${explicit_targets[@]}"; do
       normalized_requested_path="$(normalize_target_path "$requested_path")"
-      matched_key=""
-      for known_key in "${all_keys[@]}"; do
-        if [[ "${normalized_destination_by_key[$known_key]}" == "$normalized_requested_path" ]]; then
-          matched_key="$known_key"
-          break
-        fi
-      done
+      matched_key="$(find_matching_update_key_for_path "$normalized_requested_path")"
 
       if [[ -n "$matched_key" ]]; then
         if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
           record_template_update_key "$matched_key"
         else
-          record_regular_update_path "${destination_by_key[$matched_key]}"
+          record_regular_update_path "${destination_by_key[$matched_key]}" "$matched_key" "$normalized_requested_path"
         fi
       else
         record_regular_update_path "$normalized_requested_path"
@@ -511,6 +564,196 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
       ;;
   esac
 fi
+
+path_matches_update_scope() {
+  local candidate_path="$1"
+  local scope_list="$2"
+  local scope_path=""
+
+  if [[ -z "$scope_list" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r scope_path; do
+    [[ -n "$scope_path" ]] || continue
+    if [[ "$candidate_path" == "$scope_path" || "$candidate_path" == "$scope_path"/* ]]; then
+      return 0
+    fi
+  done <<< "$scope_list"
+
+  return 1
+}
+
+collect_update_overwrite_paths() {
+  local target_key="$1"
+  local source_path="${source_by_key[$target_key]:-}"
+  local live_path="${normalized_destination_by_key[$target_key]:-${destination_by_key[$target_key]:-}}"
+  local -n overwrite_paths_ref="$2"
+  local diff_output=""
+  local diff_line=""
+  local diff_exit_code=0
+  local relative_path=""
+
+  overwrite_paths_ref=()
+
+  if [[ -z "$source_path" || -z "$live_path" ]]; then
+    return 1
+  fi
+
+  if [[ -d "$source_path" || -d "$live_path" ]]; then
+    if [[ ! -d "$source_path" || ! -d "$live_path" ]]; then
+      return 1
+    fi
+
+    set +e
+    diff_output="$(diff -qr --no-dereference "$source_path" "$live_path")"
+    diff_exit_code=$?
+    set -e
+
+    if (( diff_exit_code == 0 || diff_exit_code > 1 )); then
+      return 1
+    fi
+
+    while IFS= read -r diff_line; do
+      [[ -n "$diff_line" ]] || continue
+
+      case "$diff_line" in
+        "Files $source_path/"*" and $live_path/"*" differ")
+          relative_path="${diff_line#Files $source_path/}"
+          relative_path="${relative_path%% and $live_path/*}"
+          overwrite_paths_ref+=("$live_path/$relative_path")
+          ;;
+      esac
+    done <<< "$diff_output"
+
+    if (( ${#overwrite_paths_ref[@]} == 0 )); then
+      return 1
+    fi
+
+    return 0
+  fi
+
+  if [[ ! -f "$source_path" || ! -f "$live_path" ]]; then
+    return 1
+  fi
+
+  if cmp -s -- "$source_path" "$live_path"; then
+    return 1
+  fi
+
+  overwrite_paths_ref+=("$live_path")
+  return 0
+}
+
+ensure_declined_update_backup_dir() {
+  if [[ -n "$declined_update_backup_dir" ]]; then
+    return
+  fi
+
+  declined_update_backup_dir="$(mktemp -d)"
+}
+
+backup_declined_update_path() {
+  local source_file_path="$1"
+  local live_file_path="$2"
+  local backup_index="${#declined_update_source_paths[@]}"
+  local backup_path=""
+
+  ensure_declined_update_backup_dir
+  backup_path="$declined_update_backup_dir/$backup_index"
+  cp -p -- "$source_file_path" "$backup_path"
+  cp -p -- "$live_file_path" "$source_file_path"
+  declined_update_backup_paths+=("$backup_path")
+  declined_update_source_paths+=("$source_file_path")
+}
+
+restore_declined_update_paths() {
+  local restore_idx=""
+  local backup_path=""
+  local source_file_path=""
+
+  if (( ${#declined_update_source_paths[@]} == 0 )); then
+    return
+  fi
+
+  for ((restore_idx = 0; restore_idx < ${#declined_update_source_paths[@]}; restore_idx++)); do
+    backup_path="${declined_update_backup_paths[$restore_idx]}"
+    source_file_path="${declined_update_source_paths[$restore_idx]}"
+    cp -p -- "$backup_path" "$source_file_path"
+  done
+}
+
+cleanup_declined_update_backups() {
+  if [[ -n "$declined_update_backup_dir" && -d "$declined_update_backup_dir" ]]; then
+    rm -rf -- "$declined_update_backup_dir"
+  fi
+}
+
+restore_declined_update_state() {
+  restore_declined_update_paths
+  cleanup_declined_update_backups
+}
+
+confirm_update_overwrite_targets() {
+  local target_path=""
+  local target_key=""
+  local target_scopes=""
+  local source_root=""
+  local live_root=""
+  local overwrite_path=""
+  local overwrite_relative_path=""
+  local source_file_path=""
+  local confirmation_answer=""
+  local -a overwrite_paths=()
+
+  if [[ "$operation" != "update" || "$force_mode" == true ]]; then
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    return
+  fi
+
+  for target_path in "${regular_update_paths[@]}"; do
+    target_key="${regular_update_key_by_path[$target_path]:-}"
+    target_scopes="${regular_update_scope_by_path[$target_path]:-}"
+
+    if [[ -z "$target_key" ]]; then
+      continue
+    fi
+
+    if ! collect_update_overwrite_paths "$target_key" overwrite_paths; then
+      continue
+    fi
+
+    source_root="${source_by_key[$target_key]}"
+    live_root="${normalized_destination_by_key[$target_key]:-${destination_by_key[$target_key]}}"
+
+    for overwrite_path in "${overwrite_paths[@]}"; do
+      overwrite_relative_path="${overwrite_path#"$live_root"/}"
+      if [[ -d "$source_root" ]]; then
+        source_file_path="$source_root/$overwrite_relative_path"
+      else
+        source_file_path="$source_root"
+      fi
+
+      if ! path_matches_update_scope "$overwrite_path" "$target_scopes"; then
+        backup_declined_update_path "$source_file_path" "$overwrite_path"
+        continue
+      fi
+
+      printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
+      read -r confirmation_answer
+      case "${confirmation_answer:-}" in
+        y|Y|yes|YES)
+          ;;
+        *)
+          backup_declined_update_path "$source_file_path" "$overwrite_path"
+          ;;
+      esac
+    done
+  done
+}
 
 print_phase_header() {
   local header_text="$1"
@@ -983,6 +1226,11 @@ if [[ "$operation" != "update" ]]; then
   run_named_phase "dotfiles" false "${non_privileged_install_keys[@]}"
   run_named_phase "dotfiles (sudo)" true "${privileged_install_keys[@]}"
   exit "$overall_exit_code"
+fi
+
+if [[ "$operation" == "update" ]]; then
+  trap restore_declined_update_state EXIT
+  confirm_update_overwrite_targets
 fi
 
 declare -a non_privileged_update_paths=()
