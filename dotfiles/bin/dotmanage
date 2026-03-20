@@ -38,7 +38,6 @@ key_mode=false
 force_mode=false
 profile_from_args=""
 update_ignore_patterns=()
-update_target_mode="keys"
 effective_profile=""
 config_path_from_args=""
 resolved_config_path=""
@@ -72,6 +71,28 @@ make_absolute_path() {
       printf '%s\n' "${PWD}/${expanded_path}"
       ;;
   esac
+}
+
+normalize_target_path() {
+  local absolute_path=""
+  local python_cmd=""
+
+  absolute_path="$(make_absolute_path "$1")"
+  if command -v realpath >/dev/null 2>&1; then
+    realpath -m -- "$absolute_path"
+    return
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python_cmd="python3"
+  elif command -v python >/dev/null 2>&1; then
+    python_cmd="python"
+  else
+    printf '%s\n' "$absolute_path"
+    return
+  fi
+
+  "$python_cmd" -c 'import os, sys; print(os.path.realpath(os.path.abspath(sys.argv[1])))' "$absolute_path"
 }
 
 matches_ignore_pattern() {
@@ -343,6 +364,7 @@ all_keys=()
 all_dsts=()
 declare -A source_by_key=()
 declare -A destination_by_key=()
+declare -A normalized_destination_by_key=()
 declare -A effective_template_by_key=()
 while IFS= read -r line; do
   [[ "$line" == *,dst:* ]] || continue
@@ -358,6 +380,7 @@ while IFS= read -r line; do
   all_dsts+=("$dst")
   source_by_key["$key"]="$src"
   destination_by_key["$key"]="$dst"
+  normalized_destination_by_key["$key"]="$(normalize_target_path "$dst")"
 done <<< "$dotfiles_output"
 
 if [[ "$operation" == "update" ]]; then
@@ -383,40 +406,32 @@ fi
 
 user_keys=()
 system_keys=()
-regular_user_keys=()
-regular_system_keys=()
 regular_user_paths=()
 regular_system_paths=()
 template_user_keys=()
 template_system_keys=()
 
-record_update_target() {
-  local target_kind="$1"
-  local target_value="$2"
-  local target_dst="$3"
-  local target_src="$4"
+record_regular_update_path() {
+  local target_path="$1"
+  local normalized_path=""
 
-  if [[ "$target_kind" == "key" ]] && [[ "${effective_template_by_key[$target_value]:-0}" == "1" ]]; then
-    if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
-      template_user_keys+=("$target_value")
-    else
-      template_system_keys+=("$target_value")
-    fi
-    return
+  normalized_path="$(normalize_target_path "$target_path")"
+
+  if [[ "$normalized_path" == "$HOME" || "$normalized_path" == "$HOME/"* ]]; then
+    regular_user_paths+=("$normalized_path")
+  else
+    regular_system_paths+=("$normalized_path")
   fi
+}
+
+record_template_update_key() {
+  local target_key="$1"
+  local target_dst="${normalized_destination_by_key[$target_key]}"
 
   if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
-    if [[ "$target_kind" == "key" ]]; then
-      regular_user_keys+=("$target_value")
-    else
-      regular_user_paths+=("$target_value")
-    fi
+    template_user_keys+=("$target_key")
   else
-    if [[ "$target_kind" == "key" ]]; then
-      regular_system_keys+=("$target_value")
-    else
-      regular_system_paths+=("$target_value")
-    fi
+    template_system_keys+=("$target_key")
   fi
 }
 
@@ -432,7 +447,11 @@ append_split_key() {
   fi
 
   if [[ "$operation" == "update" ]]; then
-    record_update_target "key" "$split_key" "$split_dst" "$split_src"
+    if [[ "${effective_template_by_key[$split_key]:-0}" == "1" ]]; then
+      record_template_update_key "$split_key"
+    else
+      record_regular_update_path "$split_dst"
+    fi
     return
   fi
 
@@ -445,13 +464,11 @@ append_split_key() {
 
 if (( ${#explicit_targets[@]} > 0 )); then
   if [[ "$operation" == "update" && "$key_mode" != true ]]; then
-    update_target_mode="paths"
-
     for requested_path in "${explicit_targets[@]}"; do
-      expanded_path="$(expand_home_path "$requested_path")"
+      normalized_requested_path="$(normalize_target_path "$requested_path")"
       matched_key=""
       for known_key in "${all_keys[@]}"; do
-        if [[ "${destination_by_key[$known_key]}" == "$expanded_path" ]]; then
+        if [[ "${normalized_destination_by_key[$known_key]}" == "$normalized_requested_path" ]]; then
           matched_key="$known_key"
           break
         fi
@@ -459,18 +476,12 @@ if (( ${#explicit_targets[@]} > 0 )); then
 
       if [[ -n "$matched_key" ]]; then
         if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
-          if [[ "${destination_by_key[$matched_key]}" == "$HOME" || "${destination_by_key[$matched_key]}" == "$HOME/"* ]]; then
-            template_user_keys+=("$matched_key")
-          else
-            template_system_keys+=("$matched_key")
-          fi
+          record_template_update_key "$matched_key"
         else
-          record_update_target "path" "$requested_path" "${destination_by_key[$matched_key]}" "${source_by_key[$matched_key]}"
+          record_regular_update_path "${destination_by_key[$matched_key]}"
         fi
-      elif [[ "$expanded_path" == "$HOME" || "$expanded_path" == "$HOME/"* ]]; then
-        regular_user_paths+=("$requested_path")
       else
-        regular_system_paths+=("$requested_path")
+        record_regular_update_path "$normalized_requested_path"
       fi
     done
   else
@@ -531,18 +542,18 @@ print_phase_header() {
 }
 
 build_compare_focus_args() {
-  local target_mode="$1"
-  shift
   local operation_targets=("$@")
   local focus_target=""
+  local compare_path=""
   local -a compare_focus_args=()
 
   for focus_target in "${operation_targets[@]}"; do
-    if [[ "$target_mode" == "keys" ]]; then
-      compare_focus_args+=(-C "${destination_by_key[$focus_target]}")
+    if [[ -n "${normalized_destination_by_key[$focus_target]+x}" ]]; then
+      compare_path="${normalized_destination_by_key[$focus_target]}"
     else
-      compare_focus_args+=(-C "$focus_target")
+      compare_path="$focus_target"
     fi
+    compare_focus_args+=(-C "$compare_path")
   done
 
   printf '%s\0' "${compare_focus_args[@]}"
@@ -570,8 +581,6 @@ path_needs_sudo_read() {
 }
 
 system_phase_needs_run() {
-  local target_mode="$1"
-  shift
   local operation_targets=("$@")
   local compare_output=""
   local compare_exit_code=0
@@ -586,7 +595,7 @@ system_phase_needs_run() {
   compare_call+=("${files_args[@]}")
   while IFS= read -r -d '' compare_arg; do
     compare_focus_args+=("$compare_arg")
-  done < <(build_compare_focus_args "$target_mode" "${operation_targets[@]}")
+  done < <(build_compare_focus_args "${operation_targets[@]}")
   compare_call+=("${compare_focus_args[@]}")
 
   set +e
@@ -617,15 +626,14 @@ system_phase_needs_run() {
 
 run_operation_for_targets() {
   local run_with_sudo="$1"
-  local target_mode="$2"
-  shift 2
+  shift
   local operation_targets=("$@")
   local dotdrop_call=("$dotdrop_cmd" "$operation" -b)
 
   dotdrop_call+=("${base_args[@]}")
 
-  if [[ "$operation" == "update" && "$target_mode" == "keys" ]]; then
-    dotdrop_call+=(-k "${operation_targets[@]}")
+  if [[ "$operation" == "install" ]]; then
+    dotdrop_call+=("${operation_targets[@]}")
   else
     dotdrop_call+=("${operation_targets[@]}")
   fi
@@ -662,12 +670,10 @@ print_noop_phase_summary() {
 }
 
 split_update_targets_by_sudo_need() {
-  local target_mode="$1"
-  local readable_name="$2"
-  local sudo_name="$3"
-  shift 3
+  local readable_name="$1"
+  local sudo_name="$2"
+  shift 2
   local phase_target=""
-  local target_path=""
   local -n readable_targets_ref="$readable_name"
   local -n sudo_targets_ref="$sudo_name"
 
@@ -675,13 +681,7 @@ split_update_targets_by_sudo_need() {
   sudo_targets_ref=()
 
   for phase_target in "$@"; do
-    if [[ "$target_mode" == "keys" ]]; then
-      target_path="${destination_by_key[$phase_target]}"
-    else
-      target_path="$phase_target"
-    fi
-
-    if path_needs_sudo_read "$target_path"; then
+    if path_needs_sudo_read "$phase_target"; then
       sudo_targets_ref+=("$phase_target")
     else
       readable_targets_ref+=("$phase_target")
@@ -694,8 +694,7 @@ last_template_update_changed=false
 run_phase_operation() {
   local phase_name="$1"
   local run_with_sudo="$2"
-  local target_mode="$3"
-  shift 3
+  shift 2
   local phase_targets=("$@")
   local phase_exit_code=0
 
@@ -704,7 +703,7 @@ run_phase_operation() {
   fi
 
   set +e
-  run_operation_for_targets "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
+  run_operation_for_targets "$run_with_sudo" "${phase_targets[@]}"
   phase_exit_code=$?
   set -e
 
@@ -719,8 +718,7 @@ run_phase_operation() {
 run_named_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
-  local target_mode="$3"
-  shift 3
+  shift 2
   local phase_targets=("$@")
   local operation_verb=""
 
@@ -742,20 +740,19 @@ run_named_phase() {
 
   print_phase_header "$operation_verb $phase_name"
 
-  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "$target_mode" "${phase_targets[@]}"; then
+  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "${phase_targets[@]}"; then
     print_noop_phase_summary "${#phase_targets[@]}"
     return
   fi
 
-  run_phase_operation "$phase_name" "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
+  run_phase_operation "$phase_name" "$run_with_sudo" "${phase_targets[@]}"
 }
 
 run_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
-  local target_mode="$3"
-  shift 3
-  run_named_phase "$phase_name dotfiles" "$run_with_sudo" "$target_mode" "$@"
+  shift 2
+  run_named_phase "$phase_name dotfiles" "$run_with_sudo" "$@"
 }
 
 run_template_update_for_key() {
@@ -877,7 +874,7 @@ run_template_phase() {
     return
   fi
 
-  if [[ "$phase_name" == "system" ]] && ! system_phase_needs_run "keys" "${template_keys[@]}"; then
+  if [[ "$phase_name" == "system" ]] && ! system_phase_needs_run "${template_keys[@]}"; then
     return
   fi
 
@@ -929,26 +926,20 @@ run_template_phase() {
 }
 
 if [[ "$operation" != "update" ]]; then
-  run_phase "user" false "keys" "${user_keys[@]}"
-  run_phase "system" true "keys" "${system_keys[@]}"
+  run_phase "user" false "${user_keys[@]}"
+  run_phase "system" true "${system_keys[@]}"
   exit "$overall_exit_code"
 fi
 
-declare -a readable_system_key_targets=()
-declare -a sudo_system_key_targets=()
-declare -a readable_system_path_targets=()
-declare -a sudo_system_path_targets=()
+declare -a readable_system_targets=()
+declare -a sudo_system_targets=()
 
-split_update_targets_by_sudo_need "keys" readable_system_key_targets sudo_system_key_targets "${regular_system_keys[@]}"
-split_update_targets_by_sudo_need "paths" readable_system_path_targets sudo_system_path_targets "${regular_system_paths[@]}"
+split_update_targets_by_sudo_need readable_system_targets sudo_system_targets "${regular_system_paths[@]}"
 
-run_phase "user" false "keys" "${regular_user_keys[@]}"
-run_phase "user" false "paths" "${regular_user_paths[@]}"
+run_phase "user" false "${regular_user_paths[@]}"
 run_template_phase "user" "${template_user_keys[@]}"
-run_phase "system" false "keys" "${readable_system_key_targets[@]}"
-run_phase "system" false "paths" "${readable_system_path_targets[@]}"
-run_named_phase "system dotfiles (sudo)" true "keys" "${sudo_system_key_targets[@]}"
-run_named_phase "system dotfiles (sudo)" true "paths" "${sudo_system_path_targets[@]}"
+run_phase "system" false "${readable_system_targets[@]}"
+run_named_phase "system dotfiles (sudo)" true "${sudo_system_targets[@]}"
 run_template_phase "system" "${template_system_keys[@]}"
 
 exit "$overall_exit_code"
