@@ -721,6 +721,7 @@ run_named_phase() {
   shift 2
   local phase_targets=("$@")
   local operation_verb=""
+  local should_preflight=false
 
   if (( ${#phase_targets[@]} == 0 )); then
     return
@@ -740,7 +741,11 @@ run_named_phase() {
 
   print_phase_header "$operation_verb $phase_name"
 
-  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "${phase_targets[@]}"; then
+  if [[ "$operation" == "install" && "$run_with_sudo" == "true" ]]; then
+    should_preflight=true
+  fi
+
+  if [[ "$should_preflight" == "true" ]] && ! system_phase_needs_run "${phase_targets[@]}"; then
     print_noop_phase_summary "${#phase_targets[@]}"
     return
   fi
@@ -760,7 +765,6 @@ run_template_update_for_key() {
   local target_src="${source_by_key[$key_name]}"
   local target_dst="${destination_by_key[$key_name]}"
   local live_input="$target_dst"
-  local temp_live=""
   local helper_output=""
   local helper_output_compact=""
   local matched_lines=""
@@ -786,23 +790,16 @@ run_template_update_for_key() {
     return 1
   fi
 
-  if path_needs_sudo_read "$target_dst"; then
-    temp_live="$(mktemp "${TMPDIR:-/tmp}/dotmanage-template-live.XXXXXX")"
-    if ! sudo cat "$target_dst" >"$temp_live"; then
-      rm -f "$temp_live"
-      return 1
-    fi
-    live_input="$temp_live"
-  fi
-
   set +e
-  helper_output="$(uv run "$template_update_script" "$target_src" "$live_input" --in-place --json)"
+  if path_needs_sudo_read "$target_dst"; then
+    helper_output="$(
+      sudo cat "$target_dst" | uv run "$template_update_script" "$target_src" - --in-place --json
+    )"
+  else
+    helper_output="$(uv run "$template_update_script" "$target_src" "$live_input" --in-place --json)"
+  fi
   local update_exit_code=$?
   set -e
-
-  if [[ -n "$temp_live" ]]; then
-    rm -f "$temp_live"
-  fi
 
   if (( update_exit_code != 0 )); then
     return "$update_exit_code"
@@ -871,10 +868,6 @@ run_template_phase() {
   local failed_count=0
 
   if (( ${#template_keys[@]} == 0 )); then
-    return
-  fi
-
-  if [[ "$phase_name" == "system" ]] && ! system_phase_needs_run "${template_keys[@]}"; then
     return
   fi
 

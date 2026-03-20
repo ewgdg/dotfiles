@@ -6,6 +6,7 @@ import argparse
 import difflib
 import json
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -52,7 +53,11 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("template_path", type=Path, help="Template source file in the repo.")
-    parser.add_argument("live_path", type=Path, help="Rendered file from the live filesystem.")
+    parser.add_argument(
+        "live_path",
+        type=Path,
+        help="Rendered file from the live filesystem, or '-' to read the live content from stdin.",
+    )
     parser.add_argument(
         "output_path",
         nargs="?",
@@ -98,6 +103,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_lines(path: Path) -> list[str]:
+    if str(path) == "-":
+        return sys.stdin.read().splitlines(keepends=True)
     return path.read_text(encoding="utf-8").splitlines(keepends=True)
 
 

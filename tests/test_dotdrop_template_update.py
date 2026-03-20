@@ -283,3 +283,47 @@ after
     assert payload["changed"] is False
     assert payload["matched_lines"] == 3
     assert result.stderr == ""
+
+
+def test_json_mode_accepts_live_input_from_stdin(tmp_path: Path) -> None:
+    template_path = tmp_path / "template"
+
+    template_path.write_text(
+        """start
+{%@@ if os == "linux" @@%}
+foo
+{%@@ endif @@%}
+end
+""",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(template_path),
+            "-",
+            "--in-place",
+            "--json",
+        ],
+        input="""start
+bar
+end
+""",
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["changed"] is True
+    assert payload["whole_blocks"] == 1
+    assert template_path.read_text(encoding="utf-8") == """start
+{%@@ if os == "linux" @@%}
+bar
+{%@@ endif @@%}
+end
+"""
+    assert result.stderr == ""
