@@ -404,35 +404,21 @@ if [[ "$operation" == "update" ]]; then
   done <<< "$detail_output"
 fi
 
-user_keys=()
-system_keys=()
-regular_user_paths=()
-regular_system_paths=()
-template_user_keys=()
-template_system_keys=()
+install_keys=()
+regular_update_paths=()
+template_update_keys=()
 
 record_regular_update_path() {
   local target_path="$1"
   local normalized_path=""
 
   normalized_path="$(normalize_target_path "$target_path")"
-
-  if [[ "$normalized_path" == "$HOME" || "$normalized_path" == "$HOME/"* ]]; then
-    regular_user_paths+=("$normalized_path")
-  else
-    regular_system_paths+=("$normalized_path")
-  fi
+  regular_update_paths+=("$normalized_path")
 }
 
 record_template_update_key() {
   local target_key="$1"
-  local target_dst="${normalized_destination_by_key[$target_key]}"
-
-  if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
-    template_user_keys+=("$target_key")
-  else
-    template_system_keys+=("$target_key")
-  fi
+  template_update_keys+=("$target_key")
 }
 
 append_split_key() {
@@ -455,11 +441,7 @@ append_split_key() {
     return
   fi
 
-  if [[ "$split_dst" == "$HOME" || "$split_dst" == "$HOME/"* ]]; then
-    user_keys+=("$split_key")
-  else
-    system_keys+=("$split_key")
-  fi
+  install_keys+=("$split_key")
 }
 
 if (( ${#explicit_targets[@]} > 0 )); then
@@ -559,7 +541,7 @@ build_compare_focus_args() {
   printf '%s\0' "${compare_focus_args[@]}"
 }
 
-path_needs_sudo_read() {
+path_needs_privileged_read() {
   local target_path="$1"
 
   if [[ ! -e "$target_path" ]]; then
@@ -574,6 +556,40 @@ path_needs_sudo_read() {
   fi
 
   if [[ ! -r "$target_path" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+path_needs_privileged_write() {
+  local target_path="$1"
+  local probe_path="$target_path"
+
+  if [[ -e "$probe_path" ]]; then
+    if [[ -d "$probe_path" ]]; then
+      if [[ ! -w "$probe_path" || ! -x "$probe_path" ]]; then
+        return 0
+      fi
+      return 1
+    fi
+
+    if [[ ! -w "$probe_path" ]]; then
+      return 0
+    fi
+    return 1
+  fi
+
+  probe_path="$(dirname -- "$probe_path")"
+  while [[ ! -e "$probe_path" && "$probe_path" != "/" ]]; do
+    probe_path="$(dirname -- "$probe_path")"
+  done
+
+  if [[ ! -d "$probe_path" ]]; then
+    return 0
+  fi
+
+  if [[ ! -w "$probe_path" || ! -x "$probe_path" ]]; then
     return 0
   fi
 
@@ -669,22 +685,66 @@ print_noop_phase_summary() {
   printf '%d file(s) processed, 0 %s\n' "$processed_count" "$result_verb"
 }
 
-split_update_targets_by_sudo_need() {
-  local readable_name="$1"
-  local sudo_name="$2"
+split_paths_by_required_read_privilege() {
+  local non_privileged_name="$1"
+  local privileged_name="$2"
   shift 2
   local phase_target=""
-  local -n readable_targets_ref="$readable_name"
-  local -n sudo_targets_ref="$sudo_name"
+  local -n non_privileged_targets_ref="$non_privileged_name"
+  local -n privileged_targets_ref="$privileged_name"
 
-  readable_targets_ref=()
-  sudo_targets_ref=()
+  non_privileged_targets_ref=()
+  privileged_targets_ref=()
 
   for phase_target in "$@"; do
-    if path_needs_sudo_read "$phase_target"; then
-      sudo_targets_ref+=("$phase_target")
+    if path_needs_privileged_read "$phase_target"; then
+      privileged_targets_ref+=("$phase_target")
     else
-      readable_targets_ref+=("$phase_target")
+      non_privileged_targets_ref+=("$phase_target")
+    fi
+  done
+}
+
+split_keys_by_required_read_privilege() {
+  local non_privileged_name="$1"
+  local privileged_name="$2"
+  shift 2
+  local target_key=""
+  local target_dst=""
+  local -n non_privileged_keys_ref="$non_privileged_name"
+  local -n privileged_keys_ref="$privileged_name"
+
+  non_privileged_keys_ref=()
+  privileged_keys_ref=()
+
+  for target_key in "$@"; do
+    target_dst="${normalized_destination_by_key[$target_key]}"
+    if path_needs_privileged_read "$target_dst"; then
+      privileged_keys_ref+=("$target_key")
+    else
+      non_privileged_keys_ref+=("$target_key")
+    fi
+  done
+}
+
+split_keys_by_required_write_privilege() {
+  local non_privileged_name="$1"
+  local privileged_name="$2"
+  shift 2
+  local target_key=""
+  local target_dst=""
+  local -n non_privileged_keys_ref="$non_privileged_name"
+  local -n privileged_keys_ref="$privileged_name"
+
+  non_privileged_keys_ref=()
+  privileged_keys_ref=()
+
+  for target_key in "$@"; do
+    target_dst="${normalized_destination_by_key[$target_key]}"
+    if path_needs_privileged_write "$target_dst"; then
+      privileged_keys_ref+=("$target_key")
+    else
+      non_privileged_keys_ref+=("$target_key")
     fi
   done
 }
@@ -753,17 +813,10 @@ run_named_phase() {
   run_phase_operation "$phase_name" "$run_with_sudo" "${phase_targets[@]}"
 }
 
-run_phase() {
-  local phase_name="$1"
-  local run_with_sudo="$2"
-  shift 2
-  run_named_phase "$phase_name dotfiles" "$run_with_sudo" "$@"
-}
-
 run_template_update_for_key() {
   local key_name="$1"
   local target_src="${source_by_key[$key_name]}"
-  local target_dst="${destination_by_key[$key_name]}"
+  local target_dst="${normalized_destination_by_key[$key_name]:-${destination_by_key[$key_name]}}"
   local live_input="$target_dst"
   local helper_output=""
   local helper_output_compact=""
@@ -791,7 +844,7 @@ run_template_update_for_key() {
   fi
 
   set +e
-  if path_needs_sudo_read "$target_dst"; then
+  if path_needs_privileged_read "$target_dst"; then
     helper_output="$(
       sudo cat "$target_dst" | uv run "$template_update_script" "$target_src" - --in-place --json
     )"
@@ -883,7 +936,7 @@ run_template_phase() {
       ;;
   esac
 
-  print_phase_header "$operation_verb $phase_name dotfiles (template-aware)"
+  print_phase_header "$operation_verb $phase_name"
 
   for key_name in "${template_keys[@]}"; do
     set +e
@@ -919,20 +972,36 @@ run_template_phase() {
 }
 
 if [[ "$operation" != "update" ]]; then
-  run_phase "user" false "${user_keys[@]}"
-  run_phase "system" true "${system_keys[@]}"
+  declare -a non_privileged_install_keys=()
+  declare -a privileged_install_keys=()
+
+  split_keys_by_required_write_privilege \
+    non_privileged_install_keys \
+    privileged_install_keys \
+    "${install_keys[@]}"
+
+  run_named_phase "dotfiles" false "${non_privileged_install_keys[@]}"
+  run_named_phase "dotfiles (sudo)" true "${privileged_install_keys[@]}"
   exit "$overall_exit_code"
 fi
 
-declare -a readable_system_targets=()
-declare -a sudo_system_targets=()
+declare -a non_privileged_update_paths=()
+declare -a privileged_update_paths=()
+declare -a non_privileged_template_keys=()
+declare -a privileged_template_keys=()
 
-split_update_targets_by_sudo_need readable_system_targets sudo_system_targets "${regular_system_paths[@]}"
+split_paths_by_required_read_privilege \
+  non_privileged_update_paths \
+  privileged_update_paths \
+  "${regular_update_paths[@]}"
+split_keys_by_required_read_privilege \
+  non_privileged_template_keys \
+  privileged_template_keys \
+  "${template_update_keys[@]}"
 
-run_phase "user" false "${regular_user_paths[@]}"
-run_template_phase "user" "${template_user_keys[@]}"
-run_phase "system" false "${readable_system_targets[@]}"
-run_named_phase "system dotfiles (sudo)" true "${sudo_system_targets[@]}"
-run_template_phase "system" "${template_system_keys[@]}"
+run_named_phase "dotfiles" false "${non_privileged_update_paths[@]}"
+run_named_phase "dotfiles (sudo)" true "${privileged_update_paths[@]}"
+run_template_phase "dotfiles (template-aware)" "${non_privileged_template_keys[@]}"
+run_template_phase "dotfiles (template-aware, sudo)" "${privileged_template_keys[@]}"
 
 exit "$overall_exit_code"
