@@ -642,6 +642,25 @@ run_operation_for_targets() {
 
 }
 
+print_noop_phase_summary() {
+  local processed_count="$1"
+  local result_verb=""
+
+  case "$operation" in
+    install)
+      result_verb="installed"
+      ;;
+    update)
+      result_verb="updated"
+      ;;
+    *)
+      result_verb="$operation"
+      ;;
+  esac
+
+  printf '%d file(s) processed, 0 %s\n' "$processed_count" "$result_verb"
+}
+
 split_update_targets_by_sudo_need() {
   local target_mode="$1"
   local readable_name="$2"
@@ -697,7 +716,7 @@ run_phase_operation() {
   fi
 }
 
-run_phase() {
+run_named_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
   local target_mode="$3"
@@ -706,10 +725,6 @@ run_phase() {
   local operation_verb=""
 
   if (( ${#phase_targets[@]} == 0 )); then
-    return
-  fi
-
-  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "$target_mode" "${phase_targets[@]}"; then
     return
   fi
 
@@ -725,45 +740,22 @@ run_phase() {
       ;;
   esac
 
-  print_phase_header "$operation_verb $phase_name dotfiles"
+  print_phase_header "$operation_verb $phase_name"
+
+  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "$target_mode" "${phase_targets[@]}"; then
+    print_noop_phase_summary "${#phase_targets[@]}"
+    return
+  fi
+
   run_phase_operation "$phase_name" "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
 }
 
-run_system_update_phase() {
-  local target_mode="$1"
-  shift
-  local phase_targets=("$@")
-  local operation_verb="updating"
-  local -a readable_targets=()
-  local -a sudo_targets=()
-  local should_run_readable=false
-  local should_run_sudo=false
-
-  if (( ${#phase_targets[@]} == 0 )); then
-    return
-  fi
-
-  split_update_targets_by_sudo_need "$target_mode" readable_targets sudo_targets "${phase_targets[@]}"
-
-  if (( ${#readable_targets[@]} > 0 )) && system_phase_needs_run "$target_mode" "${readable_targets[@]}"; then
-    should_run_readable=true
-  fi
-  if (( ${#sudo_targets[@]} > 0 )) && system_phase_needs_run "$target_mode" "${sudo_targets[@]}"; then
-    should_run_sudo=true
-  fi
-
-  if [[ "$should_run_readable" != true && "$should_run_sudo" != true ]]; then
-    return
-  fi
-
-  print_phase_header "$operation_verb system dotfiles"
-
-  if [[ "$should_run_readable" == true ]]; then
-    run_phase_operation "system" false "$target_mode" "${readable_targets[@]}"
-  fi
-  if [[ "$should_run_sudo" == true ]]; then
-    run_phase_operation "system" true "$target_mode" "${sudo_targets[@]}"
-  fi
+run_phase() {
+  local phase_name="$1"
+  local run_with_sudo="$2"
+  local target_mode="$3"
+  shift 3
+  run_named_phase "$phase_name dotfiles" "$run_with_sudo" "$target_mode" "$@"
 }
 
 run_template_update_for_key() {
@@ -942,11 +934,21 @@ if [[ "$operation" != "update" ]]; then
   exit "$overall_exit_code"
 fi
 
+declare -a readable_system_key_targets=()
+declare -a sudo_system_key_targets=()
+declare -a readable_system_path_targets=()
+declare -a sudo_system_path_targets=()
+
+split_update_targets_by_sudo_need "keys" readable_system_key_targets sudo_system_key_targets "${regular_system_keys[@]}"
+split_update_targets_by_sudo_need "paths" readable_system_path_targets sudo_system_path_targets "${regular_system_paths[@]}"
+
 run_phase "user" false "keys" "${regular_user_keys[@]}"
 run_phase "user" false "paths" "${regular_user_paths[@]}"
 run_template_phase "user" "${template_user_keys[@]}"
-run_system_update_phase "keys" "${regular_system_keys[@]}"
-run_system_update_phase "paths" "${regular_system_paths[@]}"
+run_phase "system" false "keys" "${readable_system_key_targets[@]}"
+run_phase "system" false "paths" "${readable_system_path_targets[@]}"
+run_named_phase "system dotfiles (sudo)" true "keys" "${sudo_system_key_targets[@]}"
+run_named_phase "system dotfiles (sudo)" true "paths" "${sudo_system_path_targets[@]}"
 run_template_phase "system" "${template_system_keys[@]}"
 
 exit "$overall_exit_code"
