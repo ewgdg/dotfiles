@@ -18,7 +18,8 @@
 
 ## Privileged Commands
 
-- use `sudo -A` when execute commands with a non-interactive shell
+- When the agent executes a privileged command through a non-interactive shell, prefer `sudo -A`.
+- Do not apply this rule to repository scripts or command examples meant for normal interactive user use.
 
 ## Code Quality
 
