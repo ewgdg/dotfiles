@@ -276,9 +276,9 @@ dotfiles:
     src: npmrc
     dst: ~/.npmrc
     chmod: '600'
-  fake_rustup_toolchain:
-    src:
-    dst:
+  f_local_state_dotdrop_rustup-installed:
+    src: local/state/dotdrop/rustup-installed
+    dst: ~/.local/state/dotdrop/rustup-installed
     actions:
     - sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_rustup.sh'
   f_zprofile:
@@ -420,7 +420,7 @@ profiles:
     - f_npmrc
   toolchain_rust:
     dotfiles:
-    - fake_rustup_toolchain
+    - f_local_state_dotdrop_rustup-installed
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
