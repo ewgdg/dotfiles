@@ -530,6 +530,91 @@ print_phase_header() {
   printf '\n==> %s\n\n' "$header_text"
 }
 
+build_compare_focus_args() {
+  local target_mode="$1"
+  shift
+  local operation_targets=("$@")
+  local focus_target=""
+  local -a compare_focus_args=()
+
+  for focus_target in "${operation_targets[@]}"; do
+    if [[ "$target_mode" == "keys" ]]; then
+      compare_focus_args+=(-C "${destination_by_key[$focus_target]}")
+    else
+      compare_focus_args+=(-C "$focus_target")
+    fi
+  done
+
+  printf '%s\0' "${compare_focus_args[@]}"
+}
+
+path_needs_sudo_read() {
+  local target_path="$1"
+
+  if [[ ! -e "$target_path" ]]; then
+    return 1
+  fi
+
+  if [[ -d "$target_path" ]]; then
+    if [[ ! -r "$target_path" || ! -x "$target_path" ]]; then
+      return 0
+    fi
+    return 1
+  fi
+
+  if [[ ! -r "$target_path" ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+system_phase_needs_run() {
+  local target_mode="$1"
+  shift
+  local operation_targets=("$@")
+  local compare_output=""
+  local compare_exit_code=0
+  local compare_line=""
+  local -a compare_call=("$dotdrop_cmd" compare -L -b)
+  local -a compare_focus_args=()
+
+  if (( ${#operation_targets[@]} == 0 )); then
+    return 1
+  fi
+
+  compare_call+=("${files_args[@]}")
+  while IFS= read -r -d '' compare_arg; do
+    compare_focus_args+=("$compare_arg")
+  done < <(build_compare_focus_args "$target_mode" "${operation_targets[@]}")
+  compare_call+=("${compare_focus_args[@]}")
+
+  set +e
+  compare_output="$("${compare_call[@]}" 2>&1)"
+  compare_exit_code=$?
+  set -e
+
+  if (( compare_exit_code != 0 )); then
+    return 0
+  fi
+
+  while IFS= read -r compare_line; do
+    case "$compare_line" in
+      ""|' '*)
+        continue
+        ;;
+      *' dotfile(s) compared.')
+        continue
+        ;;
+      *)
+        return 0
+        ;;
+    esac
+  done <<< "$compare_output"
+
+  return 1
+}
+
 run_operation_for_targets() {
   local run_with_sudo="$1"
   local target_mode="$2"
@@ -557,8 +642,61 @@ run_operation_for_targets() {
 
 }
 
+split_update_targets_by_sudo_need() {
+  local target_mode="$1"
+  local readable_name="$2"
+  local sudo_name="$3"
+  shift 3
+  local phase_target=""
+  local target_path=""
+  local -n readable_targets_ref="$readable_name"
+  local -n sudo_targets_ref="$sudo_name"
+
+  readable_targets_ref=()
+  sudo_targets_ref=()
+
+  for phase_target in "$@"; do
+    if [[ "$target_mode" == "keys" ]]; then
+      target_path="${destination_by_key[$phase_target]}"
+    else
+      target_path="$phase_target"
+    fi
+
+    if path_needs_sudo_read "$target_path"; then
+      sudo_targets_ref+=("$phase_target")
+    else
+      readable_targets_ref+=("$phase_target")
+    fi
+  done
+}
+
 overall_exit_code=0
 last_template_update_changed=false
+run_phase_operation() {
+  local phase_name="$1"
+  local run_with_sudo="$2"
+  local target_mode="$3"
+  shift 3
+  local phase_targets=("$@")
+  local phase_exit_code=0
+
+  if (( ${#phase_targets[@]} == 0 )); then
+    return
+  fi
+
+  set +e
+  run_operation_for_targets "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
+  phase_exit_code=$?
+  set -e
+
+  if (( phase_exit_code != 0 )); then
+    echo "$phase_name phase exited with status $phase_exit_code" >&2
+    if (( overall_exit_code == 0 )); then
+      overall_exit_code=$phase_exit_code
+    fi
+  fi
+}
+
 run_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
@@ -568,6 +706,10 @@ run_phase() {
   local operation_verb=""
 
   if (( ${#phase_targets[@]} == 0 )); then
+    return
+  fi
+
+  if [[ "$run_with_sudo" == "true" ]] && ! system_phase_needs_run "$target_mode" "${phase_targets[@]}"; then
     return
   fi
 
@@ -584,17 +726,43 @@ run_phase() {
   esac
 
   print_phase_header "$operation_verb $phase_name dotfiles"
+  run_phase_operation "$phase_name" "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
+}
 
-  set +e
-  run_operation_for_targets "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
-  local phase_exit_code=$?
-  set -e
+run_system_update_phase() {
+  local target_mode="$1"
+  shift
+  local phase_targets=("$@")
+  local operation_verb="updating"
+  local -a readable_targets=()
+  local -a sudo_targets=()
+  local should_run_readable=false
+  local should_run_sudo=false
 
-  if (( phase_exit_code != 0 )); then
-    echo "$phase_name phase exited with status $phase_exit_code" >&2
-    if (( overall_exit_code == 0 )); then
-      overall_exit_code=$phase_exit_code
-    fi
+  if (( ${#phase_targets[@]} == 0 )); then
+    return
+  fi
+
+  split_update_targets_by_sudo_need "$target_mode" readable_targets sudo_targets "${phase_targets[@]}"
+
+  if (( ${#readable_targets[@]} > 0 )) && system_phase_needs_run "$target_mode" "${readable_targets[@]}"; then
+    should_run_readable=true
+  fi
+  if (( ${#sudo_targets[@]} > 0 )) && system_phase_needs_run "$target_mode" "${sudo_targets[@]}"; then
+    should_run_sudo=true
+  fi
+
+  if [[ "$should_run_readable" != true && "$should_run_sudo" != true ]]; then
+    return
+  fi
+
+  print_phase_header "$operation_verb system dotfiles"
+
+  if [[ "$should_run_readable" == true ]]; then
+    run_phase_operation "system" false "$target_mode" "${readable_targets[@]}"
+  fi
+  if [[ "$should_run_sudo" == true ]]; then
+    run_phase_operation "system" true "$target_mode" "${sudo_targets[@]}"
   fi
 }
 
@@ -629,7 +797,7 @@ run_template_update_for_key() {
     return 1
   fi
 
-  if [[ "$target_dst" != "$HOME" && "$target_dst" != "$HOME/"* ]]; then
+  if path_needs_sudo_read "$target_dst"; then
     temp_live="$(mktemp "${TMPDIR:-/tmp}/dotmanage-template-live.XXXXXX")"
     if ! sudo cat "$target_dst" >"$temp_live"; then
       rm -f "$temp_live"
@@ -717,6 +885,10 @@ run_template_phase() {
     return
   fi
 
+  if [[ "$phase_name" == "system" ]] && ! system_phase_needs_run "keys" "${template_keys[@]}"; then
+    return
+  fi
+
   case "$operation" in
     install)
       operation_verb="installing"
@@ -773,8 +945,8 @@ fi
 run_phase "user" false "keys" "${regular_user_keys[@]}"
 run_phase "user" false "paths" "${regular_user_paths[@]}"
 run_template_phase "user" "${template_user_keys[@]}"
-run_phase "system" true "keys" "${regular_system_keys[@]}"
-run_phase "system" true "paths" "${regular_system_paths[@]}"
+run_system_update_phase "keys" "${regular_system_keys[@]}"
+run_system_update_phase "paths" "${regular_system_paths[@]}"
 run_template_phase "system" "${template_system_keys[@]}"
 
 exit "$overall_exit_code"
