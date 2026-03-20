@@ -36,6 +36,7 @@ files_args=()
 explicit_targets=()
 key_mode=false
 force_mode=false
+no_banner_requested=false
 profile_from_args=""
 update_ignore_patterns=()
 update_target_mode="keys"
@@ -287,6 +288,9 @@ for ((idx = 0; idx < arg_count; idx++)); do
       files_args+=("$arg")
       ;;
     -V|--verbose|-b|--no-banner)
+      if [[ "$arg" == "-b" || "$arg" == "--no-banner" ]]; then
+        no_banner_requested=true
+      fi
       base_args+=("$arg")
       files_args+=("$arg")
       ;;
@@ -318,6 +322,9 @@ for ((idx = 0; idx < arg_count; idx++)); do
     -*)
       if [[ "$arg" == --force || ( "$arg" != --* && "$arg" == *f* ) ]]; then
         force_mode=true
+      fi
+      if [[ "$arg" == --no-banner || ( "$arg" != --* && "$arg" == *b* ) ]]; then
+        no_banner_requested=true
       fi
       base_args+=("$arg")
       ;;
@@ -519,12 +526,19 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   esac
 fi
 
+banner_printed=false
 run_operation_for_targets() {
   local run_with_sudo="$1"
   local target_mode="$2"
   shift 2
   local operation_targets=("$@")
-  local dotdrop_call=("$dotdrop_cmd" "$operation" "${base_args[@]}")
+  local dotdrop_call=("$dotdrop_cmd" "$operation")
+
+  if [[ "$no_banner_requested" == true || "$banner_printed" == true ]]; then
+    dotdrop_call+=(-b)
+  fi
+
+  dotdrop_call+=("${base_args[@]}")
 
   if [[ "$operation" == "update" && "$target_mode" == "keys" ]]; then
     dotdrop_call+=(-k "${operation_targets[@]}")
@@ -540,6 +554,10 @@ run_operation_for_targets() {
     fi
   else
     "${dotdrop_call[@]}"
+  fi
+
+  if [[ "$no_banner_requested" != true ]]; then
+    banner_printed=true
   fi
 }
 
@@ -644,10 +662,10 @@ if [[ "$operation" != "update" ]]; then
 fi
 
 run_phase "user" false "keys" "${regular_user_keys[@]}"
-run_phase "system" true "keys" "${regular_system_keys[@]}"
 run_phase "user" false "paths" "${regular_user_paths[@]}"
-run_phase "system" true "paths" "${regular_system_paths[@]}"
 run_template_phase "user" "${template_user_keys[@]}"
+run_phase "system" true "keys" "${regular_system_keys[@]}"
+run_phase "system" true "paths" "${regular_system_paths[@]}"
 run_template_phase "system" "${template_system_keys[@]}"
 
 exit "$overall_exit_code"
