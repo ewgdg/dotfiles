@@ -530,6 +530,8 @@ profiles:
     - d_local_share_flatpak_overrides
     - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
+    actions:
+    - install yazi
   apps_ai:
     dotfiles:
     - f_codex_config.toml
