@@ -29,7 +29,7 @@ if [[ ! -f "${dotdrop_config_path}" ]]; then
 fi
 
 default_uv_bin_dir="${HOME}/.local/bin"
-dotdrop_sudo_script="${repo_root}/dotfiles/bin/dotdrop-sudo"
+dotmanage_script="${repo_root}/dotfiles/bin/dotmanage"
 export DOTDROP_CONFIG="${dotdrop_config_path}"
 
 prepend_path() {
@@ -124,12 +124,12 @@ install_dotdrop() {
 }
 
 run_dotdrop_apply() {
-  if [[ ! -x "${dotdrop_sudo_script}" ]]; then
-    die "dotdrop-sudo wrapper not found at ${dotdrop_sudo_script}"
+  if [[ ! -x "${dotmanage_script}" ]]; then
+    die "dotmanage wrapper not found at ${dotmanage_script}"
   fi
 
-  log "running dotdrop-sudo install"
-  "${dotdrop_sudo_script}" install "$@"
+  log "running dotmanage install"
+  "${dotmanage_script}" install "$@"
 }
 
 should_run_dotdrop_install=true

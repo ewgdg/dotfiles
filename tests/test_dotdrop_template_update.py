@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import sys
-import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -23,58 +22,57 @@ def load_module():
 MODULE = load_module()
 
 
-class DotdropTemplateUpdateTests(unittest.TestCase):
-    def merge(self, template: str, live: str, *, emit_conflict_markers: bool = True) -> str:
-        merged_lines, _stats = MODULE.merge_template(
-            template.splitlines(keepends=True),
-            live.splitlines(keepends=True),
-            emit_conflict_markers=emit_conflict_markers,
-        )
-        return "".join(merged_lines)
+def merge(template: str, live: str, *, emit_conflict_markers: bool = True) -> str:
+    merged_lines, _stats = MODULE.merge_template(
+        template.splitlines(keepends=True),
+        live.splitlines(keepends=True),
+        emit_conflict_markers=emit_conflict_markers,
+    )
+    return "".join(merged_lines)
 
-    def test_updates_small_control_bounded_block_with_partial_match(self) -> None:
-        template = """before
+def test_updates_small_control_bounded_block_with_partial_match() -> None:
+    template = """before
 {%@@ if os == "linux" @@%}
 a
 b
 {%@@ endif @@%}
 after
 """
-        live = """before
+    live = """before
 a
 B
 after
 """
-        expected = """before
+    expected = """before
 {%@@ if os == "linux" @@%}
 a
 B
 {%@@ endif @@%}
 after
 """
-        self.assertEqual(self.merge(template, live), expected)
+    assert merge(template, live) == expected
 
-    def test_updates_single_line_control_bounded_block_with_zero_matches(self) -> None:
-        template = """start
+def test_updates_single_line_control_bounded_block_with_zero_matches() -> None:
+    template = """start
 {%@@ if os == "linux" @@%}
 foo
 {%@@ endif @@%}
 end
 """
-        live = """start
+    live = """start
 bar
 end
 """
-        expected = """start
+    expected = """start
 {%@@ if os == "linux" @@%}
 bar
 {%@@ endif @@%}
 end
 """
-        self.assertEqual(self.merge(template, live), expected)
+    assert merge(template, live) == expected
 
-    def test_emits_conflict_markers_by_default_for_ambiguous_branch(self) -> None:
-        template = """start
+def test_emits_conflict_markers_by_default_for_ambiguous_branch() -> None:
+    template = """start
 {%@@ if os == "darwin" @@%}
 darwin-value
 {%@@ elif os == "linux" @@%}
@@ -84,11 +82,11 @@ fallback-value
 {%@@ endif @@%}
 end
 """
-        live = """start
+    live = """start
 linux-new
 end
 """
-        expected = """start
+    expected = """start
 {%@@ if os == "darwin" @@%}
 darwin-value
 {%@@ elif os == "linux" @@%}
@@ -102,10 +100,10 @@ fallback-value
 {%@@ endif @@%}
 end
 """
-        self.assertEqual(self.merge(template, live), expected)
+    assert merge(template, live) == expected
 
-    def test_can_explicitly_keep_ambiguous_branch_unchanged(self) -> None:
-        template = """start
+def test_can_explicitly_keep_ambiguous_branch_unchanged() -> None:
+    template = """start
 {%@@ if os == "darwin" @@%}
 darwin-value
 {%@@ elif os == "linux" @@%}
@@ -115,33 +113,26 @@ fallback-value
 {%@@ endif @@%}
 end
 """
-        live = """start
+    live = """start
 linux-new
 end
 """
-        self.assertEqual(
-            self.merge(template, live, emit_conflict_markers=False),
-            template,
-        )
+    assert merge(template, live, emit_conflict_markers=False) == template
 
-    def test_updates_plain_literal_block_with_surrounding_anchors(self) -> None:
-        template = """before
+def test_updates_plain_literal_block_with_surrounding_anchors() -> None:
+    template = """before
 literal-one
 literal-two
 after
 """
-        live = """before
+    live = """before
 literal-one
 literal-two-updated
 after
 """
-        expected = """before
+    expected = """before
 literal-one
 literal-two-updated
 after
 """
-        self.assertEqual(self.merge(template, live), expected)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    assert merge(template, live) == expected

@@ -7,6 +7,15 @@ if ! command -v dotdrop >/dev/null 2>&1; then
 fi
 
 dotdrop_cmd="$(command -v dotdrop)"
+script_dir="$(
+  cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1
+  pwd -P
+)"
+repo_root="$(
+  cd -- "${script_dir}/../.." >/dev/null 2>&1
+  pwd -P
+)"
+template_update_script="${repo_root}/scripts/dotdrop_template_update.py"
 operation="update"
 
 if (( $# > 0 )); then
@@ -171,6 +180,16 @@ key_is_fully_ignored_for_update() {
   return 1
 }
 
+contains_dotdrop_template_syntax() {
+  local source_path="$1"
+
+  if [[ ! -f "$source_path" ]]; then
+    return 1
+  fi
+
+  grep -Eq '\{\{@@|\{%@@|\{#@@' "$source_path"
+}
+
 # Parse args for execution, key discovery, and explicit targets.
 args=("${command_args[@]}")
 arg_count=${#args[@]}
@@ -283,6 +302,43 @@ done <<< "$dotfiles_output"
 
 user_keys=()
 system_keys=()
+regular_user_keys=()
+regular_system_keys=()
+regular_user_paths=()
+regular_system_paths=()
+template_user_keys=()
+template_system_keys=()
+
+record_update_target() {
+  local target_kind="$1"
+  local target_value="$2"
+  local target_dst="$3"
+  local target_src="$4"
+
+  if [[ "$target_kind" == "key" ]] && contains_dotdrop_template_syntax "$target_src"; then
+    if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
+      template_user_keys+=("$target_value")
+    else
+      template_system_keys+=("$target_value")
+    fi
+    return
+  fi
+
+  if [[ "$target_dst" == "$HOME" || "$target_dst" == "$HOME/"* ]]; then
+    if [[ "$target_kind" == "key" ]]; then
+      regular_user_keys+=("$target_value")
+    else
+      regular_user_paths+=("$target_value")
+    fi
+  else
+    if [[ "$target_kind" == "key" ]]; then
+      regular_system_keys+=("$target_value")
+    else
+      regular_system_paths+=("$target_value")
+    fi
+  fi
+}
+
 append_split_key() {
   local split_key="$1"
   local split_dst="$2"
@@ -292,6 +348,11 @@ append_split_key() {
     if key_is_fully_ignored_for_update "$split_dst" "$split_src" "${update_ignore_patterns[@]}"; then
       return
     fi
+  fi
+
+  if [[ "$operation" == "update" ]]; then
+    record_update_target "key" "$split_key" "$split_dst" "$split_src"
+    return
   fi
 
   if [[ "$split_dst" == "$HOME" || "$split_dst" == "$HOME/"* ]]; then
@@ -316,15 +377,19 @@ if (( ${#explicit_targets[@]} > 0 )); then
       done
 
       if [[ -n "$matched_key" ]]; then
-        matched_dst="${destination_by_key[$matched_key]}"
+        if contains_dotdrop_template_syntax "${source_by_key[$matched_key]}"; then
+          if [[ "${destination_by_key[$matched_key]}" == "$HOME" || "${destination_by_key[$matched_key]}" == "$HOME/"* ]]; then
+            template_user_keys+=("$matched_key")
+          else
+            template_system_keys+=("$matched_key")
+          fi
+        else
+          record_update_target "path" "$requested_path" "${destination_by_key[$matched_key]}" "${source_by_key[$matched_key]}"
+        fi
+      elif [[ "$expanded_path" == "$HOME" || "$expanded_path" == "$HOME/"* ]]; then
+        regular_user_paths+=("$requested_path")
       else
-        matched_dst="$expanded_path"
-      fi
-
-      if [[ -z "$matched_key" || "$matched_dst" == "$HOME" || "$matched_dst" == "$HOME/"* ]]; then
-        user_keys+=("$requested_path")
-      else
-        system_keys+=("$requested_path")
+        regular_system_paths+=("$requested_path")
       fi
     done
   else
@@ -387,11 +452,12 @@ fi
 
 run_operation_for_targets() {
   local run_with_sudo="$1"
-  shift
+  local target_mode="$2"
+  shift 2
   local operation_targets=("$@")
   local dotdrop_call=("$dotdrop_cmd" "$operation" "${base_args[@]}")
 
-  if [[ "$operation" == "update" && "$update_target_mode" == "keys" ]]; then
+  if [[ "$operation" == "update" && "$target_mode" == "keys" ]]; then
     dotdrop_call+=(-k "${operation_targets[@]}")
   else
     dotdrop_call+=("${operation_targets[@]}")
@@ -412,11 +478,16 @@ overall_exit_code=0
 run_phase() {
   local phase_name="$1"
   local run_with_sudo="$2"
-  shift 2
+  local target_mode="$3"
+  shift 3
   local phase_targets=("$@")
 
+  if (( ${#phase_targets[@]} == 0 )); then
+    return
+  fi
+
   set +e
-  run_operation_for_targets "$run_with_sudo" "${phase_targets[@]}"
+  run_operation_for_targets "$run_with_sudo" "$target_mode" "${phase_targets[@]}"
   local phase_exit_code=$?
   set -e
 
@@ -428,12 +499,86 @@ run_phase() {
   fi
 }
 
-if (( ${#user_keys[@]} > 0 )); then
-  run_phase "user" false "${user_keys[@]}"
+run_template_update_for_key() {
+  local key_name="$1"
+  local target_src="${source_by_key[$key_name]}"
+  local target_dst="${destination_by_key[$key_name]}"
+  local live_input="$target_dst"
+  local temp_live=""
+
+  if [[ ! -f "$target_src" ]]; then
+    echo "template-aware update only supports file sources; key '$key_name' uses '$target_src'" >&2
+    return 2
+  fi
+
+  if [[ ! -r "$template_update_script" ]]; then
+    echo "template update helper not found at $template_update_script" >&2
+    return 2
+  fi
+
+  if [[ ! -e "$target_dst" ]]; then
+    echo "live destination for key '$key_name' not found at '$target_dst'" >&2
+    return 1
+  fi
+
+  if [[ "$target_dst" != "$HOME" && "$target_dst" != "$HOME/"* ]]; then
+    temp_live="$(mktemp "${TMPDIR:-/tmp}/dotmanage-template-live.XXXXXX")"
+    if ! sudo cat "$target_dst" >"$temp_live"; then
+      rm -f "$temp_live"
+      return 1
+    fi
+    live_input="$temp_live"
+  fi
+
+  set +e
+  uv run "$template_update_script" "$target_src" "$live_input" --in-place
+  local update_exit_code=$?
+  set -e
+
+  if [[ -n "$temp_live" ]]; then
+    rm -f "$temp_live"
+  fi
+
+  return "$update_exit_code"
+}
+
+run_template_phase() {
+  local phase_name="$1"
+  shift
+  local template_keys=("$@")
+  local key_name=""
+  local phase_exit_code=0
+
+  if (( ${#template_keys[@]} == 0 )); then
+    return
+  fi
+
+  for key_name in "${template_keys[@]}"; do
+    set +e
+    run_template_update_for_key "$key_name"
+    phase_exit_code=$?
+    set -e
+
+    if (( phase_exit_code != 0 )); then
+      echo "$phase_name template update failed for key '$key_name'" >&2
+      if (( overall_exit_code == 0 )); then
+        overall_exit_code=$phase_exit_code
+      fi
+    fi
+  done
+}
+
+if [[ "$operation" != "update" ]]; then
+  run_phase "user" false "keys" "${user_keys[@]}"
+  run_phase "system" true "keys" "${system_keys[@]}"
+  exit "$overall_exit_code"
 fi
 
-if (( ${#system_keys[@]} > 0 )); then
-  run_phase "system" true "${system_keys[@]}"
-fi
+run_phase "user" false "keys" "${regular_user_keys[@]}"
+run_phase "system" true "keys" "${regular_system_keys[@]}"
+run_phase "user" false "paths" "${regular_user_paths[@]}"
+run_phase "system" true "paths" "${regular_system_paths[@]}"
+run_template_phase "user" "${template_user_keys[@]}"
+run_template_phase "system" "${template_system_keys[@]}"
 
 exit "$overall_exit_code"

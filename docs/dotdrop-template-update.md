@@ -1,7 +1,18 @@
 # Dotdrop Template Update Helper
 
 `dotdrop update` does not safely round-trip templated files back into the repo.
-This repo ships a local helper for the manual part of that workflow:
+This repo ships a local helper, and [`dotmanage`](../dotfiles/bin/dotmanage)
+uses it automatically during `dotmanage update` when a managed source file
+contains dotdrop template syntax.
+
+Typical usage:
+
+```sh
+dotmanage update -p <profile>
+dotmanage update -p <profile> f_profile
+```
+
+Direct helper usage is still available for manual inspection or experiments:
 
 ```sh
 uv run scripts/dotdrop_template_update.py <template-src> <live-file> --in-place
@@ -16,13 +27,6 @@ uv run scripts/dotdrop_template_update.py dotfiles/ssh/config ~/.ssh/config --in
 ```
 
 After running it, review the result with `git diff`.
-
-Ambiguous unchanged blocks surface as Git-style conflict markers by default.
-If you want the old conservative behavior instead, use:
-
-```sh
-uv run scripts/dotdrop_template_update.py --keep-unchanged <template-src> <live-file> --in-place
-```
 
 ## Tests
 
@@ -63,13 +67,12 @@ literal edits from the live file.
 - inline template lines are not rewritten; the script keeps them unchanged
 - blocks at the start or end of a file are handled more conservatively because they have fewer anchors
 - if an active branch has too little stable literal context, new lines at the edge of that branch can be missed
-- inactive branches are intentionally left unchanged when `--keep-unchanged` is used
-- zero-match updates in `if/elif/else` chains use conflict markers by default because the active branch can be ambiguous without stronger anchors
-- conflict-marker insertion still relies on a best-candidate heuristic inside branching chains
+- inactive branches are intentionally left unchanged
+- zero-match updates in `if/elif/else` chains remain conservative because the active branch can be ambiguous without stronger anchors
 
 ## Suggested Workflow
 
 1. Edit and validate the rendered file on the machine.
-2. Run the helper against the templated source file in `dotfiles/`.
+2. Run `dotmanage update` for the affected key or profile.
 3. Review `git diff`.
 4. Re-run `dotdrop compare` or `dotdrop install` to confirm the rendered output is still correct.

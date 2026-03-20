@@ -15,4 +15,6 @@ dev = [
 ]
 
 [tool.pytest]
+minversion = "9.0"
+addopts = ["-ra"]
 testpaths = ["tests"]
