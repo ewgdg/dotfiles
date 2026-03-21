@@ -415,7 +415,7 @@ profiles:
     - d_bin
   toolchain_javascript:
     actions:
-    - install 'nodejs npm pnpm bun fnm'
+    - install 'nodejs npm bun fnm'
     dotfiles:
     - f_npmrc
   toolchain_rust:
