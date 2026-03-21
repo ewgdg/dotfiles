@@ -547,8 +547,7 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
 fi
 
 collect_update_overwrite_pairs() {
-  local target_key="$1"
-  local -n overwrite_pairs_ref="$2"
+  local -n overwrite_pairs_ref="$1"
   local -a dry_run_call=("$dotdrop_cmd" update -b -d -f)
   local dry_run_output=""
   local dry_run_line=""
@@ -557,8 +556,13 @@ collect_update_overwrite_pairs() {
   local live_file_path=""
 
   overwrite_pairs_ref=()
+  if (( ${#regular_update_keys[@]} == 0 )); then
+    return 1
+  fi
+
   dry_run_call+=("${base_args[@]}")
-  dry_run_call+=(-k "$target_key")
+  dry_run_call+=(-k)
+  dry_run_call+=("${regular_update_keys[@]}")
 
   set +e
   dry_run_output="$("${dry_run_call[@]}")"
@@ -638,7 +642,6 @@ restore_declined_update_state() {
 }
 
 confirm_update_overwrite_targets() {
-  local target_key=""
   local overwrite_entry=""
   local source_file_path=""
   local live_file_path=""
@@ -653,25 +656,23 @@ confirm_update_overwrite_targets() {
     return
   fi
 
-  for target_key in "${regular_update_keys[@]}"; do
-    if ! collect_update_overwrite_pairs "$target_key" overwrite_pairs; then
-      continue
-    fi
+  if ! collect_update_overwrite_pairs overwrite_pairs; then
+    return
+  fi
 
-    for overwrite_entry in "${overwrite_pairs[@]}"; do
-      source_file_path="${overwrite_entry%%$'\t'*}"
-      live_file_path="${overwrite_entry#*$'\t'}"
+  for overwrite_entry in "${overwrite_pairs[@]}"; do
+    source_file_path="${overwrite_entry%%$'\t'*}"
+    live_file_path="${overwrite_entry#*$'\t'}"
 
-      printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
-      read -r confirmation_answer
-      case "${confirmation_answer:-}" in
-        y|Y|yes|YES)
-          ;;
-        *)
-          backup_declined_update_path "$source_file_path" "$live_file_path"
-          ;;
-      esac
-    done
+    printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
+    read -r confirmation_answer
+    case "${confirmation_answer:-}" in
+      y|Y|yes|YES)
+        ;;
+      *)
+        backup_declined_update_path "$source_file_path" "$live_file_path"
+        ;;
+    esac
   done
 }
 
