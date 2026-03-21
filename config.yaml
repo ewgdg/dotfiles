@@ -410,7 +410,7 @@ profiles:
     - d_config_fd
   posix_utils:
     actions:
-    - install 'ripgrep jq'
+    - install 'ripgrep jq trash-cli'
     dotfiles:
     - d_bin
   toolchain_javascript:
