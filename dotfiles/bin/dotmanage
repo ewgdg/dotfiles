@@ -412,6 +412,7 @@ declare -A template_update_key_set=()
 declined_update_backup_dir=""
 declare -a declined_update_backup_paths=()
 declare -a declined_update_source_paths=()
+template_update_staging_dir=""
 
 record_regular_update_key() {
   local target_key="$1"
@@ -600,6 +601,14 @@ ensure_declined_update_backup_dir() {
   declined_update_backup_dir="$(mktemp -d)"
 }
 
+ensure_template_update_staging_dir() {
+  if [[ -n "$template_update_staging_dir" ]]; then
+    return
+  fi
+
+  template_update_staging_dir="$(mktemp -d)"
+}
+
 backup_declined_update_path() {
   local source_file_path="$1"
   local live_file_path="$2"
@@ -636,9 +645,16 @@ cleanup_declined_update_backups() {
   fi
 }
 
+cleanup_template_update_staging_dir() {
+  if [[ -n "$template_update_staging_dir" && -d "$template_update_staging_dir" ]]; then
+    rm -rf -- "$template_update_staging_dir"
+  fi
+}
+
 restore_declined_update_state() {
   restore_declined_update_paths
   cleanup_declined_update_backups
+  cleanup_template_update_staging_dir
 }
 
 confirm_update_overwrite_targets() {
@@ -892,6 +908,7 @@ split_keys_by_required_write_privilege() {
 
 overall_exit_code=0
 last_template_update_changed=false
+last_template_update_skipped=false
 run_phase_operation() {
   local phase_name="$1"
   local run_with_sudo="$2"
@@ -954,20 +971,24 @@ run_named_phase() {
   run_phase_operation "$phase_name" "$run_with_sudo" "${phase_targets[@]}"
 }
 
-run_template_update_for_key() {
+prepare_template_update_for_key() {
   local key_name="$1"
+  local staged_output_name="$2"
+  local helper_output_name="$3"
+  local -n staged_output_ref="$staged_output_name"
+  local -n helper_output_ref="$helper_output_name"
   local target_src="${source_by_key[$key_name]}"
   local target_dst="${normalized_destination_by_key[$key_name]:-${destination_by_key[$key_name]}}"
   local live_input="$target_dst"
   local helper_output=""
   local helper_output_compact=""
-  local matched_lines=""
-  local whole_blocks=""
-  local partial_blocks=""
-  local conflict_blocks=""
-  local unchanged_blocks=""
+  local staged_output_file=""
+  local update_exit_code=0
 
+  staged_output_ref=""
+  helper_output_ref=""
   last_template_update_changed=false
+  last_template_update_skipped=false
 
   if [[ ! -f "$target_src" ]]; then
     echo "template-aware update only supports file sources; key '$key_name' uses '$target_src'" >&2
@@ -984,15 +1005,18 @@ run_template_update_for_key() {
     return 1
   fi
 
+  ensure_template_update_staging_dir
+  staged_output_file="$(mktemp "$template_update_staging_dir/template-update.XXXXXX")"
+
   set +e
   if path_needs_privileged_read "$target_dst"; then
     helper_output="$(
-      sudo cat "$target_dst" | uv run "$template_update_script" "$target_src" - --in-place --json
-    )"
+      sudo cat "$target_dst" | uv run "$template_update_script" "$target_src" - "$staged_output_file" --json
+)"
   else
-    helper_output="$(uv run "$template_update_script" "$target_src" "$live_input" --in-place --json)"
+    helper_output="$(uv run "$template_update_script" "$target_src" "$live_input" "$staged_output_file" --json)"
   fi
-  local update_exit_code=$?
+  update_exit_code=$?
   set -e
 
   if (( update_exit_code != 0 )); then
@@ -1010,44 +1034,99 @@ run_template_update_for_key() {
     return 2
   fi
 
-  if [[ "$last_template_update_changed" == true ]]; then
-    if [[ "$helper_output_compact" =~ \"matched_lines\":([0-9]+) ]]; then
-      matched_lines="${BASH_REMATCH[1]}"
-    else
-      matched_lines="?"
-    fi
-    if [[ "$helper_output_compact" =~ \"whole_blocks\":([0-9]+) ]]; then
-      whole_blocks="${BASH_REMATCH[1]}"
-    else
-      whole_blocks="?"
-    fi
-    if [[ "$helper_output_compact" =~ \"partial_blocks\":([0-9]+) ]]; then
-      partial_blocks="${BASH_REMATCH[1]}"
-    else
-      partial_blocks="?"
-    fi
-    if [[ "$helper_output_compact" =~ \"conflict_blocks\":([0-9]+) ]]; then
-      conflict_blocks="${BASH_REMATCH[1]}"
-    else
-      conflict_blocks="?"
-    fi
-    if [[ "$helper_output_compact" =~ \"unchanged_blocks\":([0-9]+) ]]; then
-      unchanged_blocks="${BASH_REMATCH[1]}"
-    else
-      unchanged_blocks="?"
-    fi
-    printf \
-      'merged template update: key=%s matched_lines=%s whole_blocks=%s partial_blocks=%s conflict_blocks=%s unchanged_blocks=%s output=%s\n' \
-      "$key_name" \
-      "$matched_lines" \
-      "$whole_blocks" \
-      "$partial_blocks" \
-      "$conflict_blocks" \
-      "$unchanged_blocks" \
-      "$target_src"
+  staged_output_ref="$staged_output_file"
+  helper_output_ref="$helper_output_compact"
+  return 0
+}
+
+confirm_template_update_overwrite() {
+  local source_file_path="$1"
+  local confirmation_answer=""
+
+  if [[ "$operation" != "update" || "$force_mode" == true || "$last_template_update_changed" != true ]]; then
+    return 0
   fi
 
-  return "$update_exit_code"
+  if [[ ! -t 0 ]]; then
+    return 0
+  fi
+
+  printf 'overwrite template file "%s" [y/N] ? ' "$source_file_path"
+  read -r confirmation_answer
+  case "${confirmation_answer:-}" in
+    y|Y|yes|YES)
+      return 0
+      ;;
+    *)
+      last_template_update_changed=false
+      last_template_update_skipped=true
+      return 1
+      ;;
+  esac
+}
+
+print_template_update_summary() {
+  local key_name="$1"
+  local helper_output_compact="$2"
+  local target_src="${source_by_key[$key_name]}"
+  local matched_lines="?"
+  local whole_blocks="?"
+  local partial_blocks="?"
+  local conflict_blocks="?"
+  local unchanged_blocks="?"
+
+  if [[ "$helper_output_compact" =~ \"matched_lines\":([0-9]+) ]]; then
+    matched_lines="${BASH_REMATCH[1]}"
+  fi
+  if [[ "$helper_output_compact" =~ \"whole_blocks\":([0-9]+) ]]; then
+    whole_blocks="${BASH_REMATCH[1]}"
+  fi
+  if [[ "$helper_output_compact" =~ \"partial_blocks\":([0-9]+) ]]; then
+    partial_blocks="${BASH_REMATCH[1]}"
+  fi
+  if [[ "$helper_output_compact" =~ \"conflict_blocks\":([0-9]+) ]]; then
+    conflict_blocks="${BASH_REMATCH[1]}"
+  fi
+  if [[ "$helper_output_compact" =~ \"unchanged_blocks\":([0-9]+) ]]; then
+    unchanged_blocks="${BASH_REMATCH[1]}"
+  fi
+
+  printf \
+    'merged template update: key=%s matched_lines=%s whole_blocks=%s partial_blocks=%s conflict_blocks=%s unchanged_blocks=%s output=%s\n' \
+    "$key_name" \
+    "$matched_lines" \
+    "$whole_blocks" \
+    "$partial_blocks" \
+    "$conflict_blocks" \
+    "$unchanged_blocks" \
+    "$target_src"
+}
+
+run_template_update_for_key() {
+  local key_name="$1"
+  local target_src="${source_by_key[$key_name]}"
+  local staged_output_path=""
+  local helper_output_compact=""
+
+  if prepare_template_update_for_key "$key_name" staged_output_path helper_output_compact; then
+    :
+  else
+    local prepare_exit_code=$?
+    return "$prepare_exit_code"
+  fi
+
+  if [[ "$last_template_update_changed" != true ]]; then
+    return 0
+  fi
+
+  if ! confirm_template_update_overwrite "$target_src"; then
+    printf 'skipped template update: key=%s output=%s\n' "$key_name" "$target_src"
+    return 0
+  fi
+
+  cp -p -- "$staged_output_path" "$target_src"
+  print_template_update_summary "$key_name" "$helper_output_compact"
+  return 0
 }
 
 run_template_phase() {
@@ -1059,6 +1138,7 @@ run_template_phase() {
   local operation_verb=""
   local processed_count=0
   local changed_count=0
+  local skipped_count=0
   local failed_count=0
 
   if (( ${#template_keys[@]} == 0 )); then
@@ -1095,16 +1175,29 @@ run_template_phase() {
     fi
 
     processed_count=$((processed_count + 1))
-    if [[ "$last_template_update_changed" == true ]]; then
+    if [[ "$last_template_update_skipped" == true ]]; then
+      skipped_count=$((skipped_count + 1))
+    elif [[ "$last_template_update_changed" == true ]]; then
       changed_count=$((changed_count + 1))
     fi
   done
 
-  if (( failed_count > 0 )); then
+  if (( failed_count > 0 && skipped_count > 0 )); then
+    printf '%d file(s) processed, %d updated, %d skipped, %d failed\n' \
+      "$processed_count" \
+      "$changed_count" \
+      "$skipped_count" \
+      "$failed_count"
+  elif (( failed_count > 0 )); then
     printf '%d file(s) processed, %d updated, %d failed\n' \
       "$processed_count" \
       "$changed_count" \
       "$failed_count"
+  elif (( skipped_count > 0 )); then
+    printf '%d file(s) processed, %d updated, %d skipped\n' \
+      "$processed_count" \
+      "$changed_count" \
+      "$skipped_count"
   else
     printf '%d file(s) processed, %d updated\n' \
       "$processed_count" \

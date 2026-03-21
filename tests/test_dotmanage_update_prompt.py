@@ -61,6 +61,60 @@ def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
     return config_path, repo_source_dir, live_dir
 
 
+def create_template_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
+    repo_root = tmp_path / "dotdrop-template-repro"
+    repo_source_path = repo_root / "dotfiles" / "profile"
+    live_path = tmp_path / "home" / ".profile"
+    workdir = tmp_path / "workdir"
+    helper_dir = repo_root / "scripts"
+
+    repo_source_path.parent.mkdir(parents=True)
+    live_path.parent.mkdir(parents=True)
+    workdir.mkdir()
+    helper_dir.mkdir()
+    (helper_dir / "dotdrop_template_update.py").symlink_to(
+        REPO_ROOT / "scripts" / "dotdrop_template_update.py"
+    )
+
+    config_path = repo_root / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "config:",
+                "  backup: false",
+                "  create: true",
+                "  dotpath: dotfiles",
+                f"  workdir: {workdir}",
+                "",
+                "dotfiles:",
+                "  f_profile:",
+                "    src: profile",
+                f"    dst: {live_path}",
+                "",
+                "profiles:",
+                "  repro:",
+                "    dotfiles:",
+                "      - f_profile",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    repo_source_path.write_text(
+        """start
+{%@@ if os == \"linux\" @@%}
+repo
+{%@@ endif @@%}
+end
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text("start\nlive\nend\n", encoding="utf-8")
+
+    return config_path, repo_source_path, live_path
+
+
 def run_interactive_dotmanage(
     config_path: Path,
     target_path: Path | None,
@@ -164,3 +218,46 @@ def test_unmatched_update_path_is_rejected(tmp_path: Path) -> None:
     assert exit_code == 2
     assert "no tracked dotdrop key matches update target" in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
+
+def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
+    config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
+    original_source = repo_source_path.read_text(encoding="utf-8")
+
+    exit_code, output = run_interactive_dotmanage(config_path, live_path, "n")
+
+    assert exit_code == 0
+    assert 'overwrite template file "' in output
+    assert 'profile" [y/N] ?' in output
+    assert "skipped template update: key=f_profile" in output
+    assert repo_source_path.read_text(encoding="utf-8") == original_source
+
+
+def test_template_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
+    config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
+
+    exit_code, output = run_interactive_dotmanage(config_path, live_path, "y")
+
+    assert exit_code == 0
+    assert 'overwrite template file "' in output
+    assert repo_source_path.read_text(encoding="utf-8") == """start
+{%@@ if os == \"linux\" @@%}
+live
+{%@@ endif @@%}
+end
+"""
+
+
+def test_unchanged_template_update_skips_prompt(tmp_path: Path) -> None:
+    config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
+    live_path.write_text("start\nrepo\nend\n", encoding="utf-8")
+
+    exit_code, output = run_interactive_dotmanage(config_path, live_path, "y")
+
+    assert exit_code == 0
+    assert 'overwrite template file "' not in output
+    assert repo_source_path.read_text(encoding="utf-8") == """start
+{%@@ if os == \"linux\" @@%}
+repo
+{%@@ endif @@%}
+end
+"""
