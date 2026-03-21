@@ -14,7 +14,7 @@ return {
 		},
 		keymap = {
 			preset = "enter",
-			["<C-i>"] = { "show", "show_documentation", "hide_documentation" },
+			["<C-e>"] = { "show", "cancel", "fallback" },
 			["<CR>"] = { "accept", "fallback" },
 			["<C-y>"] = { "select_and_accept", "fallback" },
 		},
