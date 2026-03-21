@@ -34,7 +34,9 @@ def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
                 "  d_app:",
                 "    src: config/app",
                 f"    dst: {live_dir}",
-                "",
+                "    upignore:",
+                "      - '*/__pycache__'",
+
                 "profiles:",
                 "  repro:",
                 "    dotfiles:",
@@ -48,6 +50,13 @@ def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
     (repo_source_dir / "settings.toml").write_text('value = "repo"\n', encoding="utf-8")
     (live_dir / "settings.toml").write_text('value = "live"\n', encoding="utf-8")
     (live_dir / "extra.toml").write_text('value = "extra"\n', encoding="utf-8")
+
+    repo_cache_dir = repo_source_dir / "__pycache__"
+    live_cache_dir = live_dir / "__pycache__"
+    repo_cache_dir.mkdir()
+    live_cache_dir.mkdir()
+    (repo_cache_dir / "ignored.pyc").write_text("repo-cache\n", encoding="utf-8")
+    (live_cache_dir / "ignored.pyc").write_text("live-cache\n", encoding="utf-8")
 
     return config_path, repo_source_dir, live_dir
 
@@ -99,6 +108,7 @@ def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     exit_code, output = run_interactive_dotmanage(config_path, live_dir, "n")
 
     assert exit_code == 0
+    assert output.count('overwrite dotfiles file "') == 1
     assert 'overwrite dotfiles file "' in output
     assert 'settings.toml" [y/N] ?' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'

@@ -546,64 +546,45 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   esac
 fi
 
-collect_update_overwrite_paths() {
+collect_update_overwrite_pairs() {
   local target_key="$1"
-  local source_path="${source_by_key[$target_key]:-}"
-  local live_path="${normalized_destination_by_key[$target_key]:-${destination_by_key[$target_key]:-}}"
-  local -n overwrite_paths_ref="$2"
-  local diff_output=""
-  local diff_line=""
-  local diff_exit_code=0
-  local relative_path=""
+  local -n overwrite_pairs_ref="$2"
+  local -a dry_run_call=("$dotdrop_cmd" update -b -d -f)
+  local dry_run_output=""
+  local dry_run_line=""
+  local dry_run_exit_code=0
+  local source_file_path=""
+  local live_file_path=""
 
-  overwrite_paths_ref=()
+  overwrite_pairs_ref=()
+  dry_run_call+=("${base_args[@]}")
+  dry_run_call+=(-k "$target_key")
 
-  if [[ -z "$source_path" || -z "$live_path" ]]; then
+  set +e
+  dry_run_output="$("${dry_run_call[@]}")"
+  dry_run_exit_code=$?
+  set -e
+
+  if (( dry_run_exit_code != 0 )); then
     return 1
   fi
 
-  if [[ -d "$source_path" || -d "$live_path" ]]; then
-    if [[ ! -d "$source_path" || ! -d "$live_path" ]]; then
-      return 1
+  while IFS= read -r dry_run_line; do
+    [[ -n "$dry_run_line" ]] || continue
+
+    if [[ "$dry_run_line" =~ ^\[DRY\][[:space:]]would[[:space:]]update[[:space:]]content[[:space:]]of[[:space:]](.+)[[:space:]]from[[:space:]](.+)[[:space:]]*$ ]]; then
+      source_file_path="${BASH_REMATCH[1]}"
+      live_file_path="${BASH_REMATCH[2]}"
+      source_file_path="${source_file_path%"${source_file_path##*[![:space:]]}"}"
+      live_file_path="${live_file_path%"${live_file_path##*[![:space:]]}"}"
+      overwrite_pairs_ref+=("$source_file_path"$'\t'"$live_file_path")
     fi
+  done <<< "$dry_run_output"
 
-    set +e
-    diff_output="$(diff -qr --no-dereference "$source_path" "$live_path")"
-    diff_exit_code=$?
-    set -e
-
-    if (( diff_exit_code == 0 || diff_exit_code > 1 )); then
-      return 1
-    fi
-
-    while IFS= read -r diff_line; do
-      [[ -n "$diff_line" ]] || continue
-
-      case "$diff_line" in
-        "Files $source_path/"*" and $live_path/"*" differ")
-          relative_path="${diff_line#Files $source_path/}"
-          relative_path="${relative_path%% and $live_path/*}"
-          overwrite_paths_ref+=("$live_path/$relative_path")
-          ;;
-      esac
-    done <<< "$diff_output"
-
-    if (( ${#overwrite_paths_ref[@]} == 0 )); then
-      return 1
-    fi
-
-    return 0
-  fi
-
-  if [[ ! -f "$source_path" || ! -f "$live_path" ]]; then
+  if (( ${#overwrite_pairs_ref[@]} == 0 )); then
     return 1
   fi
 
-  if cmp -s -- "$source_path" "$live_path"; then
-    return 1
-  fi
-
-  overwrite_paths_ref+=("$live_path")
   return 0
 }
 
@@ -658,13 +639,11 @@ restore_declined_update_state() {
 
 confirm_update_overwrite_targets() {
   local target_key=""
-  local source_root=""
-  local live_root=""
-  local overwrite_path=""
-  local overwrite_relative_path=""
+  local overwrite_entry=""
   local source_file_path=""
+  local live_file_path=""
   local confirmation_answer=""
-  local -a overwrite_paths=()
+  local -a overwrite_pairs=()
 
   if [[ "$operation" != "update" || "$force_mode" == true ]]; then
     return
@@ -675,20 +654,13 @@ confirm_update_overwrite_targets() {
   fi
 
   for target_key in "${regular_update_keys[@]}"; do
-    if ! collect_update_overwrite_paths "$target_key" overwrite_paths; then
+    if ! collect_update_overwrite_pairs "$target_key" overwrite_pairs; then
       continue
     fi
 
-    source_root="${source_by_key[$target_key]}"
-    live_root="${normalized_destination_by_key[$target_key]:-${destination_by_key[$target_key]}}"
-
-    for overwrite_path in "${overwrite_paths[@]}"; do
-      overwrite_relative_path="${overwrite_path#"$live_root"/}"
-      if [[ -d "$source_root" ]]; then
-        source_file_path="$source_root/$overwrite_relative_path"
-      else
-        source_file_path="$source_root"
-      fi
+    for overwrite_entry in "${overwrite_pairs[@]}"; do
+      source_file_path="${overwrite_entry%%$'\t'*}"
+      live_file_path="${overwrite_entry#*$'\t'}"
 
       printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
       read -r confirmation_answer
@@ -696,7 +668,7 @@ confirm_update_overwrite_targets() {
         y|Y|yes|YES)
           ;;
         *)
-          backup_declined_update_path "$source_file_path" "$overwrite_path"
+          backup_declined_update_path "$source_file_path" "$live_file_path"
           ;;
       esac
     done
