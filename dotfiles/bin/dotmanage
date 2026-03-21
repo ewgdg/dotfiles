@@ -405,54 +405,34 @@ if [[ "$operation" == "update" ]]; then
 fi
 
 install_keys=()
-regular_update_paths=()
+regular_update_keys=()
 template_update_keys=()
-declare -A regular_update_key_by_path=()
-declare -A regular_update_scope_by_path=()
+declare -A regular_update_key_set=()
+declare -A template_update_key_set=()
 declined_update_backup_dir=""
 declare -a declined_update_backup_paths=()
 declare -a declined_update_source_paths=()
 
-record_regular_update_path() {
-  local target_path="$1"
-  local target_key="${2:-}"
-  local target_scope="${3:-}"
-  local normalized_path=""
-  local normalized_scope=""
-  local existing_scopes=""
+record_regular_update_key() {
+  local target_key="$1"
 
-  normalized_path="$(normalize_target_path "$target_path")"
-  if [[ -z "${regular_update_key_by_path[$normalized_path]+x}" ]]; then
-    regular_update_paths+=("$normalized_path")
-  fi
-
-  if [[ -n "$target_key" ]]; then
-    regular_update_key_by_path["$normalized_path"]="$target_key"
-  fi
-
-  if [[ -z "$target_scope" ]]; then
+  if [[ -n "${regular_update_key_set[$target_key]+x}" ]]; then
     return
   fi
 
-  normalized_scope="$(normalize_target_path "$target_scope")"
-  existing_scopes="${regular_update_scope_by_path[$normalized_path]:-}"
-
-  case $'\n'"$existing_scopes"$'\n' in
-    *$'\n'"$normalized_scope"$'\n'*)
-      ;;
-    *)
-      if [[ -n "$existing_scopes" ]]; then
-        existing_scopes+=$'\n'
-      fi
-      existing_scopes+="$normalized_scope"
-      regular_update_scope_by_path["$normalized_path"]="$existing_scopes"
-      ;;
-  esac
+  regular_update_keys+=("$target_key")
+  regular_update_key_set["$target_key"]=1
 }
 
 record_template_update_key() {
   local target_key="$1"
+
+  if [[ -n "${template_update_key_set[$target_key]+x}" ]]; then
+    return
+  fi
+
   template_update_keys+=("$target_key")
+  template_update_key_set["$target_key"]=1
 }
 
 append_split_key() {
@@ -470,7 +450,7 @@ append_split_key() {
     if [[ "${effective_template_by_key[$split_key]:-0}" == "1" ]]; then
       record_template_update_key "$split_key"
     else
-      record_regular_update_path "$split_dst" "$split_key"
+      record_regular_update_key "$split_key"
     fi
     return
   fi
@@ -509,14 +489,15 @@ if (( ${#explicit_targets[@]} > 0 )); then
       normalized_requested_path="$(normalize_target_path "$requested_path")"
       matched_key="$(find_matching_update_key_for_path "$normalized_requested_path")"
 
-      if [[ -n "$matched_key" ]]; then
-        if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
-          record_template_update_key "$matched_key"
-        else
-          record_regular_update_path "${destination_by_key[$matched_key]}" "$matched_key" "$normalized_requested_path"
-        fi
+      if [[ -z "$matched_key" ]]; then
+        echo "no tracked dotdrop key matches update target '$requested_path' for current profile/config" >&2
+        exit 2
+      fi
+
+      if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
+        record_template_update_key "$matched_key"
       else
-        record_regular_update_path "$normalized_requested_path"
+        record_regular_update_key "$matched_key"
       fi
     done
   else
@@ -564,25 +545,6 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
       ;;
   esac
 fi
-
-path_matches_update_scope() {
-  local candidate_path="$1"
-  local scope_list="$2"
-  local scope_path=""
-
-  if [[ -z "$scope_list" ]]; then
-    return 0
-  fi
-
-  while IFS= read -r scope_path; do
-    [[ -n "$scope_path" ]] || continue
-    if [[ "$candidate_path" == "$scope_path" || "$candidate_path" == "$scope_path"/* ]]; then
-      return 0
-    fi
-  done <<< "$scope_list"
-
-  return 1
-}
 
 collect_update_overwrite_paths() {
   local target_key="$1"
@@ -695,9 +657,7 @@ restore_declined_update_state() {
 }
 
 confirm_update_overwrite_targets() {
-  local target_path=""
   local target_key=""
-  local target_scopes=""
   local source_root=""
   local live_root=""
   local overwrite_path=""
@@ -714,14 +674,7 @@ confirm_update_overwrite_targets() {
     return
   fi
 
-  for target_path in "${regular_update_paths[@]}"; do
-    target_key="${regular_update_key_by_path[$target_path]:-}"
-    target_scopes="${regular_update_scope_by_path[$target_path]:-}"
-
-    if [[ -z "$target_key" ]]; then
-      continue
-    fi
-
+  for target_key in "${regular_update_keys[@]}"; do
     if ! collect_update_overwrite_paths "$target_key" overwrite_paths; then
       continue
     fi
@@ -735,11 +688,6 @@ confirm_update_overwrite_targets() {
         source_file_path="$source_root/$overwrite_relative_path"
       else
         source_file_path="$source_root"
-      fi
-
-      if ! path_matches_update_scope "$overwrite_path" "$target_scopes"; then
-        backup_declined_update_path "$source_file_path" "$overwrite_path"
-        continue
       fi
 
       printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
@@ -890,12 +838,10 @@ run_operation_for_targets() {
   local dotdrop_call=("$dotdrop_cmd" "$operation" -b)
 
   dotdrop_call+=("${base_args[@]}")
-
-  if [[ "$operation" == "install" ]]; then
-    dotdrop_call+=("${operation_targets[@]}")
-  else
-    dotdrop_call+=("${operation_targets[@]}")
+  if [[ "$operation" == "update" ]]; then
+    dotdrop_call+=(-k)
   fi
+  dotdrop_call+=("${operation_targets[@]}")
 
   if [[ "$run_with_sudo" == "true" ]]; then
     if [[ -n "${DOTDROP_CONFIG:-}" ]]; then
@@ -906,7 +852,6 @@ run_operation_for_targets() {
   else
     "${dotdrop_call[@]}"
   fi
-
 }
 
 print_noop_phase_summary() {
@@ -926,26 +871,6 @@ print_noop_phase_summary() {
   esac
 
   printf '%d file(s) processed, 0 %s\n' "$processed_count" "$result_verb"
-}
-
-split_paths_by_required_read_privilege() {
-  local non_privileged_name="$1"
-  local privileged_name="$2"
-  shift 2
-  local phase_target=""
-  local -n non_privileged_targets_ref="$non_privileged_name"
-  local -n privileged_targets_ref="$privileged_name"
-
-  non_privileged_targets_ref=()
-  privileged_targets_ref=()
-
-  for phase_target in "$@"; do
-    if path_needs_privileged_read "$phase_target"; then
-      privileged_targets_ref+=("$phase_target")
-    else
-      non_privileged_targets_ref+=("$phase_target")
-    fi
-  done
 }
 
 split_keys_by_required_read_privilege() {
@@ -1233,22 +1158,22 @@ if [[ "$operation" == "update" ]]; then
   confirm_update_overwrite_targets
 fi
 
-declare -a non_privileged_update_paths=()
-declare -a privileged_update_paths=()
+declare -a non_privileged_update_keys=()
+declare -a privileged_update_keys=()
 declare -a non_privileged_template_keys=()
 declare -a privileged_template_keys=()
 
-split_paths_by_required_read_privilege \
-  non_privileged_update_paths \
-  privileged_update_paths \
-  "${regular_update_paths[@]}"
+split_keys_by_required_read_privilege \
+  non_privileged_update_keys \
+  privileged_update_keys \
+  "${regular_update_keys[@]}"
 split_keys_by_required_read_privilege \
   non_privileged_template_keys \
   privileged_template_keys \
   "${template_update_keys[@]}"
 
-run_named_phase "dotfiles" false "${non_privileged_update_paths[@]}"
-run_named_phase "dotfiles (sudo)" true "${privileged_update_paths[@]}"
+run_named_phase "dotfiles" false "${non_privileged_update_keys[@]}"
+run_named_phase "dotfiles (sudo)" true "${privileged_update_keys[@]}"
 run_template_phase "dotfiles (template-aware)" "${non_privileged_template_keys[@]}"
 run_template_phase "dotfiles (template-aware, sudo)" "${privileged_template_keys[@]}"
 

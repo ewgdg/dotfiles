@@ -116,22 +116,7 @@ def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
 
-def test_child_path_inside_tracked_directory_prompts_and_skips(tmp_path: Path) -> None:
-    config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
-    live_file = live_dir / "settings.toml"
-
-    exit_code, output = run_interactive_dotmanage(config_path, live_file, "n")
-
-    assert exit_code == 0
-    assert 'overwrite dotfiles file "' in output
-    assert 'settings.toml" [y/N] ?' in output
-    assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
-    assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
-
-
-def test_whole_profile_update_prompts_and_skips_tracked_child_file(
-    tmp_path: Path,
-) -> None:
+def test_whole_profile_update_prompts_and_skips_tracked_child_file(tmp_path: Path) -> None:
     config_path, repo_source_dir, _live_dir = create_repro_project(tmp_path)
 
     exit_code, output = run_interactive_dotmanage(config_path, None, "y\nn")
@@ -143,8 +128,7 @@ def test_whole_profile_update_prompts_and_skips_tracked_child_file(
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
 
-
-def test_child_path_update_does_not_touch_unrequested_sibling(tmp_path: Path) -> None:
+def test_child_path_update_promotes_to_parent_key(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
     live_file = live_dir / "settings.toml"
     repo_other = repo_source_dir / "other.toml"
@@ -153,9 +137,20 @@ def test_child_path_update_does_not_touch_unrequested_sibling(tmp_path: Path) ->
     repo_other.write_text('value = "repo other"\n', encoding="utf-8")
     live_other.write_text('value = "live other"\n', encoding="utf-8")
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_file, "y")
+    exit_code, output = run_interactive_dotmanage(config_path, live_file, "y\ny")
 
     assert exit_code == 0
-    assert output.count('overwrite dotfiles file "') == 1
+    assert output.count('overwrite dotfiles file "') == 2
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
-    assert repo_other.read_text(encoding="utf-8") == 'value = "repo other"\n'
+    assert repo_other.read_text(encoding="utf-8") == 'value = "live other"\n'
+
+
+def test_unmatched_update_path_is_rejected(tmp_path: Path) -> None:
+    config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
+    unmatched_path = live_dir.parent / "missing" / "settings.toml"
+
+    exit_code, output = run_interactive_dotmanage(config_path, unmatched_path, "y")
+
+    assert exit_code == 2
+    assert "no tracked dotdrop key matches update target" in output
+    assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
