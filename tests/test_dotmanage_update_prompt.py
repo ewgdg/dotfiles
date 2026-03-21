@@ -219,6 +219,110 @@ def test_unmatched_update_path_is_rejected(tmp_path: Path) -> None:
     assert "no tracked dotdrop key matches update target" in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
 
+
+def test_unknown_command_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    args_file = tmp_path / "dotdrop-args.txt"
+    fake_dotdrop = helper_dir / "dotdrop"
+    fake_dotdrop.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
+exit "${DOTDROP_EXIT_CODE:-0}"
+""",
+        encoding="utf-8",
+    )
+    fake_dotdrop.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_ARGS_FILE"] = str(args_file)
+    env["DOTDROP_EXIT_CODE"] = "23"
+
+    result = subprocess.run(
+        [str(DOTMANAGE_PATH), "compare", "--profile", "repro", "d_app"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 23
+    assert args_file.read_text(encoding="utf-8").splitlines() == [
+        "compare",
+        "--profile",
+        "repro",
+        "d_app",
+    ]
+
+
+def test_no_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    args_file = tmp_path / "dotdrop-args.txt"
+    fake_dotdrop = helper_dir / "dotdrop"
+    fake_dotdrop.write_text(
+        """#!/usr/bin/env bash
+if (( $# > 0 )); then
+  printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
+else
+  : > "$DOTDROP_ARGS_FILE"
+fi
+""",
+        encoding="utf-8",
+    )
+    fake_dotdrop.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_ARGS_FILE"] = str(args_file)
+
+    result = subprocess.run(
+        [str(DOTMANAGE_PATH)],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert args_file.read_text(encoding="utf-8") == ""
+
+
+def test_leading_option_without_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    args_file = tmp_path / "dotdrop-args.txt"
+    fake_dotdrop = helper_dir / "dotdrop"
+    fake_dotdrop.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
+""",
+        encoding="utf-8",
+    )
+    fake_dotdrop.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_ARGS_FILE"] = str(args_file)
+
+    result = subprocess.run(
+        [str(DOTMANAGE_PATH), "--profile", "repro"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert args_file.read_text(encoding="utf-8").splitlines() == [
+        "--profile",
+        "repro",
+    ]
+
 def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     original_source = repo_source_path.read_text(encoding="utf-8")

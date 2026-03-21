@@ -7,22 +7,22 @@ if ! command -v dotdrop >/dev/null 2>&1; then
 fi
 
 dotdrop_cmd="$(command -v dotdrop)"
-operation="update"
 
-if (( $# > 0 )); then
-  case "$1" in
-    update|install|import)
-      operation="$1"
-      shift
-      ;;
-    -*)
-      ;;
-    *)
-      echo "unsupported command '$1'; expected 'update', 'install', or 'import'" >&2
-      exit 2
-      ;;
-  esac
+if (( $# == 0 )); then
+  "$dotdrop_cmd"
+  exit $?
 fi
+
+case "$1" in
+  update|install|import)
+    operation="$1"
+    shift
+    ;;
+  *)
+    "$dotdrop_cmd" "$@"
+    exit $?
+    ;;
+esac
 
 command_args=("$@")
 
