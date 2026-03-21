@@ -42,8 +42,7 @@
 
 ## Github CLI
 
-- If there is an appropriate template to use, always use `-T <template>` for `gh` to select the template
-- For interactive CLI tools like `gh`, prefer a minimal `EDITOR`, e.g. `EDITOR='vim -u NONE -i NONE -n'`, to avoid plugin or state-path failures.
+- When creating GitHub issues, if a matching repository issue template exists, it must be used.
 
 ## CLI Tools
 
