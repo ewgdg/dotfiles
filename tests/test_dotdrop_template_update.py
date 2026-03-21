@@ -140,6 +140,79 @@ after
     assert merge(template, live) == expected
 
 
+def test_appends_trailing_live_lines_after_partial_match_at_eof() -> None:
+    template = """start
+{%@@ if os == "linux" @@%}
+managed
+{%@@ endif @@%}
+tail
+"""
+    live = """start
+managed
+tail
+tail-extra
+tail-extra-2
+"""
+    expected = """start
+{%@@ if os == "linux" @@%}
+managed
+{%@@ endif @@%}
+tail
+tail-extra
+tail-extra-2
+"""
+    assert merge(template, live) == expected
+
+
+def test_appends_trailing_live_lines_after_final_control_suffix() -> None:
+    template = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+linux-value
+{%@@ endif @@%}
+"""
+    live = """start
+linux-value
+tail-extra
+tail-extra-2
+"""
+    expected = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+linux-value
+{%@@ endif @@%}
+tail-extra
+tail-extra-2
+"""
+    assert merge(template, live) == expected
+
+
+def test_removes_trailing_source_tail_after_final_control_suffix() -> None:
+    template = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+linux-value
+{%@@ endif @@%}
+
+tail-extra
+tail-extra-2
+"""
+    live = """start
+linux-value
+"""
+    expected = """start
+{%@@ if os == "darwin" @@%}
+darwin-value
+{%@@ elif os == "linux" @@%}
+linux-value
+{%@@ endif @@%}
+"""
+    assert merge(template, live) == expected
+
+
 def test_change_status_reports_true_when_template_changes(tmp_path: Path) -> None:
     template_path = tmp_path / "template"
     live_path = tmp_path / "live"

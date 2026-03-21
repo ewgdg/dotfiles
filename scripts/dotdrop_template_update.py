@@ -410,6 +410,37 @@ def surrounding_live_window(
     return BlockRange(start, end)
 
 
+def trailing_tail_after_control_suffix(
+    source_lines: list[SourceLine],
+    live_lines: list[str],
+    matches: list[MatchPair],
+) -> tuple[list[str], list[str]] | None:
+    if not matches:
+        return None
+
+    last_match = matches[-1]
+    suffix_lines = source_lines[last_match.source_index + 1 :]
+    if not suffix_lines:
+        if last_match.source_index != len(source_lines) - 1:
+            return None
+        return [], live_lines[last_match.live_index + 1 :]
+
+    control_prefix_length = 0
+    while control_prefix_length < len(suffix_lines) and suffix_lines[control_prefix_length].kind == "control":
+        control_prefix_length += 1
+
+    if control_prefix_length == 0:
+        return None
+
+    literal_tail = suffix_lines[control_prefix_length:]
+    if any(source_line.kind != "literal" for source_line in literal_tail):
+        return None
+
+    source_tail_lines = [source_line.text for source_line in literal_tail]
+    live_tail_lines = live_lines[last_match.live_index + 1 :]
+    return source_tail_lines, live_tail_lines
+
+
 def merge_block_between_matches(
     block: BlockRange,
     source_lines: list[SourceLine],
@@ -566,6 +597,13 @@ def merge_template(
         source_line = source_lines[line_index]
         merged_output.append(source_line.text)
         line_index += 1
+
+    trailing_tail_update = trailing_tail_after_control_suffix(source_lines, live_lines, matches)
+    if trailing_tail_update is not None:
+        source_tail_lines, live_tail_lines = trailing_tail_update
+        if source_tail_lines:
+            merged_output = merged_output[: -len(source_tail_lines)]
+        merged_output.extend(live_tail_lines)
 
     return merged_output, stats
 
