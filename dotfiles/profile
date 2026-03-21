@@ -5,13 +5,13 @@ path_prepend() {
   # Prepend a directory to PATH if it exists and is not already present.
   if [ -d "$1" ]; then
     case ":$PATH:" in
-      *":$1:"*) ;;
-      *) PATH="$1:$PATH" ;;
+    *":$1:"*) ;;
+    *) PATH="$1:$PATH" ;;
     esac
   fi
 }
-
 {%@@ if os == "darwin" @@%}
+
 if [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
