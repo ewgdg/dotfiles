@@ -4,3 +4,7 @@ typeset -U PATH path
 # uv
 # moved to .zprofile to avoid being included twice
 # export PATH="$HOME/.local/bin:$PATH"
+
+if [[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/npm.zsh" ]]; then
+  source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/npm.zsh"
+fi
