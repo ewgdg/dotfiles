@@ -632,6 +632,30 @@ def test_streaming_output_flushes_prompt_without_newline() -> None:
     assert stream.getvalue() == 'Overwrite "/tmp/example" [y/N] ? '
 
 
+def test_run_operation_cleans_stale_transform_output(tmp_path: Path, monkeypatch) -> None:
+    source_path = tmp_path / "repo" / "config.toml"
+    transient_path = tmp_path / "repo" / "config.toml.trans"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("source\n", encoding="utf-8")
+    transient_path.write_text("stale\n", encoding="utf-8")
+
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed.base_args = []
+    manager.source_by_key = {"f_config": str(source_path)}
+
+    monkeypatch.setattr(
+        manager,
+        "run_streaming_subprocess",
+        lambda _command: subprocess.CompletedProcess(_command, 0, "", ""),
+    )
+
+    manager.run_operation_for_targets(False, ["f_config"])
+
+    assert not transient_path.exists()
+
+
 def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     original_source = repo_source_path.read_text(encoding="utf-8")

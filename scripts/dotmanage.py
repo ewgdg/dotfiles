@@ -587,15 +587,27 @@ class DotManager:
             command = dotdrop_call
 
         try:
-            completed = self.run_streaming_subprocess(command)
-        except KeyboardInterrupt:
-            print("interrupted", file=sys.stderr)
-            raise SystemExit(130)
+            try:
+                completed = self.run_streaming_subprocess(command)
+            except KeyboardInterrupt:
+                print("interrupted", file=sys.stderr)
+                raise SystemExit(130)
+        finally:
+            self.cleanup_transient_transform_outputs(operation_targets)
 
         return PhaseExecutionResult(
             exit_code=completed.returncode,
             changed_count=self.parse_phase_changed_count(completed.stdout),
         )
+
+    def cleanup_transient_transform_outputs(self, operation_targets: Iterable[str]) -> None:
+        for target_key in operation_targets:
+            target_src = self.source_by_key.get(target_key, "")
+            if not target_src:
+                continue
+            transient_path = Path(f"{target_src}.trans")
+            if transient_path.exists():
+                self.remove_path(transient_path)
 
     @classmethod
     def run_streaming_subprocess(cls, command: list[str]) -> subprocess.CompletedProcess[str]:
