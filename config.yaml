@@ -496,7 +496,7 @@ profiles:
     - f_config_systemd_user_noctalia-shell.service
   os_mac:
     variables:
-      install_cmd: brew install --quiet {0}
+      install_cmd: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_homebrew_packages.sh' {0}
     include:
     - posix_base
     - posix_utils

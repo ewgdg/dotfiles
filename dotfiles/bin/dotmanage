@@ -78,7 +78,7 @@ normalize_target_path() {
   local python_cmd=""
 
   absolute_path="$(make_absolute_path "$1")"
-  if command -v realpath >/dev/null 2>&1; then
+  if command -v realpath >/dev/null 2>&1 && realpath -m -- / >/dev/null 2>&1; then
     realpath -m -- "$absolute_path"
     return
   fi
