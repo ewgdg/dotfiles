@@ -1,16 +1,28 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
 import pty
 import select
 import shutil
+import socket
 import subprocess
+import sys
+import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOTMANAGE_PATH = REPO_ROOT / "dotfiles" / "bin" / "dotmanage"
 DOTMANAGE_PY_PATH = REPO_ROOT / "scripts" / "dotmanage.py"
+
+DOTMANAGE_SPEC = importlib.util.spec_from_file_location("dotmanage_py", DOTMANAGE_PY_PATH)
+assert DOTMANAGE_SPEC is not None
+assert DOTMANAGE_SPEC.loader is not None
+DOTMANAGE_MODULE = importlib.util.module_from_spec(DOTMANAGE_SPEC)
+sys.modules[DOTMANAGE_SPEC.name] = DOTMANAGE_MODULE
+DOTMANAGE_SPEC.loader.exec_module(DOTMANAGE_MODULE)
+DotManager = DOTMANAGE_MODULE.DotManager
 
 
 def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
@@ -278,6 +290,35 @@ def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     assert 'settings.toml" [y/N] ?' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
     assert not (repo_source_dir / "extra.toml").exists()
+
+
+def test_declined_update_backup_skips_live_socket_entries(tmp_path: Path) -> None:
+    short_root = Path(tempfile.mkdtemp(prefix="dotmanage-", dir="/tmp"))
+    source_path = short_root / "repo" / "agent"
+    live_path = short_root / "home" / ".ssh" / "agent"
+    source_path.mkdir(parents=True)
+    live_path.mkdir(parents=True)
+
+    (source_path / "tracked").write_text("repo\n", encoding="utf-8")
+    (live_path / "tracked").write_text("live\n", encoding="utf-8")
+
+    socket_path = live_path / "agent.sock"
+    server = socket.socket(socket.AF_UNIX)
+    server.bind(str(socket_path))
+
+    manager = DotManager(["update"])
+    try:
+        manager.backup_declined_update_path(source_path, live_path)
+
+        assert (source_path / "tracked").read_text(encoding="utf-8") == "live\n"
+        assert not (source_path / "agent.sock").exists()
+
+        manager.restore_declined_update_state()
+        assert (source_path / "tracked").read_text(encoding="utf-8") == "repo\n"
+        assert manager.declined_update_backup_dir is None
+    finally:
+        server.close()
+        shutil.rmtree(short_root)
 
 
 def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None:

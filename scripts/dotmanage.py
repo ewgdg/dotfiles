@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -957,15 +958,32 @@ class DotManager:
     @classmethod
     def copy_path_preserving_metadata(cls, source_path: Path, target_path: Path) -> None:
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        if source_path.is_dir():
+        source_mode = source_path.lstat().st_mode
+        if stat.S_ISDIR(source_mode):
             if target_path.exists():
                 cls.remove_path(target_path)
-            shutil.copytree(source_path, target_path, symlinks=True, copy_function=shutil.copy2)
+            target_path.mkdir(parents=True, exist_ok=True)
+            for entry in source_path.iterdir():
+                # Live trees like ssh-agent directories can contain sockets that cannot be copied into dotfiles.
+                if cls.path_is_unsupported_special_file(entry):
+                    continue
+                cls.copy_path_preserving_metadata(entry, target_path / entry.name)
             shutil.copystat(source_path, target_path, follow_symlinks=False)
+            return
+        if cls.path_is_unsupported_special_file(source_path):
             return
         if target_path.exists() and target_path.is_dir():
             cls.remove_path(target_path)
         shutil.copy2(source_path, target_path, follow_symlinks=False)
+
+    @staticmethod
+    def path_is_unsupported_special_file(path: Path) -> bool:
+        path_mode = path.lstat().st_mode
+        return not (
+            stat.S_ISDIR(path_mode)
+            or stat.S_ISREG(path_mode)
+            or stat.S_ISLNK(path_mode)
+        )
 
     @classmethod
     def remove_path(cls, path: Path) -> None:
