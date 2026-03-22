@@ -120,15 +120,21 @@ class DotManager:
         self.repo_root = str(Path(self.resolved_config_path).parent)
         self.template_update_script = str(Path(self.repo_root) / "scripts" / "dotdrop_template_update.py")
 
-        self.load_key_metadata()
+        dotfiles_output = self.load_dotfiles_output()
+        self.effective_profile = self.resolve_effective_profile(dotfiles_output)
+        if not self.effective_profile:
+            print("unable to determine active dotdrop profile", file=sys.stderr)
+            return 2
+        self.load_key_metadata(dotfiles_output)
         self.select_targets()
 
         if (
             not self.parsed.explicit_targets
             and not self.parsed.force_mode
-            and not self.parsed.profile_was_explicitly_selected
         ):
-            if not self.confirm_whole_profile_operation():
+            if self.parsed.profile_was_explicitly_selected:
+                self.log_profile_selection()
+            elif not self.confirm_whole_profile_operation():
                 return 1
 
         if self.is_update_operation:
@@ -285,26 +291,23 @@ class DotManager:
 
         return ""
 
-    def resolve_effective_profile(self) -> str:
+    def load_dotfiles_output(self) -> str:
+        return self.capture_or_exit(
+            [self.dotdrop_cmd, "files", "-b", "-G", *self.parsed.files_args],
+            stderr_to_stdout=True,
+        ).stdout
+
+    def resolve_effective_profile(self, dotfiles_output: str) -> str:
         if self.parsed.profile_from_args:
             return self.parsed.profile_from_args
 
-        completed = self.capture_or_exit(
-            [self.dotdrop_cmd, "files", "-b", *self.parsed.files_args],
-            stderr_to_stdout=True,
-        )
-        for line in completed.stdout.splitlines():
+        for line in dotfiles_output.splitlines():
             match = PROFILE_HEADER_RE.match(line)
             if match:
                 return match.group(1)
         return ""
 
-    def load_key_metadata(self) -> None:
-        dotfiles_output = self.capture_or_exit(
-            [self.dotdrop_cmd, "files", "-G", *self.parsed.files_args]
-        ).stdout
-        self.effective_profile = self.resolve_effective_profile()
-
+    def load_key_metadata(self, dotfiles_output: str) -> None:
         for line in dotfiles_output.splitlines():
             if ",dst:" not in line:
                 continue
@@ -322,10 +325,6 @@ class DotManager:
 
         if self.operation != "update":
             return
-
-        if not self.effective_profile:
-            print("unable to determine active dotdrop profile", file=sys.stderr)
-            raise SystemExit(2)
 
         detail_output = self.capture_or_exit(
             [self.dotdrop_cmd, "detail", "-b", *self.parsed.files_args, *self.all_keys]
@@ -387,20 +386,21 @@ class DotManager:
             )
 
     def confirm_whole_profile_operation(self) -> bool:
-        profile = self.effective_profile or "<unknown>"
+        profile = self.effective_profile
         operation_word, _ = self.operation_words(self.operation)
-        prompt = f'{operation_word} all dotfiles for profile "{profile}" [y/N] ? '
+        prompt = f'{operation_word} all dotfiles for profile "{profile}" [Y/n] ? '
         if not sys.stdin.isatty():
-            print(
-                "confirmation required but no interactive tty is available; pass explicit targets to skip prompt",
-                file=sys.stderr,
-            )
-            raise SystemExit(2)
+            return True
         answer = self.prompt(prompt)
         if answer.lower() in {"y", "yes"}:
             return True
+        if answer == "":
+            return True
         print("aborted", file=sys.stderr)
         return False
+
+    def log_profile_selection(self) -> None:
+        print(f'Using dotdrop profile "{self.effective_profile}"')
 
     def collect_update_change_pairs(self) -> list[tuple[str, str]]:
         if not self.regular_update_keys:

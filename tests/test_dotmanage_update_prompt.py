@@ -145,6 +145,8 @@ def run_interactive_dotmanage(
     config_path: Path,
     target_path: Path | None,
     answer: str,
+    *,
+    explicit_profile: bool = True,
 ) -> tuple[int, str]:
     env = os.environ.copy()
     env["DOTDROP_CONFIG"] = str(config_path)
@@ -152,9 +154,9 @@ def run_interactive_dotmanage(
     command_parts = [
         str(DOTMANAGE_PATH),
         "update",
-        "-p",
-        "repro",
     ]
+    if explicit_profile:
+        command_parts.extend(["-p", "repro"])
     if target_path is not None:
         command_parts.append(str(target_path))
 
@@ -380,13 +382,24 @@ def test_directory_update_prompts_before_importing_live_only_file(tmp_path: Path
     assert not (repo_source_dir / "live-only.toml").exists()
 
 
-def test_whole_profile_update_prompts_and_skips_tracked_child_file(tmp_path: Path) -> None:
+def test_inferred_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) -> None:
     config_path, repo_source_dir, _live_dir = create_repro_project(tmp_path)
+    inferred_profile = socket.gethostname()
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace("  repro:\n", f'  "{inferred_profile}":\n'),
+        encoding="utf-8",
+    )
 
-    exit_code, output = run_interactive_dotmanage(config_path, None, "y\nn\nn")
+    exit_code, output = run_interactive_dotmanage(
+        config_path,
+        None,
+        "\nn\nn",
+        explicit_profile=False,
+    )
 
     assert exit_code == 0
-    assert 'Update all dotfiles for profile "repro" [y/N] ?' in output
+    assert 'Using dotdrop profile "repro"' not in output
+    assert f'Update all dotfiles for profile "{inferred_profile}" [Y/n] ?' in output
     assert 'import live path into dotfiles "' in output
     assert 'overwrite dotfiles path "' in output
     assert 'settings.toml" [y/N] ?' in output
