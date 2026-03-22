@@ -115,6 +115,14 @@ def path_exists(root: TomlContainer, key_path: tuple[str, ...]) -> bool:
     return container is not None and key_name in container
 
 
+def get_key_path_value(root: TomlContainer, key_path: tuple[str, ...]) -> Any | None:
+    table_path, key_name = split_key_path(key_path)
+    container = get_container(root, table_path)
+    if container is None or key_name not in container:
+        return None
+    return container[key_name]
+
+
 def delete_key_path(root: TomlContainer, key_path: tuple[str, ...]) -> None:
     table_path, key_name = split_key_path(key_path)
     container = get_container(root, table_path)
@@ -140,6 +148,17 @@ def normalize_blank_lines(content: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", content)
 
 
+def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlContainer:
+    current: TomlContainer = root
+    for part in table_path:
+        next_value = current.get(part)
+        if not isinstance(next_value, Table):
+            current[part] = tomlkit.table()
+            next_value = current[part]
+        current = next_value
+    return current
+
+
 def strip_keys(
     input_path: Path,
     output_path: Path,
@@ -159,23 +178,19 @@ def strip_keys(
     write_document_if_changed(output_path, normalized_doc, reference_path=input_path)
 
 
-def merge_documents(
-    local_doc: TomlContainer,
-    repo_doc: TomlContainer,
+def overlay_preserved_keys(
+    source_doc: TomlContainer,
+    target_doc: TomlContainer,
     preserved_key_paths: set[tuple[str, ...]],
-    current_path: tuple[str, ...] = (),
 ) -> None:
-    for key, repo_value in repo_doc.items():
-        key_path = current_path + (str(key),)
-        if key_path in preserved_key_paths and path_exists(local_doc, key_path):
+    for key_path in sorted(preserved_key_paths, key=len):
+        preserved_value = get_key_path_value(source_doc, key_path)
+        if preserved_value is None:
             continue
 
-        local_value = local_doc.get(key)
-        if isinstance(local_value, Table) and isinstance(repo_value, Table):
-            merge_documents(local_value, repo_value, preserved_key_paths, key_path)
-            continue
-
-        local_doc[key] = copy.deepcopy(repo_value)
+        table_path, key_name = split_key_path(key_path)
+        target_container = ensure_container(target_doc, table_path)
+        target_container[key_name] = copy.deepcopy(preserved_value)
 
 
 def merge_keys(
@@ -185,9 +200,11 @@ def merge_keys(
     preserved_key_paths: set[tuple[str, ...]],
 ) -> None:
     repo_doc = load_document(input_path)
-    local_doc = load_document(merge_file) if merge_file.exists() else copy.deepcopy(repo_doc)
-    merge_documents(local_doc, repo_doc, preserved_key_paths)
-    write_document_if_changed(output_path, local_doc, reference_path=input_path)
+    merged_doc = copy.deepcopy(repo_doc)
+    if merge_file.exists():
+        local_doc = load_document(merge_file)
+        overlay_preserved_keys(local_doc, merged_doc, preserved_key_paths)
+    write_document_if_changed(output_path, merged_doc, reference_path=input_path)
 
 
 def parse_args() -> argparse.Namespace:
