@@ -25,3 +25,9 @@ vi_mode_style = { shape = "Block", blinking = "Off" }
 
 [terminal]
 osc52 = "OnlyCopy"
+
+# shift+enter for new lines in some TUIs in tmux session
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"
