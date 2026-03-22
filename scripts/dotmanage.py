@@ -18,6 +18,7 @@ from typing import Iterable
 SUPPORTED_OPERATIONS = {"update", "install", "import"}
 PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
 DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:updated|installed)\.\s*")
+DOTDROP_TEMPLATE_INCLUDE_RE = re.compile(r"{%@@\s*include\b")
 INTERRUPTED_EXIT_CODE = 130
 
 
@@ -768,6 +769,14 @@ class DotManager:
             )
             return 2, "", ""
 
+        if self.template_source_uses_dotdrop_include(Path(target_src)):
+            print(
+                f"skipped template-aware update: key={key_name} output={target_src} "
+                "reason=dotdrop include directives are not supported"
+            )
+            self.last_template_update.skipped = True
+            return 0, "", ""
+
         if not os.access(self.template_update_script, os.R_OK):
             print(f"template update helper not found at {self.template_update_script}", file=sys.stderr)
             return 2, "", ""
@@ -871,6 +880,14 @@ class DotManager:
             f"unchanged_blocks={extract('unchanged_blocks')} "
             f"output={target_src}"
         )
+
+    @staticmethod
+    def template_source_uses_dotdrop_include(source_path: Path) -> bool:
+        try:
+            source_text = source_path.read_text(encoding="utf-8")
+        except OSError:
+            return False
+        return DOTDROP_TEMPLATE_INCLUDE_RE.search(source_text) is not None
 
     def run_template_update_for_key(self, key_name: str) -> int:
         prepare_exit_code, staged_output_path, helper_output_compact = self.prepare_template_update_for_key(key_name)

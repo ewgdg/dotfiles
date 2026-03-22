@@ -78,12 +78,13 @@ def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
     return config_path, repo_source_dir, live_dir
 
 
-def create_template_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
+def create_template_repro_project(tmp_path: Path, *, with_include_directive: bool = False) -> tuple[Path, Path, Path]:
     repo_root = tmp_path / "dotdrop-template-repro"
     repo_source_path = repo_root / "dotfiles" / "profile"
     live_path = tmp_path / "home" / ".profile"
     workdir = tmp_path / "workdir"
     helper_dir = repo_root / "scripts"
+    core_env_path = repo_root / "dotfiles" / "env.core.sh"
 
     repo_source_path.parent.mkdir(parents=True)
     live_path.parent.mkdir(parents=True)
@@ -92,6 +93,7 @@ def create_template_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
     (helper_dir / "dotdrop_template_update.py").symlink_to(
         REPO_ROOT / "scripts" / "dotdrop_template_update.py"
     )
+    core_env_path.write_text(": # core env\n", encoding="utf-8")
 
     config_path = repo_root / "config.yaml"
     config_path.write_text(
@@ -118,16 +120,23 @@ def create_template_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
         encoding="utf-8",
     )
 
-    repo_source_path.write_text(
-        """start
+    source_text = """start
 {%@@ if os == \"linux\" @@%}
 repo
 {%@@ endif @@%}
 end
-""",
-        encoding="utf-8",
-    )
-    live_path.write_text("start\nlive\nend\n", encoding="utf-8")
+"""
+    live_text = "start\nlive\nend\n"
+
+    if with_include_directive:
+        source_text = """start
+{%@@ include 'env.core.sh' @@%}
+end
+"""
+        live_text = "start\nbootstrap-live\nend\n"
+
+    repo_source_path.write_text(source_text, encoding="utf-8")
+    live_path.write_text(live_text, encoding="utf-8")
 
     return config_path, repo_source_path, live_path
 
@@ -266,6 +275,24 @@ printf -- '--\n' >> "$SUDO_ARGS_FILE"
         encoding="utf-8",
     )
     fake_sudo.chmod(0o755)
+
+    fake_uv = helper_dir / "uv"
+    fake_uv.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "$1" != "run" ]]; then',
+                '  echo "fake uv only supports `uv run` in this test helper" >&2',
+                "  exit 2",
+                "fi",
+                "shift",
+                'exec python3 "$@"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
 
     env = os.environ.copy()
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
@@ -434,11 +461,11 @@ exit "${DOTDROP_EXIT_CODE:-0}"
     ]
 
 
-def test_wrapper_sources_repo_bootstrap_before_running_uv(tmp_path: Path) -> None:
+def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     helper_dir = tmp_path / "bin"
     dotmanage_path = repo_root / "dotfiles" / "bin" / "dotmanage"
-    bootstrap_path = repo_root / "dotfiles" / "profile.bootstrap.sh"
+    core_env_path = repo_root / "dotfiles" / "env.core.sh"
     config_path = repo_root / "config.yaml"
     script_path = repo_root / "scripts" / "dotmanage.py"
     marker_file = tmp_path / "marker.txt"
@@ -447,13 +474,13 @@ def test_wrapper_sources_repo_bootstrap_before_running_uv(tmp_path: Path) -> Non
     helper_dir.mkdir()
     dotmanage_path.parent.mkdir(parents=True)
     script_path.parent.mkdir(parents=True)
-    bootstrap_path.parent.mkdir(parents=True, exist_ok=True)
+    core_env_path.parent.mkdir(parents=True, exist_ok=True)
 
     dotmanage_path.write_text(DOTMANAGE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
     dotmanage_path.chmod(0o755)
     config_path.write_text("config:\n  dotpath: dotfiles\n", encoding="utf-8")
     script_path.write_text("print('placeholder')\n", encoding="utf-8")
-    bootstrap_path.write_text(
+    core_env_path.write_text(
         "\n".join(
             [
                 f'export DOTMANAGE_WRAPPER_MARKER="{marker_file}"',
@@ -774,3 +801,19 @@ repo
 {%@@ endif @@%}
 end
 """
+
+
+def test_template_update_is_skipped_for_dotdrop_include_sources(tmp_path: Path) -> None:
+    config_path, repo_source_path, live_path = create_template_repro_project(
+        tmp_path,
+        with_include_directive=True,
+    )
+    original_source = repo_source_path.read_text(encoding="utf-8")
+
+    result = run_dotmanage(config_path, "update", "-p", "repro", str(live_path))
+
+    assert result.returncode == 0
+    assert 'overwrite template file "' not in (result.stdout + result.stderr)
+    assert "skipped template-aware update: key=f_profile" in result.stdout
+    assert "reason=dotdrop include directives are not supported" in result.stdout
+    assert repo_source_path.read_text(encoding="utf-8") == original_source

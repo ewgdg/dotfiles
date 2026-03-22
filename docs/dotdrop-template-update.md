@@ -65,6 +65,7 @@ literal edits from the live file.
 ## Known Limits
 
 - inline template lines are not rewritten; the script keeps them unchanged
+- templates that use dotdrop `{%@@ include ... @@%}` directives are skipped by `dotmanage update` for now
 - blocks at the start or end of a file are handled more conservatively because they have fewer anchors
 - if an active branch has too little stable literal context, new lines at the edge of that branch can be missed
 - inactive branches are intentionally left unchanged

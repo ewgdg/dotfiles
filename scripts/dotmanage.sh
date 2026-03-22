@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Archived script: no longer maintained.
+# The active implementation is scripts/dotmanage.py via dotfiles/bin/dotmanage.
 set -euo pipefail
 
 if ! command -v dotdrop >/dev/null 2>&1; then
@@ -1143,6 +1145,13 @@ prepare_template_update_for_key() {
   if [[ ! -f "$target_src" ]]; then
     echo "template-aware update only supports file sources; key '$key_name' uses '$target_src'" >&2
     return 2
+  fi
+
+  if grep -qE '{%@@[[:space:]]*include\b' "$target_src"; then
+    printf '%s\n' \
+      "skipped template-aware update: key=$key_name output=$target_src reason=dotdrop include directives are not supported"
+    last_template_update_skipped=true
+    return 0
   fi
 
   if [[ ! -r "$template_update_script" ]]; then
