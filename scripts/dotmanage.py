@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 import selectors
+import shlex
 import shutil
 import stat
 import subprocess
@@ -42,6 +43,21 @@ class BackupEntry:
     source_path: Path
     backup_path: Path
     original_existed: bool
+
+
+@dataclass(frozen=True)
+class PreviewTransform:
+    input_path: Path
+    output_path: Path
+    command: tuple[str, ...]
+    output_index: int
+
+
+@dataclass(frozen=True)
+class UpdateChange:
+    source_path: Path
+    live_path: Path
+    preview_transform: PreviewTransform | None = None
 
 
 @dataclass
@@ -402,7 +418,7 @@ class DotManager:
     def log_profile_selection(self) -> None:
         print(f'Using dotdrop profile "{self.effective_profile}"')
 
-    def collect_update_change_pairs(self) -> list[tuple[str, str]]:
+    def collect_update_changes(self) -> list[UpdateChange]:
         if not self.regular_update_keys:
             return []
 
@@ -410,7 +426,7 @@ class DotManager:
         if completed.returncode != 0:
             return []
 
-        return self.parse_update_change_pairs(completed.stdout)
+        return self.parse_update_changes(completed.stdout)
 
     @classmethod
     def parse_update_change_pairs(cls, output_text: str) -> list[tuple[str, str]]:
@@ -454,6 +470,103 @@ class DotManager:
 
         return sorted(overwrite_pairs)
 
+    @classmethod
+    def parse_preview_transform(cls, line: str) -> PreviewTransform | None:
+        command_prefix = '-> executing "'
+        if not line.startswith(command_prefix) or not line.endswith('"'):
+            return None
+
+        command_text = line.removeprefix(command_prefix)[:-1]
+        try:
+            command_parts = shlex.split(command_text)
+        except ValueError:
+            return None
+
+        script_index = -1
+        for idx, part in enumerate(command_parts):
+            if part.startswith("-"):
+                continue
+            if part.endswith(".py"):
+                script_index = idx
+                break
+        if script_index == -1:
+            return None
+
+        input_index = script_index + 1
+        output_index = script_index + 2
+        if output_index >= len(command_parts):
+            return None
+
+        input_path = command_parts[input_index]
+        output_path = command_parts[output_index]
+        if input_path.startswith("-") or output_path.startswith("-"):
+            return None
+
+        return PreviewTransform(
+            input_path=Path(input_path),
+            output_path=Path(output_path),
+            command=tuple(command_parts),
+            output_index=output_index,
+        )
+
+    def parse_update_changes(self, output_text: str) -> list[UpdateChange]:
+        overwrite_changes: list[UpdateChange] = []
+        preview_transform_by_output_path: dict[str, PreviewTransform] = {}
+        for raw_line in output_text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            preview_transform = self.parse_preview_transform(line)
+            if preview_transform is not None:
+                preview_transform_by_output_path[str(preview_transform.output_path)] = preview_transform
+                continue
+
+            if line.startswith("[DRY] would update content of "):
+                payload = self.trim_trailing_whitespace(line.removeprefix("[DRY] would update content of "))
+                source_file_path, separator, live_file_path = payload.partition(" from ")
+                if not separator:
+                    continue
+                source_path = Path(self.trim_trailing_whitespace(source_file_path))
+                live_path = Path(self.trim_trailing_whitespace(live_file_path))
+                if self.paths_are_identical_if_present(str(source_path), str(live_path)):
+                    continue
+                overwrite_changes.append(UpdateChange(source_path=source_path, live_path=live_path))
+                continue
+
+            payload = ""
+            if line.startswith("[DRY] would cp -r "):
+                payload = line.removeprefix("[DRY] would cp -r ")
+            elif line.startswith("[DRY] would cp "):
+                payload = line.removeprefix("[DRY] would cp ")
+            else:
+                continue
+
+            payload = self.trim_trailing_whitespace(payload)
+            if " " not in payload:
+                continue
+
+            copy_source_path_text, source_file_path = payload.rsplit(" ", 1)
+            source_path = Path(self.trim_trailing_whitespace(source_file_path))
+            copy_source_path = self.trim_trailing_whitespace(copy_source_path_text)
+            if not copy_source_path:
+                continue
+
+            preview_transform = preview_transform_by_output_path.get(copy_source_path)
+            live_path = preview_transform.input_path if preview_transform is not None else Path(copy_source_path)
+            if self.paths_are_identical_if_present(str(source_path), copy_source_path):
+                continue
+
+            overwrite_changes.append(
+                UpdateChange(
+                    source_path=source_path,
+                    live_path=live_path,
+                    preview_transform=preview_transform,
+                )
+            )
+
+        return sorted(overwrite_changes, key=lambda change: (str(change.source_path), str(change.live_path)))
+
     def build_operation_call(self, operation_targets: list[str], *, dry_run: bool = False) -> list[str]:
         dotdrop_call = [self.dotdrop_cmd, self.operation, "-b"]
         if dry_run:
@@ -493,18 +606,18 @@ class DotManager:
         completed = self.run_update_preview(run_with_sudo, operation_targets)
         if completed.returncode != 0:
             return None
-        return len(self.parse_update_change_pairs(completed.stdout))
+        return len(self.parse_update_changes(completed.stdout))
 
     def confirm_update_overwrite_targets(self) -> None:
         if not self.is_update_operation:
             return
 
-        overwrite_pairs = self.collect_update_change_pairs()
-        if not overwrite_pairs:
+        overwrite_changes = self.collect_update_changes()
+        if not overwrite_changes:
             return
 
-        for source_file_path, live_file_path in overwrite_pairs:
-            normalized_live_file_path = self.normalize_target_path(live_file_path)
+        for change in overwrite_changes:
+            normalized_live_file_path = self.normalize_target_path(str(change.live_path))
             candidate_key = self.find_matching_update_key_for_path(normalized_live_file_path)
 
             if (
@@ -512,23 +625,26 @@ class DotManager:
                 and candidate_key in self.scoped_update_key_set
                 and normalized_live_file_path not in self.scoped_update_allowed_live_path_set
             ):
-                self.backup_declined_update_path(Path(source_file_path), Path(live_file_path))
+                self.backup_declined_update_change(change)
                 continue
 
             if self.parsed.force_mode or not sys.stdin.isatty():
                 continue
 
-            source_path = Path(source_file_path)
-            live_path = Path(live_file_path)
+            source_path = change.source_path
+            live_path = change.live_path
             if source_path.exists():
-                answer = self.prompt(f'overwrite dotfiles path "{source_file_path}" [y/N] ? ')
+                answer = self.prompt(f'overwrite dotfiles path "{source_path}" [y/N] ? ')
             else:
                 answer = self.prompt(
-                    f'import live path into dotfiles "{source_file_path}" from "{live_file_path}" [y/N] ? '
+                    f'import live path into dotfiles "{source_path}" from "{live_path}" [y/N] ? '
                 )
 
             if answer.lower() not in {"y", "yes"}:
-                self.backup_declined_update_path(source_path, live_path)
+                if candidate_key and self.key_is_single_file_update_target(candidate_key, normalized_live_file_path):
+                    self.remove_regular_update_key(candidate_key)
+                    continue
+                self.backup_declined_update_change(change)
 
     def print_phase_header(self, header_text: str) -> None:
         if self.colors_enabled():
@@ -1012,6 +1128,12 @@ class DotManager:
         self.regular_update_keys.append(target_key)
         self.regular_update_key_set.add(target_key)
 
+    def remove_regular_update_key(self, target_key: str) -> None:
+        if target_key not in self.regular_update_key_set:
+            return
+        self.regular_update_keys = [key for key in self.regular_update_keys if key != target_key]
+        self.regular_update_key_set.remove(target_key)
+
     def record_template_update_key(self, target_key: str) -> None:
         if target_key in self.template_update_key_set:
             return
@@ -1021,6 +1143,19 @@ class DotManager:
     def record_scoped_update_target(self, target_key: str, live_path: str) -> None:
         self.scoped_update_key_set.add(target_key)
         self.scoped_update_allowed_live_path_set.add(live_path)
+
+    def key_is_single_file_update_target(self, target_key: str, normalized_live_path: str) -> bool:
+        if normalized_live_path != self.normalized_destination_by_key.get(target_key, ""):
+            return False
+
+        source_path_text = self.source_by_key.get(target_key, "")
+        if not source_path_text:
+            return False
+
+        source_path = Path(source_path_text)
+        if source_path.exists():
+            return source_path.is_file()
+        return not source_path_text.endswith(os.sep)
 
     def append_split_key(self, split_key: str, split_dst: str, split_src: str) -> None:
         if self.is_update_operation and self.parsed.update_ignore_patterns:
@@ -1064,13 +1199,15 @@ class DotManager:
             self.template_update_staging_dir = Path(tempfile.mkdtemp())
         return str(self.template_update_staging_dir)
 
-    def backup_declined_update_path(self, source_path: Path, live_path: Path) -> None:
+    def backup_declined_update_change(self, change: UpdateChange) -> None:
+        self.backup_declined_update_path(change.source_path)
+
+    def backup_declined_update_path(self, source_path: Path) -> None:
         backup_dir = self.ensure_declined_update_backup_dir()
         backup_path = backup_dir / str(len(self.declined_update_backup_entries))
         original_existed = source_path.exists()
         if original_existed:
             self.copy_path_preserving_metadata(source_path, backup_path)
-        self.copy_path_preserving_metadata(live_path, source_path)
         self.declined_update_backup_entries.append(
             BackupEntry(source_path=source_path, backup_path=backup_path, original_existed=original_existed)
         )

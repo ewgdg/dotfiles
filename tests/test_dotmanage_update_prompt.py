@@ -323,33 +323,92 @@ def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     assert not (repo_source_dir / "extra.toml").exists()
 
 
-def test_declined_update_backup_skips_live_socket_entries(tmp_path: Path) -> None:
-    short_root = Path(tempfile.mkdtemp(prefix="dotmanage-", dir="/tmp"))
-    source_path = short_root / "repo" / "agent"
-    live_path = short_root / "home" / ".ssh" / "agent"
-    source_path.mkdir(parents=True)
-    live_path.mkdir(parents=True)
-
-    (source_path / "tracked").write_text("repo\n", encoding="utf-8")
-    (live_path / "tracked").write_text("live\n", encoding="utf-8")
-
-    socket_path = live_path / "agent.sock"
-    server = socket.socket(socket.AF_UNIX)
-    server.bind(str(socket_path))
+def test_declined_update_backup_restores_repo_file_after_simulated_update(tmp_path: Path) -> None:
+    source_path = tmp_path / "repo" / "tracked.toml"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("repo\n", encoding="utf-8")
 
     manager = DotManager(["update"])
-    try:
-        manager.backup_declined_update_path(source_path, live_path)
 
-        assert (source_path / "tracked").read_text(encoding="utf-8") == "live\n"
-        assert not (source_path / "agent.sock").exists()
+    manager.backup_declined_update_path(source_path)
+    assert source_path.read_text(encoding="utf-8") == "repo\n"
 
-        manager.restore_declined_update_state()
-        assert (source_path / "tracked").read_text(encoding="utf-8") == "repo\n"
-        assert manager.declined_update_backup_dir is None
-    finally:
-        server.close()
-        shutil.rmtree(short_root)
+    source_path.write_text("updated\n", encoding="utf-8")
+
+    manager.restore_declined_update_state()
+    assert source_path.read_text(encoding="utf-8") == "repo\n"
+    assert manager.declined_update_backup_dir is None
+
+
+def test_parse_update_changes_maps_transform_preview_back_to_live_path(tmp_path: Path) -> None:
+    manager = DotManager(["update"])
+    live_path = tmp_path / "home" / "Library" / "Preferences" / "settings.plist"
+    repo_path = tmp_path / "repo" / "dotfiles" / "Library" / "Preferences" / "settings.plist"
+    staged_path = tmp_path / "tmp" / "dotdrop-preview" / "settings.plist"
+    preview_output = "\n".join(
+        [
+            (
+                f'\t-> executing "python3 \'/repo/scripts/plist_transform.py\' '
+                f'{live_path} {staged_path} --mode strip --output-format xml"'
+            ),
+            f"[DRY] would cp {staged_path} {repo_path}",
+            "",
+        ]
+    )
+
+    changes = manager.parse_update_changes(preview_output)
+
+    assert len(changes) == 1
+    assert changes[0].source_path == repo_path
+    assert changes[0].live_path == live_path
+    assert changes[0].preview_transform is not None
+    assert changes[0].preview_transform.output_path == staged_path
+
+
+def test_declined_directory_import_removes_created_repo_file_on_restore(tmp_path: Path) -> None:
+    manager = DotManager(["update"])
+    source_path = tmp_path / "repo" / "live-only.toml"
+    manager.backup_declined_update_path(source_path)
+
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_text("imported\n", encoding="utf-8")
+
+    manager.restore_declined_update_state()
+    assert not source_path.exists()
+    assert manager.declined_update_backup_dir is None
+
+
+def test_declining_single_file_update_removes_key_from_regular_update_targets(monkeypatch, tmp_path: Path) -> None:
+    manager = DotManager(["update"])
+    manager.operation = "update"
+    manager.parsed = DOTMANAGE_MODULE.ParsedArgs()
+    source_path = tmp_path / "repo" / "settings.toml"
+    live_path = tmp_path / "home" / ".config" / "settings.toml"
+    source_path.parent.mkdir(parents=True)
+    live_path.parent.mkdir(parents=True)
+    source_path.write_text("repo\n", encoding="utf-8")
+    live_path.write_text("live\n", encoding="utf-8")
+
+    manager.all_keys = ["f_settings"]
+    manager.source_by_key = {"f_settings": str(source_path)}
+    manager.destination_by_key = {"f_settings": str(live_path)}
+    manager.normalized_destination_by_key = {"f_settings": str(live_path)}
+    manager.regular_update_keys = ["f_settings"]
+    manager.regular_update_key_set = {"f_settings"}
+
+    monkeypatch.setattr(
+        manager,
+        "collect_update_changes",
+        lambda: [DOTMANAGE_MODULE.UpdateChange(source_path=source_path, live_path=live_path)],
+    )
+    monkeypatch.setattr(manager, "prompt", lambda _message: "n")
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+    manager.confirm_update_overwrite_targets()
+
+    assert manager.regular_update_keys == []
+    assert manager.regular_update_key_set == set()
+    assert manager.declined_update_backup_entries == []
 
 
 def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
