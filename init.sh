@@ -16,11 +16,11 @@ script_dir="$(
 )"
 repo_root="${script_dir}"
 
-if [[ -r "${repo_root}/dotfiles/profile.bootstrap.sh" ]]; then
-  # Use the repo bootstrap environment so installs land in the same locations
-  # the managed shell profile expects.
+if [[ -r "${repo_root}/dotfiles/env.core.sh" ]]; then
+  # Use the shared core shell environment so installs land in the same
+  # locations the managed shell profile expects.
   # shellcheck source=/dev/null
-  . "${repo_root}/dotfiles/profile.bootstrap.sh"
+  . "${repo_root}/dotfiles/env.core.sh"
 fi
 
 dotdrop_config_path="${repo_root}/config.yaml"

@@ -76,11 +76,11 @@ fi
 
 repo_root="$(cd -- "$(dirname -- "$config_path")" && pwd)"
 script_path="${repo_root}/scripts/dotmanage.py"
-repo_bootstrap_profile_path="${repo_root}/dotfiles/profile.bootstrap.sh"
+repo_core_env_path="${repo_root}/dotfiles/env.core.sh"
 
-if [[ -r "$repo_bootstrap_profile_path" ]]; then
+if [[ -r "$repo_core_env_path" ]]; then
   # shellcheck source=/dev/null
-  . "$repo_bootstrap_profile_path"
+  . "$repo_core_env_path"
 fi
 
 if ! command -v dotdrop >/dev/null 2>&1; then
