@@ -18,6 +18,7 @@ from typing import Iterable
 SUPPORTED_OPERATIONS = {"update", "install", "import"}
 PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
 DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:updated|installed)\.\s*")
+INTERRUPTED_EXIT_CODE = 130
 
 
 @dataclass
@@ -590,8 +591,8 @@ class DotManager:
             try:
                 completed = self.run_streaming_subprocess(command)
             except KeyboardInterrupt:
-                print("interrupted", file=sys.stderr)
-                raise SystemExit(130)
+                emit_interrupt_notice()
+                raise SystemExit(INTERRUPTED_EXIT_CODE)
         finally:
             self.cleanup_transient_transform_outputs(operation_targets)
 
@@ -1229,9 +1230,17 @@ class DotManager:
 def main() -> int:
     try:
         return DotManager(sys.argv[1:]).run()
+    except KeyboardInterrupt:
+        emit_interrupt_notice()
+        return INTERRUPTED_EXIT_CODE
     except SystemExit as exc:
         code = exc.code if isinstance(exc.code, int) else 1
         return code
+
+
+def emit_interrupt_notice() -> None:
+    # Ctrl-C often leaves the cursor on the current prompt/output line.
+    sys.stderr.write("\ninterrupted\n")
 
 
 if __name__ == "__main__":
