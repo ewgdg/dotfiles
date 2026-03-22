@@ -41,7 +41,7 @@ ensure_tap() {
 install_package() {
     package_name=$1
 
-    if ! brew info --formula "$package_name" >/dev/null 2>&1; then
+    if ! brew info "$package_name" >/dev/null 2>&1; then
         if required_tap=$(lookup_required_tap "$package_name"); then
             if ! ensure_tap "$required_tap"; then
                 log_warning "warning: skipping $package_name because required tap $required_tap is unavailable"
@@ -54,7 +54,9 @@ install_package() {
 }
 
 for package_name do
-    if ! brew list --formula --versions "$package_name" >/dev/null 2>&1; then
-        install_package "$package_name"
+    if brew list --versions "$package_name" >/dev/null 2>&1; then
+        continue
     fi
+
+    install_package "$package_name"
 done
