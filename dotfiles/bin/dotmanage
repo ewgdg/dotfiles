@@ -36,6 +36,7 @@ files_args=()
 explicit_targets=()
 key_mode=false
 force_mode=false
+remove_existing_mode=false
 profile_from_args=""
 update_ignore_patterns=()
 effective_profile=""
@@ -43,6 +44,8 @@ config_path_from_args=""
 resolved_config_path=""
 repo_root=""
 template_update_script=""
+declare -A scoped_update_key_set=()
+declare -A scoped_update_allowed_live_path_set=()
 
 expand_home_path() {
   local raw_path="$1"
@@ -93,6 +96,41 @@ normalize_target_path() {
   fi
 
   "$python_cmd" -c 'import os, sys; print(os.path.realpath(os.path.abspath(sys.argv[1])))' "$absolute_path"
+}
+
+trim_trailing_whitespace() {
+  local value="$1"
+
+  printf '%s\n' "${value%"${value##*[![:space:]]}"}"
+}
+
+copy_path_preserving_metadata() {
+  local source_path="$1"
+  local target_path="$2"
+
+  mkdir -p -- "$(dirname -- "$target_path")"
+  if [[ -d "$source_path" ]]; then
+    cp -Rp -- "$source_path" "$target_path"
+  else
+    cp -p -- "$source_path" "$target_path"
+  fi
+}
+
+paths_are_identical() {
+  local source_path="$1"
+  local target_path="$2"
+
+  if [[ -f "$source_path" && -f "$target_path" ]]; then
+    cmp -s -- "$source_path" "$target_path"
+    return $?
+  fi
+
+  if [[ -d "$source_path" && -d "$target_path" ]]; then
+    diff -rq -- "$source_path" "$target_path" >/dev/null 2>&1
+    return $?
+  fi
+
+  return 1
 }
 
 matches_ignore_pattern() {
@@ -283,6 +321,10 @@ for ((idx = 0; idx < arg_count; idx++)); do
       force_mode=true
       base_args+=("$arg")
       ;;
+    -R|--remove-existing)
+      remove_existing_mode=true
+      base_args+=("$arg")
+      ;;
     -c|--cfg|-p|--profile)
       if (( idx + 1 >= arg_count )); then
         echo "missing value for $arg" >&2
@@ -412,6 +454,7 @@ declare -A template_update_key_set=()
 declined_update_backup_dir=""
 declare -a declined_update_backup_paths=()
 declare -a declined_update_source_paths=()
+declare -a declined_update_original_existed=()
 template_update_staging_dir=""
 
 record_regular_update_key() {
@@ -434,6 +477,14 @@ record_template_update_key() {
 
   template_update_keys+=("$target_key")
   template_update_key_set["$target_key"]=1
+}
+
+record_scoped_update_target() {
+  local target_key="$1"
+  local live_path="$2"
+
+  scoped_update_key_set["$target_key"]=1
+  scoped_update_allowed_live_path_set["$live_path"]=1
 }
 
 append_split_key() {
@@ -495,10 +546,20 @@ if (( ${#explicit_targets[@]} > 0 )); then
         exit 2
       fi
 
+      if [[ "$normalized_requested_path" != "${normalized_destination_by_key[$matched_key]}" ]] \
+        && [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
+        echo "scoped updates inside templated directory key '$matched_key' are not supported" >&2
+        exit 2
+      fi
+
       if [[ "${effective_template_by_key[$matched_key]:-0}" == "1" ]]; then
         record_template_update_key "$matched_key"
       else
         record_regular_update_key "$matched_key"
+      fi
+
+      if [[ "$normalized_requested_path" != "${normalized_destination_by_key[$matched_key]}" ]]; then
+        record_scoped_update_target "$matched_key" "$normalized_requested_path"
       fi
     done
   else
@@ -547,7 +608,7 @@ if (( ${#explicit_targets[@]} == 0 )) && [[ "$force_mode" != true ]]; then
   esac
 fi
 
-collect_update_overwrite_pairs() {
+collect_update_change_pairs() {
   local -n overwrite_pairs_ref="$1"
   local -a dry_run_call=("$dotdrop_cmd" update -b -d -f)
   local dry_run_output=""
@@ -555,6 +616,9 @@ collect_update_overwrite_pairs() {
   local dry_run_exit_code=0
   local source_file_path=""
   local live_file_path=""
+  local payload=""
+  local sorted_pairs_output=""
+  local sorted_pair=""
 
   overwrite_pairs_ref=()
   if (( ${#regular_update_keys[@]} == 0 )); then
@@ -577,11 +641,33 @@ collect_update_overwrite_pairs() {
   while IFS= read -r dry_run_line; do
     [[ -n "$dry_run_line" ]] || continue
 
-    if [[ "$dry_run_line" =~ ^\[DRY\][[:space:]]would[[:space:]]update[[:space:]]content[[:space:]]of[[:space:]](.+)[[:space:]]from[[:space:]](.+)[[:space:]]*$ ]]; then
-      source_file_path="${BASH_REMATCH[1]}"
-      live_file_path="${BASH_REMATCH[2]}"
-      source_file_path="${source_file_path%"${source_file_path##*[![:space:]]}"}"
-      live_file_path="${live_file_path%"${live_file_path##*[![:space:]]}"}"
+    if [[ "$dry_run_line" == "[DRY] would update content of "* ]]; then
+      payload="${dry_run_line#"[DRY] would update content of "}"
+      payload="$(trim_trailing_whitespace "$payload")"
+      source_file_path="$(trim_trailing_whitespace "${payload%% from *}")"
+      live_file_path="$(trim_trailing_whitespace "${payload#"$source_file_path from "}")"
+      if [[ -e "$source_file_path" && -e "$live_file_path" ]] && paths_are_identical "$source_file_path" "$live_file_path"; then
+        continue
+      fi
+      overwrite_pairs_ref+=("$source_file_path"$'\t'"$live_file_path")
+      continue
+    fi
+
+    if [[ "$dry_run_line" == "[DRY] would cp -r "* ]]; then
+      payload="${dry_run_line#"[DRY] would cp -r "}"
+    elif [[ "$dry_run_line" == "[DRY] would cp "* ]]; then
+      payload="${dry_run_line#"[DRY] would cp "}"
+    else
+      continue
+    fi
+
+    payload="$(trim_trailing_whitespace "$payload")"
+    source_file_path="$(trim_trailing_whitespace "${payload##* }")"
+    live_file_path="$(trim_trailing_whitespace "${payload%" $source_file_path"}")"
+    if [[ -e "$source_file_path" && -e "$live_file_path" ]] && paths_are_identical "$source_file_path" "$live_file_path"; then
+      continue
+    fi
+    if [[ -n "$source_file_path" && -n "$live_file_path" ]]; then
       overwrite_pairs_ref+=("$source_file_path"$'\t'"$live_file_path")
     fi
   done <<< "$dry_run_output"
@@ -589,6 +675,13 @@ collect_update_overwrite_pairs() {
   if (( ${#overwrite_pairs_ref[@]} == 0 )); then
     return 1
   fi
+
+  sorted_pairs_output="$(printf '%s\n' "${overwrite_pairs_ref[@]}" | LC_ALL=C sort)"
+  overwrite_pairs_ref=()
+  while IFS= read -r sorted_pair; do
+    [[ -n "$sorted_pair" ]] || continue
+    overwrite_pairs_ref+=("$sorted_pair")
+  done <<< "$sorted_pairs_output"
 
   return 0
 }
@@ -614,19 +707,25 @@ backup_declined_update_path() {
   local live_file_path="$2"
   local backup_index="${#declined_update_source_paths[@]}"
   local backup_path=""
+  local original_existed=0
 
   ensure_declined_update_backup_dir
   backup_path="$declined_update_backup_dir/$backup_index"
-  cp -p -- "$source_file_path" "$backup_path"
-  cp -p -- "$live_file_path" "$source_file_path"
+  if [[ -e "$source_file_path" ]]; then
+    copy_path_preserving_metadata "$source_file_path" "$backup_path"
+    original_existed=1
+  fi
+  copy_path_preserving_metadata "$live_file_path" "$source_file_path"
   declined_update_backup_paths+=("$backup_path")
   declined_update_source_paths+=("$source_file_path")
+  declined_update_original_existed+=("$original_existed")
 }
 
 restore_declined_update_paths() {
   local restore_idx=""
   local backup_path=""
   local source_file_path=""
+  local original_existed=""
 
   if (( ${#declined_update_source_paths[@]} == 0 )); then
     return
@@ -635,7 +734,16 @@ restore_declined_update_paths() {
   for ((restore_idx = 0; restore_idx < ${#declined_update_source_paths[@]}; restore_idx++)); do
     backup_path="${declined_update_backup_paths[$restore_idx]}"
     source_file_path="${declined_update_source_paths[$restore_idx]}"
-    cp -p -- "$backup_path" "$source_file_path"
+    original_existed="${declined_update_original_existed[$restore_idx]}"
+
+    if [[ "$original_existed" == "1" ]]; then
+      copy_path_preserving_metadata "$backup_path" "$source_file_path"
+      continue
+    fi
+
+    if [[ -e "$source_file_path" ]]; then
+      mv -- "$source_file_path" "$backup_path.removed"
+    fi
   done
 }
 
@@ -663,24 +771,38 @@ confirm_update_overwrite_targets() {
   local live_file_path=""
   local confirmation_answer=""
   local -a overwrite_pairs=()
+  local candidate_key=""
+  local normalized_live_file_path=""
 
-  if [[ "$operation" != "update" || "$force_mode" == true ]]; then
+  if [[ "$operation" != "update" ]]; then
     return
   fi
 
-  if [[ ! -t 0 ]]; then
-    return
-  fi
-
-  if ! collect_update_overwrite_pairs overwrite_pairs; then
+  if ! collect_update_change_pairs overwrite_pairs; then
     return
   fi
 
   for overwrite_entry in "${overwrite_pairs[@]}"; do
     source_file_path="${overwrite_entry%%$'\t'*}"
     live_file_path="${overwrite_entry#*$'\t'}"
+    normalized_live_file_path="$(normalize_target_path "$live_file_path")"
+    candidate_key="$(find_matching_update_key_for_path "$normalized_live_file_path")"
 
-    printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
+    if [[ -n "$candidate_key" && -n "${scoped_update_key_set[$candidate_key]+x}" \
+      && -z "${scoped_update_allowed_live_path_set[$normalized_live_file_path]+x}" ]]; then
+      backup_declined_update_path "$source_file_path" "$live_file_path"
+      continue
+    fi
+
+    if [[ "$force_mode" == true || ! -t 0 ]]; then
+      continue
+    fi
+
+    if [[ -e "$source_file_path" ]]; then
+      printf 'overwrite dotfiles file "%s" [y/N] ? ' "$source_file_path"
+    else
+      printf 'import live file into dotfiles "%s" from "%s" [y/N] ? ' "$source_file_path" "$live_file_path"
+    fi
     read -r confirmation_answer
     case "${confirmation_answer:-}" in
       y|Y|yes|YES)
@@ -778,11 +900,15 @@ path_needs_privileged_write() {
 
 system_phase_needs_run() {
   local operation_targets=("$@")
+  local dry_run_output=""
+  local dry_run_exit_code=0
+  local dry_run_line=""
   local compare_output=""
   local compare_exit_code=0
   local compare_line=""
   local -a compare_call=("$dotdrop_cmd" compare -L -b)
   local -a compare_focus_args=()
+  local -a dry_run_call=("$dotdrop_cmd" install -b -d)
 
   if (( ${#operation_targets[@]} == 0 )); then
     return 1
@@ -817,6 +943,30 @@ system_phase_needs_run() {
     esac
   done <<< "$compare_output"
 
+  if [[ "$operation" != "install" || "$remove_existing_mode" != "true" ]]; then
+    return 1
+  fi
+
+  dry_run_call+=("${base_args[@]}")
+  dry_run_call+=("${operation_targets[@]}")
+
+  set +e
+  dry_run_output="$("${dry_run_call[@]}" 2>&1)"
+  dry_run_exit_code=$?
+  set -e
+
+  if (( dry_run_exit_code != 0 )); then
+    return 0
+  fi
+
+  while IFS= read -r dry_run_line; do
+    case "$dry_run_line" in
+      '[DRY] would remove '*)
+        return 0
+        ;;
+    esac
+  done <<< "$dry_run_output"
+
   return 1
 }
 
@@ -828,7 +978,7 @@ run_operation_for_targets() {
 
   dotdrop_call+=("${base_args[@]}")
   if [[ "$operation" == "update" ]]; then
-    dotdrop_call+=(-k)
+    dotdrop_call+=(-f -k)
   fi
   dotdrop_call+=("${operation_targets[@]}")
 
