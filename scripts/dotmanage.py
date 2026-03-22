@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import selectors
 import shutil
 import stat
 import subprocess
@@ -585,16 +586,108 @@ class DotManager:
         else:
             command = dotdrop_call
 
-        completed = subprocess.run(command, check=False, capture_output=True, text=True)
-        if completed.stdout:
-            self.print_phase_body_output(completed.stdout, stream=sys.stdout)
-        if completed.stderr:
-            self.print_phase_body_output(completed.stderr, stream=sys.stderr)
+        try:
+            completed = self.run_streaming_subprocess(command)
+        except KeyboardInterrupt:
+            print("interrupted", file=sys.stderr)
+            raise SystemExit(130)
 
         return PhaseExecutionResult(
             exit_code=completed.returncode,
             changed_count=self.parse_phase_changed_count(completed.stdout),
         )
+
+    @classmethod
+    def run_streaming_subprocess(cls, command: list[str]) -> subprocess.CompletedProcess[str]:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=False,
+        )
+        stdout_text = ""
+        stderr_text = ""
+        stdout_buffer = ""
+        stderr_buffer = ""
+        selector = selectors.DefaultSelector()
+        assert process.stdout is not None
+        assert process.stderr is not None
+        selector.register(process.stdout, selectors.EVENT_READ, data="stdout")
+        selector.register(process.stderr, selectors.EVENT_READ, data="stderr")
+
+        try:
+            while selector.get_map():
+                for key, _ in selector.select():
+                    chunk_bytes = os.read(key.fileobj.fileno(), 4096)
+                    if not chunk_bytes:
+                        selector.unregister(key.fileobj)
+                        continue
+                    chunk = chunk_bytes.decode("utf-8", errors="replace")
+
+                    if key.data == "stdout":
+                        stdout_text += chunk
+                        stdout_buffer = cls.write_stream_chunks(
+                            stdout_buffer + chunk,
+                            stream=sys.stdout,
+                        )
+                    else:
+                        stderr_text += chunk
+                        stderr_buffer = cls.write_stream_chunks(
+                            stderr_buffer + chunk,
+                            stream=sys.stderr,
+                        )
+        except KeyboardInterrupt:
+            cls.terminate_process(process)
+            raise
+        finally:
+            selector.close()
+
+        process.wait()
+        cls.flush_stream_remainder(stdout_buffer, stream=sys.stdout)
+        cls.flush_stream_remainder(stderr_buffer, stream=sys.stderr)
+        return subprocess.CompletedProcess(command, process.returncode, stdout_text, stderr_text)
+
+    @classmethod
+    def write_stream_chunks(cls, buffered_text: str, *, stream: object) -> str:
+        lines = buffered_text.splitlines(keepends=True)
+        remainder = ""
+        if lines and not lines[-1].endswith(("\n", "\r")):
+            remainder = lines.pop()
+
+        for line in lines:
+            cls.write_output_line(line, stream=stream)
+        if cls.buffer_looks_like_prompt(remainder):
+            cls.flush_stream_remainder(remainder, stream=stream)
+            return ""
+        return remainder
+
+    @classmethod
+    def flush_stream_remainder(cls, buffered_text: str, *, stream: object) -> None:
+        if buffered_text:
+            cls.write_output_line(buffered_text, stream=stream)
+
+    @staticmethod
+    def buffer_looks_like_prompt(buffered_text: str) -> bool:
+        return buffered_text.endswith("? ")
+
+    @staticmethod
+    def write_output_line(line: str, *, stream: object) -> None:
+        stripped_line = line.rstrip("\r\n")
+        if DOTDROP_PHASE_SUMMARY_RE.fullmatch(stripped_line):
+            return
+        stream.write(line)
+        stream.flush()
+
+    @staticmethod
+    def terminate_process(process: subprocess.Popen[str]) -> None:
+        if process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
 
     @staticmethod
     def print_phase_summary(processed_count: int, updated_count: int, failed_count: int) -> None:

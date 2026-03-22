@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import os
 from pathlib import Path
 import pty
+import pytest
 import select
 import shutil
 import socket
@@ -603,6 +605,32 @@ def test_python_entrypoint_reports_missing_dotdrop(tmp_path: Path) -> None:
 
     assert result.returncode == 127
     assert "dotdrop not found in PATH" in result.stderr
+
+
+def test_run_operation_exits_cleanly_on_interrupt(monkeypatch, capsys) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed.base_args = []
+
+    monkeypatch.setattr(manager, "run_streaming_subprocess", lambda _command: (_ for _ in ()).throw(KeyboardInterrupt()))
+
+    with pytest.raises(SystemExit) as exc_info:
+        manager.run_operation_for_targets(False, ["d_app"])
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 130
+    assert "interrupted" in captured.err
+
+
+def test_streaming_output_flushes_prompt_without_newline() -> None:
+    stream = io.StringIO()
+
+    remainder = DotManager.write_stream_chunks('Overwrite "/tmp/example" [y/N] ? ', stream=stream)
+
+    assert remainder == ""
+    assert stream.getvalue() == 'Overwrite "/tmp/example" [y/N] ? '
+
 
 def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
