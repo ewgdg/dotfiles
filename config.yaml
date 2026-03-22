@@ -245,8 +245,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes '{{@@ goldendict_config_node_matchers @@}}'
-    trans_install: xml_retain_nodes '{{@@ goldendict_config_node_matchers @@}}'
+    trans_update: xml_transform_strip "--sort-attributes --strip-node-matcher '{{@@ goldendict_config_node_matchers @@}}'"
+    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-node-matcher '{{@@ goldendict_config_node_matchers @@}}'"
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -347,8 +347,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_strip_keys '{{@@ codex_config_key_matchers @@}}'
-    trans_install: toml_merge_keys '{{@@ codex_config_key_matchers @@}}'
+    trans_update: toml_transform_strip "--retain-key {{@@ codex_config_retain_keys @@}} --retain-table-regex {{@@ codex_config_retain_table_regexes @@}}"
+    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-key {{@@ codex_config_retain_keys @@}} --retain-table-regex {{@@ codex_config_retain_table_regexes @@}}"
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
@@ -368,14 +368,22 @@ dotfiles:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
     chmod: '600'
-    trans_update: globalpreferences_to_xml
-    trans_install: globalpreferences_merge_to_binary
+    trans_update: plist_transform_strip "--output-format xml --retain-key NSUserKeyEquivalents --retain-key ApplePressAndHoldEnabled --retain-key AppleKeyboardUIMode --retain-key AppleShowAllExtensions --retain-key AppleInterfaceStyle --retain-key com.apple.keyboard.fnState --retain-key com.apple.swipescrolldirection --retain-key com.apple.trackpad.forceClick --retain-key com.apple.trackpad.scaling --retain-key com.apple.mouse.scaling --retain-key com.apple.scrollwheel.scaling --retain-key NSAutomaticSpellingCorrectionEnabled --retain-key NSAutomaticCapitalizationEnabled --retain-key NSAutomaticDashSubstitutionEnabled --retain-key NSAutomaticPeriodSubstitutionEnabled --retain-key NSAutomaticQuoteSubstitutionEnabled --retain-key NSAutomaticTextCompletionEnabled"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-key NSUserKeyEquivalents --retain-key ApplePressAndHoldEnabled --retain-key AppleKeyboardUIMode --retain-key AppleShowAllExtensions --retain-key AppleInterfaceStyle --retain-key com.apple.keyboard.fnState --retain-key com.apple.swipescrolldirection --retain-key com.apple.trackpad.forceClick --retain-key com.apple.trackpad.scaling --retain-key com.apple.mouse.scaling --retain-key com.apple.scrollwheel.scaling --retain-key NSAutomaticSpellingCorrectionEnabled --retain-key NSAutomaticCapitalizationEnabled --retain-key NSAutomaticDashSubstitutionEnabled --retain-key NSAutomaticPeriodSubstitutionEnabled --retain-key NSAutomaticQuoteSubstitutionEnabled --retain-key NSAutomaticTextCompletionEnabled"
   f_Library_Preferences_com_apple_symbolichotkeys.plist:
     src: Library/Preferences/com.apple.symbolichotkeys.plist
     dst: ~/Library/Preferences/com.apple.symbolichotkeys.plist
     chmod: '600'
-    trans_update: plist_to_xml_compare
-    trans_install: plist_to_binary_compare
+    trans_update: plist_transform_strip "--output-format xml"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary"
+  f_Library_Preferences_com_lujjjh_LinearMouse.plist:
+    src: Library/Preferences/com.lujjjh.LinearMouse.plist
+    dst: ~/Library/Preferences/com.lujjjh.LinearMouse.plist
+    chmod: '600'
+    trans_update: plist_transform_strip "--output-format xml --retain-key bypassEventsFromOtherApplications"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-key bypassEventsFromOtherApplications"
+    actions:
+    - install linearmouse
 profiles:
   base:
     dotfiles:
@@ -503,6 +511,7 @@ profiles:
   xian-macbook-air.local:
     include:
     - os_mac
+    - apps_mac
     - apps_ai
   xian-linux-server:
     variables:
@@ -531,10 +540,13 @@ profiles:
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
     actions:
     - install yazi
+  apps_mac:
+    dotfiles:
+    - f_Library_Preferences_com_lujjjh_LinearMouse.plist
   apps_ai:
     variables:
-      codex_config_key_matchers: model model_reasoning_effort re:^projects\.
-        re:^mcp_servers\.playwright\.env$
+      codex_config_retain_keys: model model_reasoning_effort
+      codex_config_retain_table_regexes: ^projects\. ^mcp_servers\.playwright\.env$
     dotfiles:
     - f_codex_config.toml
     - d_codex_rules
@@ -554,51 +566,18 @@ actions:
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
     clone --depth=1 {0} "{1}"; fi
 trans_update:
-  toml_strip_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
-    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip {2}
-  xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --node-matchers {2}
-  plist_to_xml: plutil -convert xml1 -o {1} {0}
-  plist_to_xml_compare: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src 
-    @@}}' --output-format xml
-  globalpreferences_to_xml: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src 
-    @@}}' --output-format xml --keep-key NSUserKeyEquivalents --keep-key 
-    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key 
-    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key 
-    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection 
-    --keep-key com.apple.trackpad.forceClick --keep-key 
-    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key 
-    com.apple.scrollwheel.scaling --keep-key 
-    NSAutomaticSpellingCorrectionEnabled --keep-key 
-    NSAutomaticCapitalizationEnabled --keep-key 
-    NSAutomaticDashSubstitutionEnabled --keep-key 
-    NSAutomaticPeriodSubstitutionEnabled --keep-key 
-    NSAutomaticQuoteSubstitutionEnabled --keep-key 
-    NSAutomaticTextCompletionEnabled
+  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip
+    {2}
+  xml_transform_strip: python '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/xml_transform.py' {0} {1} --mode strip {2}
+  plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
+    {0} {1} --mode strip {2}
 trans_install:
-  toml_merge_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
-    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge 
-    --overlay-file '{{@@ _dotfile_abs_dst @@}}' {2}
-  xml_retain_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0}
-    {1} --overlay-file '{{@@ _dotfile_abs_dst @@}}' --node-matchers {2} 
-    --write-base-unchanged-if-no-effect
-  plist_to_binary_compare: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_dst 
-    @@}}' --output-format binary
-  globalpreferences_merge_to_binary: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plisttool.py' {0} {1} --merge-file '{{@@ _dotfile_abs_dst 
-    @@}}' --output-format binary --keep-key NSUserKeyEquivalents --keep-key 
-    ApplePressAndHoldEnabled --keep-key AppleKeyboardUIMode --keep-key 
-    AppleShowAllExtensions --keep-key AppleInterfaceStyle --keep-key 
-    com.apple.keyboard.fnState --keep-key com.apple.swipescrolldirection 
-    --keep-key com.apple.trackpad.forceClick --keep-key 
-    com.apple.trackpad.scaling --keep-key com.apple.mouse.scaling --keep-key 
-    com.apple.scrollwheel.scaling --keep-key 
-    NSAutomaticSpellingCorrectionEnabled --keep-key 
-    NSAutomaticCapitalizationEnabled --keep-key 
-    NSAutomaticDashSubstitutionEnabled --keep-key 
-    NSAutomaticPeriodSubstitutionEnabled --keep-key 
-    NSAutomaticQuoteSubstitutionEnabled --keep-key 
-    NSAutomaticTextCompletionEnabled
+  toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge
+    {2}
+  xml_transform_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xml_transform.py' {0}
+    {1} --mode merge {2}
+  plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
+    {0} {1} --mode strip {2}
+  plist_transform_merge: python3 '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2}

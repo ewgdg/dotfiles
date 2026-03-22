@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+from pathlib import Path
+import plistlib
+import sys
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.transform_cli import run_engine_cli  # noqa: E402
+from scripts.transform_engine import (  # noqa: E402
+    BaseTransformEngine,
+    SelectorAction,
+    SelectorSpec,
+    TransformMode,
+    TransformRequest,
+)
+
+
+PlistDict = dict[str, Any]
+
+
+def load_plist(path: Path) -> PlistDict:
+    if not path.exists():
+        return {}
+
+    with path.open("rb") as handle:
+        loaded = plistlib.load(handle)
+
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Expected plist dictionary in {path}")
+
+    return loaded
+
+
+def filter_retained_keys(data: PlistDict, retained_keys: tuple[str, ...]) -> PlistDict:
+    if not retained_keys:
+        return dict(data)
+    return {key: data[key] for key in retained_keys if key in data}
+
+
+def filter_stripped_keys(data: PlistDict, stripped_keys: tuple[str, ...]) -> PlistDict:
+    if not stripped_keys:
+        return dict(data)
+    stripped_key_set = set(stripped_keys)
+    return {key: value for key, value in data.items() if key not in stripped_key_set}
+
+
+def select_plist_data(
+    data: PlistDict,
+    selector_action: SelectorAction,
+    selected_keys: tuple[str, ...],
+) -> PlistDict:
+    if selector_action == SelectorAction.STRIP:
+        return filter_stripped_keys(data, selected_keys)
+    return filter_retained_keys(data, selected_keys)
+
+
+def plist_format_from_name(format_name: str) -> int:
+    return plistlib.FMT_XML if format_name == "xml" else plistlib.FMT_BINARY
+
+
+def write_plist(path: Path, data: PlistDict, fmt: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as handle:
+        plistlib.dump(data, handle, fmt=plist_format_from_name(fmt), sort_keys=True)
+
+
+def get_existing_bytes_if_semantically_unchanged(
+    path: Path,
+    data: PlistDict,
+) -> bytes | None:
+    if not path.exists():
+        return None
+
+    existing_bytes = path.read_bytes()
+    try:
+        existing_data = plistlib.loads(existing_bytes)
+    except Exception:
+        return None
+
+    if existing_data != data:
+        return None
+
+    return existing_bytes
+
+
+def mirror_mode(reference_path: Path, output_path: Path) -> None:
+    if not reference_path.exists() or not output_path.exists():
+        return
+    output_path.chmod(reference_path.stat().st_mode & 0o777)
+
+
+def write_plist_if_changed(
+    output_path: Path,
+    data: PlistDict,
+    output_format: str,
+    reference_path: Path,
+    compare_path: Path,
+) -> None:
+    sync_path = compare_path if compare_path != output_path else reference_path
+    existing_bytes = get_existing_bytes_if_semantically_unchanged(compare_path, data)
+    if existing_bytes is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(existing_bytes)
+        if sync_path != output_path:
+            mirror_mode(sync_path, output_path)
+        return
+
+    write_plist(output_path, data, output_format)
+    if sync_path != output_path:
+        mirror_mode(sync_path, output_path)
+
+
+class PlistTransformEngine(BaseTransformEngine):
+    name = "plist"
+    SELECTOR_SPECS = (
+        SelectorSpec(
+            name="key",
+            cli_flag="key",
+            description="exact top-level plist dictionary key",
+            examples=("NSUserKeyEquivalents", "bypassEventsFromOtherApplications"),
+        ),
+    )
+
+    def requires_selectors(self) -> bool:
+        return False
+
+    def configure_parser(self, parser) -> None:
+        parser.add_argument(
+            "--compare-file",
+            type=Path,
+            help="Existing plist whose bytes should be preserved when data is unchanged.",
+        )
+        parser.add_argument(
+            "--output-format",
+            choices=("xml", "binary"),
+            default="xml",
+            help="Serialization format for the output plist.",
+        )
+
+    def build_engine_options(self, parsed_args) -> dict[str, Any]:
+        return {
+            "compare_path": parsed_args.compare_file,
+            "output_format": parsed_args.output_format,
+        }
+
+    def transform(self, request: TransformRequest) -> None:
+        self.validate_request(request)
+        selected_keys = request.selector_values("key")
+        output_format = str(request.engine_option("output_format", "xml"))
+
+        source_data = load_plist(request.base_path)
+        transformed_data = select_plist_data(
+            source_data,
+            request.selector_action,
+            selected_keys,
+        )
+
+        reference_path = request.base_path
+        if request.mode == TransformMode.MERGE:
+            assert request.overlay_path is not None
+            overlay_data = load_plist(request.overlay_path)
+            transformed_base_data = select_plist_data(
+                source_data,
+                request.selector_action,
+                selected_keys,
+            )
+            transformed_data = dict(overlay_data)
+            transformed_data.update(transformed_base_data)
+            reference_path = request.overlay_path
+
+        compare_path = request.engine_option("compare_path")
+        if compare_path is None:
+            compare_path = reference_path
+
+        write_plist_if_changed(
+            request.output_path,
+            transformed_data,
+            output_format,
+            reference_path=reference_path,
+            compare_path=compare_path,
+        )
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run_engine_cli(PlistTransformEngine(), argv=argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

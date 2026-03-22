@@ -2,16 +2,30 @@
 
 from __future__ import annotations
 
-import argparse
 import copy
 import re
 from collections.abc import Iterable
 from pathlib import Path
+import sys
 from typing import Any
 
 import tomlkit
 from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.transform_cli import run_engine_cli  # noqa: E402
+from scripts.transform_engine import (  # noqa: E402
+    BaseTransformEngine,
+    SelectorAction,
+    SelectorSpec,
+    TransformMode,
+    TransformRequest,
+)
 
 
 TomlContainer = TOMLDocument | Table
@@ -155,68 +169,20 @@ def matches_table_regex(table_path: tuple[str, ...], table_regexes: list[re.Patt
     return any(table_regex.search(raw_table_path) for table_regex in table_regexes)
 
 
-def normalize_key_matchers(key_matchers: list[str]) -> list[str]:
-    normalized_matchers: list[str] = []
-    for matcher in key_matchers:
-        normalized_matchers.extend(split_key_matcher_blob(matcher))
-    return normalized_matchers
+def parse_key_paths(raw_key_paths: Iterable[str]) -> list[tuple[str, ...]]:
+    return [parse_key_path(raw_key) for raw_key in raw_key_paths]
 
 
-def split_key_matcher_blob(raw_matchers: str) -> list[str]:
-    matchers: list[str] = []
-    current: list[str] = []
-    in_quotes = False
-    escape = False
-
-    for char in raw_matchers:
-        if in_quotes and escape:
-            current.append(char)
-            escape = False
-            continue
-
-        if in_quotes and char == "\\":
-            current.append(char)
-            escape = True
-            continue
-
-        if char == '"':
-            current.append(char)
-            in_quotes = not in_quotes
-            continue
-
-        if char.isspace() and not in_quotes:
-            matcher = "".join(current).strip()
-            if matcher:
-                matchers.append(matcher)
-            current = []
-            continue
-
-        current.append(char)
-
-    matcher = "".join(current).strip()
-    if matcher:
-        matchers.append(matcher)
-
-    return matchers
-
-
-def parse_key_matchers(
-    key_matchers: list[str],
-) -> tuple[list[tuple[str, ...]], list[re.Pattern[str]]]:
-    normalized_matchers = normalize_key_matchers(key_matchers)
-    raw_key_paths = [
-        matcher for matcher in normalized_matchers if not matcher.startswith("re:")
-    ]
-    raw_table_regexes = [
-        matcher[3:] for matcher in normalized_matchers if matcher.startswith("re:")
-    ]
-    key_paths = [parse_key_path(raw_key) for raw_key in raw_key_paths]
-    table_regexes = [re.compile(raw_regex) for raw_regex in raw_table_regexes]
-    return key_paths, table_regexes
+def compile_table_regexes(raw_table_regexes: Iterable[str]) -> list[re.Pattern[str]]:
+    return [re.compile(raw_regex) for raw_regex in raw_table_regexes]
 
 
 def normalize_blank_lines(content: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", content)
+
+
+def normalize_document(doc: TOMLDocument) -> TOMLDocument:
+    return tomlkit.parse(normalize_blank_lines(doc.as_string()))
 
 
 def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlContainer:
@@ -230,22 +196,34 @@ def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlCo
     return current
 
 
+def build_document_with_stripped_matchers(
+    source_doc: TOMLDocument,
+    stripped_key_paths: list[tuple[str, ...]],
+    stripped_table_regexes: list[re.Pattern[str]],
+) -> TOMLDocument:
+    stripped_doc = copy.deepcopy(source_doc)
+    table_paths = sorted(iter_table_paths(stripped_doc), key=len, reverse=True)
+    for table_path in table_paths:
+        if matches_table_regex(table_path, stripped_table_regexes):
+            delete_key_path(stripped_doc, table_path)
+
+    for key_path in stripped_key_paths:
+        delete_key_path(stripped_doc, key_path)
+
+    return normalize_document(stripped_doc)
+
+
 def strip_keys(
     base_path: Path,
     output_path: Path,
     stripped_key_paths: list[tuple[str, ...]],
     stripped_table_regexes: list[re.Pattern[str]],
 ) -> None:
-    doc = load_document(base_path)
-    table_paths = sorted(iter_table_paths(doc), key=len, reverse=True)
-    for table_path in table_paths:
-        if matches_table_regex(table_path, stripped_table_regexes):
-            delete_key_path(doc, table_path)
-
-    for key_path in stripped_key_paths:
-        delete_key_path(doc, key_path)
-
-    normalized_doc = tomlkit.parse(normalize_blank_lines(doc.as_string()))
+    normalized_doc = build_document_with_stripped_matchers(
+        load_document(base_path),
+        stripped_key_paths,
+        stripped_table_regexes,
+    )
     write_document_if_changed(output_path, normalized_doc, reference_path=base_path)
 
 
@@ -288,6 +266,29 @@ def overlay_preserved_tables(
         target_container[table_name] = copy.deepcopy(retained_table)
 
 
+def build_document_with_retained_matchers(
+    source_doc: TOMLDocument,
+    retained_key_paths: Iterable[tuple[str, ...]],
+    retained_table_regexes: list[re.Pattern[str]],
+) -> TOMLDocument:
+    retained_doc = tomlkit.document()
+    overlay_preserved_tables(source_doc, retained_doc, retained_table_regexes)
+    overlay_preserved_keys(source_doc, retained_doc, retained_key_paths)
+    return normalize_document(retained_doc)
+
+
+def merge_overlay_document(overlay_doc: TomlContainer, base_doc: TomlContainer) -> None:
+    for key, overlay_value in overlay_doc.items():
+        key_name = str(key)
+        base_value = base_doc.get(key_name)
+
+        if isinstance(overlay_value, Table) and isinstance(base_value, Table):
+            merge_overlay_document(overlay_value, base_value)
+            continue
+
+        base_doc[key_name] = copy.deepcopy(overlay_value)
+
+
 def merge_keys(
     base_path: Path,
     output_path: Path,
@@ -304,58 +305,91 @@ def merge_keys(
     write_document_if_changed(output_path, merged_doc, reference_path=base_path)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Strip selectors from a base TOML file, or retain selected values from an "
-            "overlay TOML file on top of a base TOML file."
+def merge_keys_except_stripped(
+    base_path: Path,
+    output_path: Path,
+    overlay_path: Path,
+    stripped_key_paths: list[tuple[str, ...]],
+    stripped_table_regexes: list[re.Pattern[str]],
+) -> None:
+    base_doc = load_document(base_path)
+    merged_doc = copy.deepcopy(base_doc)
+    if overlay_path.exists():
+        overlay_doc = load_document(overlay_path)
+        filtered_overlay_doc = build_document_with_stripped_matchers(
+            overlay_doc,
+            stripped_key_paths,
+            stripped_table_regexes,
         )
-    )
-    parser.add_argument("base_path", type=Path, help="Base TOML file. Repo file for install mode.")
-    parser.add_argument("output_path", type=Path)
-    parser.add_argument(
-        "key_matchers",
-        nargs="*",
-        metavar="key-matcher",
-        help=(
-            "In strip mode, key matchers to remove from the base file. In merge mode, "
-            "key matchers to retain from the overlay file. Supports exact TOML key "
-            "paths and re: table regexes."
+        merge_overlay_document(filtered_overlay_doc, merged_doc)
+    write_document_if_changed(output_path, merged_doc, reference_path=base_path)
+
+
+class TomlTransformEngine(BaseTransformEngine):
+    name = "toml"
+    SELECTOR_SPECS = (
+        SelectorSpec(
+            name="key",
+            cli_flag="key",
+            description="exact TOML key path",
+            examples=("model", "mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"),
+        ),
+        SelectorSpec(
+            name="table_regex",
+            cli_flag="table-regex",
+            description="regex matching dotted TOML table paths",
+            examples=(r"^projects\.", r"^mcp_servers\.playwright\.env$"),
         ),
     )
-    parser.add_argument("--mode", choices=["strip", "merge"], required=True)
-    parser.add_argument(
-        "--overlay-file",
-        "--merge-file",
-        dest="overlay_path",
-        type=Path,
-        help="Overlay TOML file. Required when --mode=merge.",
-    )
-    return parser.parse_args()
+
+    def validate_request(self, request: TransformRequest) -> None:
+        super().validate_request(request)
+        parse_key_paths(request.selector_values("key"))
+        compile_table_regexes(request.selector_values("table_regex"))
+
+    def transform(self, request: TransformRequest) -> None:
+        self.validate_request(request)
+        key_paths = parse_key_paths(request.selector_values("key"))
+        table_regexes = compile_table_regexes(request.selector_values("table_regex"))
+
+        if request.mode == TransformMode.STRIP:
+            if request.selector_action == SelectorAction.STRIP:
+                strip_keys(request.base_path, request.output_path, key_paths, table_regexes)
+            else:
+                retained_doc = build_document_with_retained_matchers(
+                    load_document(request.base_path),
+                    key_paths,
+                    table_regexes,
+                )
+                write_document_if_changed(
+                    request.output_path,
+                    retained_doc,
+                    reference_path=request.base_path,
+                )
+            return
+
+        assert request.overlay_path is not None
+        if request.selector_action == SelectorAction.STRIP:
+            merge_keys_except_stripped(
+                request.base_path,
+                request.output_path,
+                request.overlay_path,
+                key_paths,
+                table_regexes,
+            )
+            return
+
+        merge_keys(
+            request.base_path,
+            request.output_path,
+            request.overlay_path,
+            key_paths,
+            table_regexes,
+        )
 
 
-def main() -> int:
-    args = parse_args()
-    if not args.key_matchers:
-        raise ValueError("at least one key matcher is required")
-
-    key_paths, table_regexes = parse_key_matchers(args.key_matchers)
-
-    if args.mode == "strip":
-        strip_keys(args.base_path, args.output_path, key_paths, table_regexes)
-        return 0
-
-    if args.overlay_path is None:
-        raise ValueError("--overlay-file is required when --mode=merge")
-
-    merge_keys(
-        args.base_path,
-        args.output_path,
-        args.overlay_path,
-        key_paths,
-        table_regexes,
-    )
-    return 0
+def main(argv: list[str] | None = None) -> int:
+    return run_engine_cli(TomlTransformEngine(), argv=argv)
 
 
 if __name__ == "__main__":

@@ -24,9 +24,67 @@ def load_module():
 MODULE = load_module()
 
 
-def test_parse_key_matchers_accepts_single_space_delimited_argument() -> None:
-    key_paths, table_regexes = MODULE.parse_key_matchers(
-        ["model model_reasoning_effort re:^projects\\. re:^mcp_servers\\.playwright\\.env$"]
+def test_toml_engine_declares_typed_selectors() -> None:
+    selector_specs = {spec.name: spec for spec in MODULE.TomlTransformEngine.selector_specs()}
+
+    assert selector_specs["key"].option_name(MODULE.SelectorAction.RETAIN) == "--retain-key"
+    assert (
+        selector_specs["table_regex"].option_name(MODULE.SelectorAction.RETAIN)
+        == "--retain-table-regex"
+    )
+
+
+def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.toml"
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text(
+        """approval_policy = "on-request"
+
+[mcp_servers.context7]
+command = "npx"
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """approval_policy = "on-request"
+model = "gpt-5.4"
+
+[mcp_servers.playwright.env]
+PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(repo_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(live_path),
+            "--retain-key",
+            "model",
+            "--retain-table-regex",
+            "^mcp_servers\\.playwright\\.env$",
+        ]
+    )
+
+    assert exit_code == 0
+    merged_doc = MODULE.load_document(output_path)
+    assert merged_doc["model"] == "gpt-5.4"
+    assert (
+        merged_doc["mcp_servers"]["playwright"]["env"]["PLAYWRIGHT_MCP_EXTENSION_TOKEN"]
+        == "secret"
+    )
+
+
+def test_parse_key_paths_and_table_regexes() -> None:
+    key_paths = MODULE.parse_key_paths(["model", "model_reasoning_effort"])
+    table_regexes = MODULE.compile_table_regexes(
+        ["^projects\\.", "^mcp_servers\\.playwright\\.env$"]
     )
 
     assert key_paths == [("model",), ("model_reasoning_effort",)]
@@ -34,6 +92,37 @@ def test_parse_key_matchers_accepts_single_space_delimited_argument() -> None:
         "^projects\\.",
         "^mcp_servers\\.playwright\\.env$",
     ]
+
+
+def test_retain_matchers_in_strip_mode_keeps_only_selected_content(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text(
+        """approval_policy = "on-request"
+model = "gpt-5.4"
+
+[mcp_servers.context7]
+command = "npx"
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+""",
+        encoding="utf-8",
+    )
+
+    retained_doc = MODULE.build_document_with_retained_matchers(
+        MODULE.load_document(repo_path),
+        {("model",)},
+        [MODULE.re.compile(r"^projects\.")],
+    )
+    MODULE.write_document_if_changed(output_path, retained_doc, reference_path=repo_path)
+
+    output = output_path.read_text(encoding="utf-8")
+    assert 'model = "gpt-5.4"' in output
+    assert "[projects" in output
+    assert "approval_policy" not in output
+    assert "mcp_servers" not in output
 
 
 def test_merge_replaces_unmanaged_live_keys_but_preserves_selected_keys(tmp_path: Path) -> None:
@@ -166,6 +255,56 @@ def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:
     merged_doc = MODULE.load_document(output_path)
 
     assert "mcp_servers" not in merged_doc
+
+
+def test_merge_strip_matchers_merges_everything_else_from_overlay(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.toml"
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text(
+        """approval_policy = "on-request"
+model = "repo-model"
+
+[mcp_servers.context7]
+command = "repo-context7"
+
+[projects."/tmp/example"]
+trust_level = "repo"
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """approval_policy = "live"
+model = "live-model"
+
+[mcp_servers.context7]
+command = "live-context7"
+
+[mcp_servers.playwright]
+command = "live-playwright"
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys_except_stripped(
+        repo_path,
+        output_path,
+        live_path,
+        [("model",)],
+        [MODULE.re.compile(r"^projects\.")],
+    )
+
+    merged_doc = MODULE.load_document(output_path)
+
+    assert merged_doc["approval_policy"] == "live"
+    assert merged_doc["model"] == "repo-model"
+    assert merged_doc["mcp_servers"]["context7"]["command"] == "live-context7"
+    assert merged_doc["mcp_servers"]["playwright"]["command"] == "live-playwright"
+    assert merged_doc["projects"]["/tmp/example"]["trust_level"] == "repo"
 
 
 def test_merge_preserves_overlay_key_order_across_hash_seeds(tmp_path: Path) -> None:

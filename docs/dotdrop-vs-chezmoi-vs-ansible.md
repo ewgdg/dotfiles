@@ -51,10 +51,9 @@ formats that include unstable ordering, generated noise, or machine-local data.
 
 This repo already uses that pattern in `config.yaml`, for example:
 
-- `toml_strip_keys`
-- `xml_sort_attr_rm_nodes`
-- `plist_to_xml_compare`
-- `globalpreferences_to_xml`
+- `toml_transform_strip`
+- `xml_transform_strip`
+- `plist_transform_strip`
 
 Without write-side transforms, reverse sync is much noisier and often too
 fragile to use comfortably.
