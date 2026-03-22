@@ -12,6 +12,7 @@ The action need to be idempotent.
 If a dotdrop action is only used in one place, prefer inlining the command at that call site instead of creating a single-use named action.
 Dotdrop transform scripts must write the output path passed by dotdrop and preserve the source file mode on that output.
 Performance is a concern for long running services.
+Do not edit files with a `.archived` suffix unless the user explicitly asks.
 
 ## Build, Test, and Development Commands
 
