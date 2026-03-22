@@ -16,10 +16,27 @@ script_dir="$(
 )"
 repo_root="${script_dir}"
 
-if [[ -r "${HOME}/.profile" ]]; then
-  # Reuse the current login-shell defaults instead of writing new persistent env.
+if [[ -r "${repo_root}/dotfiles/profile.bootstrap.sh" ]]; then
+  # Use the repo bootstrap environment so installs land in the same locations
+  # the managed shell profile expects.
   # shellcheck source=/dev/null
-  . "${HOME}/.profile"
+  . "${repo_root}/dotfiles/profile.bootstrap.sh"
+fi
+
+case "$(uname -s)" in
+  Darwin)
+    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-macos"
+    ;;
+  Linux)
+    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-gui"
+    ;;
+  *)
+    repo_askpass_path=""
+    ;;
+esac
+
+if [[ -n "${repo_askpass_path}" && -x "${repo_askpass_path}" ]]; then
+  export SUDO_ASKPASS="${repo_askpass_path}"
 fi
 
 dotdrop_config_path="${repo_root}/config.yaml"

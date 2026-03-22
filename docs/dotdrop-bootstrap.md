@@ -17,8 +17,9 @@ Behavior:
   such as `brew`, `scoop`, `pacman`, `apt-get`, `dnf`, `zypper`, or `apk`.
 - If no supported package manager install succeeds, it falls back to the
   official `uv` installer with `UV_UNMANAGED_INSTALL=~/.local/bin`.
-- The script reuses your current `~/.profile` environment instead of writing
-  new persistent exports into managed shell config.
+- The script sources `dotfiles/profile.bootstrap.sh` before bootstrapping so
+  install-time tools use the same XDG and PATH defaults that the managed shell
+  profile expects.
 - The installer target is `~/.local/bin`.
 - `DOTDROP_CONFIG` always points to the `config.yaml` in the same repo as
   `init.sh`.

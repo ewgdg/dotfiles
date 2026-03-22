@@ -16,5 +16,5 @@ dev = [
 
 [tool.pytest]
 minversion = "9.0"
-addopts = ["-ra"]
+addopts = ["-ra", "--basetemp=/tmp/pytest-dotfiles"]
 testpaths = ["tests"]

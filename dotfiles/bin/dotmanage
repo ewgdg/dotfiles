@@ -56,11 +56,6 @@ resolve_config_path() {
   printf '%s\n' ""
 }
 
-if ! command -v dotdrop >/dev/null 2>&1; then
-  echo "dotdrop not found in PATH" >&2
-  exit 127
-fi
-
 if (( $# == 0 )); then
   exec dotdrop
 fi
@@ -81,6 +76,33 @@ fi
 
 repo_root="$(cd -- "$(dirname -- "$config_path")" && pwd)"
 script_path="${repo_root}/scripts/dotmanage.py"
+repo_bootstrap_profile_path="${repo_root}/dotfiles/profile.bootstrap.sh"
+
+if [[ -r "$repo_bootstrap_profile_path" ]]; then
+  # shellcheck source=/dev/null
+  . "$repo_bootstrap_profile_path"
+fi
+
+case "$(uname -s)" in
+  Darwin)
+    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-macos"
+    ;;
+  Linux)
+    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-gui"
+    ;;
+  *)
+    repo_askpass_path=""
+    ;;
+esac
+
+if [[ -n "$repo_askpass_path" && -x "$repo_askpass_path" ]]; then
+  export SUDO_ASKPASS="$repo_askpass_path"
+fi
+
+if ! command -v dotdrop >/dev/null 2>&1; then
+  echo "dotdrop not found in PATH" >&2
+  exit 127
+fi
 
 if [[ ! -r "$script_path" ]]; then
   installed_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

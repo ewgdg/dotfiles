@@ -19,6 +19,7 @@ Use `init.sh` on a new machine:
 
 - install `uv` if needed
 - install `dotdrop` as a `uv` tool
+- source the shared repo bootstrap environment from `dotfiles/profile.bootstrap.sh`
 - use this repo's `config.yaml`
 - run `dotmanage install` by default
 
@@ -39,6 +40,10 @@ dotmanage update -p <profile>
 
 Use this when the selected profile or keys include both home-directory files and
 privileged destinations.
+
+Before `dotmanage` invokes `dotdrop`, it sources
+`dotfiles/profile.bootstrap.sh` so install-time tools see the same XDG and PATH
+defaults as the managed shell profile.
 
 For templated file sources, `dotmanage update` automatically uses the repo's
 template-aware merge helper instead of plain `dotdrop update`.
