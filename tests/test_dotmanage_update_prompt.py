@@ -804,6 +804,68 @@ def test_run_operation_cleans_stale_transform_output(tmp_path: Path, monkeypatch
     assert not transient_path.exists()
 
 
+def test_update_operation_counts_only_actual_changed_files_from_dry_run(monkeypatch) -> None:
+    manager = DotManager(["update"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "update"
+    manager.parsed.base_args = ["-p", "repro"]
+
+    dry_run_completed = subprocess.CompletedProcess(
+        ["dotdrop", "update", "-d"],
+        0,
+        "\n".join(
+            [
+                "[DRY] would update content of /repo/settings.toml from /live/settings.toml",
+                "[DRY] would cp /live/extra.toml /repo/extra.toml",
+                "",
+            ]
+        ),
+        "",
+    )
+
+    def fake_run(command, **kwargs):
+        assert command == ["dotdrop", "update", "-b", "-d", "-p", "repro", "-f", "-k", "d_app"]
+        assert kwargs["check"] is False
+        assert kwargs["capture_output"] is True
+        assert kwargs["text"] is True
+        return dry_run_completed
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        manager,
+        "run_streaming_subprocess",
+        lambda _command: subprocess.CompletedProcess(_command, 0, "1 file(s) updated.\n", ""),
+    )
+
+    result = manager.run_operation_for_targets(False, ["d_app"])
+
+    assert result.exit_code == 0
+    assert result.changed_count == 2
+
+
+def test_update_operation_falls_back_to_dotdrop_summary_when_dry_run_fails(monkeypatch) -> None:
+    manager = DotManager(["update"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "update"
+    manager.parsed.base_args = []
+
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(["dotdrop", "update", "-d"], 2, "", "preview failed"),
+    )
+    monkeypatch.setattr(
+        manager,
+        "run_streaming_subprocess",
+        lambda _command: subprocess.CompletedProcess(_command, 0, "3 file(s) updated.\n", ""),
+    )
+
+    result = manager.run_operation_for_targets(False, ["d_app", "d_other", "d_third"])
+
+    assert result.exit_code == 0
+    assert result.changed_count == 3
+
+
 def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     original_source = repo_source_path.read_text(encoding="utf-8")

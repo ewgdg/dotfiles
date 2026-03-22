@@ -406,39 +406,28 @@ class DotManager:
         if not self.regular_update_keys:
             return []
 
-        dry_run_call = [
-            self.dotdrop_cmd,
-            "update",
-            "-b",
-            "-d",
-            "-f",
-            *self.parsed.base_args,
-            "-k",
-            *self.regular_update_keys,
-        ]
-        completed = subprocess.run(
-            dry_run_call,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        completed = self.run_update_preview(False, self.regular_update_keys)
         if completed.returncode != 0:
             return []
 
+        return self.parse_update_change_pairs(completed.stdout)
+
+    @classmethod
+    def parse_update_change_pairs(cls, output_text: str) -> list[tuple[str, str]]:
         overwrite_pairs: list[tuple[str, str]] = []
-        for raw_line in completed.stdout.splitlines():
+        for raw_line in output_text.splitlines():
             line = raw_line.strip()
             if not line:
                 continue
 
             if line.startswith("[DRY] would update content of "):
-                payload = self.trim_trailing_whitespace(line.removeprefix("[DRY] would update content of "))
+                payload = cls.trim_trailing_whitespace(line.removeprefix("[DRY] would update content of "))
                 source_file_path, separator, live_file_path = payload.partition(" from ")
                 if not separator:
                     continue
-                source_file_path = self.trim_trailing_whitespace(source_file_path)
-                live_file_path = self.trim_trailing_whitespace(live_file_path)
-                if self.paths_are_identical_if_present(source_file_path, live_file_path):
+                source_file_path = cls.trim_trailing_whitespace(source_file_path)
+                live_file_path = cls.trim_trailing_whitespace(live_file_path)
+                if cls.paths_are_identical_if_present(source_file_path, live_file_path):
                     continue
                 overwrite_pairs.append((source_file_path, live_file_path))
                 continue
@@ -451,19 +440,60 @@ class DotManager:
             else:
                 continue
 
-            payload = self.trim_trailing_whitespace(payload)
+            payload = cls.trim_trailing_whitespace(payload)
             if " " not in payload:
                 continue
             live_file_path, source_file_path = payload.rsplit(" ", 1)
-            live_file_path = self.trim_trailing_whitespace(live_file_path)
-            source_file_path = self.trim_trailing_whitespace(source_file_path)
+            live_file_path = cls.trim_trailing_whitespace(live_file_path)
+            source_file_path = cls.trim_trailing_whitespace(source_file_path)
             if not source_file_path or not live_file_path:
                 continue
-            if self.paths_are_identical_if_present(source_file_path, live_file_path):
+            if cls.paths_are_identical_if_present(source_file_path, live_file_path):
                 continue
             overwrite_pairs.append((source_file_path, live_file_path))
 
         return sorted(overwrite_pairs)
+
+    def build_operation_call(self, operation_targets: list[str], *, dry_run: bool = False) -> list[str]:
+        dotdrop_call = [self.dotdrop_cmd, self.operation, "-b"]
+        if dry_run:
+            dotdrop_call.append("-d")
+        dotdrop_call.extend(self.parsed.base_args)
+        if self.is_update_operation:
+            dotdrop_call.extend(["-f", "-k"])
+        dotdrop_call.extend(operation_targets)
+        return dotdrop_call
+
+    @staticmethod
+    def build_command_with_privilege(dotdrop_call: list[str], *, run_with_sudo: bool) -> list[str]:
+        if not run_with_sudo:
+            return dotdrop_call
+
+        command = ["sudo", "env", f"PATH={os.environ.get('PATH', '')}"]
+        if os.environ.get("DOTDROP_CONFIG"):
+            command.append(f"DOTDROP_CONFIG={os.environ['DOTDROP_CONFIG']}")
+        command.extend(dotdrop_call)
+        return command
+
+    def run_update_preview(
+        self,
+        run_with_sudo: bool,
+        operation_targets: list[str],
+    ) -> subprocess.CompletedProcess[str]:
+        dry_run_call = self.build_operation_call(operation_targets, dry_run=True)
+        command = self.build_command_with_privilege(dry_run_call, run_with_sudo=run_with_sudo)
+        return subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def count_actual_update_changes(self, run_with_sudo: bool, operation_targets: list[str]) -> int | None:
+        completed = self.run_update_preview(run_with_sudo, operation_targets)
+        if completed.returncode != 0:
+            return None
+        return len(self.parse_update_change_pairs(completed.stdout))
 
     def confirm_update_overwrite_targets(self) -> None:
         if not self.is_update_operation:
@@ -593,18 +623,12 @@ class DotManager:
         stream.write(text)
 
     def run_operation_for_targets(self, run_with_sudo: bool, operation_targets: list[str]) -> PhaseExecutionResult:
-        dotdrop_call = [self.dotdrop_cmd, self.operation, "-b", *self.parsed.base_args]
+        preview_changed_count = None
         if self.is_update_operation:
-            dotdrop_call.extend(["-f", "-k"])
-        dotdrop_call.extend(operation_targets)
+            preview_changed_count = self.count_actual_update_changes(run_with_sudo, operation_targets)
 
-        if run_with_sudo:
-            command = ["sudo", "env", f"PATH={os.environ.get('PATH', '')}"]
-            if os.environ.get("DOTDROP_CONFIG"):
-                command.append(f"DOTDROP_CONFIG={os.environ['DOTDROP_CONFIG']}")
-            command.extend(dotdrop_call)
-        else:
-            command = dotdrop_call
+        dotdrop_call = self.build_operation_call(operation_targets)
+        command = self.build_command_with_privilege(dotdrop_call, run_with_sudo=run_with_sudo)
 
         try:
             try:
@@ -617,7 +641,11 @@ class DotManager:
 
         return PhaseExecutionResult(
             exit_code=completed.returncode,
-            changed_count=self.parse_phase_changed_count(completed.stdout),
+            changed_count=(
+                preview_changed_count
+                if preview_changed_count is not None
+                else self.parse_phase_changed_count(completed.stdout)
+            ),
         )
 
     def cleanup_transient_transform_outputs(self, operation_targets: Iterable[str]) -> None:
