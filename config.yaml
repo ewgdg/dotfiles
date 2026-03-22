@@ -540,7 +540,7 @@ profiles:
     - d_codex_rules
     - d_agents
     actions:
-    - sh 'bun add -g context-mode@latest'
+    - sh 'bun add -g context-mode@latest @oh-my-pi/pi-coding-agent'
 
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
