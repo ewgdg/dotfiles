@@ -32,6 +32,7 @@ class ParsedArgs:
     force_mode: bool = False
     remove_existing_mode: bool = False
     profile_from_args: str = ""
+    profile_was_explicitly_selected: bool = False
     config_path_from_args: str = ""
     update_ignore_patterns: list[str] = field(default_factory=list)
 
@@ -122,7 +123,11 @@ class DotManager:
         self.load_key_metadata()
         self.select_targets()
 
-        if not self.parsed.explicit_targets and not self.parsed.force_mode:
+        if (
+            not self.parsed.explicit_targets
+            and not self.parsed.force_mode
+            and not self.parsed.profile_was_explicitly_selected
+        ):
             if not self.confirm_whole_profile_operation():
                 return 1
 
@@ -200,6 +205,7 @@ class DotManager:
                 value = args[idx + 1]
                 if arg in {"-p", "--profile"}:
                     parsed.profile_from_args = value
+                    parsed.profile_was_explicitly_selected = True
                 else:
                     parsed.config_path_from_args = value
                 parsed.base_args.extend([arg, value])
@@ -210,6 +216,7 @@ class DotManager:
             if arg.startswith("--cfg=") or arg.startswith("--profile="):
                 if arg.startswith("--profile="):
                     parsed.profile_from_args = arg.split("=", 1)[1]
+                    parsed.profile_was_explicitly_selected = True
                 else:
                     parsed.config_path_from_args = arg.split("=", 1)[1]
                 parsed.base_args.append(arg)
