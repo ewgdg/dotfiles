@@ -621,6 +621,38 @@ def test_install_remove_existing_preflight_runs_privileged_phase_for_removals(tm
         live_dir.chmod(0o755)
 
 
+def test_system_phase_needs_run_ignores_whitespace_prefixed_compare_logs(tmp_path: Path, monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMANAGE_MODULE.ParsedArgs(files_args=["-p", "repro"], base_args=["-p", "repro"])
+    manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
+
+    compare_completed = subprocess.CompletedProcess(
+        ["dotdrop", "compare"],
+        0,
+        "",
+        '\t-> executing "uv run scripts/toml_transform.py repo.toml repo.toml.trans"\n'
+        "\n1 dotfile(s) compared.\n",
+    )
+
+    dry_run_completed = subprocess.CompletedProcess(
+        ["dotdrop", "install", "-d"],
+        0,
+        "",
+        "",
+    )
+
+    run_results = [compare_completed, dry_run_completed]
+
+    def fake_run(*_args, **_kwargs):
+        return run_results.pop(0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.system_phase_needs_run(["f_config"]) is False
+
+
 def test_no_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
     helper_dir = tmp_path / "bin"
     helper_dir.mkdir()

@@ -43,12 +43,13 @@ def overlay_retained_nodes(
         cur_path: str,
         node_matchers: list[str] | None = None,
     ) -> None:
+        original_base_children = list(base_node)
         children_by_tag: dict[str, list[tuple[int, ET.Element]]] = {}
         children_by_identity: dict[
             tuple[str, tuple[tuple[str, str], ...]], list[tuple[int, ET.Element]]
         ] = {}
 
-        for index, child in enumerate(list(base_node)):
+        for index, child in enumerate(original_base_children):
             children_by_tag.setdefault(child.tag, []).append((index, child))
             identity_key = element_identity_key(child)
             if identity_key is not None:
@@ -57,6 +58,7 @@ def overlay_retained_nodes(
                 )
 
         used_indices: set[int] = set()
+        merged_children: list[ET.Element] = []
 
         def find_matching_child(
             target: ET.Element,
@@ -92,7 +94,7 @@ def overlay_retained_nodes(
                 base_child_index, base_child = match
                 used_indices.add(base_child_index)
                 if should_overlay:
-                    base_node[base_child_index] = copy.deepcopy(overlay_child)
+                    merged_children.append(copy.deepcopy(overlay_child))
                 else:
                     overlay_retained_nodes_recursion(
                         base_child,
@@ -100,18 +102,16 @@ def overlay_retained_nodes(
                         child_path,
                         node_matchers,
                     )
+                    merged_children.append(base_child)
             elif should_overlay:
-                base_node.append(copy.deepcopy(overlay_child))
-                appended_index = len(base_node) - 1
-                used_indices.add(appended_index)
-                children_by_tag.setdefault(overlay_child.tag, []).append(
-                    (appended_index, base_node[appended_index])
-                )
-                appended_identity_key = element_identity_key(overlay_child)
-                if appended_identity_key is not None:
-                    children_by_identity.setdefault(
-                        (overlay_child.tag, appended_identity_key), []
-                    ).append((appended_index, base_node[appended_index]))
+                merged_children.append(copy.deepcopy(overlay_child))
+
+        for index, child in enumerate(original_base_children):
+            if index in used_indices:
+                continue
+            merged_children.append(child)
+
+        base_node[:] = merged_children
 
     overlay_retained_nodes_recursion(base_root, overlay_root, base_root.tag, node_matchers)
 
@@ -160,6 +160,12 @@ def normalized_xml_for_compare(root: ET.Element) -> str:
     return ET.tostring(normalized, encoding="unicode")
 
 
+def write_output_bytes(output_file: str, content: bytes, reference_file: str) -> None:
+    with open(output_file, "wb") as output:
+        output.write(content)
+    sync_mode(reference_file, output_file)
+
+
 def process_xml(
     base_file: str,
     output_file: str,
@@ -171,6 +177,8 @@ def process_xml(
     tree = None
     base_bytes = None
     before_root = None
+    overlay_bytes = None
+    overlay_root = None
     if os.path.isfile(base_file):
         with open(base_file, "rb") as f:
             base_bytes = f.read()
@@ -178,6 +186,8 @@ def process_xml(
         before_root = copy.deepcopy(tree.getroot())
 
     if overlay_file and os.path.isfile(overlay_file):
+        with open(overlay_file, "rb") as f:
+            overlay_bytes = f.read()
         overlay_tree = ET.parse(overlay_file)
         overlay_root = overlay_tree.getroot()
         if tree is None:
@@ -204,13 +214,20 @@ def process_xml(
 
     if (
         write_base_unchanged_if_no_effect
+        and overlay_root is not None
+        and overlay_bytes is not None
+        and normalized_xml_for_compare(overlay_root) == normalized_xml_for_compare(root)
+    ):
+        write_output_bytes(output_file, overlay_bytes, base_file)
+        return
+
+    if (
+        write_base_unchanged_if_no_effect
         and before_root is not None
         and base_bytes is not None
         and normalized_xml_for_compare(before_root) == normalized_xml_for_compare(root)
     ):
-        with open(output_file, "wb") as output:
-            output.write(base_bytes)
-        sync_mode(base_file, output_file)
+        write_output_bytes(output_file, base_bytes, base_file)
         return
 
     # Convert ElementTree object to a string

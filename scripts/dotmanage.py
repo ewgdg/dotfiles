@@ -536,7 +536,7 @@ class DotManager:
             return True
 
         for line in compare_output.splitlines():
-            if not line or line.startswith(" "):
+            if not line or line[0].isspace():
                 continue
             if line.endswith(" dotfile(s) compared."):
                 continue

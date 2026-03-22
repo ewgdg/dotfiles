@@ -103,3 +103,37 @@ def test_overlay_retained_nodes_uses_repo_xml_as_base(tmp_path: Path) -> None:
     assert root.find("WindowGeometry").attrib == {"x": "100", "y": "200"}
     assert root.find("WindowState") is not None
     assert root.findtext("timeForNewReleaseCheck") == "12345"
+
+
+def test_overlay_retained_nodes_preserve_live_order_and_bytes_when_semantically_equal(
+    tmp_path: Path,
+) -> None:
+    repo_path = tmp_path / "repo.xml"
+    live_path = tmp_path / "live.xml"
+    output_path = tmp_path / "output.xml"
+
+    repo_path.write_text(
+        """<config>
+  <keep id="1"></keep>
+  <tail></tail>
+</config>
+""",
+        encoding="utf-8",
+    )
+    live_text = """<?xml version="1.0"?>
+<config>
+ <keep id="1"/>
+ <WindowGeometry y="200" x="100"/>
+ <tail/>
+</config>"""
+    live_path.write_text(live_text, encoding="utf-8")
+
+    MODULE.process_xml(
+        str(repo_path),
+        str(output_path),
+        overlay_file=str(live_path),
+        node_matchers=["config/WindowGeometry"],
+        write_base_unchanged_if_no_effect=True,
+    )
+
+    assert output_path.read_text(encoding="utf-8") == live_text

@@ -139,6 +139,17 @@ def iter_table_paths(root: TomlContainer, prefix: tuple[str, ...] = ()) -> Itera
         yield from iter_table_paths(value, key_path)
 
 
+def iter_item_paths_in_order(
+    root: TomlContainer,
+    prefix: tuple[str, ...] = (),
+) -> Iterable[tuple[str, ...]]:
+    for key, value in root.items():
+        key_path = prefix + (str(key),)
+        yield key_path
+        if isinstance(value, Table):
+            yield from iter_item_paths_in_order(value, key_path)
+
+
 def matches_table_regex(table_path: tuple[str, ...], table_regexes: list[re.Pattern[str]]) -> bool:
     raw_table_path = ".".join(table_path)
     return any(table_regex.search(raw_table_path) for table_regex in table_regexes)
@@ -241,9 +252,12 @@ def strip_keys(
 def overlay_preserved_keys(
     overlay_doc: TomlContainer,
     base_doc: TomlContainer,
-    retained_key_paths: set[tuple[str, ...]],
+    retained_key_paths: Iterable[tuple[str, ...]],
 ) -> None:
-    for key_path in sorted(retained_key_paths, key=len):
+    retained_key_path_set = set(retained_key_paths)
+    for key_path in iter_item_paths_in_order(overlay_doc):
+        if key_path not in retained_key_path_set:
+            continue
         retained_value = get_key_path_value(overlay_doc, key_path)
         if retained_value is None:
             continue
@@ -278,7 +292,7 @@ def merge_keys(
     base_path: Path,
     output_path: Path,
     overlay_path: Path,
-    retained_key_paths: set[tuple[str, ...]],
+    retained_key_paths: Iterable[tuple[str, ...]],
     retained_table_regexes: list[re.Pattern[str]],
 ) -> None:
     base_doc = load_document(base_path)
@@ -338,7 +352,7 @@ def main() -> int:
         args.base_path,
         args.output_path,
         args.overlay_path,
-        set(key_paths),
+        key_paths,
         table_regexes,
     )
     return 0

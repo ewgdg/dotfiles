@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
 import sys
 
 
@@ -164,3 +166,64 @@ def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:
     merged_doc = MODULE.load_document(output_path)
 
     assert "mcp_servers" not in merged_doc
+
+
+def test_merge_preserves_overlay_key_order_across_hash_seeds(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.toml"
+    live_path = tmp_path / "live.toml"
+
+    repo_path.write_text(
+        'approval_policy = "on-request"\n',
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """approval_policy = "on-request"
+model_reasoning_effort = "high"
+model = "gpt-5.4"
+""",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import importlib.util
+import sys
+from pathlib import Path
+
+script_path = Path(sys.argv[1])
+repo_path = Path(sys.argv[2])
+live_path = Path(sys.argv[3])
+output_path = Path(sys.argv[4])
+
+spec = importlib.util.spec_from_file_location("toml_transform_subprocess", script_path)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"failed to load module from {script_path}")
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+
+module.merge_keys(
+    repo_path,
+    output_path,
+    live_path,
+    {("model",), ("model_reasoning_effort",)},
+    [],
+)
+print(output_path.read_text(encoding="utf-8"))
+""",
+            str(SCRIPT_PATH),
+            str(repo_path),
+            str(live_path),
+            str(tmp_path / "output.toml"),
+        ],
+        capture_output=True,
+        check=True,
+        text=True,
+        env={**os.environ, "PYTHONHASHSEED": "1"},
+    )
+
+    output = completed.stdout
+    assert output.index('model_reasoning_effort = "high"') < output.index('model = "gpt-5.4"')
