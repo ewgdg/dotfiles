@@ -284,9 +284,9 @@ def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     exit_code, output = run_interactive_dotmanage(config_path, live_dir, "n\nn")
 
     assert exit_code == 0
-    assert output.count('overwrite dotfiles file "') == 1
-    assert output.count('import live file into dotfiles "') == 1
-    assert 'overwrite dotfiles file "' in output
+    assert output.count('overwrite dotfiles path "') == 1
+    assert output.count('import live path into dotfiles "') == 1
+    assert 'overwrite dotfiles path "' in output
     assert 'settings.toml" [y/N] ?' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
     assert not (repo_source_dir / "extra.toml").exists()
@@ -327,8 +327,8 @@ def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None
     exit_code, output = run_interactive_dotmanage(config_path, live_dir, "y\ny")
 
     assert exit_code == 0
-    assert 'overwrite dotfiles file "' in output
-    assert 'import live file into dotfiles "' in output
+    assert 'overwrite dotfiles path "' in output
+    assert 'import live path into dotfiles "' in output
     assert 'settings.toml" [y/N] ?' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
@@ -343,8 +343,8 @@ def test_directory_update_prompts_before_importing_live_only_file(tmp_path: Path
     exit_code, output = run_interactive_dotmanage(config_path, live_dir, "y\nn\ny")
 
     assert exit_code == 0
-    assert 'overwrite dotfiles file "' in output
-    assert 'import live file into dotfiles "' in output
+    assert 'overwrite dotfiles path "' in output
+    assert 'import live path into dotfiles "' in output
     assert 'live-only.toml' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
@@ -358,8 +358,8 @@ def test_whole_profile_update_prompts_and_skips_tracked_child_file(tmp_path: Pat
 
     assert exit_code == 0
     assert 'Update all dotfiles for profile "repro" [y/N] ?' in output
-    assert 'import live file into dotfiles "' in output
-    assert 'overwrite dotfiles file "' in output
+    assert 'import live path into dotfiles "' in output
+    assert 'overwrite dotfiles path "' in output
     assert 'settings.toml" [y/N] ?' in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
     assert not (repo_source_dir / "extra.toml").exists()
@@ -378,7 +378,7 @@ def test_child_path_update_stays_scoped_to_requested_file(tmp_path: Path) -> Non
     exit_code, output = run_interactive_dotmanage(config_path, live_file, "y")
 
     assert exit_code == 0
-    assert output.count('overwrite dotfiles file "') == 1
+    assert output.count('overwrite dotfiles path "') == 1
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert repo_other.read_text(encoding="utf-8") == 'value = "repo other"\n'
     assert not (repo_source_dir / "live-only.toml").exists()

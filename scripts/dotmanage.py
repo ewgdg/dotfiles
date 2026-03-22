@@ -477,14 +477,17 @@ class DotManager:
             if self.parsed.force_mode or not sys.stdin.isatty():
                 continue
 
-            if Path(source_file_path).exists():
-                answer = self.prompt(f'overwrite dotfiles file "{source_file_path}" [y/N] ? ')
+            source_path = Path(source_file_path)
+            live_path = Path(live_file_path)
+            if source_path.exists():
+                answer = self.prompt(f'overwrite dotfiles path "{source_file_path}" [y/N] ? ')
             else:
                 answer = self.prompt(
-                    f'import live file into dotfiles "{source_file_path}" from "{live_file_path}" [y/N] ? '
+                    f'import live path into dotfiles "{source_file_path}" from "{live_file_path}" [y/N] ? '
                 )
+
             if answer.lower() not in {"y", "yes"}:
-                self.backup_declined_update_path(Path(source_file_path), Path(live_file_path))
+                self.backup_declined_update_path(source_path, live_path)
 
     def print_phase_header(self, header_text: str) -> None:
         if sys.stdout.isatty() and not os.environ.get("NO_COLOR") and os.environ.get("TERM") != "dumb":

@@ -189,6 +189,7 @@ dotfiles:
       # the config is a template file and should have a separate entry
       # to avoid being overwritten during update
     - config
+    - agent
     upignore: *ssh_ignore
     instignore: *ssh_ignore
   f_ssh_config:
