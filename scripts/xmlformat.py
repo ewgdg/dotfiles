@@ -1,9 +1,9 @@
-import os
-import xml.etree.ElementTree as ET
-import fnmatch
 import argparse
-import xml.dom.minidom
 import copy
+import fnmatch
+import os
+import xml.dom.minidom
+import xml.etree.ElementTree as ET
 
 
 def sync_mode(reference_file: str, output_file: str) -> None:
@@ -16,9 +16,11 @@ def sync_mode(reference_file: str, output_file: str) -> None:
         os.chmod(output_file, target_mode)
 
 
-def merge_nodes(
-    layer1: ET.Element, layer2: ET.Element, paths_to_merge: list[str] | None = None
-):
+def overlay_retained_nodes(
+    base_root: ET.Element,
+    overlay_root: ET.Element,
+    node_matchers: list[str] | None = None,
+) -> None:
     def element_identity_key(element: ET.Element) -> tuple[tuple[str, str], ...] | None:
         identity_parts: list[tuple[str, str]] = []
         for attribute_name in ("id", "name", "key", "uuid"):
@@ -35,18 +37,18 @@ def merge_nodes(
 
         return tuple(identity_parts)
 
-    def merge_nodes_recursion(
-        layer1: ET.Element,
-        layer2: ET.Element,
+    def overlay_retained_nodes_recursion(
+        base_node: ET.Element,
+        overlay_node: ET.Element,
         cur_path: str,
-        paths_to_merge: list[str] | None = None,
-    ):
+        node_matchers: list[str] | None = None,
+    ) -> None:
         children_by_tag: dict[str, list[tuple[int, ET.Element]]] = {}
         children_by_identity: dict[
             tuple[str, tuple[tuple[str, str], ...]], list[tuple[int, ET.Element]]
         ] = {}
 
-        for index, child in enumerate(list(layer1)):
+        for index, child in enumerate(list(base_node)):
             children_by_tag.setdefault(child.tag, []).append((index, child))
             identity_key = element_identity_key(child)
             if identity_key is not None:
@@ -74,72 +76,66 @@ def merge_nodes(
 
             return None
 
-        for layer2_child in layer2:
-            child_path = f"{cur_path}/{layer2_child.tag}"
-            match = find_matching_child(layer2_child)
-            should_merge = False
-            if paths_to_merge:
-                for path_to_merge in paths_to_merge:
-                    if fnmatch.fnmatch(child_path, path_to_merge):
-                        should_merge = True
-            elif len(layer2_child) == 0 or match is None:
-                should_merge = True
+        for overlay_child in overlay_node:
+            child_path = f"{cur_path}/{overlay_child.tag}"
+            match = find_matching_child(overlay_child)
+            should_overlay = False
+            if node_matchers:
+                for node_matcher in node_matchers:
+                    if fnmatch.fnmatch(child_path, node_matcher):
+                        should_overlay = True
+                        break
+            elif len(overlay_child) == 0 or match is None:
+                should_overlay = True
 
             if match is not None:
-                layer1_child_i, layer1_child = match
-                used_indices.add(layer1_child_i)
-                if should_merge:
-                    # print(f"Merging element {child_path} to index {layer1_child_i}")
-                    layer1[layer1_child_i] = layer2_child
+                base_child_index, base_child = match
+                used_indices.add(base_child_index)
+                if should_overlay:
+                    base_node[base_child_index] = copy.deepcopy(overlay_child)
                 else:
-                    merge_nodes_recursion(
-                        layer1_child,
-                        layer2_child,
+                    overlay_retained_nodes_recursion(
+                        base_child,
+                        overlay_child,
                         child_path,
-                        paths_to_merge,
+                        node_matchers,
                     )
-            elif should_merge:
-                # Add new child node if not present
-                # print(f"Adding new element: {child_path}")
-                layer1.append(layer2_child)
-                appended_index = len(layer1) - 1
+            elif should_overlay:
+                base_node.append(copy.deepcopy(overlay_child))
+                appended_index = len(base_node) - 1
                 used_indices.add(appended_index)
-                children_by_tag.setdefault(layer2_child.tag, []).append(
-                    (appended_index, layer2_child)
+                children_by_tag.setdefault(overlay_child.tag, []).append(
+                    (appended_index, base_node[appended_index])
                 )
-                appended_identity_key = element_identity_key(layer2_child)
+                appended_identity_key = element_identity_key(overlay_child)
                 if appended_identity_key is not None:
                     children_by_identity.setdefault(
-                        (layer2_child.tag, appended_identity_key), []
-                    ).append((appended_index, layer2_child))
+                        (overlay_child.tag, appended_identity_key), []
+                    ).append((appended_index, base_node[appended_index]))
 
-    merge_nodes_recursion(layer1, layer2, layer1.tag, paths_to_merge)
+    overlay_retained_nodes_recursion(base_root, overlay_root, base_root.tag, node_matchers)
 
 
-def remove_nodes(cur: ET.Element, paths_to_remove: list):
-    def remove_nodes_recursion(
-        cur: ET.Element,
+def strip_nodes(root: ET.Element, node_matchers: list[str]) -> None:
+    def strip_nodes_recursion(
+        current: ET.Element,
         parent: ET.Element | None,
         cur_path: str,
-        paths_to_remove: list[str],
-    ):
-        # print(f"Current, {cur.tag},  path: {cur_path}")
-        for path_to_remove in paths_to_remove:
-            # Check if the current path matches the pattern to ignore
-            if fnmatch.fnmatch(cur_path, path_to_remove):
-                # print(f"Removing element: {cur_path}")
+        node_matchers: list[str],
+    ) -> None:
+        for node_matcher in node_matchers:
+            if fnmatch.fnmatch(cur_path, node_matcher):
                 if parent is not None:
-                    parent.remove(cur)
+                    parent.remove(current)
                 else:
-                    cur.clear()
+                    current.clear()
                 return
 
-        for child in list(cur):  # make a copy of children to avoid runtime error
+        for child in list(current):
             child_path = f"{cur_path}/{child.tag}"
-            # Recursively check child elements
-            remove_nodes_recursion(child, cur, child_path, paths_to_remove)
+            strip_nodes_recursion(child, current, child_path, node_matchers)
 
-    remove_nodes_recursion(cur, None, cur.tag, paths_to_remove)
+    strip_nodes_recursion(root, None, root.tag, node_matchers)
 
 
 def sort_attributes(root: ET.Element):
@@ -165,57 +161,56 @@ def normalized_xml_for_compare(root: ET.Element) -> str:
 
 
 def process_xml(
-    input_file,
-    output_file,
-    patterns_for_removal=None,
+    base_file: str,
+    output_file: str,
+    node_matchers: list[str] | None = None,
     sort_attrs=False,
-    merge_file=None,
-    patterns_for_merge=None,
-    write_input_unchanged_if_no_effect=False,
-):
+    overlay_file: str | None = None,
+    write_base_unchanged_if_no_effect=False,
+) -> None:
     tree = None
-    input_bytes = None
+    base_bytes = None
     before_root = None
-    if os.path.isfile(input_file):
-        with open(input_file, "rb") as f:
-            input_bytes = f.read()
-        tree = ET.parse(input_file)
+    if os.path.isfile(base_file):
+        with open(base_file, "rb") as f:
+            base_bytes = f.read()
+        tree = ET.parse(base_file)
         before_root = copy.deepcopy(tree.getroot())
 
-    if merge_file and os.path.isfile(merge_file):
-        merge_tree = ET.parse(merge_file)
-        merge_root = merge_tree.getroot()
+    if overlay_file and os.path.isfile(overlay_file):
+        overlay_tree = ET.parse(overlay_file)
+        overlay_root = overlay_tree.getroot()
         if tree is None:
-            root = ET.Element(merge_root.tag)
+            root = ET.Element(overlay_root.tag)
             tree = ET.ElementTree(root)
         else:
             root = tree.getroot()
 
-        merge_nodes(root, merge_root, patterns_for_merge)
+        overlay_retained_nodes(root, overlay_root, node_matchers)
 
     if tree is None:
-        raise FileNotFoundError(f"File not found: {input_file}")
+        raise FileNotFoundError(f"File not found: {base_file}")
 
     root = tree.getroot()
 
     if root is None:
         raise ValueError("Root element not found in the XML file.")
 
-    if patterns_for_removal:
-        remove_nodes(root, patterns_for_removal)
+    if node_matchers and overlay_file is None:
+        strip_nodes(root, node_matchers)
 
     if sort_attrs:
         sort_attributes(root)
 
     if (
-        write_input_unchanged_if_no_effect
+        write_base_unchanged_if_no_effect
         and before_root is not None
-        and input_bytes is not None
+        and base_bytes is not None
         and normalized_xml_for_compare(before_root) == normalized_xml_for_compare(root)
     ):
         with open(output_file, "wb") as output:
-            output.write(input_bytes)
-        sync_mode(input_file, output_file)
+            output.write(base_bytes)
+        sync_mode(base_file, output_file)
         return
 
     # Convert ElementTree object to a string
@@ -233,16 +228,31 @@ def process_xml(
     # Write the formatted XML to a file
     with open(output_file, "w") as output:
         output.write(pretty_xml)
-    sync_mode(input_file, output_file)
+    sync_mode(base_file, output_file)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process and modify XML files.")
-    parser.add_argument("input_file", help="The path to the input XML file.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Strip selected nodes from a base XML file, or retain selected nodes from "
+            "an overlay XML file on top of a base XML file."
+        )
+    )
+    parser.add_argument("base_file", help="Base XML file. Repo file for install mode.")
     parser.add_argument("output_file", help="The path to the output XML file.")
     parser.add_argument(
+        "--node-matchers",
+        "--node-paths",
+        "--strip-nodes",
+        "--retain-nodes",
         "--remove_nodes",
-        help="Comma-separated list of tag patterns to remove.",
+        "--merge_nodes",
+        dest="node_matchers",
+        help=(
+            "Comma-separated list of XML node matchers. Without --overlay-file they "
+            "are stripped from the base file; with --overlay-file they are retained "
+            "from the overlay file."
+        ),
     )
     parser.add_argument(
         "--sort_attributes",
@@ -251,33 +261,29 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--overlay-file",
         "--merge_file",
-        help="additionally merge the xml.",
+        dest="overlay_file",
+        help="Overlay XML file. Live file for install mode.",
     )
 
     parser.add_argument(
-        "--merge_nodes",
-        help="only merge the given nodes.",
-    )
-
-    parser.add_argument(
+        "--write-base-unchanged-if-no-effect",
         "--write_input_unchanged_if_no_effect",
+        dest="write_base_unchanged_if_no_effect",
         action="store_true",
-        help="If changes are semantically a no-op, write the original input bytes to output.",
+        help="If changes are semantically a no-op, write the original base bytes to output.",
     )
 
     args = parser.parse_args()
 
     process_xml(
-        args.input_file,
+        args.base_file,
         args.output_file,
-        patterns_for_removal=args.remove_nodes.split(",")
-        if args.remove_nodes is not None and args.remove_nodes != ""
+        node_matchers=args.node_matchers.split(",")
+        if args.node_matchers is not None and args.node_matchers != ""
         else None,
         sort_attrs=args.sort_attributes,
-        merge_file=args.merge_file,
-        patterns_for_merge=args.merge_nodes.split(",")
-        if args.merge_nodes is not None and args.merge_nodes != ""
-        else None,
-        write_input_unchanged_if_no_effect=args.write_input_unchanged_if_no_effect,
+        overlay_file=args.overlay_file,
+        write_base_unchanged_if_no_effect=args.write_base_unchanged_if_no_effect,
     )

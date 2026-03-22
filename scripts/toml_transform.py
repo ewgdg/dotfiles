@@ -144,6 +144,66 @@ def matches_table_regex(table_path: tuple[str, ...], table_regexes: list[re.Patt
     return any(table_regex.search(raw_table_path) for table_regex in table_regexes)
 
 
+def normalize_key_matchers(key_matchers: list[str]) -> list[str]:
+    normalized_matchers: list[str] = []
+    for matcher in key_matchers:
+        normalized_matchers.extend(split_key_matcher_blob(matcher))
+    return normalized_matchers
+
+
+def split_key_matcher_blob(raw_matchers: str) -> list[str]:
+    matchers: list[str] = []
+    current: list[str] = []
+    in_quotes = False
+    escape = False
+
+    for char in raw_matchers:
+        if in_quotes and escape:
+            current.append(char)
+            escape = False
+            continue
+
+        if in_quotes and char == "\\":
+            current.append(char)
+            escape = True
+            continue
+
+        if char == '"':
+            current.append(char)
+            in_quotes = not in_quotes
+            continue
+
+        if char.isspace() and not in_quotes:
+            matcher = "".join(current).strip()
+            if matcher:
+                matchers.append(matcher)
+            current = []
+            continue
+
+        current.append(char)
+
+    matcher = "".join(current).strip()
+    if matcher:
+        matchers.append(matcher)
+
+    return matchers
+
+
+def parse_key_matchers(
+    key_matchers: list[str],
+) -> tuple[list[tuple[str, ...]], list[re.Pattern[str]]]:
+    normalized_matchers = normalize_key_matchers(key_matchers)
+    raw_key_paths = [
+        matcher for matcher in normalized_matchers if not matcher.startswith("re:")
+    ]
+    raw_table_regexes = [
+        matcher[3:] for matcher in normalized_matchers if matcher.startswith("re:")
+    ]
+    key_paths = [parse_key_path(raw_key) for raw_key in raw_key_paths]
+    table_regexes = [re.compile(raw_regex) for raw_regex in raw_table_regexes]
+    return key_paths, table_regexes
+
+
 def normalize_blank_lines(content: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", content)
 
@@ -160,84 +220,127 @@ def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlCo
 
 
 def strip_keys(
-    input_path: Path,
+    base_path: Path,
     output_path: Path,
-    key_paths: list[tuple[str, ...]],
-    table_regexes_to_strip: list[re.Pattern[str]],
+    stripped_key_paths: list[tuple[str, ...]],
+    stripped_table_regexes: list[re.Pattern[str]],
 ) -> None:
-    doc = load_document(input_path)
+    doc = load_document(base_path)
     table_paths = sorted(iter_table_paths(doc), key=len, reverse=True)
     for table_path in table_paths:
-        if matches_table_regex(table_path, table_regexes_to_strip):
+        if matches_table_regex(table_path, stripped_table_regexes):
             delete_key_path(doc, table_path)
 
-    for key_path in key_paths:
+    for key_path in stripped_key_paths:
         delete_key_path(doc, key_path)
 
     normalized_doc = tomlkit.parse(normalize_blank_lines(doc.as_string()))
-    write_document_if_changed(output_path, normalized_doc, reference_path=input_path)
+    write_document_if_changed(output_path, normalized_doc, reference_path=base_path)
 
 
 def overlay_preserved_keys(
-    source_doc: TomlContainer,
-    target_doc: TomlContainer,
-    preserved_key_paths: set[tuple[str, ...]],
+    overlay_doc: TomlContainer,
+    base_doc: TomlContainer,
+    retained_key_paths: set[tuple[str, ...]],
 ) -> None:
-    for key_path in sorted(preserved_key_paths, key=len):
-        preserved_value = get_key_path_value(source_doc, key_path)
-        if preserved_value is None:
+    for key_path in sorted(retained_key_paths, key=len):
+        retained_value = get_key_path_value(overlay_doc, key_path)
+        if retained_value is None:
             continue
 
         table_path, key_name = split_key_path(key_path)
-        target_container = ensure_container(target_doc, table_path)
-        target_container[key_name] = copy.deepcopy(preserved_value)
+        target_container = ensure_container(base_doc, table_path)
+        target_container[key_name] = copy.deepcopy(retained_value)
+
+
+def overlay_preserved_tables(
+    overlay_doc: TomlContainer,
+    base_doc: TomlContainer,
+    retained_table_regexes: list[re.Pattern[str]],
+) -> None:
+    if not retained_table_regexes:
+        return
+
+    for table_path in sorted(iter_table_paths(overlay_doc), key=len):
+        if not matches_table_regex(table_path, retained_table_regexes):
+            continue
+
+        retained_table = get_key_path_value(overlay_doc, table_path)
+        if retained_table is None:
+            continue
+
+        parent_path, table_name = split_key_path(table_path)
+        target_container = ensure_container(base_doc, parent_path)
+        target_container[table_name] = copy.deepcopy(retained_table)
 
 
 def merge_keys(
-    input_path: Path,
+    base_path: Path,
     output_path: Path,
-    merge_file: Path,
-    preserved_key_paths: set[tuple[str, ...]],
+    overlay_path: Path,
+    retained_key_paths: set[tuple[str, ...]],
+    retained_table_regexes: list[re.Pattern[str]],
 ) -> None:
-    repo_doc = load_document(input_path)
-    merged_doc = copy.deepcopy(repo_doc)
-    if merge_file.exists():
-        local_doc = load_document(merge_file)
-        overlay_preserved_keys(local_doc, merged_doc, preserved_key_paths)
-    write_document_if_changed(output_path, merged_doc, reference_path=input_path)
+    base_doc = load_document(base_path)
+    merged_doc = copy.deepcopy(base_doc)
+    if overlay_path.exists():
+        overlay_doc = load_document(overlay_path)
+        overlay_preserved_tables(overlay_doc, merged_doc, retained_table_regexes)
+        overlay_preserved_keys(overlay_doc, merged_doc, retained_key_paths)
+    write_document_if_changed(output_path, merged_doc, reference_path=base_path)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Strip or merge selected TOML keys for dotdrop transformers."
+        description=(
+            "Strip selectors from a base TOML file, or retain selected values from an "
+            "overlay TOML file on top of a base TOML file."
+        )
     )
-    parser.add_argument("input_path", type=Path)
+    parser.add_argument("base_path", type=Path, help="Base TOML file. Repo file for install mode.")
     parser.add_argument("output_path", type=Path)
-    parser.add_argument("selectors", nargs="*")
+    parser.add_argument(
+        "key_matchers",
+        nargs="*",
+        metavar="key-matcher",
+        help=(
+            "In strip mode, key matchers to remove from the base file. In merge mode, "
+            "key matchers to retain from the overlay file. Supports exact TOML key "
+            "paths and re: table regexes."
+        ),
+    )
     parser.add_argument("--mode", choices=["strip", "merge"], required=True)
-    parser.add_argument("--merge-file", type=Path)
+    parser.add_argument(
+        "--overlay-file",
+        "--merge-file",
+        dest="overlay_path",
+        type=Path,
+        help="Overlay TOML file. Required when --mode=merge.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    if not args.selectors:
-        raise ValueError("at least one selector is required")
+    if not args.key_matchers:
+        raise ValueError("at least one key matcher is required")
 
-    raw_key_paths = [selector for selector in args.selectors if not selector.startswith("re:")]
-    raw_table_regexes = [selector[3:] for selector in args.selectors if selector.startswith("re:")]
-
-    key_paths = [parse_key_path(raw_key) for raw_key in raw_key_paths]
-    table_regexes_to_strip = [re.compile(raw_regex) for raw_regex in raw_table_regexes]
+    key_paths, table_regexes = parse_key_matchers(args.key_matchers)
 
     if args.mode == "strip":
-        strip_keys(args.input_path, args.output_path, key_paths, table_regexes_to_strip)
+        strip_keys(args.base_path, args.output_path, key_paths, table_regexes)
         return 0
 
-    if args.merge_file is None:
-        raise ValueError("--merge-file is required when --mode=merge")
+    if args.overlay_path is None:
+        raise ValueError("--overlay-file is required when --mode=merge")
 
-    merge_keys(args.input_path, args.output_path, args.merge_file, set(key_paths))
+    merge_keys(
+        args.base_path,
+        args.output_path,
+        args.overlay_path,
+        set(key_paths),
+        table_regexes,
+    )
     return 0
 
 

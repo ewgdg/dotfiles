@@ -245,9 +245,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_sort_attr_rm_nodes 
-      "config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck"
-    trans_install: xml_merge
+    trans_update: xml_sort_attr_rm_nodes '{{@@ goldendict_config_node_matchers @@}}'
+    trans_install: xml_retain_nodes '{{@@ goldendict_config_node_matchers @@}}'
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -348,10 +347,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_strip_keys "model model_reasoning_effort re:^projects\. 
-      re:^mcp_servers\.playwright\.env$"
-    trans_install: toml_merge_keys "model model_reasoning_effort 
-      mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"
+    trans_update: toml_strip_keys '{{@@ codex_config_key_matchers @@}}'
+    trans_install: toml_merge_keys '{{@@ codex_config_key_matchers @@}}'
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
@@ -520,6 +517,8 @@ profiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
   apps_linux:
+    variables:
+      goldendict_config_node_matchers: config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck
     dotfiles:
     - d_config_fcitx5
     - f_local_share_applications_1password-quickaccess.desktop
@@ -533,6 +532,9 @@ profiles:
     actions:
     - install yazi
   apps_ai:
+    variables:
+      codex_config_key_matchers: model model_reasoning_effort re:^projects\.
+        re:^mcp_servers\.playwright\.env$
     dotfiles:
     - f_codex_config.toml
     - d_codex_rules
@@ -555,7 +557,7 @@ trans_update:
   toml_strip_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
     _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip {2}
   xml_sort_attr_rm_nodes: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --remove_nodes {2}
+    @@}}/../scripts/xmlformat.py' {0} {1} --sort_attributes --node-matchers {2}
   plist_to_xml: plutil -convert xml1 -o {1} {0}
   plist_to_xml_compare: python3 '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_src 
@@ -578,10 +580,10 @@ trans_update:
 trans_install:
   toml_merge_keys: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
     _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge 
-    --merge-file '{{@@ _dotfile_abs_dst @@}}' {2}
-  xml_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' '{{@@ 
-    _dotfile_abs_dst @@}}' {1} --merge_file {0} 
-    --write_input_unchanged_if_no_effect
+    --overlay-file '{{@@ _dotfile_abs_dst @@}}' {2}
+  xml_retain_nodes: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xmlformat.py' {0}
+    {1} --overlay-file '{{@@ _dotfile_abs_dst @@}}' --node-matchers {2} 
+    --write-base-unchanged-if-no-effect
   plist_to_binary_compare: python3 '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/plisttool.py' {0} {1} --compare-file '{{@@ _dotfile_abs_dst 
     @@}}' --output-format binary
