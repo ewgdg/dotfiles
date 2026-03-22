@@ -26,6 +26,7 @@
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
 - Add concise comments when they clarify non-obvious logic and make review easier.
+- Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
 
 ## Context Efficiency
 
