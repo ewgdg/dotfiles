@@ -23,22 +23,6 @@ if [[ -r "${repo_root}/dotfiles/profile.bootstrap.sh" ]]; then
   . "${repo_root}/dotfiles/profile.bootstrap.sh"
 fi
 
-case "$(uname -s)" in
-  Darwin)
-    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-macos"
-    ;;
-  Linux)
-    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-gui"
-    ;;
-  *)
-    repo_askpass_path=""
-    ;;
-esac
-
-if [[ -n "${repo_askpass_path}" && -x "${repo_askpass_path}" ]]; then
-  export SUDO_ASKPASS="${repo_askpass_path}"
-fi
-
 dotdrop_config_path="${repo_root}/config.yaml"
 
 if [[ ! -f "${dotdrop_config_path}" ]]; then

@@ -83,22 +83,6 @@ if [[ -r "$repo_bootstrap_profile_path" ]]; then
   . "$repo_bootstrap_profile_path"
 fi
 
-case "$(uname -s)" in
-  Darwin)
-    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-macos"
-    ;;
-  Linux)
-    repo_askpass_path="${repo_root}/dotfiles/bin/askpass-gui"
-    ;;
-  *)
-    repo_askpass_path=""
-    ;;
-esac
-
-if [[ -n "$repo_askpass_path" && -x "$repo_askpass_path" ]]; then
-  export SUDO_ASKPASS="$repo_askpass_path"
-fi
-
 if ! command -v dotdrop >/dev/null 2>&1; then
   echo "dotdrop not found in PATH" >&2
   exit 127
