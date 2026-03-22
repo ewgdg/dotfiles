@@ -13,7 +13,9 @@ from pathlib import Path
 from typing import Iterable
 
 
+SUPPORTED_OPERATIONS = {"update", "install", "import"}
 PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
+DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:updated|installed)\.\s*")
 
 
 @dataclass
@@ -40,6 +42,12 @@ class BackupEntry:
 class TemplateUpdateState:
     changed: bool = False
     skipped: bool = False
+
+
+@dataclass
+class PhaseExecutionResult:
+    exit_code: int
+    changed_count: int
 
 
 class DotManager:
@@ -77,7 +85,7 @@ class DotManager:
         self.last_template_update = TemplateUpdateState()
 
     def run(self) -> int:
-        if self.dotdrop_cmd is None:
+        if not self.dotdrop_cmd:
             print("dotdrop not found in PATH", file=sys.stderr)
             return 127
 
@@ -85,7 +93,7 @@ class DotManager:
             return self.run_passthrough([])
 
         first = self.argv[0]
-        if first in {"update", "install", "import"}:
+        if first in SUPPORTED_OPERATIONS:
             self.operation = first
             self.command_args = self.argv[1:]
         else:
@@ -113,7 +121,7 @@ class DotManager:
             if not self.confirm_whole_profile_operation():
                 return 1
 
-        if self.operation == "update":
+        if self.is_update_operation:
             try:
                 self.confirm_update_overwrite_targets()
                 self.run_update_phases()
@@ -127,6 +135,22 @@ class DotManager:
     def run_passthrough(self, args: list[str]) -> int:
         completed = subprocess.run([self.dotdrop_cmd, *args], check=False)
         return completed.returncode
+
+    @property
+    def is_update_operation(self) -> bool:
+        return self.operation == "update"
+
+    @property
+    def is_install_operation(self) -> bool:
+        return self.operation == "install"
+
+    @staticmethod
+    def operation_words(operation: str) -> tuple[str, str]:
+        if operation == "install":
+            return "Install", "installing"
+        if operation == "update":
+            return "Update", "updating"
+        return operation.title(), operation
 
     def parse_args(self, args: list[str]) -> ParsedArgs:
         parsed = ParsedArgs()
@@ -145,7 +169,7 @@ class DotManager:
                 continue
 
             if arg in {"-k", "--key"}:
-                if self.operation == "update":
+                if self.is_update_operation:
                     parsed.key_mode = True
                 else:
                     parsed.base_args.append(arg)
@@ -305,56 +329,54 @@ class DotManager:
 
     def select_targets(self) -> None:
         if self.parsed.explicit_targets:
-            if self.operation == "update" and not self.parsed.key_mode:
-                for requested_path in self.parsed.explicit_targets:
-                    normalized_requested_path = self.normalize_target_path(requested_path)
-                    matched_key = self.find_matching_update_key_for_path(normalized_requested_path)
-                    if not matched_key:
-                        print(
-                            f"no tracked dotdrop key matches update target '{requested_path}' for current profile/config",
-                            file=sys.stderr,
-                        )
-                        raise SystemExit(2)
-
-                    if (
-                        normalized_requested_path != self.normalized_destination_by_key[matched_key]
-                        and self.effective_template_by_key.get(matched_key, 0) == 1
-                    ):
-                        print(
-                            f"scoped updates inside templated directory key '{matched_key}' are not supported",
-                            file=sys.stderr,
-                        )
-                        raise SystemExit(2)
-
-                    if self.effective_template_by_key.get(matched_key, 0) == 1:
-                        self.record_template_update_key(matched_key)
-                    else:
-                        self.record_regular_update_key(matched_key)
-
-                    if normalized_requested_path != self.normalized_destination_by_key[matched_key]:
-                        self.record_scoped_update_target(matched_key, normalized_requested_path)
-                return
-
-            for requested_key in self.parsed.explicit_targets:
-                if requested_key not in self.destination_by_key:
-                    print(
-                        f"unknown dotdrop key '{requested_key}' for current profile/config",
-                        file=sys.stderr,
-                    )
-                    raise SystemExit(2)
-                self.append_split_key(
-                    requested_key,
-                    self.destination_by_key[requested_key],
-                    self.source_by_key.get(requested_key, ""),
-                )
+            if self.is_update_operation and not self.parsed.key_mode:
+                self.select_explicit_update_targets()
+            else:
+                self.select_explicit_keys()
             return
 
         for key_name, key_dst in zip(self.all_keys, self.all_dsts):
             self.append_split_key(key_name, key_dst, self.source_by_key.get(key_name, ""))
 
+    def select_explicit_update_targets(self) -> None:
+        for requested_path in self.parsed.explicit_targets:
+            normalized_requested_path = self.normalize_target_path(requested_path)
+            matched_key = self.find_matching_update_key_for_path(normalized_requested_path)
+            if not matched_key:
+                print(
+                    f"no tracked dotdrop key matches update target '{requested_path}' for current profile/config",
+                    file=sys.stderr,
+                )
+                raise SystemExit(2)
+
+            if self.is_templated_key(matched_key) and normalized_requested_path != self.normalized_destination_by_key[matched_key]:
+                print(
+                    f"scoped updates inside templated directory key '{matched_key}' are not supported",
+                    file=sys.stderr,
+                )
+                raise SystemExit(2)
+
+            self.record_effective_update_key(matched_key)
+            if normalized_requested_path != self.normalized_destination_by_key[matched_key]:
+                self.record_scoped_update_target(matched_key, normalized_requested_path)
+
+    def select_explicit_keys(self) -> None:
+        for requested_key in self.parsed.explicit_targets:
+            if requested_key not in self.destination_by_key:
+                print(
+                    f"unknown dotdrop key '{requested_key}' for current profile/config",
+                    file=sys.stderr,
+                )
+                raise SystemExit(2)
+            self.append_split_key(
+                requested_key,
+                self.destination_by_key[requested_key],
+                self.source_by_key.get(requested_key, ""),
+            )
+
     def confirm_whole_profile_operation(self) -> bool:
         profile = self.effective_profile or "<unknown>"
-        operation_word = "Update" if self.operation == "update" else "Install"
+        operation_word, _ = self.operation_words(self.operation)
         prompt = f'{operation_word} all dotfiles for profile "{profile}" [y/N] ? '
         if not sys.stdin.isatty():
             print(
@@ -432,7 +454,7 @@ class DotManager:
         return sorted(overwrite_pairs)
 
     def confirm_update_overwrite_targets(self) -> None:
-        if self.operation != "update":
+        if not self.is_update_operation:
             return
 
         overwrite_pairs = self.collect_update_change_pairs()
@@ -521,9 +543,33 @@ class DotManager:
                 return True
         return False
 
-    def run_operation_for_targets(self, run_with_sudo: bool, operation_targets: list[str]) -> int:
+    @staticmethod
+    def parse_phase_changed_count(output_text: str) -> int:
+        for line in output_text.splitlines():
+            match = DOTDROP_PHASE_SUMMARY_RE.fullmatch(line)
+            if match:
+                return int(match.group(1))
+        return 0
+
+    @classmethod
+    def print_phase_body_output(cls, output_text: str, *, stream: object) -> None:
+        kept_lines: list[str] = []
+        for line in output_text.splitlines():
+            if DOTDROP_PHASE_SUMMARY_RE.fullmatch(line):
+                continue
+            kept_lines.append(line)
+
+        if not kept_lines:
+            return
+
+        text = "\n".join(kept_lines)
+        if output_text.endswith("\n"):
+            text += "\n"
+        stream.write(text)
+
+    def run_operation_for_targets(self, run_with_sudo: bool, operation_targets: list[str]) -> PhaseExecutionResult:
         dotdrop_call = [self.dotdrop_cmd, self.operation, "-b", *self.parsed.base_args]
-        if self.operation == "update":
+        if self.is_update_operation:
             dotdrop_call.extend(["-f", "-k"])
         dotdrop_call.extend(operation_targets)
 
@@ -535,17 +581,20 @@ class DotManager:
         else:
             command = dotdrop_call
 
-        completed = subprocess.run(command, check=False)
-        return completed.returncode
+        completed = subprocess.run(command, check=False, capture_output=True, text=True)
+        if completed.stdout:
+            self.print_phase_body_output(completed.stdout, stream=sys.stdout)
+        if completed.stderr:
+            self.print_phase_body_output(completed.stderr, stream=sys.stderr)
 
-    def print_noop_phase_summary(self, processed_count: int) -> None:
-        if self.operation == "install":
-            result_verb = "installed"
-        elif self.operation == "update":
-            result_verb = "updated"
-        else:
-            result_verb = self.operation
-        print(f"{processed_count} file(s) processed, 0 {result_verb}")
+        return PhaseExecutionResult(
+            exit_code=completed.returncode,
+            changed_count=self.parse_phase_changed_count(completed.stdout),
+        )
+
+    @staticmethod
+    def print_phase_summary(processed_count: int, updated_count: int, failed_count: int) -> None:
+        print(f"{processed_count} file(s) processed, {updated_count} updated, {failed_count} failed")
 
     def split_keys_by_required_read_privilege(self, keys: list[str]) -> tuple[list[str], list[str]]:
         non_privileged: list[str] = []
@@ -569,33 +618,33 @@ class DotManager:
                 non_privileged.append(key)
         return non_privileged, privileged
 
-    def run_phase_operation(self, phase_name: str, run_with_sudo: bool, phase_targets: list[str]) -> None:
+    def run_phase_operation(
+        self, phase_name: str, run_with_sudo: bool, phase_targets: list[str]
+    ) -> PhaseExecutionResult:
         if not phase_targets:
-            return
-        phase_exit_code = self.run_operation_for_targets(run_with_sudo, phase_targets)
-        if phase_exit_code != 0:
-            print(f"{phase_name} phase exited with status {phase_exit_code}", file=sys.stderr)
+            return PhaseExecutionResult(exit_code=0, changed_count=0)
+
+        phase_result = self.run_operation_for_targets(run_with_sudo, phase_targets)
+        if phase_result.exit_code != 0:
+            print(f"{phase_name} phase exited with status {phase_result.exit_code}", file=sys.stderr)
             if self.overall_exit_code == 0:
-                self.overall_exit_code = phase_exit_code
+                self.overall_exit_code = phase_result.exit_code
+        return phase_result
 
     def run_named_phase(self, phase_name: str, run_with_sudo: bool, phase_targets: list[str]) -> None:
         if not phase_targets:
             return
 
-        if self.operation == "install":
-            operation_verb = "installing"
-        elif self.operation == "update":
-            operation_verb = "updating"
-        else:
-            operation_verb = self.operation
-
+        _, operation_verb = self.operation_words(self.operation)
         self.print_phase_header(f"{operation_verb} {phase_name}")
-        should_preflight = self.operation == "install" and run_with_sudo
+        should_preflight = self.is_install_operation and run_with_sudo
         if should_preflight and not self.system_phase_needs_run(phase_targets):
-            self.print_noop_phase_summary(len(phase_targets))
+            self.print_phase_summary(len(phase_targets), 0, 0)
             return
 
-        self.run_phase_operation(phase_name, run_with_sudo, phase_targets)
+        phase_result = self.run_phase_operation(phase_name, run_with_sudo, phase_targets)
+        failed_count = 1 if phase_result.exit_code != 0 else 0
+        self.print_phase_summary(len(phase_targets), phase_result.changed_count, failed_count)
 
     def prepare_template_update_for_key(self, key_name: str) -> tuple[int, str, str]:
         self.last_template_update = TemplateUpdateState()
@@ -684,7 +733,7 @@ class DotManager:
         return 0, staged_output_file, helper_output_compact
 
     def confirm_template_update_overwrite(self, source_file_path: str) -> bool:
-        if self.operation != "update" or self.parsed.force_mode or not self.last_template_update.changed:
+        if not self.is_update_operation or self.parsed.force_mode or not self.last_template_update.changed:
             return True
         if not sys.stdin.isatty():
             return True
@@ -734,17 +783,11 @@ class DotManager:
         if not template_keys:
             return
 
-        if self.operation == "install":
-            operation_verb = "installing"
-        elif self.operation == "update":
-            operation_verb = "updating"
-        else:
-            operation_verb = self.operation
+        _, operation_verb = self.operation_words(self.operation)
         self.print_phase_header(f"{operation_verb} {phase_name}")
 
-        processed_count = 0
+        processed_count = len(template_keys)
         changed_count = 0
-        skipped_count = 0
         failed_count = 0
 
         for key_name in template_keys:
@@ -757,22 +800,10 @@ class DotManager:
                     self.overall_exit_code = phase_exit_code
                 continue
 
-            processed_count += 1
-            if self.last_template_update.skipped:
-                skipped_count += 1
-            elif self.last_template_update.changed:
+            if self.last_template_update.changed:
                 changed_count += 1
 
-        if failed_count > 0 and skipped_count > 0:
-            print(
-                f"{processed_count} file(s) processed, {changed_count} updated, {skipped_count} skipped, {failed_count} failed"
-            )
-        elif failed_count > 0:
-            print(f"{processed_count} file(s) processed, {changed_count} updated, {failed_count} failed")
-        elif skipped_count > 0:
-            print(f"{processed_count} file(s) processed, {changed_count} updated, {skipped_count} skipped")
-        else:
-            print(f"{processed_count} file(s) processed, {changed_count} updated")
+        self.print_phase_summary(processed_count, changed_count, failed_count)
 
     def run_install_phases(self) -> None:
         non_privileged_install_keys, privileged_install_keys = self.split_keys_by_required_write_privilege(
@@ -810,18 +841,24 @@ class DotManager:
         self.scoped_update_allowed_live_path_set.add(live_path)
 
     def append_split_key(self, split_key: str, split_dst: str, split_src: str) -> None:
-        if self.operation == "update" and self.parsed.update_ignore_patterns:
+        if self.is_update_operation and self.parsed.update_ignore_patterns:
             if self.key_is_fully_ignored_for_update(split_dst, split_src, self.parsed.update_ignore_patterns):
                 return
 
-        if self.operation == "update":
-            if self.effective_template_by_key.get(split_key, 0) == 1:
-                self.record_template_update_key(split_key)
-            else:
-                self.record_regular_update_key(split_key)
+        if self.is_update_operation:
+            self.record_effective_update_key(split_key)
             return
 
         self.install_keys.append(split_key)
+
+    def is_templated_key(self, key_name: str) -> bool:
+        return self.effective_template_by_key.get(key_name, 0) == 1
+
+    def record_effective_update_key(self, key_name: str) -> None:
+        if self.is_templated_key(key_name):
+            self.record_template_update_key(key_name)
+            return
+        self.record_regular_update_key(key_name)
 
     def find_matching_update_key_for_path(self, requested_path: str) -> str:
         matched_key = ""

@@ -4,11 +4,13 @@ import os
 from pathlib import Path
 import pty
 import select
+import shutil
 import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOTMANAGE_PATH = REPO_ROOT / "dotfiles" / "bin" / "dotmanage"
+DOTMANAGE_PY_PATH = REPO_ROOT / "scripts" / "dotmanage.py"
 
 
 def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
@@ -396,6 +398,7 @@ def test_install_force_skips_whole_profile_confirmation(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     assert 'Install all dotfiles for profile "repro" [y/N] ?' not in (result.stdout + result.stderr)
+    assert "1 file(s) processed, 1 updated, 0 failed" in result.stdout
     assert (live_dir / "settings.toml").read_text(encoding="utf-8") == (
         repo_source_dir / "settings.toml"
     ).read_text(encoding="utf-8")
@@ -436,7 +439,7 @@ def test_install_remove_existing_preflight_skips_clean_privileged_phase(tmp_path
         result = run_dotmanage(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
 
         assert result.returncode == 0
-        assert "0 installed" in result.stdout
+        assert "1 file(s) processed, 0 updated, 0 failed" in result.stdout
         assert "compare" in dotdrop_args_file.read_text(encoding="utf-8")
         assert "install" in dotdrop_args_file.read_text(encoding="utf-8")
         assert not sudo_args_file.exists()
@@ -537,6 +540,28 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
         "--profile",
         "repro",
     ]
+
+
+def test_python_entrypoint_reports_missing_dotdrop(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    uv_path = shutil.which("uv")
+    assert uv_path is not None
+
+    env = os.environ.copy()
+    env["PATH"] = str(helper_dir)
+
+    result = subprocess.run(
+        [uv_path, "run", str(DOTMANAGE_PY_PATH)],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 127
+    assert "dotdrop not found in PATH" in result.stderr
 
 def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
