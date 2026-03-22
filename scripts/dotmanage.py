@@ -20,6 +20,7 @@ PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
 DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:updated|installed)\.\s*")
 DOTDROP_TEMPLATE_INCLUDE_RE = re.compile(r"{%@@\s*include\b")
 INTERRUPTED_EXIT_CODE = 130
+ANSI_RESET = "\033[0m"
 
 
 @dataclass
@@ -493,10 +494,20 @@ class DotManager:
                 self.backup_declined_update_path(source_path, live_path)
 
     def print_phase_header(self, header_text: str) -> None:
-        if sys.stdout.isatty() and not os.environ.get("NO_COLOR") and os.environ.get("TERM") != "dumb":
-            print(f"\n\033[1;34m==>\033[0m \033[1m{header_text}\033[0m\n")
+        if self.colors_enabled():
+            print(f"\n{self.style_text('==>', '1', '34')} {self.style_text(header_text, '1')}\n")
             return
         print(f"\n==> {header_text}\n")
+
+    @staticmethod
+    def colors_enabled() -> bool:
+        return sys.stdout.isatty() and not os.environ.get("NO_COLOR") and os.environ.get("TERM") != "dumb"
+
+    @classmethod
+    def style_text(cls, text: str, *codes: str) -> str:
+        if not cls.colors_enabled() or not codes:
+            return text
+        return f"\033[{';'.join(codes)}m{text}{ANSI_RESET}"
 
     def system_phase_needs_run(self, operation_targets: list[str]) -> bool:
         if not operation_targets:
@@ -703,9 +714,18 @@ class DotManager:
             process.kill()
             process.wait()
 
-    @staticmethod
-    def print_phase_summary(processed_count: int, updated_count: int, failed_count: int) -> None:
-        print(f"{processed_count} file(s) processed, {updated_count} updated, {failed_count} failed")
+    @classmethod
+    def print_phase_summary(cls, processed_count: int, updated_count: int, failed_count: int) -> None:
+        if not cls.colors_enabled():
+            print(f"{processed_count} file(s) processed, {updated_count} updated, {failed_count} failed")
+            return
+
+        updated_color = "32" if updated_count else "33"
+        failed_color = "31" if failed_count else "32"
+        processed_text = cls.style_text(f"{processed_count} file(s) processed", "1", "34")
+        updated_text = cls.style_text(f"{updated_count} updated", "1", updated_color)
+        failed_text = cls.style_text(f"{failed_count} failed", "1", failed_color)
+        print(f"{processed_text}, {updated_text}, {failed_text}")
 
     def split_keys_by_required_read_privilege(self, keys: list[str]) -> tuple[list[str], list[str]]:
         non_privileged: list[str] = []
