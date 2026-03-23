@@ -511,12 +511,12 @@ profiles:
     dotfiles:
     - f_Library_Preferences_GlobalPreferences.plist
     - f_Library_Preferences_com_apple_symbolichotkeys.plist
-  xian-macbook-air.local:
+  host_mac:
     include:
     - os_mac
     - apps_mac
     - apps_ai
-  xian-linux-server:
+  host_linux:
     variables:
       desktop: niri
     include:

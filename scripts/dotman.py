@@ -15,6 +15,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    yaml = None  # type: ignore[assignment]
+
 
 SUPPORTED_OPERATIONS = {"update", "install", "import"}
 PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
@@ -22,6 +27,8 @@ DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:update
 DOTDROP_TEMPLATE_INCLUDE_RE = re.compile(r"{%@@\s*include\b")
 INTERRUPTED_EXIT_CODE = 130
 ANSI_RESET = "\033[0m"
+DEFAULT_PROFILE_FILENAME = "default-profile"
+DOTMAN_STATE_DIR_NAME = "dotman"
 
 
 @dataclass
@@ -107,6 +114,9 @@ class DotManager:
         self.last_template_update = TemplateUpdateState()
 
     def run(self) -> int:
+        if self.argv and self.argv[0] == "default":
+            return self.run_default_subcommand(self.argv[1:])
+
         if not self.dotdrop_cmd:
             print("dotdrop not found in PATH", file=sys.stderr)
             return 127
@@ -139,8 +149,24 @@ class DotManager:
         dotfiles_output = self.load_dotfiles_output()
         self.effective_profile = self.resolve_effective_profile(dotfiles_output)
         if not self.effective_profile:
-            print("unable to determine active dotdrop profile", file=sys.stderr)
-            return 2
+            picked = self.pick_profile_interactive()
+            if not picked:
+                print(
+                    "unable to determine active dotdrop profile; "
+                    "run 'dotman profiles' to list available profiles",
+                    file=sys.stderr,
+                )
+                return 2
+            self.effective_profile = picked
+            self.parsed.profile_from_args = picked
+            self.parsed.profile_was_explicitly_selected = True
+            self.parsed.base_args.extend(["-p", picked])
+            self.parsed.files_args.extend(["-p", picked])
+            dotfiles_output = self.load_dotfiles_output()
+            print(
+                f"tip: run 'dotman default {self.effective_profile}' to save as default",
+                file=sys.stderr,
+            )
         self.load_key_metadata(dotfiles_output)
         self.select_targets()
 
@@ -167,6 +193,61 @@ class DotManager:
     def run_passthrough(self, args: list[str]) -> int:
         completed = subprocess.run([self.dotdrop_cmd, *args], check=False)
         return completed.returncode
+
+    def run_default_subcommand(self, args: list[str]) -> int:
+        state_dir = get_dotman_state_dir()
+
+        if not args:
+            current = read_default_profile(state_dir)
+            if current:
+                print(current)
+            else:
+                print("no default profile set", file=sys.stderr)
+            return 0
+
+        if args[0] == "--unset":
+            unset_default_profile(state_dir)
+            print("default profile unset", file=sys.stderr)
+            return 0
+
+        profile_name = args[0]
+        write_default_profile(state_dir, profile_name)
+        print(f'default profile set to "{profile_name}"', file=sys.stderr)
+        return 0
+
+    def pick_profile_interactive(self) -> str:
+        if not sys.stdin.isatty():
+            return ""
+
+        fzf = shutil.which("fzf")
+        if not fzf:
+            print("install fzf to enable interactive profile selection", file=sys.stderr)
+            return ""
+
+        profiles = parse_profiles_from_config(self.resolved_config_path)
+        if not profiles:
+            if yaml is None:
+                print("install pyyaml to enable interactive profile selection", file=sys.stderr)
+            return ""
+
+        ranked = rank_profiles(profiles)
+        fzf_input = "\n".join(ranked)
+
+        try:
+            completed = subprocess.run(
+                [fzf, "--prompt", "profile> ", "--height", "~40%", "--header", "Select dotman profile:"],
+                input=fzf_input,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        except (OSError, KeyboardInterrupt):
+            return ""
+
+        if completed.returncode != 0:
+            return ""
+
+        return completed.stdout.strip()
 
     @property
     def is_update_operation(self) -> bool:
@@ -316,6 +397,10 @@ class DotManager:
     def resolve_effective_profile(self, dotfiles_output: str) -> str:
         if self.parsed.profile_from_args:
             return self.parsed.profile_from_args
+
+        stored = read_default_profile(get_dotman_state_dir())
+        if stored:
+            return stored
 
         for line in dotfiles_output.splitlines():
             match = PROFILE_HEADER_RE.match(line)
@@ -1434,6 +1519,101 @@ class DotManager:
         if not probe.is_dir():
             return True
         return not (os.access(probe, os.W_OK) and os.access(probe, os.X_OK))
+
+
+def get_dotman_state_dir() -> Path:
+    xdg_state = os.environ.get("XDG_STATE_HOME") or os.path.join(os.path.expanduser("~"), ".local", "state")
+    return Path(xdg_state) / DOTMAN_STATE_DIR_NAME
+
+
+def read_default_profile(state_dir: Path) -> str:
+    profile_file = state_dir / DEFAULT_PROFILE_FILENAME
+    try:
+        return profile_file.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return ""
+
+
+def write_default_profile(state_dir: Path, profile_name: str) -> None:
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / DEFAULT_PROFILE_FILENAME).write_text(profile_name + "\n", encoding="utf-8")
+
+
+def unset_default_profile(state_dir: Path) -> None:
+    profile_file = state_dir / DEFAULT_PROFILE_FILENAME
+    try:
+        profile_file.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def parse_profiles_from_config(config_path: str) -> dict[str, dict]:
+    """Parse the profiles section from a dotdrop YAML config."""
+    if yaml is None:
+        return {}
+    try:
+        with open(config_path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+    except (OSError, yaml.YAMLError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    profiles = data.get("profiles")
+    if not isinstance(profiles, dict):
+        return {}
+    # Normalize: ensure each profile value is a dict
+    return {str(name): (val if isinstance(val, dict) else {}) for name, val in profiles.items()}
+
+
+def compute_profile_heights(profiles: dict[str, dict]) -> dict[str, int]:
+    """Compute the height of each profile in the include DAG.
+
+    Height = longest path from a node down to any leaf (a profile with no
+    includes).  A leaf has height 0.
+    """
+    cache: dict[str, int] = {}
+    visiting: set[str] = set()
+
+    def _height(name: str) -> int:
+        if name in cache:
+            return cache[name]
+        if name in visiting:
+            # Cycle detected — treat as leaf to avoid infinite recursion.
+            return 0
+        visiting.add(name)
+        profile = profiles.get(name, {})
+        includes = profile.get("include", [])
+        if not includes:
+            cache[name] = 0
+        else:
+            cache[name] = 1 + max(_height(child) for child in includes)
+        visiting.discard(name)
+        return cache[name]
+
+    for profile_name in profiles:
+        _height(profile_name)
+    return cache
+
+
+def rank_profiles(profiles: dict[str, dict]) -> list[str]:
+    """Rank profiles: top nodes first (not included by anyone), then rest.
+
+    Within each group, sort by height descending, then name ascending.
+    """
+    included_by_others: set[str] = set()
+    for profile in profiles.values():
+        for child in profile.get("include", []):
+            included_by_others.add(child)
+
+    heights = compute_profile_heights(profiles)
+    all_names = list(profiles.keys())
+
+    def sort_key(name: str) -> tuple[int, int, str]:
+        is_top = 0 if name not in included_by_others else 1
+        return (is_top, -heights.get(name, 0), name)
+
+    all_names.sort(key=sort_key)
+    return all_names
 
 
 def main() -> int:

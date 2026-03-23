@@ -61,7 +61,7 @@ if (( $# == 0 )); then
 fi
 
 case "$1" in
-  update|install|import)
+  update|install|import|default)
     ;;
   *)
     exec dotdrop "$@"
@@ -83,7 +83,7 @@ if [[ -r "$repo_core_env_path" ]]; then
   . "$repo_core_env_path"
 fi
 
-if ! command -v dotdrop >/dev/null 2>&1; then
+if [[ "$1" != "default" ]] && ! command -v dotdrop >/dev/null 2>&1; then
   echo "dotdrop not found in PATH" >&2
   exit 127
 fi
@@ -99,4 +99,4 @@ if [[ ! -r "$script_path" ]]; then
   fi
 fi
 
-exec uv run "$script_path" "$@"
+exec uv run --project "$repo_root" "$script_path" "$@"
