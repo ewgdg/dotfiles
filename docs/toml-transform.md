@@ -1,15 +1,14 @@
 # TOML Transform Selectors
 
 `scripts/toml_transform.py` powers the `toml_transform_strip` and
-`toml_transform_merge`
-dotdrop transforms.
+`toml_transform_merge` dotdrop transforms.
 
-It follows the standardized transformer selector interface documented in
-`docs/transformer-script-interface.md`.
+Shared CLI semantics live in
+[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
 
 ## Selector Types
 
-The TOML engine currently exposes these typed selector flags:
+The TOML engine exposes these typed selector flags:
 
 - `--retain-key` / `--strip-key`: exact TOML key path
 - `--retain-table-regex` / `--strip-table-regex`: regex against dotted table
@@ -17,38 +16,31 @@ The TOML engine currently exposes these typed selector flags:
 
 All selector flags in a single invocation must use the same action:
 
-- `retain`: keep only matching content
-- `strip`: remove matching content
+- `retain`: select only matching content
+- `strip`: exclude matching content
 
-## Strip Mode
+TOML-specific details:
 
-`--mode strip` operates on the base TOML file:
+- key selectors match exact dotted TOML key paths
+- table regex selectors match whole tables, not one nested key inside a table
+- selectorless operation is not supported
 
-- `--strip-key` and `--strip-table-regex` remove matching keys and tables from
-  the base file.
-- `--retain-key` and `--retain-table-regex` write only matching keys and tables
-  from the base file.
+## Operand Roles
 
-## Merge Mode
+In merge mode, the TOML engine is base-authoritative:
 
-`--mode merge` keeps the base TOML authoritative and filters the overlay file
-named by `--overlay-file` before applying it:
+- start from the base TOML
+- selectors target the overlay TOML
+- selected overlay content is copied onto the base
 
-- `--retain-key` and `--retain-table-regex` merge only matching overlay keys
-  and tables.
-- `--strip-key` and `--strip-table-regex` merge all overlay content except
-  matching keys and tables.
+That makes it a good fit for repo-base plus preserved-live-subset installs.
 
 ## Example
 
 ```sh
-uv run --project . scripts/toml_transform.py input.toml output.toml \
+uv run --project . scripts/toml_transform.py repo.toml output.toml \
   --mode merge \
   --overlay-file live.toml \
   --retain-key model mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN \
   --retain-table-regex '^mcp_servers\.playwright\.env$'
 ```
-
-The first positional path is always the base file. In install mode that is the
-repo TOML. `--overlay-file` points at the live TOML. The selector flag decides
-which overlay content participates in the merge.

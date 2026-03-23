@@ -1,6 +1,6 @@
 # Transform Engine Interface
 
-This document defines the Python contract for the future shared transformer CLI.
+This document defines the Python contract for the shared transform CLI.
 The goal is to separate:
 
 - shared CLI concerns: mode selection, typed selector flags, request validation
@@ -76,7 +76,15 @@ Design expectations:
 - parsed extra flags flow into `TransformRequest.engine_options`
 - the engine validates engine-specific selector support
 - the engine owns parsing, matching, and writing output
-- merge semantics remain engine-defined, but the request shape stays shared
+- merge semantics remain engine-defined, including which operand the standard
+  selectors target in merge mode, but the request shape stays shared
+
+For merge-capable engines, treat `TransformRequest.base_path` and
+`TransformRequest.overlay_path` as stable operand roles, not as a promise about
+selector targeting. If an engine needs selectors over both operands, keep the
+shared selector model for the primary operand and parse secondary-operand
+selectors through engine-specific flags in `configure_parser()`, then pass them
+through `engine_options`.
 
 ## Example
 
@@ -119,7 +127,9 @@ transforms without fake selector flags.
 - keeps CLI concerns out of format engines
 - avoids ambiguous matcher prefixes
 - lets each engine declare its own selector vocabulary
-- gives the future shared CLI enough metadata to generate flags and help text
+- gives the shared CLI enough metadata to generate flags and help text
+- leaves room for engines to support explicit secondary-operand merge controls
+  without changing the shared request shape
 
 The shared CLI implementation now lives in
 [`scripts/transform_cli.py`](/Users/xian/Projects/dotfiles/scripts/transform_cli.py).

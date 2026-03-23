@@ -33,7 +33,7 @@ def flatten_selector_groups(raw_groups: list[list[str]] | None) -> tuple[str, ..
 def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            f"Run the {engine.name} transform engine using the shared transformer CLI."
+            f"Run the {engine.name} transform engine using the shared transform CLI."
         )
     )
     parser.add_argument("base_path", type=Path, help="Base file. Repo file for install mode.")

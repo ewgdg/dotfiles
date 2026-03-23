@@ -3,38 +3,28 @@
 `scripts/plist_transform.py` powers the plist-based dotdrop transforms in
 `config.yaml`.
 
-It follows the standardized transformer selector interface documented in
-`docs/transformer-script-interface.md`.
+Shared CLI semantics live in
+[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
 
 ## Selector Types
 
-The plist engine currently exposes one typed selector flag:
+The plist engine exposes one typed selector flag:
 
 - `--retain-key` / `--strip-key`: exact top-level plist dictionary key
 
-Unlike the TOML and XML engines, plist selectors are optional. If you omit
-selector flags entirely, the transform operates on the whole plist. That keeps
-plain format-conversion and compare-only workflows on the shared CLI.
+Plist-specific details:
 
-## Strip Mode
+- selectors target only top-level dictionary keys
+- selectorless operation is allowed
+- without selectors, the transform operates on the whole plist
 
-`--mode strip` operates on the base plist file:
+## Merge Direction
 
-- `--retain-key` writes only matching keys.
-- `--strip-key` removes matching keys.
-- no selector flags write the whole base plist.
+In merge mode, the plist engine is overlay-authoritative:
 
-## Merge Mode
-
-`--mode merge` keeps the overlay plist authoritative as the container file and
-applies filtered base plist keys on top of it. This matches the plist use case
-in this repo: preserve unmanaged live preferences while forcing a managed subset
-from the repo.
-
-- `--retain-key` applies only matching base keys onto the overlay plist.
-- `--strip-key` applies all base keys except matching ones onto the overlay
-  plist.
-- no selector flags apply the whole base plist onto the overlay plist.
+- start from the overlay plist
+- selectors target the base plist
+- selected base keys are copied onto the overlay
 
 ## Engine-Specific Flags
 
@@ -57,7 +47,3 @@ python3 scripts/plist_transform.py base.plist output.plist \
   --retain-key NSUserKeyEquivalents \
   --retain-key AppleInterfaceStyle
 ```
-
-The first positional path is always the base file. In install mode that is the
-repo plist. `--overlay-file` points at the live plist, and the selector flag
-filters which repo keys get layered onto that live plist.

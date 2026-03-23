@@ -3,12 +3,12 @@
 `scripts/xml_transform.py` powers the `xml_transform_strip` and
 `xml_transform_merge` dotdrop transforms.
 
-It follows the standardized transformer selector interface documented in
-`docs/transformer-script-interface.md`.
+Shared CLI semantics live in
+[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
 
 ## Selector Types
 
-The XML engine currently exposes one typed selector flag:
+The XML engine exposes one typed selector flag:
 
 - `--retain-node-matcher` / `--strip-node-matcher`: `fnmatch`-style XML node
   path matcher
@@ -22,28 +22,22 @@ The matcher syntax is the existing root-relative slash path, for example:
 Comma-separated matcher lists are accepted for compatibility, but repeated or
 space-separated values are preferred.
 
-## Strip Mode
+XML-specific details:
 
-`--mode strip` operates on the base XML file:
+- retain mode preserves the root element and any required ancestor chain
+- merge mode is base-authoritative
+- selectors target the overlay XML during merge
 
-- `--strip-node-matcher` removes matching nodes from the base file.
-- `--retain-node-matcher` writes only matching nodes, while preserving the root
-  element and any necessary ancestor chain.
+## Engine-Specific Flags
 
-## Merge Mode
-
-`--mode merge` keeps the base XML authoritative and filters the overlay file
-named by `--overlay-file` before merging it:
-
-- `--retain-node-matcher` merges only matching overlay nodes.
-- `--strip-node-matcher` merges all overlay content except matching nodes.
-
-The XML engine also supports one format-specific flag:
+The XML engine also supports:
 
 - `--sort-attributes`
 
 The transform preserves original base or overlay bytes automatically when the
 result is semantically unchanged, so there is no separate opt-in flag for that.
+
+## Example
 
 ```sh
 python scripts/xml_transform.py base.xml output.xml \
@@ -51,7 +45,3 @@ python scripts/xml_transform.py base.xml output.xml \
   --overlay-file live.xml \
   --retain-node-matcher config/WindowGeometry config/WindowState
 ```
-
-The first positional path is always the base file. In install mode that is the
-repo XML. `--overlay-file` points at the live XML, and the selector flag
-decides which live nodes participate in the merge.
