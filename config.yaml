@@ -452,6 +452,7 @@ profiles:
         @@}}/../scripts/install_arch_packages.sh' {0}
     include:
     - os_linux
+    - os_arch_kernel
     dotfiles:
     - f_etc_pacman.conf
     - f_etc_makepkg.conf
