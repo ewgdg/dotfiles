@@ -77,7 +77,7 @@ def start_runtime_inhibit() -> None:
             [
                 "systemd-inhibit",
                 f"--who={INHIBIT_WHO}",
-                "--what=idle",
+                "--what=idle:sleep",
                 f"--why={INHIBIT_REASON}",
                 "--",
                 "sleep",
