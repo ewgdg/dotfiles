@@ -1,15 +1,15 @@
 # Dotdrop Template Update Helper
 
 `dotdrop update` does not safely round-trip templated files back into the repo.
-This repo ships a local helper, and [`dotmanage`](../dotfiles/bin/dotmanage)
-uses it automatically during `dotmanage update` when a managed source file
+This repo ships a local helper, and [`dotman`](../dotfiles/bin/dotman)
+uses it automatically during `dotman update` when a managed source file
 contains dotdrop template syntax.
 
 Typical usage:
 
 ```sh
-dotmanage update -p <profile>
-dotmanage update -p <profile> f_profile
+dotman update -p <profile>
+dotman update -p <profile> f_profile
 ```
 
 Direct helper usage is still available for manual inspection or experiments:
@@ -65,7 +65,7 @@ literal edits from the live file.
 ## Known Limits
 
 - inline template lines are not rewritten; the script keeps them unchanged
-- templates that use dotdrop `{%@@ include ... @@%}` directives are skipped by `dotmanage update` for now
+- templates that use dotdrop `{%@@ include ... @@%}` directives are skipped by `dotman update` for now
 - blocks at the start or end of a file are handled more conservatively because they have fewer anchors
 - if an active branch has too little stable literal context, new lines at the edge of that branch can be missed
 - inactive branches are intentionally left unchanged
@@ -74,6 +74,6 @@ literal edits from the live file.
 ## Suggested Workflow
 
 1. Edit and validate the rendered file on the machine.
-2. Run `dotmanage update` for the affected key or profile.
+2. Run `dotman update` for the affected key or profile.
 3. Review `git diff`.
 4. Re-run `dotdrop compare` or `dotdrop install` to confirm the rendered output is still correct.

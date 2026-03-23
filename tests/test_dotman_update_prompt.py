@@ -15,16 +15,16 @@ import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DOTMANAGE_PATH = REPO_ROOT / "dotfiles" / "bin" / "dotmanage"
-DOTMANAGE_PY_PATH = REPO_ROOT / "scripts" / "dotmanage.py"
+DOTMAN_PATH = REPO_ROOT / "dotfiles" / "bin" / "dotman"
+DOTMAN_PY_PATH = REPO_ROOT / "scripts" / "dotman.py"
 
-DOTMANAGE_SPEC = importlib.util.spec_from_file_location("dotmanage_py", DOTMANAGE_PY_PATH)
-assert DOTMANAGE_SPEC is not None
-assert DOTMANAGE_SPEC.loader is not None
-DOTMANAGE_MODULE = importlib.util.module_from_spec(DOTMANAGE_SPEC)
-sys.modules[DOTMANAGE_SPEC.name] = DOTMANAGE_MODULE
-DOTMANAGE_SPEC.loader.exec_module(DOTMANAGE_MODULE)
-DotManager = DOTMANAGE_MODULE.DotManager
+DOTMAN_SPEC = importlib.util.spec_from_file_location("dotman_py", DOTMAN_PY_PATH)
+assert DOTMAN_SPEC is not None
+assert DOTMAN_SPEC.loader is not None
+DOTMAN_MODULE = importlib.util.module_from_spec(DOTMAN_SPEC)
+sys.modules[DOTMAN_SPEC.name] = DOTMAN_MODULE
+DOTMAN_SPEC.loader.exec_module(DOTMAN_MODULE)
+DotManager = DOTMAN_MODULE.DotManager
 
 
 def create_repro_project(tmp_path: Path) -> tuple[Path, Path, Path]:
@@ -141,7 +141,7 @@ end
     return config_path, repo_source_path, live_path
 
 
-def run_interactive_dotmanage(
+def run_interactive_dotman(
     config_path: Path,
     target_path: Path | None,
     answer: str,
@@ -152,7 +152,7 @@ def run_interactive_dotmanage(
     env["DOTDROP_CONFIG"] = str(config_path)
 
     command_parts = [
-        str(DOTMANAGE_PATH),
+        str(DOTMAN_PATH),
         "update",
     ]
     if explicit_profile:
@@ -198,7 +198,7 @@ def run_interactive_dotmanage(
     return return_code, output
 
 
-def run_dotmanage(
+def run_dotman(
     config_path: Path,
     *args: str,
     extra_env: dict[str, str] | None = None,
@@ -209,7 +209,7 @@ def run_dotmanage(
         env.update(extra_env)
 
     return subprocess.run(
-        [str(DOTMANAGE_PATH), *args],
+        [str(DOTMAN_PATH), *args],
         cwd=REPO_ROOT,
         env=env,
         check=False,
@@ -312,7 +312,7 @@ printf -- '--\n' >> "$SUDO_ARGS_FILE"
 def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_dir, "n\nn")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "n\nn")
 
     assert exit_code == 0
     assert output.count('overwrite dotfiles path "') == 1
@@ -381,7 +381,7 @@ def test_declined_directory_import_removes_created_repo_file_on_restore(tmp_path
 def test_declining_single_file_update_removes_key_from_regular_update_targets(monkeypatch, tmp_path: Path) -> None:
     manager = DotManager(["update"])
     manager.operation = "update"
-    manager.parsed = DOTMANAGE_MODULE.ParsedArgs()
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
     source_path = tmp_path / "repo" / "settings.toml"
     live_path = tmp_path / "home" / ".config" / "settings.toml"
     source_path.parent.mkdir(parents=True)
@@ -399,7 +399,7 @@ def test_declining_single_file_update_removes_key_from_regular_update_targets(mo
     monkeypatch.setattr(
         manager,
         "collect_update_changes",
-        lambda: [DOTMANAGE_MODULE.UpdateChange(source_path=source_path, live_path=live_path)],
+        lambda: [DOTMAN_MODULE.UpdateChange(source_path=source_path, live_path=live_path)],
     )
     monkeypatch.setattr(manager, "prompt", lambda _message: "n")
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
@@ -414,7 +414,7 @@ def test_declining_single_file_update_removes_key_from_regular_update_targets(mo
 def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_dir, "y\ny")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "y\ny")
 
     assert exit_code == 0
     assert 'overwrite dotfiles path "' in output
@@ -430,7 +430,7 @@ def test_directory_update_prompts_before_importing_live_only_file(tmp_path: Path
 
     live_only.write_text('value = "live only"\n', encoding="utf-8")
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_dir, "y\nn\ny")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "y\nn\ny")
 
     assert exit_code == 0
     assert 'overwrite dotfiles path "' in output
@@ -449,7 +449,7 @@ def test_inferred_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) ->
         encoding="utf-8",
     )
 
-    exit_code, output = run_interactive_dotmanage(
+    exit_code, output = run_interactive_dotman(
         config_path,
         None,
         "\nn\nn",
@@ -476,7 +476,7 @@ def test_child_path_update_stays_scoped_to_requested_file(tmp_path: Path) -> Non
     live_other.write_text('value = "live other"\n', encoding="utf-8")
     live_only.write_text('value = "live only"\n', encoding="utf-8")
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_file, "y")
+    exit_code, output = run_interactive_dotman(config_path, live_file, "y")
 
     assert exit_code == 0
     assert output.count('overwrite dotfiles path "') == 1
@@ -489,7 +489,7 @@ def test_unmatched_update_path_is_rejected(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
     unmatched_path = live_dir.parent / "missing" / "settings.toml"
 
-    exit_code, output = run_interactive_dotmanage(config_path, unmatched_path, "y")
+    exit_code, output = run_interactive_dotman(config_path, unmatched_path, "y")
 
     assert exit_code == 2
     assert "no tracked dotdrop key matches update target" in output
@@ -516,7 +516,7 @@ exit "${DOTDROP_EXIT_CODE:-0}"
     env["DOTDROP_EXIT_CODE"] = "23"
 
     result = subprocess.run(
-        [str(DOTMANAGE_PATH), "compare", "--profile", "repro", "d_app"],
+        [str(DOTMAN_PATH), "compare", "--profile", "repro", "d_app"],
         cwd=REPO_ROOT,
         env=env,
         check=False,
@@ -536,27 +536,27 @@ exit "${DOTDROP_EXIT_CODE:-0}"
 def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     helper_dir = tmp_path / "bin"
-    dotmanage_path = repo_root / "dotfiles" / "bin" / "dotmanage"
+    dotman_path = repo_root / "dotfiles" / "bin" / "dotman"
     core_env_path = repo_root / "dotfiles" / "env.core.sh"
     config_path = repo_root / "config.yaml"
-    script_path = repo_root / "scripts" / "dotmanage.py"
+    script_path = repo_root / "scripts" / "dotman.py"
     marker_file = tmp_path / "marker.txt"
     args_file = tmp_path / "uv-args.txt"
 
     helper_dir.mkdir()
-    dotmanage_path.parent.mkdir(parents=True)
+    dotman_path.parent.mkdir(parents=True)
     script_path.parent.mkdir(parents=True)
     core_env_path.parent.mkdir(parents=True, exist_ok=True)
 
-    dotmanage_path.write_text(DOTMANAGE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
-    dotmanage_path.chmod(0o755)
+    dotman_path.write_text(DOTMAN_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    dotman_path.chmod(0o755)
     config_path.write_text("config:\n  dotpath: dotfiles\n", encoding="utf-8")
     script_path.write_text("print('placeholder')\n", encoding="utf-8")
     core_env_path.write_text(
         "\n".join(
             [
-                f'export DOTMANAGE_WRAPPER_MARKER="{marker_file}"',
-                'export DOTMANAGE_WRAPPER_VALUE="repo-profile-loaded"',
+                f'export DOTMAN_WRAPPER_MARKER="{marker_file}"',
+                'export DOTMAN_WRAPPER_VALUE="repo-profile-loaded"',
                 "",
             ]
         ),
@@ -572,8 +572,8 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
         "\n".join(
             [
                 "#!/usr/bin/env bash",
-                'printf \'%s\\n\' \"$@\" > \"$DOTMANAGE_UV_ARGS_FILE\"',
-                'printf \'%s\\n\' \"$DOTMANAGE_WRAPPER_VALUE\" > \"$DOTMANAGE_WRAPPER_MARKER\"',
+                'printf \'%s\\n\' \"$@\" > \"$DOTMAN_UV_ARGS_FILE\"',
+                'printf \'%s\\n\' \"$DOTMAN_WRAPPER_VALUE\" > \"$DOTMAN_WRAPPER_MARKER\"',
                 "exit 0",
                 "",
             ]
@@ -584,10 +584,10 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
 
     env = os.environ.copy()
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
-    env["DOTMANAGE_UV_ARGS_FILE"] = str(args_file)
+    env["DOTMAN_UV_ARGS_FILE"] = str(args_file)
 
     result = subprocess.run(
-        [str(dotmanage_path), "install", "-f", "-p", "repro", "-c", str(config_path)],
+        [str(dotman_path), "install", "-f", "-p", "repro", "-c", str(config_path)],
         cwd=repo_root,
         env=env,
         check=False,
@@ -612,7 +612,7 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
 def test_install_force_skips_whole_profile_confirmation(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    result = run_dotmanage(config_path, "install", "-f", "-p", "repro")
+    result = run_dotman(config_path, "install", "-f", "-p", "repro")
 
     assert result.returncode == 0
     assert 'Install all dotfiles for profile "repro" [y/N] ?' not in (result.stdout + result.stderr)
@@ -626,7 +626,7 @@ def test_install_force_skips_whole_profile_confirmation(tmp_path: Path) -> None:
 def test_install_remove_existing_deletes_unmanaged_directory_children(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    result = run_dotmanage(config_path, "install", "-R", "-f", "-p", "repro")
+    result = run_dotman(config_path, "install", "-R", "-f", "-p", "repro")
 
     assert result.returncode == 0
     assert (live_dir / "settings.toml").read_text(encoding="utf-8") == (
@@ -654,7 +654,7 @@ def test_install_remove_existing_preflight_skips_clean_privileged_phase(tmp_path
     (live_dir / "settings.toml").chmod(0o444)
 
     try:
-        result = run_dotmanage(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
+        result = run_dotman(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
 
         assert result.returncode == 0
         assert "1 file(s) processed, 0 updated, 0 failed" in result.stdout
@@ -683,7 +683,7 @@ def test_install_remove_existing_preflight_runs_privileged_phase_for_removals(tm
     (live_dir / "settings.toml").chmod(0o444)
 
     try:
-        result = run_dotmanage(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
+        result = run_dotman(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
 
         assert result.returncode == 0
         assert sudo_args_file.exists()
@@ -697,7 +697,7 @@ def test_system_phase_needs_run_ignores_whitespace_prefixed_compare_logs(tmp_pat
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
-    manager.parsed = DOTMANAGE_MODULE.ParsedArgs(files_args=["-p", "repro"], base_args=["-p", "repro"])
+    manager.parsed = DOTMAN_MODULE.ParsedArgs(files_args=["-p", "repro"], base_args=["-p", "repro"])
     manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
 
     compare_completed = subprocess.CompletedProcess(
@@ -747,7 +747,7 @@ fi
     env["DOTDROP_ARGS_FILE"] = str(args_file)
 
     result = subprocess.run(
-        [str(DOTMANAGE_PATH)],
+        [str(DOTMAN_PATH)],
         cwd=REPO_ROOT,
         env=env,
         check=False,
@@ -777,7 +777,7 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
     env["DOTDROP_ARGS_FILE"] = str(args_file)
 
     result = subprocess.run(
-        [str(DOTMANAGE_PATH), "--profile", "repro"],
+        [str(DOTMAN_PATH), "--profile", "repro"],
         cwd=REPO_ROOT,
         env=env,
         check=False,
@@ -802,7 +802,7 @@ def test_python_entrypoint_reports_missing_dotdrop(tmp_path: Path) -> None:
     env["PATH"] = str(helper_dir)
 
     result = subprocess.run(
-        [uv_path, "run", str(DOTMANAGE_PY_PATH)],
+        [uv_path, "run", str(DOTMAN_PY_PATH)],
         cwd=REPO_ROOT,
         env=env,
         check=False,
@@ -929,7 +929,7 @@ def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     original_source = repo_source_path.read_text(encoding="utf-8")
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_path, "n")
+    exit_code, output = run_interactive_dotman(config_path, live_path, "n")
 
     assert exit_code == 0
     assert 'overwrite template file "' in output
@@ -941,7 +941,7 @@ def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
 def test_template_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_path, "y")
+    exit_code, output = run_interactive_dotman(config_path, live_path, "y")
 
     assert exit_code == 0
     assert 'overwrite template file "' in output
@@ -957,7 +957,7 @@ def test_unchanged_template_update_skips_prompt(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     live_path.write_text("start\nrepo\nend\n", encoding="utf-8")
 
-    exit_code, output = run_interactive_dotmanage(config_path, live_path, "y")
+    exit_code, output = run_interactive_dotman(config_path, live_path, "y")
 
     assert exit_code == 0
     assert 'overwrite template file "' not in output
@@ -976,7 +976,7 @@ def test_template_update_is_skipped_for_dotdrop_include_sources(tmp_path: Path) 
     )
     original_source = repo_source_path.read_text(encoding="utf-8")
 
-    result = run_dotmanage(config_path, "update", "-p", "repro", str(live_path))
+    result = run_dotman(config_path, "update", "-p", "repro", str(live_path))
 
     assert result.returncode == 0
     assert 'overwrite template file "' not in (result.stdout + result.stderr)

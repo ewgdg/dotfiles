@@ -2,7 +2,7 @@
 
 Use `init.sh` to bootstrap `uv`, install `dotdrop` as a `uv` tool, and export
 the shell variables needed to use this repo immediately. By default it also
-runs the repo's `dotmanage install`.
+runs the repo's `dotman install`.
 
 Usage:
 
@@ -25,7 +25,7 @@ Behavior:
   `init.sh`.
 - `PATH` is updated inside the script process before later bootstrap steps run.
 - `dotdrop` is then installed with `uv tool install dotdrop`.
-- After bootstrapping, the script runs the repo-local `dotfiles/bin/dotmanage install`
+- After bootstrapping, the script runs the repo-local `dotfiles/bin/dotman install`
   by default so mixed user and system targets are handled correctly.
 
 Bootstrap only:
@@ -34,7 +34,7 @@ Bootstrap only:
 ./init.sh --no-install
 ```
 
-Pass any other arguments through to `dotmanage install`, for example:
+Pass any other arguments through to `dotman install`, for example:
 
 ```sh
 ./init.sh -p xian-linux-server

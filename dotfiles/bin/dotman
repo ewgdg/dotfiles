@@ -75,7 +75,7 @@ if [[ -z "$config_path" ]]; then
 fi
 
 repo_root="$(cd -- "$(dirname -- "$config_path")" && pwd)"
-script_path="${repo_root}/scripts/dotmanage.py"
+script_path="${repo_root}/scripts/dotman.py"
 repo_core_env_path="${repo_root}/dotfiles/env.core.sh"
 
 if [[ -r "$repo_core_env_path" ]]; then
@@ -90,11 +90,11 @@ fi
 
 if [[ ! -r "$script_path" ]]; then
   installed_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-  bundled_script_path="$(cd -- "${installed_script_dir}/../.." && pwd)/scripts/dotmanage.py"
+  bundled_script_path="$(cd -- "${installed_script_dir}/../.." && pwd)/scripts/dotman.py"
   if [[ -r "$bundled_script_path" ]]; then
     script_path="$bundled_script_path"
   else
-    echo "dotmanage helper not found at ${script_path}" >&2
+    echo "dotman helper not found at ${script_path}" >&2
     exit 2
   fi
 fi

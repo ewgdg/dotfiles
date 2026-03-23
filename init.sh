@@ -30,7 +30,7 @@ if [[ ! -f "${dotdrop_config_path}" ]]; then
 fi
 
 default_uv_bin_dir="${HOME}/.local/bin"
-dotmanage_script="${repo_root}/dotfiles/bin/dotmanage"
+dotman_script="${repo_root}/dotfiles/bin/dotman"
 export DOTDROP_CONFIG="${dotdrop_config_path}"
 
 prepend_path() {
@@ -125,12 +125,12 @@ install_dotdrop() {
 }
 
 run_dotdrop_apply() {
-  if [[ ! -x "${dotmanage_script}" ]]; then
-    die "dotmanage wrapper not found at ${dotmanage_script}"
+  if [[ ! -x "${dotman_script}" ]]; then
+    die "dotman wrapper not found at ${dotman_script}"
   fi
 
-  log "running dotmanage install"
-  "${dotmanage_script}" install "$@"
+  log "running dotman install"
+  "${dotman_script}" install "$@"
 }
 
 should_run_dotdrop_install=true

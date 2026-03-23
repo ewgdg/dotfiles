@@ -66,7 +66,7 @@ a better fit for that than a home-directory-first tool.
 
 That does not mean stock `dotdrop` is perfect for mixed privilege handling.
 Its own docs recommend care here and suggest separating user and root-managed
-configs. In this repo, [`dotfiles/bin/dotmanage`](../dotfiles/bin/dotmanage)
+configs. In this repo, [`dotfiles/bin/dotman`](../dotfiles/bin/dotman)
 is the local wrapper that smooths over that operational gap.
 
 Even with that caveat, `dotdrop` still fits the repo better because the core
@@ -102,7 +102,7 @@ root-owned paths.
 There is a workaround, and it is a reasonable one: stage system files under the
 chezmoi source tree, then use `run_` or `run_onchange_` scripts to copy them
 into privileged locations with `sudo`. That is conceptually similar to how this
-repo uses `dotmanage` to handle privileged operations.
+repo uses `dotman` to handle privileged operations.
 
 The difference is where the workaround lives:
 

@@ -4,7 +4,7 @@ This repo manages user and system configuration with `dotdrop`.
 
 - Managed sources live under `dotfiles/`.
 - Source-to-destination mappings, profiles, actions, and transforms live in `config.yaml`.
-- Use `dotmanage` when a target set includes privileged paths such as `/etc`.
+- Use `dotman` when a target set includes privileged paths such as `/etc`.
 - Use plain `dotdrop` when you are only working with user-owned files under `~`.
 
 ## First Install
@@ -21,7 +21,7 @@ Use `init.sh` on a new machine:
 - install `dotdrop` as a `uv` tool
 - source the shared repo core environment from `dotfiles/env.core.sh`
 - use this repo's `config.yaml`
-- run `dotmanage install` by default
+- run `dotman install` by default
 
 Bootstrap only, without applying files:
 
@@ -31,21 +31,21 @@ Bootstrap only, without applying files:
 
 ## Main Commands
 
-For system + user files, use the wrapper in `dotfiles/bin/dotmanage`:
+For system + user files, use the wrapper in `dotfiles/bin/dotman`:
 
 ```sh
-dotmanage install -p <profile>
-dotmanage update -p <profile>
+dotman install -p <profile>
+dotman update -p <profile>
 ```
 
 Use this when the selected profile or keys include both home-directory files and
 privileged destinations.
 
-Before `dotmanage` invokes `dotdrop`, it sources
+Before `dotman` invokes `dotdrop`, it sources
 `dotfiles/env.core.sh` so install-time tools see the same XDG and PATH
 defaults as the managed shell profile.
 
-For templated file sources, `dotmanage update` automatically uses the repo's
+For templated file sources, `dotman update` automatically uses the repo's
 template-aware merge helper instead of plain `dotdrop update`.
 
 For user-only files, use plain `dotdrop` directly:
@@ -91,9 +91,9 @@ actually install, otherwise `dotdrop install` will never deploy it.
 Typical flow:
 
 1. Run `./init.sh -p <profile>` on first setup.
-2. Use `dotmanage install -p <profile>` for full applies that include system files.
+2. Use `dotman install -p <profile>` for full applies that include system files.
 3. Use `dotdrop` directly for user-only keys during focused iteration.
-4. Use `dotmanage update -p <profile>` to sync live changes back into the repo when privileged files are involved.
+4. Use `dotman update -p <profile>` to sync live changes back into the repo when privileged files are involved.
 
 ## Related Docs
 

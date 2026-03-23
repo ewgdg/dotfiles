@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Archived script: no longer maintained.
-# The active implementation is scripts/dotmanage.py via dotfiles/bin/dotmanage.
+# The active implementation is scripts/dotman.py via dotfiles/bin/dotman.
 set -euo pipefail
 
 if ! command -v dotdrop >/dev/null 2>&1; then
