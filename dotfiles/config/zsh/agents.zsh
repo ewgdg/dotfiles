@@ -25,7 +25,7 @@ _load_api_key() {
   done
 
   # Resolve all uncached secrets in one CLI invocation to avoid repeated startup overhead.
-  resolved_output=$(env "${env_assignments[@]}" op run -- zsh -fc "$print_script") || return 1
+  resolved_output=$(env "${env_assignments[@]}" op run --no-masking -- zsh -fc "$print_script") || return 1
   resolved_values=("${(@f)resolved_output}")
 
   if (( ${#resolved_values[@]} != ${#missing_services[@]} )); then
