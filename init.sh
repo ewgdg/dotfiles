@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 log() {
   printf '%s\n' "$*" >&2
@@ -11,12 +11,12 @@ die() {
 }
 
 script_dir="$(
-  cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1
+  cd -- "$(dirname -- "$0")" >/dev/null 2>&1
   pwd -P
 )"
 repo_root="${script_dir}"
 
-if [[ -r "${repo_root}/dotfiles/env.core.sh" ]]; then
+if [ -r "${repo_root}/dotfiles/env.core.sh" ]; then
   # Use the shared core shell environment so installs land in the same
   # locations the managed shell profile expects.
   # shellcheck source=/dev/null
@@ -25,7 +25,7 @@ fi
 
 dotdrop_config_path="${repo_root}/config.yaml"
 
-if [[ ! -f "${dotdrop_config_path}" ]]; then
+if [ ! -f "${dotdrop_config_path}" ]; then
   die "dotdrop config not found at ${dotdrop_config_path}"
 fi
 
@@ -37,7 +37,7 @@ prepend_path() {
   case ":${PATH:-}:" in
     *":$1:"*) ;;
     *)
-      if [[ -n "${PATH:-}" ]]; then
+      if [ -n "${PATH:-}" ]; then
         PATH="$1:${PATH}"
       else
         PATH="$1"
@@ -47,7 +47,7 @@ prepend_path() {
 }
 
 normalize_dir() {
-  if [[ -d "$1" ]]; then
+  if [ -d "$1" ]; then
     (
       cd -- "$1" >/dev/null 2>&1
       pwd -P
@@ -125,7 +125,7 @@ install_dotdrop() {
 }
 
 run_dotdrop_apply() {
-  if [[ ! -x "${dotman_script}" ]]; then
+  if [ ! -x "${dotman_script}" ]; then
     die "dotman wrapper not found at ${dotman_script}"
   fi
 
@@ -134,17 +134,15 @@ run_dotdrop_apply() {
 }
 
 should_run_dotdrop_install=true
-dotdrop_install_args=()
 
-while (( $# > 0 )); do
-  case "$1" in
+for arg do
+  shift
+  case "$arg" in
     --no-install)
       should_run_dotdrop_install=false
-      shift
       ;;
     *)
-      dotdrop_install_args+=("$1")
-      shift
+      set -- "$@" "$arg"
       ;;
   esac
 done
@@ -162,8 +160,8 @@ export PATH
 
 install_dotdrop
 
-if [[ "${should_run_dotdrop_install}" == true ]]; then
-  run_dotdrop_apply "${dotdrop_install_args[@]}"
+if [ "${should_run_dotdrop_install}" = true ]; then
+  run_dotdrop_apply "$@"
 fi
 
 log "bootstrap complete"
