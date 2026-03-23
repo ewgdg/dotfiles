@@ -12,37 +12,35 @@ from typing import Any, ClassVar, Protocol, runtime_checkable
 
 
 class TransformMode(StrEnum):
-    STRIP = "strip"
+    CLEANUP = "cleanup"
     MERGE = "merge"
 
 
 class SelectorAction(StrEnum):
-    STRIP = "strip"
+    REMOVE = "remove"
     RETAIN = "retain"
 
 
 @dataclass(frozen=True)
 class SelectorSpec:
     name: str
-    cli_flag: str
     description: str
+    prefix: str
+    is_default: bool = False
     examples: tuple[str, ...] = ()
     supported_modes: frozenset[TransformMode] = field(
-        default_factory=lambda: frozenset({TransformMode.STRIP, TransformMode.MERGE})
+        default_factory=lambda: frozenset({TransformMode.CLEANUP, TransformMode.MERGE})
     )
 
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("selector spec name must not be empty")
-        if not self.cli_flag:
-            raise ValueError("selector spec cli_flag must not be empty")
+        if not self.prefix:
+            raise ValueError("selector spec prefix must not be empty")
         if not self.description:
             raise ValueError("selector spec description must not be empty")
         if not self.supported_modes:
             raise ValueError("selector spec supported_modes must not be empty")
-
-    def option_name(self, action: SelectorAction) -> str:
-        return f"--{action.value}-{self.cli_flag}"
 
 
 @dataclass(frozen=True)
@@ -58,7 +56,7 @@ class TransformRequest:
     def validate_basic(self) -> None:
         if self.mode == TransformMode.MERGE and self.overlay_path is None:
             raise ValueError("overlay_path is required when mode=merge")
-        if self.mode == TransformMode.STRIP and self.overlay_path is not None:
+        if self.mode == TransformMode.CLEANUP and self.overlay_path is not None:
             raise ValueError("overlay_path is only valid when mode=merge")
 
     def selector_values(self, selector_type: str) -> tuple[str, ...]:

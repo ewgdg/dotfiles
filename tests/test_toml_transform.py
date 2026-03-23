@@ -27,11 +27,8 @@ MODULE = load_module()
 def test_toml_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.TomlTransformEngine.selector_specs()}
 
-    assert selector_specs["key"].option_name(MODULE.SelectorAction.RETAIN) == "--retain-key"
-    assert (
-        selector_specs["table_regex"].option_name(MODULE.SelectorAction.RETAIN)
-        == "--retain-table-regex"
-    )
+    assert selector_specs["key"].prefix == "exact"
+    assert selector_specs["table_regex"].prefix == "re"
 
 
 def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
@@ -65,10 +62,11 @@ PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
             "merge",
             "--overlay-file",
             str(live_path),
-            "--retain-key",
+            "--selector-type",
+            "retain",
+            "--selectors",
             "model",
-            "--retain-table-regex",
-            "^mcp_servers\\.playwright\\.env$",
+            "re:^mcp_servers\\.playwright\\.env$",
         ]
     )
 

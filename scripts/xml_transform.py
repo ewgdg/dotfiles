@@ -272,7 +272,7 @@ def transform_xml(
         if selector_action is not None
         else SelectorAction.RETAIN
         if overlay_path is not None
-        else SelectorAction.STRIP
+        else SelectorAction.REMOVE
     )
     parsed_node_matchers = node_matchers or []
 
@@ -347,7 +347,8 @@ class XmlTransformEngine(BaseTransformEngine):
     SELECTOR_SPECS = (
         SelectorSpec(
             name="node_matcher",
-            cli_flag="node-matcher",
+            prefix="exact",
+            is_default=True,
             description="fnmatch-style XML node path matcher",
             examples=("config/WindowGeometry", "config/*WindowState"),
         ),

@@ -35,8 +35,8 @@ Desired result:
 
 Configuration shape:
 
-1. `trans_update`: use `--strip-*` with selector list `A`
-2. `trans_install`: use the same selector list `A`, but as `--retain-*`
+1. `trans_update`: use `--selector-type remove` with selector list `A`
+2. `trans_install`: use `--selector-type retain` with the same selector list `A`
 
 Meaning:
 
@@ -51,8 +51,8 @@ That is the current TOML and XML behavior.
 Example shape:
 
 ```yaml
-trans_update: some_transform "--strip-key A"
-trans_install: some_transform "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-key A"
+trans_update: some_transform "--mode cleanup --selector-type remove --selectors A"
+trans_install: some_transform "--mode merge --overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors A"
 ```
 
 ## Use Case 2: Keep Only A Retained Subset On Update
@@ -66,7 +66,7 @@ Desired result:
 
 Configuration shape:
 
-1. `trans_update`: use `--retain-*` with selector list `B`
+1. `trans_update`: use `--selector-type retain` with selector list `B`
 
 Meaning:
 

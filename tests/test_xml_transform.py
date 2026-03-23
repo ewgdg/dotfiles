@@ -48,10 +48,7 @@ def write_semantically_equal_overlay_xml(repo_path: Path, live_path: Path) -> st
 def test_xml_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.XmlTransformEngine.selector_specs()}
 
-    assert (
-        selector_specs["node_matcher"].option_name(MODULE.SelectorAction.RETAIN)
-        == "--retain-node-matcher"
-    )
+    assert selector_specs["node_matcher"].prefix == "exact"
 
 
 def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
@@ -83,7 +80,9 @@ def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
             "merge",
             "--overlay-file",
             str(live_path),
-            "--retain-node-matcher",
+            "--selector-type",
+            "retain",
+            "--selectors",
             "config/WindowGeometry",
             "--sort-attributes",
         ]

@@ -56,7 +56,7 @@ def select_plist_data(
     selector_action: SelectorAction,
     selected_keys: tuple[str, ...],
 ) -> PlistDict:
-    if selector_action == SelectorAction.STRIP:
+    if selector_action == SelectorAction.REMOVE:
         return filter_stripped_keys(data, selected_keys)
     return filter_retained_keys(data, selected_keys)
 
@@ -122,7 +122,8 @@ class PlistTransformEngine(BaseTransformEngine):
     SELECTOR_SPECS = (
         SelectorSpec(
             name="key",
-            cli_flag="key",
+            prefix="exact",
+            is_default=True,
             description="exact top-level plist dictionary key",
             examples=("NSUserKeyEquivalents", "bypassEventsFromOtherApplications"),
         ),

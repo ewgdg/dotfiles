@@ -368,13 +368,14 @@ class TomlTransformEngine(BaseTransformEngine):
     SELECTOR_SPECS = (
         SelectorSpec(
             name="key",
-            cli_flag="key",
+            prefix="exact",
+            is_default=True,
             description="exact TOML key path",
             examples=("model", "mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"),
         ),
         SelectorSpec(
             name="table_regex",
-            cli_flag="table-regex",
+            prefix="re",
             description="regex matching dotted TOML table paths",
             examples=(r"^projects\.", r"^mcp_servers\.playwright\.env$"),
         ),
@@ -403,8 +404,8 @@ class TomlTransformEngine(BaseTransformEngine):
         table_regexes = compile_table_regexes(request.selector_values("table_regex"))
         compare_path = request.engine_option("compare_path")
 
-        if request.mode == TransformMode.STRIP:
-            if request.selector_action == SelectorAction.STRIP:
+        if request.mode == TransformMode.CLEANUP:
+            if request.selector_action == SelectorAction.REMOVE:
                 strip_keys(
                     request.base_path,
                     request.output_path,
@@ -427,7 +428,7 @@ class TomlTransformEngine(BaseTransformEngine):
             return
 
         assert request.overlay_path is not None
-        if request.selector_action == SelectorAction.STRIP:
+        if request.selector_action == SelectorAction.REMOVE:
             merge_keys_except_stripped(
                 request.base_path,
                 request.output_path,

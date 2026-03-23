@@ -20,14 +20,24 @@ from scripts.transform_engine import (  # noqa: E402
 )
 
 
-def selector_dest(action: SelectorAction, spec: SelectorSpec) -> str:
-    return f"{action.value}_{spec.name}"
-
-
-def flatten_selector_groups(raw_groups: list[list[str]] | None) -> tuple[str, ...]:
-    if not raw_groups:
-        return ()
-    return tuple(value for group in raw_groups for value in group)
+def parse_selectors(engine: TransformEngine, selectors: list[str]) -> dict[str, tuple[str, ...]]:
+    selectors_by_type: dict[str, list[str]] = {spec.name: [] for spec in engine.selector_specs()}
+    prefix_to_spec = {f"{spec.prefix}:": spec for spec in engine.selector_specs()}
+    default_spec = next((spec for spec in engine.selector_specs() if spec.is_default), None)
+    
+    for selector in selectors:
+        matched = False
+        for prefix, spec in prefix_to_spec.items():
+            if selector.startswith(prefix):
+                selectors_by_type[spec.name].append(selector[len(prefix):])
+                matched = True
+                break
+        if not matched:
+            if default_spec is None:
+                raise ValueError(f"Engine {engine.name} has no default selector spec, but no prefix was matched for: {selector}")
+            selectors_by_type[default_spec.name].append(selector)
+            
+    return {name: tuple(values) for name, values in selectors_by_type.items()}
 
 
 def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
@@ -51,17 +61,18 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
         type=Path,
         help="Overlay file. Required when --mode=merge.",
     )
-
-    for spec in engine.selector_specs():
-        for action in SelectorAction:
-            parser.add_argument(
-                spec.option_name(action),
-                dest=selector_dest(action, spec),
-                action="append",
-                nargs="+",
-                metavar=spec.cli_flag.upper().replace("-", "_"),
-                help=f"{action.value.capitalize()} {spec.description}.",
-            )
+    parser.add_argument(
+        "--selector-type",
+        choices=[action.value for action in SelectorAction],
+        default=SelectorAction.RETAIN.value,
+        help="Action to take after selection.",
+    )
+    parser.add_argument(
+        "--selectors",
+        nargs="*",
+        default=[],
+        help="List of matchers/selectors with optional prefixes.",
+    )
 
     engine.configure_parser(parser)
     return parser
@@ -72,37 +83,16 @@ def build_request(
     engine: TransformEngine,
     parsed_args: argparse.Namespace,
 ) -> TransformRequest:
-    selector_specs = engine.selector_specs()
-    retained_selectors = {
-        spec.name: flatten_selector_groups(
-            getattr(parsed_args, selector_dest(SelectorAction.RETAIN, spec))
-        )
-        for spec in selector_specs
-    }
-    stripped_selectors = {
-        spec.name: flatten_selector_groups(
-            getattr(parsed_args, selector_dest(SelectorAction.STRIP, spec))
-        )
-        for spec in selector_specs
-    }
+    try:
+        selectors_by_type = parse_selectors(engine, getattr(parsed_args, "selectors", []))
+    except ValueError as e:
+        parser.error(str(e))
 
-    has_retained_selectors = any(retained_selectors.values())
-    has_stripped_selectors = any(stripped_selectors.values())
-
-    if has_retained_selectors and has_stripped_selectors:
-        parser.error("selector flags must all use either retain or strip action")
-    if not has_retained_selectors and not has_stripped_selectors:
-        selector_action = SelectorAction.RETAIN
-    else:
-        selector_action = (
-            SelectorAction.RETAIN if has_retained_selectors else SelectorAction.STRIP
-        )
-    selectors_by_type = retained_selectors if has_retained_selectors else stripped_selectors
     request = TransformRequest(
         base_path=parsed_args.base_path,
         output_path=parsed_args.output_path,
         mode=TransformMode(parsed_args.mode),
-        selector_action=selector_action,
+        selector_action=SelectorAction(getattr(parsed_args, "selector_type", SelectorAction.RETAIN.value)),
         selectors_by_type=selectors_by_type,
         overlay_path=parsed_args.overlay_path,
         engine_options=engine.build_engine_options(parsed_args),

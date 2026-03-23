@@ -245,8 +245,8 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_transform_strip "--sort-attributes --strip-node-matcher '{{@@ goldendict_config_node_matchers @@}}'"
-    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-node-matcher '{{@@ goldendict_config_node_matchers @@}}'"
+    trans_update: xml_transform_strip "--sort-attributes --selector-type remove --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors @@}}"
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -347,8 +347,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_transform_strip "--strip-key {{@@ codex_config_local_state_keys @@}} --strip-table-regex {{@@ codex_config_local_state_table_regexes @@}}"
-    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-key {{@@ codex_config_local_state_keys @@}} --retain-table-regex {{@@ codex_config_local_state_table_regexes @@}}"
+    trans_update: toml_transform_strip "--selector-type remove --selectors {{@@ codex_config_selectors @@}}"
+    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ codex_config_selectors @@}}"
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
@@ -368,8 +368,8 @@ dotfiles:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
     chmod: '600'
-    trans_update: plist_transform_strip "--output-format xml --retain-key NSUserKeyEquivalents --retain-key ApplePressAndHoldEnabled --retain-key AppleKeyboardUIMode --retain-key AppleShowAllExtensions --retain-key AppleInterfaceStyle --retain-key com.apple.keyboard.fnState --retain-key com.apple.swipescrolldirection --retain-key com.apple.trackpad.forceClick --retain-key com.apple.trackpad.scaling --retain-key com.apple.mouse.scaling --retain-key com.apple.scrollwheel.scaling --retain-key NSAutomaticSpellingCorrectionEnabled --retain-key NSAutomaticCapitalizationEnabled --retain-key NSAutomaticDashSubstitutionEnabled --retain-key NSAutomaticPeriodSubstitutionEnabled --retain-key NSAutomaticQuoteSubstitutionEnabled --retain-key NSAutomaticTextCompletionEnabled"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-key NSUserKeyEquivalents --retain-key ApplePressAndHoldEnabled --retain-key AppleKeyboardUIMode --retain-key AppleShowAllExtensions --retain-key AppleInterfaceStyle --retain-key com.apple.keyboard.fnState --retain-key com.apple.swipescrolldirection --retain-key com.apple.trackpad.forceClick --retain-key com.apple.trackpad.scaling --retain-key com.apple.mouse.scaling --retain-key com.apple.scrollwheel.scaling --retain-key NSAutomaticSpellingCorrectionEnabled --retain-key NSAutomaticCapitalizationEnabled --retain-key NSAutomaticDashSubstitutionEnabled --retain-key NSAutomaticPeriodSubstitutionEnabled --retain-key NSAutomaticQuoteSubstitutionEnabled --retain-key NSAutomaticTextCompletionEnabled"
+    trans_update: plist_transform_strip "--output-format xml --selector-type retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --selector-type retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
   f_Library_Preferences_com_apple_symbolichotkeys.plist:
     src: Library/Preferences/com.apple.symbolichotkeys.plist
     dst: ~/Library/Preferences/com.apple.symbolichotkeys.plist
@@ -380,8 +380,8 @@ dotfiles:
     src: Library/Preferences/com.lujjjh.LinearMouse.plist
     dst: ~/Library/Preferences/com.lujjjh.LinearMouse.plist
     chmod: '600'
-    trans_update: plist_transform_strip "--output-format xml --strip-key LaunchAtLogin__hasMigrated --strip-key 'NSStatusItem Preferred Position Item-0' --strip-key 'NSWindow Frame SUUpdateAlert' --strip-key SUEnableAutomaticChecks --strip-key SUHasLaunchedBefore --strip-key SULastCheckTime --strip-key SUScheduledCheckInterval --strip-key SUUpdateGroupIdentifier"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-overlay-key LaunchAtLogin__hasMigrated --retain-overlay-key 'NSStatusItem Preferred Position Item-0' --retain-overlay-key 'NSWindow Frame SUUpdateAlert' --retain-overlay-key SUEnableAutomaticChecks --retain-overlay-key SUHasLaunchedBefore --retain-overlay-key SULastCheckTime --retain-overlay-key SUScheduledCheckInterval --retain-overlay-key SUUpdateGroupIdentifier"
+    trans_update: plist_transform_strip "--output-format xml --selector-type remove --selectors {{@@ linearmouse_config_selectors @@}}"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --selector-type retain --selectors {{@@ linearmouse_config_selectors @@}}"
     actions:
     - install linearmouse
 profiles:
@@ -502,6 +502,8 @@ profiles:
   os_mac:
     variables:
       install_cmd: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_homebrew_packages.sh' {0}
+      mac_global_preferences_config_selectors: >-
+        NSUserKeyEquivalents ApplePressAndHoldEnabled AppleKeyboardUIMode AppleShowAllExtensions AppleInterfaceStyle com.apple.keyboard.fnState com.apple.swipescrolldirection com.apple.trackpad.forceClick com.apple.trackpad.scaling com.apple.mouse.scaling com.apple.scrollwheel.scaling NSAutomaticSpellingCorrectionEnabled NSAutomaticCapitalizationEnabled NSAutomaticDashSubstitutionEnabled NSAutomaticPeriodSubstitutionEnabled NSAutomaticQuoteSubstitutionEnabled NSAutomaticTextCompletionEnabled
     include:
     - posix_base
     - posix_utils
@@ -527,7 +529,8 @@ profiles:
     - d_config_systemd_user_sunshine.service.d
   apps_linux:
     variables:
-      goldendict_config_node_matchers: config/*WindowGeometry,config/*WindowState,config/timeForNewReleaseCheck
+      goldendict_config_selectors: >-
+        'config/*WindowGeometry' 'config/*WindowState' 'config/timeForNewReleaseCheck'
     dotfiles:
     - d_config_fcitx5
     - f_local_share_applications_1password-quickaccess.desktop
@@ -541,14 +544,17 @@ profiles:
     actions:
     - install yazi
   apps_mac:
+    variables:
+      linearmouse_config_selectors: >-
+        LaunchAtLogin__hasMigrated 'NSStatusItem Preferred Position Item-0' 'NSWindow Frame SUUpdateAlert' SUEnableAutomaticChecks SUHasLaunchedBefore SULastCheckTime SUScheduledCheckInterval SUUpdateGroupIdentifier
     dotfiles:
     - f_Library_Preferences_com_lujjjh_LinearMouse.plist
   apps_ai:
     variables:
       # Strip local Codex state from repo updates, then preserve it from the
       # live file during install.
-      codex_config_local_state_keys: model model_reasoning_effort
-      codex_config_local_state_table_regexes: ^projects\. ^mcp_servers\.playwright\.env$
+      codex_config_selectors: >-
+        'model' 'model_reasoning_effort' 're:^projects\.' 're:^mcp_servers\.playwright\.env$'
     dotfiles:
     - f_codex_config.toml
     - d_codex_rules
@@ -568,12 +574,12 @@ actions:
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
     clone --depth=1 {0} "{1}"; fi
 trans_update:
-  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip
+  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup
     {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   xml_transform_strip: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xml_transform.py' {0} {1} --mode strip {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
+    @@}}/../scripts/xml_transform.py' {0} {1} --mode cleanup {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
-    {0} {1} --mode strip {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
+    {0} {1} --mode cleanup {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
 trans_install:
   toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge
     {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"

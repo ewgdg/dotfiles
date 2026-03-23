@@ -31,12 +31,13 @@ class RecordingEngine(ENGINE_MODULE.BaseTransformEngine):
     SELECTOR_SPECS = (
         ENGINE_MODULE.SelectorSpec(
             name="key",
-            cli_flag="key",
+            prefix="exact",
+            is_default=True,
             description="exact key selector",
         ),
         ENGINE_MODULE.SelectorSpec(
             name="table_regex",
-            cli_flag="table-regex",
+            prefix="re",
             description="regex table selector",
         ),
     )
@@ -68,10 +69,11 @@ def test_shared_cli_builds_request_with_typed_selector_flags(tmp_path: Path) -> 
             "--overlay-file",
             str(tmp_path / "live.toml"),
             "--sort-attributes",
-            "--retain-key",
+            "--selector-type",
+            "retain",
+            "--selectors",
             "model",
-            "--retain-table-regex",
-            "^projects\\.",
+            "re:^projects\\.",
         ],
     )
 
@@ -85,23 +87,7 @@ def test_shared_cli_builds_request_with_typed_selector_flags(tmp_path: Path) -> 
     assert request.engine_option("sort_attributes") is True
 
 
-def test_shared_cli_rejects_mixed_retain_and_strip_flags(tmp_path: Path) -> None:
-    engine = RecordingEngine()
 
-    with pytest.raises(SystemExit, match="2"):
-        CLI_MODULE.run_engine_cli(
-            engine,
-            [
-                str(tmp_path / "base.toml"),
-                str(tmp_path / "output.toml"),
-                "--mode",
-                "strip",
-                "--retain-key",
-                "model",
-                "--strip-table-regex",
-                "^projects\\.",
-            ],
-        )
 
 
 class SelectorOptionalEngine(ENGINE_MODULE.BaseTransformEngine):
@@ -109,7 +95,8 @@ class SelectorOptionalEngine(ENGINE_MODULE.BaseTransformEngine):
     SELECTOR_SPECS = (
         ENGINE_MODULE.SelectorSpec(
             name="key",
-            cli_flag="key",
+            prefix="exact",
+            is_default=True,
             description="exact key selector",
         ),
     )
@@ -136,7 +123,7 @@ def test_shared_cli_allows_no_selector_flags_when_engine_supports_identity_mode(
             str(tmp_path / "base.plist"),
             str(tmp_path / "output.plist"),
             "--mode",
-            "strip",
+            "cleanup",
         ],
     )
 

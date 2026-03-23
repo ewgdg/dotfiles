@@ -14,49 +14,45 @@ For round-trip workflow examples, see
 script INPUT OUTPUT \
   --mode strip|merge \
   [--overlay-file OVERLAY] \
-  [ENGINE-DECLARED EXTRA FLAGS] \
-  [ENGINE-DECLARED SELECTOR FLAGS]
+  [--selector-type remove|retain] \
+  [--selectors SELECTORS...] \
+  [ENGINE-DECLARED EXTRA FLAGS]
 ```
 
 - `INPUT`: base file
 - `OUTPUT`: transformed output path
-- `--mode strip`: transform the base file directly
+- `--mode cleanup`: transform the base file directly
 - `--mode merge`: combine base and overlay using engine-defined merge semantics
 - `--overlay-file`: required in merge mode
 
 ## Selector Model
 
-Selectors combine:
+Selectors define both what matchers apply and the action applied.
 
-- an action: `retain` or `strip`
-- an engine-defined selector type such as `key`, `table-regex`, or
-  `node-matcher`
+- `--selector-type`: action to apply on grouped matchers (`retain` or `remove`).
+- `--selectors`: a list of matchers, optionally prefixed (like `re:` or `exact:`), which are routed to the target engine's implementations.
 
 Examples:
 
-- `--retain-key`
-- `--strip-key`
-- `--retain-table-regex`
-- `--strip-node-matcher`
-
-All selector flags in one invocation must use the same action.
+- `--selector-type retain --selectors 'model' 're:^projects\.'`
+- `--selector-type remove --selectors 'config/WindowGeometry'`
 
 Selector action meaning:
 
 - `retain`
-  - strip mode: write only matching content from the base file
+  - cleanup mode: write only matching content from the base file
   - merge mode: apply only matching content from the engine-selected operand
-- `strip`
-  - strip mode: remove matching content from the base file
+- `remove`
+  - cleanup mode: remove matching content from the base file
   - merge mode: apply everything except matching content from the
     engine-selected operand
 
 The mode name and selector action are independent. For example:
 
-- `--mode strip` with `--retain-key ...` means "write only the retained subset
+- `--mode cleanup` with `--selector-type retain` means "write only the retained subset
   from the base file"
-- `--mode merge` with `--strip-key ...` means "merge everything except the
-  stripped subset from the selected merge operand"
+- `--mode merge` with `--selector-type remove` means "merge everything except the
+  removed subset from the selected merge operand"
 
 ## Operand Roles
 

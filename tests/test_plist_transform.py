@@ -36,8 +36,7 @@ def write_plist(path: Path, data: dict, fmt=plistlib.FMT_XML) -> None:
 def test_plist_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.PlistTransformEngine.selector_specs()}
 
-    assert selector_specs["key"].option_name(MODULE.SelectorAction.RETAIN) == "--retain-key"
-    assert selector_specs["key"].option_name(MODULE.SelectorAction.STRIP) == "--strip-key"
+    assert selector_specs["key"].prefix == "exact"
 
 
 def test_compare_file_preserves_existing_bytes(tmp_path: Path) -> None:
@@ -78,7 +77,7 @@ def test_strip_mode_without_compare_file_reserializes_requested_format(
             str(input_path),
             str(output_path),
             "--mode",
-            "strip",
+            "cleanup",
             "--output-format",
             "xml",
         ]
@@ -134,8 +133,10 @@ def test_strip_mode_retain_key_keeps_only_selected_keys(tmp_path: Path) -> None:
             str(input_path),
             str(output_path),
             "--mode",
-            "strip",
-            "--retain-key",
+            "cleanup",
+            "--selector-type",
+            "retain",
+            "--selectors",
             "bypassEventsFromOtherApplications",
         ]
     )
@@ -170,7 +171,9 @@ def test_merge_mode_retain_key_merges_selected_overlay_keys(tmp_path: Path) -> N
             str(live_path),
             "--output-format",
             "binary",
-            "--retain-key",
+            "--selector-type",
+            "retain",
+            "--selectors",
             "bypassEventsFromOtherApplications",
         ]
     )
@@ -206,7 +209,9 @@ def test_merge_mode_strip_key_merges_everything_else_from_overlay(tmp_path: Path
             "merge",
             "--overlay-file",
             str(live_path),
-            "--strip-key",
+            "--selector-type",
+            "remove",
+            "--selectors",
             "WindowGeometry",
         ]
     )
