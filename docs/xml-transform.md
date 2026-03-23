@@ -33,9 +33,11 @@ XML-specific details:
 The XML engine also supports:
 
 - `--sort-attributes`
+- `--compare-file PATH`
 
-The transform preserves original base or overlay bytes automatically when the
-result is semantically unchanged, so there is no separate opt-in flag for that.
+`--compare-file` is opt-in. When provided, the engine reuses that file's
+bytes if its parsed XML is semantically unchanged. Without
+`--compare-file`, the engine always serializes fresh output.
 
 ## Example
 

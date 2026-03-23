@@ -100,21 +100,21 @@ def write_plist_if_changed(
     output_path: Path,
     data: PlistDict,
     output_format: str,
-    reference_path: Path,
-    compare_path: Path,
+    mode_reference_path: Path,
+    compare_path: Path | None,
 ) -> None:
-    sync_path = compare_path if compare_path != output_path else reference_path
-    existing_bytes = get_existing_bytes_if_semantically_unchanged(compare_path, data)
-    if existing_bytes is not None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_bytes(existing_bytes)
-        if sync_path != output_path:
-            mirror_mode(sync_path, output_path)
-        return
+    if compare_path is not None:
+        existing_bytes = get_existing_bytes_if_semantically_unchanged(compare_path, data)
+        if existing_bytes is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(existing_bytes)
+            if mode_reference_path != output_path:
+                mirror_mode(mode_reference_path, output_path)
+            return
 
     write_plist(output_path, data, output_format)
-    if sync_path != output_path:
-        mirror_mode(sync_path, output_path)
+    if mode_reference_path != output_path:
+        mirror_mode(mode_reference_path, output_path)
 
 
 class PlistTransformEngine(BaseTransformEngine):
@@ -135,7 +135,7 @@ class PlistTransformEngine(BaseTransformEngine):
         parser.add_argument(
             "--compare-file",
             type=Path,
-            help="Existing plist whose bytes should be preserved when data is unchanged.",
+            help="Optional plist to compare against for semantic no-op byte reuse.",
         )
         parser.add_argument(
             "--output-format",
@@ -162,7 +162,7 @@ class PlistTransformEngine(BaseTransformEngine):
             selected_keys,
         )
 
-        reference_path = request.base_path
+        mode_reference_path = request.base_path
         if request.mode == TransformMode.MERGE:
             assert request.overlay_path is not None
             overlay_data = load_plist(request.overlay_path)
@@ -173,17 +173,15 @@ class PlistTransformEngine(BaseTransformEngine):
             )
             transformed_data = dict(overlay_data)
             transformed_data.update(transformed_base_data)
-            reference_path = request.overlay_path
+            mode_reference_path = request.overlay_path
 
         compare_path = request.engine_option("compare_path")
-        if compare_path is None:
-            compare_path = reference_path
 
         write_plist_if_changed(
             request.output_path,
             transformed_data,
             output_format,
-            reference_path=reference_path,
+            mode_reference_path=mode_reference_path,
             compare_path=compare_path,
         )
 

@@ -225,10 +225,33 @@ def normalized_xml_for_compare(root: ET.Element) -> str:
     return ET.tostring(normalized, encoding="unicode")
 
 
-def write_output_bytes(output_path: Path, content: bytes, reference_path: Path) -> None:
+def get_existing_xml_bytes_if_semantically_unchanged(
+    compare_path: Path,
+    root: ET.Element,
+ ) -> bytes | None:
+    if not compare_path.is_file():
+        return None
+
+    existing_bytes = compare_path.read_bytes()
+    try:
+        existing_root = ET.fromstring(existing_bytes)
+    except ET.ParseError:
+        return None
+
+    if normalized_xml_for_compare(existing_root) != normalized_xml_for_compare(root):
+        return None
+
+    return existing_bytes
+
+
+def write_output_bytes(
+    output_path: Path,
+    content: bytes,
+    mode_reference_path: Path,
+ ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(content)
-    sync_mode(reference_path, output_path)
+    sync_mode(mode_reference_path, output_path)
 
 
 def transform_xml(
@@ -238,10 +261,12 @@ def transform_xml(
     sort_attributes: bool = False,
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
-) -> None:
+    compare_path: str | Path | None = None,
+ ) -> None:
     base_path = Path(base_path)
     output_path = Path(output_path)
     overlay_path = Path(overlay_path) if overlay_path is not None else None
+    compare_path = Path(compare_path) if compare_path is not None else None
     effective_selector_action = (
         selector_action
         if selector_action is not None
@@ -252,17 +277,11 @@ def transform_xml(
     parsed_node_matchers = node_matchers or []
 
     tree = None
-    base_bytes = None
-    before_root = None
-    overlay_bytes = None
     overlay_root = None
     if base_path.is_file():
-        base_bytes = base_path.read_bytes()
         tree = ET.parse(base_path)
-        before_root = copy.deepcopy(tree.getroot())
 
     if overlay_path is not None and overlay_path.is_file():
-        overlay_bytes = overlay_path.read_bytes()
         overlay_tree = ET.parse(overlay_path)
         overlay_root = overlay_tree.getroot()
         if tree is None:
@@ -285,7 +304,6 @@ def transform_xml(
         raise FileNotFoundError(f"File not found: {base_path}")
 
     root = tree.getroot()
-
     if root is None:
         raise ValueError("Root element not found in the XML file.")
 
@@ -303,35 +321,22 @@ def transform_xml(
     if sort_attributes:
         sort_xml_attributes(root)
 
-    if (
-        overlay_root is not None
-        and overlay_bytes is not None
-        and normalized_xml_for_compare(overlay_root) == normalized_xml_for_compare(root)
-    ):
-        write_output_bytes(output_path, overlay_bytes, base_path)
-        return
+    if compare_path is not None:
+        existing_bytes = get_existing_xml_bytes_if_semantically_unchanged(compare_path, root)
+        if existing_bytes is not None:
+            write_output_bytes(output_path, existing_bytes, base_path)
+            return
 
-    if (
-        before_root is not None
-        and base_bytes is not None
-        and normalized_xml_for_compare(before_root) == normalized_xml_for_compare(root)
-    ):
-        write_output_bytes(output_path, base_bytes, base_path)
-        return
-
-    # Convert ElementTree object to a string
     xml_string = ET.tostring(root, encoding="unicode")
-    # Parse the string using minidom for pretty-printing
     dom = xml.dom.minidom.parseString(xml_string)
     pretty_xml = dom.toprettyxml(indent="  ", newl="\n")
     lines = pretty_xml.splitlines()
     pretty_xml = "\n".join(
         line
         for line in lines
-        if len(line.strip()) > 0  # and not line.startswith("<?xml")
+        if len(line.strip()) > 0
     )
 
-    # Write the formatted XML to a file
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(pretty_xml, encoding="utf-8")
     sync_mode(base_path, output_path)
@@ -350,14 +355,20 @@ class XmlTransformEngine(BaseTransformEngine):
 
     def configure_parser(self, parser) -> None:
         parser.add_argument(
+            "--compare-file",
+            type=Path,
+            help="Optional XML file to compare against for semantic no-op byte reuse.",
+        )
+        parser.add_argument(
             "--sort-attributes",
             action="store_true",
             dest="sort_attributes",
             help="Sort attributes of each element alphabetically.",
         )
 
-    def build_engine_options(self, parsed_args) -> dict[str, bool]:
+    def build_engine_options(self, parsed_args) -> dict[str, object]:
         return {
+            "compare_path": parsed_args.compare_file,
             "sort_attributes": parsed_args.sort_attributes,
         }
 
@@ -375,6 +386,7 @@ class XmlTransformEngine(BaseTransformEngine):
             sort_attributes=bool(request.engine_option("sort_attributes", False)),
             overlay_path=request.overlay_path,
             selector_action=request.selector_action,
+            compare_path=request.engine_option("compare_path"),
         )
 
 def main(argv: list[str] | None = None) -> int:

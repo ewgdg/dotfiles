@@ -21,6 +21,9 @@ In this repo, that usually maps to:
 - `trans_update`: normalize the live file before writing it back into the repo
 - `trans_install`: merge repo content with selected live-only state
 
+- `--compare-file`: avoid normalization-only changes by reusing repo bytes
+  when the output is semantically unchanged.
+
 ## Use Case 1: Strip Noise On Update, Preserve The Same Noise On Install
 
 This is the standard round-trip pattern for noisy local state.

@@ -33,9 +33,10 @@ The plist engine also supports:
 - `--output-format xml|binary`
 - `--compare-file PATH`
 
-`--compare-file` preserves the existing file bytes when the transformed plist is
-semantically unchanged, which avoids no-op rewrites caused by `plistlib`
-serialization.
+`--compare-file` is opt-in. When provided, the engine reuses that file's
+existing bytes if its parsed plist matches the transformed data, which avoids
+no-op rewrites caused by `plistlib` serialization. Without `--compare-file`,
+the engine always serializes fresh output in the requested format.
 
 ## Example
 

@@ -116,13 +116,54 @@ trust_level = "trusted"
         {("model",)},
         [MODULE.re.compile(r"^projects\.")],
     )
-    MODULE.write_document_if_changed(output_path, retained_doc, reference_path=repo_path)
+    MODULE.write_document_if_changed(output_path, retained_doc, mode_reference_path=repo_path)
 
     output = output_path.read_text(encoding="utf-8")
     assert 'model = "gpt-5.4"' in output
     assert "[projects" in output
     assert "approval_policy" not in output
     assert "mcp_servers" not in output
+
+
+def test_write_document_with_compare_file_skips_rewrite_for_matching_output(
+    tmp_path: Path,
+ ) -> None:
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text('model = "gpt-5.4"\n', encoding="utf-8")
+    retained_doc = MODULE.load_document(repo_path)
+    output_path.write_text(retained_doc.as_string(), encoding="utf-8")
+    os.utime(output_path, ns=(1, 1))
+
+    MODULE.write_document_if_changed(
+        output_path,
+        retained_doc,
+        mode_reference_path=repo_path,
+        compare_path=output_path,
+    )
+
+    assert output_path.stat().st_mtime_ns == 1
+
+
+def test_write_document_without_compare_file_rewrites_matching_output(
+    tmp_path: Path,
+ ) -> None:
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text('model = "gpt-5.4"\n', encoding="utf-8")
+    retained_doc = MODULE.load_document(repo_path)
+    output_path.write_text(retained_doc.as_string(), encoding="utf-8")
+    os.utime(output_path, ns=(1, 1))
+
+    MODULE.write_document_if_changed(
+        output_path,
+        retained_doc,
+        mode_reference_path=repo_path,
+    )
+
+    assert output_path.stat().st_mtime_ns != 1
 
 
 def test_merge_replaces_unmanaged_live_keys_but_preserves_selected_keys(tmp_path: Path) -> None:

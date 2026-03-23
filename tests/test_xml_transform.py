@@ -26,6 +26,24 @@ MODULE = load_module()
 def parse_xml(path: Path) -> ET.Element:
     return ET.parse(path).getroot()
 
+def write_semantically_equal_overlay_xml(repo_path: Path, live_path: Path) -> str:
+    repo_path.write_text(
+        """<config>
+  <keep id=\"1\"></keep>
+  <tail></tail>
+</config>
+""",
+        encoding="utf-8",
+    )
+    live_text = """<?xml version=\"1.0\"?>
+<config>
+ <keep id=\"1\"/>
+ <WindowGeometry y=\"200\" x=\"100\"/>
+ <tail/>
+</config>"""
+    live_path.write_text(live_text, encoding="utf-8")
+    return live_text
+
 
 def test_xml_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.XmlTransformEngine.selector_specs()}
@@ -236,28 +254,34 @@ def test_merge_strip_node_matchers_merges_everything_else_from_overlay(tmp_path:
     assert root.find("WindowState") is not None
 
 
-def test_overlay_retained_nodes_preserve_live_order_and_bytes_when_semantically_equal(
+def test_overlay_retained_nodes_with_compare_file_preserves_live_order_and_bytes(
     tmp_path: Path,
-) -> None:
+ ) -> None:
     repo_path = tmp_path / "repo.xml"
     live_path = tmp_path / "live.xml"
     output_path = tmp_path / "output.xml"
 
-    repo_path.write_text(
-        """<config>
-  <keep id="1"></keep>
-  <tail></tail>
-</config>
-""",
-        encoding="utf-8",
+    live_text = write_semantically_equal_overlay_xml(repo_path, live_path)
+
+    MODULE.transform_xml(
+        str(repo_path),
+        str(output_path),
+        overlay_path=str(live_path),
+        node_matchers=["config/WindowGeometry"],
+        compare_path=str(live_path),
     )
-    live_text = """<?xml version="1.0"?>
-<config>
- <keep id="1"/>
- <WindowGeometry y="200" x="100"/>
- <tail/>
-</config>"""
-    live_path.write_text(live_text, encoding="utf-8")
+
+    assert output_path.read_text(encoding="utf-8") == live_text
+
+
+def test_overlay_retained_nodes_without_compare_file_reserializes_semantically_equal_output(
+    tmp_path: Path,
+ ) -> None:
+    repo_path = tmp_path / "repo.xml"
+    live_path = tmp_path / "live.xml"
+    output_path = tmp_path / "output.xml"
+
+    live_text = write_semantically_equal_overlay_xml(repo_path, live_path)
 
     MODULE.transform_xml(
         str(repo_path),
@@ -266,4 +290,9 @@ def test_overlay_retained_nodes_preserve_live_order_and_bytes_when_semantically_
         node_matchers=["config/WindowGeometry"],
     )
 
-    assert output_path.read_text(encoding="utf-8") == live_text
+    assert output_path.read_text(encoding="utf-8") != live_text
+    root = parse_xml(output_path)
+    assert root.find("keep") is not None
+    assert root.find("keep").attrib == {"id": "1"}
+    assert root.find("WindowGeometry") is not None
+    assert root.find("WindowGeometry").attrib == {"x": "100", "y": "200"}

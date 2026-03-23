@@ -569,17 +569,15 @@ actions:
     clone --depth=1 {0} "{1}"; fi
 trans_update:
   toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode strip
-    {2}
+    {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   xml_transform_strip: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xml_transform.py' {0} {1} --mode strip {2}
+    @@}}/../scripts/xml_transform.py' {0} {1} --mode strip {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
-    {0} {1} --mode strip {2}
+    {0} {1} --mode strip {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
 trans_install:
   toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge
-    {2}
+    {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
   xml_transform_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xml_transform.py' {0}
-    {1} --mode merge {2}
-  plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
-    {0} {1} --mode strip {2}
+    {1} --mode merge {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
   plist_transform_merge: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2}
+    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"

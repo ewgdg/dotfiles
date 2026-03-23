@@ -35,6 +35,16 @@ In merge mode, the TOML engine is base-authoritative:
 
 That makes it a good fit for repo-base plus preserved-live-subset installs.
 
+## Engine-Specific Flags
+
+The TOML engine also supports:
+
+- `--compare-file PATH`
+
+`--compare-file` is opt-in. When provided, the engine reuses that file's
+exact text if it already matches the transformed document. Without
+`--compare-file`, the engine always writes fresh output.
+
 ## Example
 
 ```sh

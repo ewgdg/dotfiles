@@ -47,14 +47,34 @@ def sync_mode(path: Path, reference_path: Path) -> None:
         path.chmod(target_mode)
 
 
-def write_document_if_changed(path: Path, doc: TOMLDocument, reference_path: Path) -> None:
+def get_existing_text_if_unchanged(compare_path: Path, content: str) -> str | None:
+    if not compare_path.exists():
+        return None
+
+    existing_content = compare_path.read_text(encoding="utf-8")
+    if existing_content != content:
+        return None
+
+    return existing_content
+
+
+def write_document_if_changed(
+    path: Path,
+    doc: TOMLDocument,
+    mode_reference_path: Path,
+    compare_path: Path | None = None,
+ ) -> None:
     content = doc.as_string()
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists() and path.read_text(encoding="utf-8") == content:
-        sync_mode(path, reference_path)
-        return
+    if compare_path is not None:
+        existing_content = get_existing_text_if_unchanged(compare_path, content)
+        if existing_content is not None:
+            if compare_path != path:
+                path.write_text(existing_content, encoding="utf-8")
+            sync_mode(path, mode_reference_path)
+            return
     path.write_text(content, encoding="utf-8")
-    sync_mode(path, reference_path)
+    sync_mode(path, mode_reference_path)
 
 
 def parse_key_path(raw_key: str) -> tuple[str, ...]:
@@ -218,13 +238,19 @@ def strip_keys(
     output_path: Path,
     stripped_key_paths: list[tuple[str, ...]],
     stripped_table_regexes: list[re.Pattern[str]],
-) -> None:
+    compare_path: Path | None = None,
+ ) -> None:
     normalized_doc = build_document_with_stripped_matchers(
         load_document(base_path),
         stripped_key_paths,
         stripped_table_regexes,
     )
-    write_document_if_changed(output_path, normalized_doc, reference_path=base_path)
+    write_document_if_changed(
+        output_path,
+        normalized_doc,
+        mode_reference_path=base_path,
+        compare_path=compare_path,
+    )
 
 
 def overlay_preserved_keys(
@@ -295,14 +321,20 @@ def merge_keys(
     overlay_path: Path,
     retained_key_paths: Iterable[tuple[str, ...]],
     retained_table_regexes: list[re.Pattern[str]],
-) -> None:
+    compare_path: Path | None = None,
+ ) -> None:
     base_doc = load_document(base_path)
     merged_doc = copy.deepcopy(base_doc)
     if overlay_path.exists():
         overlay_doc = load_document(overlay_path)
         overlay_preserved_tables(overlay_doc, merged_doc, retained_table_regexes)
         overlay_preserved_keys(overlay_doc, merged_doc, retained_key_paths)
-    write_document_if_changed(output_path, merged_doc, reference_path=base_path)
+    write_document_if_changed(
+        output_path,
+        merged_doc,
+        mode_reference_path=base_path,
+        compare_path=compare_path,
+    )
 
 
 def merge_keys_except_stripped(
@@ -311,7 +343,8 @@ def merge_keys_except_stripped(
     overlay_path: Path,
     stripped_key_paths: list[tuple[str, ...]],
     stripped_table_regexes: list[re.Pattern[str]],
-) -> None:
+    compare_path: Path | None = None,
+ ) -> None:
     base_doc = load_document(base_path)
     merged_doc = copy.deepcopy(base_doc)
     if overlay_path.exists():
@@ -322,7 +355,12 @@ def merge_keys_except_stripped(
             stripped_table_regexes,
         )
         merge_overlay_document(filtered_overlay_doc, merged_doc)
-    write_document_if_changed(output_path, merged_doc, reference_path=base_path)
+    write_document_if_changed(
+        output_path,
+        merged_doc,
+        mode_reference_path=base_path,
+        compare_path=compare_path,
+    )
 
 
 class TomlTransformEngine(BaseTransformEngine):
@@ -342,6 +380,18 @@ class TomlTransformEngine(BaseTransformEngine):
         ),
     )
 
+    def configure_parser(self, parser) -> None:
+        parser.add_argument(
+            "--compare-file",
+            type=Path,
+            help="Optional TOML file to compare against for exact no-op text reuse.",
+        )
+
+    def build_engine_options(self, parsed_args) -> dict[str, Any]:
+        return {
+            "compare_path": parsed_args.compare_file,
+        }
+
     def validate_request(self, request: TransformRequest) -> None:
         super().validate_request(request)
         parse_key_paths(request.selector_values("key"))
@@ -351,10 +401,17 @@ class TomlTransformEngine(BaseTransformEngine):
         self.validate_request(request)
         key_paths = parse_key_paths(request.selector_values("key"))
         table_regexes = compile_table_regexes(request.selector_values("table_regex"))
+        compare_path = request.engine_option("compare_path")
 
         if request.mode == TransformMode.STRIP:
             if request.selector_action == SelectorAction.STRIP:
-                strip_keys(request.base_path, request.output_path, key_paths, table_regexes)
+                strip_keys(
+                    request.base_path,
+                    request.output_path,
+                    key_paths,
+                    table_regexes,
+                    compare_path=compare_path,
+                )
             else:
                 retained_doc = build_document_with_retained_matchers(
                     load_document(request.base_path),
@@ -364,7 +421,8 @@ class TomlTransformEngine(BaseTransformEngine):
                 write_document_if_changed(
                     request.output_path,
                     retained_doc,
-                    reference_path=request.base_path,
+                    mode_reference_path=request.base_path,
+                    compare_path=compare_path,
                 )
             return
 
@@ -376,6 +434,7 @@ class TomlTransformEngine(BaseTransformEngine):
                 request.overlay_path,
                 key_paths,
                 table_regexes,
+                compare_path=compare_path,
             )
             return
 
@@ -385,6 +444,7 @@ class TomlTransformEngine(BaseTransformEngine):
             request.overlay_path,
             key_paths,
             table_regexes,
+            compare_path=compare_path,
         )
 
 

@@ -40,7 +40,7 @@ def test_plist_engine_declares_typed_selectors() -> None:
     assert selector_specs["key"].option_name(MODULE.SelectorAction.STRIP) == "--strip-key"
 
 
-def test_main_accepts_compare_only_shared_cli_mode(tmp_path: Path) -> None:
+def test_compare_file_preserves_existing_bytes(tmp_path: Path) -> None:
     input_path = tmp_path / "input.plist"
     compare_path = tmp_path / "compare.plist"
     output_path = tmp_path / "output.plist"
@@ -63,6 +63,58 @@ def test_main_accepts_compare_only_shared_cli_mode(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert output_path.read_bytes() == compare_path.read_bytes()
+
+
+def test_strip_mode_without_compare_file_reserializes_requested_format(
+    tmp_path: Path,
+ ) -> None:
+    input_path = tmp_path / "input.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(input_path, {"Alpha": 1}, fmt=plistlib.FMT_BINARY)
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "strip",
+            "--output-format",
+            "xml",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {"Alpha": 1}
+    assert output_path.read_bytes().startswith(b"<?xml")
+
+
+def test_merge_mode_without_compare_file_reserializes_requested_format(
+    tmp_path: Path,
+ ) -> None:
+    repo_path = tmp_path / "repo.plist"
+    live_path = tmp_path / "live.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(repo_path, {"Alpha": 1})
+    write_plist(live_path, {"Alpha": 1}, fmt=plistlib.FMT_BINARY)
+
+    exit_code = MODULE.main(
+        [
+            str(repo_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(live_path),
+            "--output-format",
+            "xml",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {"Alpha": 1}
+    assert output_path.read_bytes().startswith(b"<?xml")
 
 
 def test_strip_mode_retain_key_keeps_only_selected_keys(tmp_path: Path) -> None:
