@@ -347,8 +347,8 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_transform_strip "--retain-key {{@@ codex_config_retain_keys @@}} --retain-table-regex {{@@ codex_config_retain_table_regexes @@}}"
-    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-key {{@@ codex_config_retain_keys @@}} --retain-table-regex {{@@ codex_config_retain_table_regexes @@}}"
+    trans_update: toml_transform_strip "--strip-key {{@@ codex_config_local_state_keys @@}} --strip-table-regex {{@@ codex_config_local_state_table_regexes @@}}"
+    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --retain-key {{@@ codex_config_local_state_keys @@}} --retain-table-regex {{@@ codex_config_local_state_table_regexes @@}}"
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
@@ -545,8 +545,10 @@ profiles:
     - f_Library_Preferences_com_lujjjh_LinearMouse.plist
   apps_ai:
     variables:
-      codex_config_retain_keys: model model_reasoning_effort
-      codex_config_retain_table_regexes: ^projects\. ^mcp_servers\.playwright\.env$
+      # Strip local Codex state from repo updates, then preserve it from the
+      # live file during install.
+      codex_config_local_state_keys: model model_reasoning_effort
+      codex_config_local_state_table_regexes: ^projects\. ^mcp_servers\.playwright\.env$
     dotfiles:
     - f_codex_config.toml
     - d_codex_rules
