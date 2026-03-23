@@ -380,8 +380,8 @@ dotfiles:
     src: Library/Preferences/com.lujjjh.LinearMouse.plist
     dst: ~/Library/Preferences/com.lujjjh.LinearMouse.plist
     chmod: '600'
-    trans_update: plist_transform_strip "--output-format xml --retain-key bypassEventsFromOtherApplications"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-key bypassEventsFromOtherApplications"
+    trans_update: plist_transform_strip "--output-format xml --strip-key LaunchAtLogin__hasMigrated --strip-key 'NSStatusItem Preferred Position Item-0' --strip-key 'NSWindow Frame SUUpdateAlert' --strip-key SUEnableAutomaticChecks --strip-key SUHasLaunchedBefore --strip-key SULastCheckTime --strip-key SUScheduledCheckInterval --strip-key SUUpdateGroupIdentifier"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --retain-overlay-key LaunchAtLogin__hasMigrated --retain-overlay-key 'NSStatusItem Preferred Position Item-0' --retain-overlay-key 'NSWindow Frame SUUpdateAlert' --retain-overlay-key SUEnableAutomaticChecks --retain-overlay-key SUHasLaunchedBefore --retain-overlay-key SULastCheckTime --retain-overlay-key SUScheduledCheckInterval --retain-overlay-key SUUpdateGroupIdentifier"
     actions:
     - install linearmouse
 profiles:
