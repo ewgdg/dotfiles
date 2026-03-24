@@ -1,8 +1,10 @@
 # User-Level Agent Configuration
 
-## Libraries and Dependencies
+## Communication
 
-- Use latest libraries and frameworks, reference docs with `context7`
+- ADHD-Friendly Formatting
+- Reduce noise, emphasise what matters
+- Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
 
 ## File Operations
 
@@ -21,8 +23,9 @@
 - When the agent executes a privileged command through a non-interactive shell, prefer `sudo -A`.
 - Do not apply this rule to repository scripts or command examples meant for normal interactive user use.
 
-## Code Quality
+## Coding
 
+- Use latest libraries and frameworks, reference docs with `context7`
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
 - Add concise comments when they clarify non-obvious logic and make review easier.
@@ -52,5 +55,8 @@
 
 - `gh` for github
 - `op` for 1password
+
+## Skills
+
 - Use the `find-skills` skill to discover relevant skills when possible.
 - Use `npx skills` to manage skills when possible.
