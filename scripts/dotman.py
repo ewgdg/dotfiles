@@ -239,7 +239,7 @@ class DotManager:
                     "--height",
                     "~40%",
                     "--header",
-                    "Select dotman profile:",
+                    "Select a profile:",
                 ],
                 input=fzf_input,
                 check=False,
