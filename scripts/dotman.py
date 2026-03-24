@@ -87,7 +87,7 @@ class DotManager:
         self.resolved_config_path = ""
         self.repo_root = ""
         self.template_update_script = ""
-        self.effective_profile = ""
+        self.resolved_profile = ""
 
         self.all_keys: list[str] = []
         self.all_dsts: list[str] = []
@@ -144,9 +144,8 @@ class DotManager:
         self.repo_root = str(Path(self.resolved_config_path).parent)
         self.template_update_script = str(Path(self.repo_root) / "scripts" / "dotdrop_template_update.py")
 
-        dotfiles_output = self.load_dotfiles_output()
-        self.effective_profile = self.resolve_effective_profile(dotfiles_output)
-        if not self.effective_profile:
+        self.resolved_profile = self.resolve_profile()
+        if not self.resolved_profile:
             picked = self.pick_profile_interactive()
             if not picked:
                 print(
@@ -155,21 +154,18 @@ class DotManager:
                     file=sys.stderr,
                 )
                 return 2
-            self.effective_profile = picked
+            self.resolved_profile = picked
             self.parsed.profile_from_args = picked
             self.parsed.profile_was_explicitly_selected = True
-            dotfiles_output = self.load_dotfiles_output()
             print(
-                f"tip: run 'dotman default {self.effective_profile}' to save as default",
+                f"tip: run 'dotman default {self.resolved_profile}' to save as default",
                 file=sys.stderr,
             )
+        dotfiles_output = self.load_dotfiles_output()
         self.load_key_metadata(dotfiles_output)
         self.select_targets()
 
-        if (
-            not self.parsed.explicit_targets
-            and not self.parsed.force_mode
-        ):
+        if not self.parsed.explicit_targets and not self.parsed.force_mode:
             if self.parsed.profile_was_explicitly_selected:
                 self.log_profile_selection()
             elif not self.confirm_whole_profile_operation():
@@ -217,13 +213,18 @@ class DotManager:
 
         fzf = shutil.which("fzf")
         if not fzf:
-            print("install fzf to enable interactive profile selection", file=sys.stderr)
+            print(
+                "install fzf to enable interactive profile selection", file=sys.stderr
+            )
             return ""
 
         profiles = parse_profiles_from_config(self.resolved_config_path)
         if not profiles:
             if yaml is None:
-                print("install pyyaml to enable interactive profile selection", file=sys.stderr)
+                print(
+                    "install pyyaml to enable interactive profile selection",
+                    file=sys.stderr,
+                )
             return ""
 
         ranked = rank_profiles(profiles)
@@ -231,7 +232,15 @@ class DotManager:
 
         try:
             completed = subprocess.run(
-                [fzf, "--prompt", "profile> ", "--height", "~40%", "--header", "Select dotman profile:"],
+                [
+                    fzf,
+                    "--prompt",
+                    "profile> ",
+                    "--height",
+                    "~40%",
+                    "--header",
+                    "Select dotman profile:",
+                ],
                 input=fzf_input,
                 check=False,
                 capture_output=True,
@@ -259,7 +268,7 @@ class DotManager:
         if self.resolved_config_path:
             args.append(f"--cfg={self.resolved_config_path}")
 
-        profile = self.effective_profile
+        profile = self.resolved_profile
         if profile:
             args.append(f"--profile={profile}")
 
@@ -338,10 +347,6 @@ class DotManager:
             base_args.append("-V")
         if namespace.no_banner:
             base_args.append("-b")
-        if namespace.profile:
-            base_args.append(f"--profile={namespace.profile}")
-        if namespace.cfg:
-            base_args.append(f"--cfg={namespace.cfg}")
         if namespace.workers:
             base_args.append(f"--workers={namespace.workers}")
         for pattern in namespace.ignore:
@@ -353,7 +358,9 @@ class DotManager:
 
     def resolve_config_path(self) -> str:
         if self.parsed.config_path_from_args:
-            return os.path.abspath(os.path.expanduser(self.parsed.config_path_from_args))
+            return os.path.abspath(
+                os.path.expanduser(self.parsed.config_path_from_args)
+            )
 
         if os.environ.get("DOTDROP_CONFIG"):
             return os.path.abspath(os.path.expanduser(os.environ["DOTDROP_CONFIG"]))
@@ -371,18 +378,21 @@ class DotManager:
             stderr_to_stdout=True,
         ).stdout
 
-    def resolve_effective_profile(self, dotfiles_output: str) -> str:
+    def resolve_profile_from_env(self) -> str:
+        return os.environ.get("DOTDROP_PROFILE", "").strip()
+
+    def resolve_profile(self) -> str:
         if self.parsed.profile_from_args:
             return self.parsed.profile_from_args
+
+        env_profile = self.resolve_profile_from_env()
+        if env_profile:
+            return env_profile
 
         stored = read_default_profile(get_dotman_state_dir())
         if stored:
             return stored
 
-        for line in dotfiles_output.splitlines():
-            match = PROFILE_HEADER_RE.match(line)
-            if match:
-                return match.group(1)
         return ""
 
     def load_key_metadata(self, dotfiles_output: str) -> None:
@@ -464,7 +474,7 @@ class DotManager:
             )
 
     def confirm_whole_profile_operation(self) -> bool:
-        profile = self.effective_profile
+        profile = self.resolved_profile
         operation_word, _ = self.operation_words(self.operation)
         prompt = f'{operation_word} all dotfiles for profile "{profile}" [Y/n] ? '
         if not sys.stdin.isatty():
@@ -478,7 +488,7 @@ class DotManager:
         return False
 
     def log_profile_selection(self) -> None:
-        print(f'Using dotdrop profile "{self.effective_profile}"')
+        print(f'Using dotdrop profile "{self.resolved_profile}"')
 
     def collect_update_changes(self) -> list[UpdateChange]:
         if not self.regular_update_keys:
@@ -634,6 +644,7 @@ class DotManager:
         if dry_run:
             dotdrop_call.append("-d")
         dotdrop_call.extend(self.parsed.base_args)
+        dotdrop_call.extend(self.metadata_args)
         if self.is_update_operation:
             dotdrop_call.extend(["-f", "-k"])
         dotdrop_call.extend(operation_targets)
