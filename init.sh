@@ -121,7 +121,10 @@ install_uv() {
 
 install_dotdrop() {
   log "installing dotdrop with uv tool"
-  uv tool install dotdrop
+  if [ "$(uname -s)" = "Darwin" ]; then
+    install_homebrew_packages "libmagic coreutils"
+  fi
+  uv sync
 }
 
 run_dotdrop_apply() {

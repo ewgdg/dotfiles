@@ -83,11 +83,6 @@ if [[ -r "$repo_core_env_path" ]]; then
   . "$repo_core_env_path"
 fi
 
-if [[ "$1" != "default" ]] && ! command -v dotdrop >/dev/null 2>&1; then
-  echo "dotdrop not found in PATH" >&2
-  exit 127
-fi
-
 if [[ ! -r "$script_path" ]]; then
   installed_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
   bundled_script_path="$(cd -- "${installed_script_dir}/../.." && pwd)/scripts/dotman.py"
