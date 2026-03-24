@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import selectors
@@ -13,7 +14,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable, TextIO
 
 try:
     import yaml
@@ -34,7 +35,6 @@ DOTMAN_STATE_DIR_NAME = "dotman"
 @dataclass
 class ParsedArgs:
     base_args: list[str] = field(default_factory=list)
-    files_args: list[str] = field(default_factory=list)
     explicit_targets: list[str] = field(default_factory=list)
     key_mode: bool = False
     force_mode: bool = False
@@ -43,8 +43,6 @@ class ParsedArgs:
     profile_was_explicitly_selected: bool = False
     config_path_from_args: str = ""
     update_ignore_patterns: list[str] = field(default_factory=list)
-
-
 @dataclass
 class BackupEntry:
     source_path: Path
@@ -160,8 +158,6 @@ class DotManager:
             self.effective_profile = picked
             self.parsed.profile_from_args = picked
             self.parsed.profile_was_explicitly_selected = True
-            self.parsed.base_args.extend(["-p", picked])
-            self.parsed.files_args.extend(["-p", picked])
             dotfiles_output = self.load_dotfiles_output()
             print(
                 f"tip: run 'dotman default {self.effective_profile}' to save as default",
@@ -257,6 +253,18 @@ class DotManager:
     def is_install_operation(self) -> bool:
         return self.operation == "install"
 
+    @property
+    def metadata_args(self) -> list[str]:
+        args: list[str] = []
+        if self.resolved_config_path:
+            args.append(f"--cfg={self.resolved_config_path}")
+
+        profile = self.effective_profile
+        if profile:
+            args.append(f"--profile={profile}")
+
+        return args
+
     @staticmethod
     def operation_words(operation: str) -> tuple[str, str]:
         if operation == "install":
@@ -266,112 +274,81 @@ class DotManager:
         return operation.title(), operation
 
     def parse_args(self, args: list[str]) -> ParsedArgs:
+        # Split on '--' first: everything after it is a literal target, not a flag.
+        if "--" in args:
+            sep_idx = args.index("--")
+            flag_args = args[:sep_idx]
+            literal_targets = args[sep_idx + 1 :]
+        else:
+            flag_args = args
+            literal_targets = []
+
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("-k", "--key", action="store_true")
+        parser.add_argument("-f", "--force", action="store_true")
+        parser.add_argument(
+            "-R", "--remove-existing", dest="remove_existing", action="store_true"
+        )
+        parser.add_argument("-p", "--profile", default="")
+        parser.add_argument("-c", "--cfg", default="")
+        parser.add_argument("-V", "--verbose", action="store_true")
+        parser.add_argument("-b", "--no-banner", dest="no_banner", action="store_true")
+        parser.add_argument("-w", "--workers", default="")
+        parser.add_argument("-i", "--ignore", action="append", default=[])
+
+        namespace, remaining = parser.parse_known_args(flag_args)
+
+        # parse_known_args puts both unrecognized flags and positional args in
+        # remaining. Split them: flags are forwarded to dotdrop; positionals
+        # become explicit targets (same semantics as the previous manual loop).
+        positional_targets = [a for a in remaining if not a.startswith("-")]
+        unknown_flags = [a for a in remaining if a.startswith("-")]
+
         parsed = ParsedArgs()
-        after_double_dash = False
-        idx = 0
-        while idx < len(args):
-            arg = args[idx]
-            if after_double_dash:
-                parsed.explicit_targets.append(arg)
-                idx += 1
-                continue
 
-            if arg == "--":
-                after_double_dash = True
-                idx += 1
-                continue
+        # -k/--key is a dotman-only flag in update mode. In other operations,
+        # pass it through to dotdrop unchanged.
+        if namespace.key:
+            if self.is_update_operation:
+                parsed.key_mode = True
+            else:
+                unknown_flags.insert(0, "-k")
 
-            if arg in {"-k", "--key"}:
-                if self.is_update_operation:
-                    parsed.key_mode = True
-                else:
-                    parsed.base_args.append(arg)
-                idx += 1
-                continue
+        parsed.force_mode = namespace.force
+        parsed.remove_existing_mode = namespace.remove_existing
+        parsed.update_ignore_patterns = list(namespace.ignore)
+        parsed.explicit_targets = positional_targets + literal_targets
 
-            if arg in {"-f", "--force"}:
-                parsed.force_mode = True
-                parsed.base_args.append(arg)
-                idx += 1
-                continue
+        if namespace.profile:
+            parsed.profile_from_args = namespace.profile
+            parsed.profile_was_explicitly_selected = True
 
-            if arg in {"-R", "--remove-existing"}:
-                parsed.remove_existing_mode = True
-                parsed.base_args.append(arg)
-                idx += 1
-                continue
+        if namespace.cfg:
+            parsed.config_path_from_args = namespace.cfg
 
-            if arg in {"-c", "--cfg", "-p", "--profile"}:
-                if idx + 1 >= len(args):
-                    print(f"missing value for {arg}", file=sys.stderr)
-                    raise SystemExit(2)
-                value = args[idx + 1]
-                if arg in {"-p", "--profile"}:
-                    parsed.profile_from_args = value
-                    parsed.profile_was_explicitly_selected = True
-                else:
-                    parsed.config_path_from_args = value
-                parsed.base_args.extend([arg, value])
-                parsed.files_args.extend([arg, value])
-                idx += 2
-                continue
+        # Reconstruct base_args for dotdrop. Valued options are emitted as
+        # --opt=VALUE (single tokens) so files_args can filter unambiguously
+        # without also having to grab the adjacent value token.
+        base_args: list[str] = []
+        if namespace.force:
+            base_args.append("-f")
+        if namespace.remove_existing:
+            base_args.append("-R")
+        if namespace.verbose:
+            base_args.append("-V")
+        if namespace.no_banner:
+            base_args.append("-b")
+        if namespace.profile:
+            base_args.append(f"--profile={namespace.profile}")
+        if namespace.cfg:
+            base_args.append(f"--cfg={namespace.cfg}")
+        if namespace.workers:
+            base_args.append(f"--workers={namespace.workers}")
+        for pattern in namespace.ignore:
+            base_args.append(f"--ignore={pattern}")
+        base_args.extend(unknown_flags)
 
-            if arg.startswith("--cfg=") or arg.startswith("--profile="):
-                if arg.startswith("--profile="):
-                    parsed.profile_from_args = arg.split("=", 1)[1]
-                    parsed.profile_was_explicitly_selected = True
-                else:
-                    parsed.config_path_from_args = arg.split("=", 1)[1]
-                parsed.base_args.append(arg)
-                parsed.files_args.append(arg)
-                idx += 1
-                continue
-
-            if arg in {"-V", "--verbose", "-b", "--no-banner"}:
-                parsed.base_args.append(arg)
-                parsed.files_args.append(arg)
-                idx += 1
-                continue
-
-            if arg in {"-w", "--workers"}:
-                if idx + 1 >= len(args):
-                    print(f"missing value for {arg}", file=sys.stderr)
-                    raise SystemExit(2)
-                parsed.base_args.extend([arg, args[idx + 1]])
-                idx += 2
-                continue
-
-            if arg in {"-i", "--ignore"}:
-                if idx + 1 >= len(args):
-                    print(f"missing value for {arg}", file=sys.stderr)
-                    raise SystemExit(2)
-                value = args[idx + 1]
-                parsed.update_ignore_patterns.append(value)
-                parsed.base_args.extend([arg, value])
-                idx += 2
-                continue
-
-            if arg.startswith("--workers="):
-                parsed.base_args.append(arg)
-                idx += 1
-                continue
-
-            if arg.startswith("--ignore="):
-                parsed.update_ignore_patterns.append(arg.split("=", 1)[1])
-                parsed.base_args.append(arg)
-                idx += 1
-                continue
-
-            if arg.startswith("-"):
-                if arg == "--force" or (not arg.startswith("--") and "f" in arg[1:]):
-                    parsed.force_mode = True
-                parsed.base_args.append(arg)
-                idx += 1
-                continue
-
-            parsed.explicit_targets.append(arg)
-            idx += 1
-
+        parsed.base_args = base_args
         return parsed
 
     def resolve_config_path(self) -> str:
@@ -390,7 +367,7 @@ class DotManager:
 
     def load_dotfiles_output(self) -> str:
         return self.capture_or_exit(
-            [self.dotdrop_cmd, "files", "-b", "-G", *self.parsed.files_args],
+            [self.dotdrop_cmd, "files", "-b", "-G", *self.metadata_args],
             stderr_to_stdout=True,
         ).stdout
 
@@ -428,7 +405,7 @@ class DotManager:
             return
 
         detail_output = self.capture_or_exit(
-            [self.dotdrop_cmd, "detail", "-b", *self.parsed.files_args, *self.all_keys]
+            [self.dotdrop_cmd, "detail", "-b", *self.metadata_args, *self.all_keys]
         ).stdout
         detail_key = ""
         for detail_line in detail_output.splitlines():
@@ -751,7 +728,7 @@ class DotManager:
         if not operation_targets:
             return False
 
-        compare_call = [self.dotdrop_cmd, "compare", "-L", "-b", *self.parsed.files_args]
+        compare_call = [self.dotdrop_cmd, "compare", "-L", "-b", *self.metadata_args]
         for focus_target in operation_targets:
             compare_path = self.normalized_destination_by_key.get(focus_target, focus_target)
             compare_call.extend(["-C", compare_path])
@@ -808,7 +785,7 @@ class DotManager:
         return 0
 
     @classmethod
-    def print_phase_body_output(cls, output_text: str, *, stream: object) -> None:
+    def print_phase_body_output(cls, output_text: str, *, stream: TextIO) -> None:
         kept_lines: list[str] = []
         for line in output_text.splitlines():
             if DOTDROP_PHASE_SUMMARY_RE.fullmatch(line):
@@ -879,7 +856,7 @@ class DotManager:
         try:
             while selector.get_map():
                 for key, _ in selector.select():
-                    chunk_bytes = os.read(key.fileobj.fileno(), 4096)
+                    chunk_bytes = os.read(key.fileobj.fileno(), 4096)  # type: ignore
                     if not chunk_bytes:
                         selector.unregister(key.fileobj)
                         continue
@@ -909,7 +886,7 @@ class DotManager:
         return subprocess.CompletedProcess(command, process.returncode, stdout_text, stderr_text)
 
     @classmethod
-    def write_stream_chunks(cls, buffered_text: str, *, stream: object) -> str:
+    def write_stream_chunks(cls, buffered_text: str, *, stream: TextIO) -> str:
         lines = buffered_text.splitlines(keepends=True)
         remainder = ""
         if lines and not lines[-1].endswith(("\n", "\r")):
@@ -923,7 +900,7 @@ class DotManager:
         return remainder
 
     @classmethod
-    def flush_stream_remainder(cls, buffered_text: str, *, stream: object) -> None:
+    def flush_stream_remainder(cls, buffered_text: str, *, stream: TextIO) -> None:
         if buffered_text:
             cls.write_output_line(buffered_text, stream=stream)
 
@@ -932,7 +909,7 @@ class DotManager:
         return buffered_text.endswith("? ")
 
     @staticmethod
-    def write_output_line(line: str, *, stream: object) -> None:
+    def write_output_line(line: str, *, stream: TextIO) -> None:
         stripped_line = line.rstrip("\r\n")
         if DOTDROP_PHASE_SUMMARY_RE.fullmatch(stripped_line):
             return
@@ -940,7 +917,7 @@ class DotManager:
         stream.flush()
 
     @staticmethod
-    def terminate_process(process: subprocess.Popen[str]) -> None:
+    def terminate_process(process: subprocess.Popen[Any]) -> None:
         if process.poll() is not None:
             return
         process.terminate()

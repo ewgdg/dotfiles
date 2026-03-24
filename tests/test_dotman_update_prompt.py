@@ -697,7 +697,7 @@ def test_system_phase_needs_run_ignores_whitespace_prefixed_compare_logs(tmp_pat
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
-    manager.parsed = DOTMAN_MODULE.ParsedArgs(files_args=["-p", "repro"], base_args=["-p", "repro"])
+    manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["--profile=repro"])
     manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
 
     compare_completed = subprocess.CompletedProcess(
