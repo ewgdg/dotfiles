@@ -76,6 +76,62 @@ class PhaseExecutionResult:
     exit_code: int
     changed_count: int
 
+class FlagList:
+    """Flag list that deduplicates simple flags on append, preserving last-wins semantics."""
+
+    __slots__ = ("_args", "_index")
+
+    def __init__(self) -> None:
+        self._args: list[str] = []
+        self._index: dict[str, int] = {}  # key -> position in _args
+
+    def __iter__(self):
+        yield from self._args
+
+    def append(self, arg: str) -> None:
+        key = self._normalize(arg)
+        if key is None:
+            self._args.append(arg)
+            return
+        if key in self._index:
+            self._args[self._index[key]] = arg  # Replace in place
+        else:
+            self._index[key] = len(self._args)
+            self._args.append(arg)
+
+    def extend(self, args: Iterable[str]) -> None:
+        for arg in args:
+            self.append(arg)
+
+    def _normalize(self, arg: str) -> str | None:
+        """Return canonical key for dedup, or None if not dedupable."""
+        # Simple boolean flags (short and long forms)
+        if arg in ("-b", "--no-banner"):
+            return "-b"
+        if arg in ("-f", "--force"):
+            return "-f"
+        if arg in ("-k", "--key"):
+            return "-k"
+        if arg == "-d":
+            return "-d"
+        if arg in ("-V", "--verbose"):
+            return "-V"
+        if arg in ("-R", "--remove-existing"):
+            return "-R"
+        if arg in ("-L", "--link-"):
+            return "-L"
+        # Valued options that can repeat with different values
+        if arg.startswith("--ignore="):
+            return None
+        # Valued options - dedup by flag name only (last wins)
+        if arg.startswith(("--cfg=", "--workers=", "--profile=", "--prompt=", "--height=", "--header=")):
+            return arg.split("=", 1)[0]
+        # Unknown flags - treat as simple booleans
+        if arg.startswith("-") and "=" not in arg:
+            return arg
+        return None  # positional args or complex values
+
+
 
 class DotManager:
     def __init__(self, argv: list[str]) -> None:
@@ -162,15 +218,13 @@ class DotManager:
             return self.run_passthrough(self.argv)
 
         if self.operation == "import":
-            return self.run_passthrough(
-                [
-                    self.operation,
-                    "-b",
-                    *self.metadata_args,
-                    *self.parsed.base_args,
-                    *self.parsed.explicit_targets,
-                ]
-            )
+            flags = FlagList()
+            flags.append(self.operation)
+            flags.append("-b")
+            flags.extend(self.metadata_args)
+            flags.extend(self.parsed.base_args)
+            flags.extend(self.parsed.explicit_targets)
+            return self.run_passthrough(list(flags))
 
         dotfiles_output = self.load_dotfiles_output()
         self.load_key_metadata(dotfiles_output)
@@ -384,8 +438,14 @@ class DotManager:
         return ""
 
     def load_dotfiles_output(self) -> str:
+        flags = FlagList()
+        flags.append(self.dotdrop_cmd)
+        flags.append("files")
+        flags.append("-b")
+        flags.append("-G")
+        flags.extend(self.metadata_args)
         return self.capture_or_exit(
-            [self.dotdrop_cmd, "files", "-b", "-G", *self.metadata_args],
+            list(flags),
             stderr_to_stdout=True,
         ).stdout
 
@@ -425,8 +485,14 @@ class DotManager:
         if self.operation != "update":
             return
 
+        flags = FlagList()
+        flags.append(self.dotdrop_cmd)
+        flags.append("detail")
+        flags.append("-b")
+        flags.extend(self.metadata_args)
+        flags.extend(self.all_keys)
         detail_output = self.capture_or_exit(
-            [self.dotdrop_cmd, "detail", "-b", *self.metadata_args, *self.all_keys]
+            list(flags),
         ).stdout
         detail_key = ""
         for detail_line in detail_output.splitlines():
@@ -650,16 +716,26 @@ class DotManager:
 
         return sorted(overwrite_changes, key=lambda change: (str(change.source_path), str(change.live_path)))
 
-    def build_operation_call(self, operation_targets: list[str], *, dry_run: bool = False) -> list[str]:
-        dotdrop_call = [self.dotdrop_cmd, self.operation, "-b"]
+    def build_operation_call(
+        self,
+        operation_targets: list[str],
+        *,
+        dry_run: bool = False,
+        operation: str | None = None,
+    ) -> list[str]:
+        op = operation if operation is not None else self.operation
+        flags = FlagList()
+        flags.append(self.dotdrop_cmd)
+        flags.append(op)
+        flags.append("-b")
         if dry_run:
-            dotdrop_call.append("-d")
-        dotdrop_call.extend(self.parsed.base_args)
-        dotdrop_call.extend(self.metadata_args)
-        if self.is_update_operation:
-            dotdrop_call.extend(["-f", "-k"])
-        dotdrop_call.extend(operation_targets)
-        return dotdrop_call
+            flags.append("-d")
+        flags.extend(self.parsed.base_args)
+        flags.extend(self.metadata_args)
+        if op == "update":  # Use op param, not self.is_update_operation
+            flags.extend(["-f", "-k"])
+        flags.extend(operation_targets)
+        return list(flags)
 
     @staticmethod
     def build_command_with_privilege(dotdrop_call: list[str], *, run_with_sudo: bool) -> list[str]:
@@ -746,14 +822,23 @@ class DotManager:
             return text
         return f"\033[{';'.join(codes)}m{text}{ANSI_RESET}"
 
-    def system_phase_needs_run(self, operation_targets: list[str]) -> bool:
+    def phase_need_run(self, operation_targets: list[str]) -> bool:
         if not operation_targets:
             return False
 
-        compare_call = [self.dotdrop_cmd, "compare", "-L", "-b", *self.metadata_args]
+        # use compare instead of dry-run bc dry-run always reports actions are needed.
+        flags = FlagList()
+        flags.append(self.dotdrop_cmd)
+        flags.append("compare")
+        flags.append("-L")
+        flags.append("-b")
+        flags.extend(self.metadata_args)
         for focus_target in operation_targets:
-            compare_path = self.normalized_destination_by_key.get(focus_target, focus_target)
-            compare_call.extend(["-C", compare_path])
+            compare_path = self.normalized_destination_by_key.get(
+                focus_target, focus_target
+            )
+            flags.extend(["-C", compare_path])
+        compare_call = list(flags)
 
         compare_completed = subprocess.run(
             compare_call,
@@ -761,10 +846,10 @@ class DotManager:
             capture_output=True,
             text=True,
         )
-        compare_output = compare_completed.stdout + compare_completed.stderr
         if compare_completed.returncode != 0:
             return True
 
+        compare_output = compare_completed.stdout + compare_completed.stderr
         for line in compare_output.splitlines():
             if not line or line[0].isspace():
                 continue
@@ -772,27 +857,23 @@ class DotManager:
                 continue
             return True
 
+        # No diffs found - only check for removals if remove_existing_mode is on
         if self.operation != "install" or not self.parsed.remove_existing_mode:
             return False
 
-        dry_run_call = [
-            self.dotdrop_cmd,
-            "install",
-            "-b",
-            "-d",
-            *self.parsed.base_args,
-            *operation_targets,
-        ]
+        dry_run_call = self.build_operation_call(
+            operation_targets, dry_run=True, operation="install"
+        )
         dry_run_completed = subprocess.run(
             dry_run_call,
             check=False,
             capture_output=True,
             text=True,
         )
-        dry_run_output = dry_run_completed.stdout + dry_run_completed.stderr
         if dry_run_completed.returncode != 0:
             return True
 
+        dry_run_output = dry_run_completed.stdout + dry_run_completed.stderr
         for line in dry_run_output.splitlines():
             if line.startswith("[DRY] would remove "):
                 return True
@@ -1004,7 +1085,7 @@ class DotManager:
         _, operation_verb = self.operation_words(self.operation)
         self.print_phase_header(f"{operation_verb} {phase_name}")
         should_preflight = self.is_install_operation and run_with_sudo
-        if should_preflight and not self.system_phase_needs_run(phase_targets):
+        if should_preflight and not self.phase_need_run(phase_targets):
             self.print_phase_summary(len(phase_targets), 0, 0)
             return
 
