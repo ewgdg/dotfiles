@@ -29,7 +29,7 @@
 
 ## Coding
 
-- Use latest libraries and frameworks, reference docs with `context7`
+- Prefer modern and latest libraries and frameworks, reference docs with `context7`
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier.

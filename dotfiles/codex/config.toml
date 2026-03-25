@@ -3,6 +3,15 @@ sandbox_mode = "workspace-write"
 web_search = "live"
 personality = "pragmatic"
 
+model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+wire_api = "responses"
+requires_openai_auth = true
+supports_websockets = false
+base_url = "https://chatgpt.com/backend-api/codex"
+
 [profiles.obsidian]
 model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
