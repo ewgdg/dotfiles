@@ -123,15 +123,8 @@ class DotManager:
             return self.run_passthrough([])
 
         first = self.argv[0]
-        if first in SUPPORTED_OPERATIONS:
-            self.operation = first
-            self.command_args = self.argv[1:]
-        else:
-            return self.run_passthrough(self.argv)
-
-        if self.operation == "import":
-            return self.run_passthrough([self.operation, "-b", *self.command_args])
-
+        self.operation = first
+        self.command_args = self.argv[1:]
         self.parsed = self.parse_args(self.command_args)
         self.resolved_config_path = self.resolve_config_path()
         if not self.resolved_config_path:
@@ -145,7 +138,10 @@ class DotManager:
         self.template_update_script = str(Path(self.repo_root) / "scripts" / "dotdrop_template_update.py")
 
         self.resolved_profile = self.resolve_profile()
-        if not self.resolved_profile:
+        if not self.resolved_profile or (
+            self.operation == "import"
+            and not self.parsed.profile_was_explicitly_selected
+        ):
             picked = self.pick_profile_interactive()
             if not picked:
                 print(
@@ -161,6 +157,21 @@ class DotManager:
                 f"tip: run 'dotman default {self.resolved_profile}' to save as default",
                 file=sys.stderr,
             )
+
+        if self.operation not in SUPPORTED_OPERATIONS:
+            return self.run_passthrough(self.argv)
+
+        if self.operation == "import":
+            return self.run_passthrough(
+                [
+                    self.operation,
+                    "-b",
+                    *self.metadata_args,
+                    *self.parsed.base_args,
+                    *self.parsed.explicit_targets,
+                ]
+            )
+
         dotfiles_output = self.load_dotfiles_output()
         self.load_key_metadata(dotfiles_output)
         self.select_targets()

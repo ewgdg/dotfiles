@@ -56,18 +56,6 @@ resolve_config_path() {
   printf '%s\n' ""
 }
 
-if (( $# == 0 )); then
-  exec dotdrop
-fi
-
-case "$1" in
-  update|install|import|default)
-    ;;
-  *)
-    exec dotdrop "$@"
-    ;;
-esac
-
 config_path="$(resolve_config_path "$@")"
 if [[ -z "$config_path" ]]; then
   echo "unable to determine dotdrop config path; pass -c/--cfg or set DOTDROP_CONFIG" >&2
