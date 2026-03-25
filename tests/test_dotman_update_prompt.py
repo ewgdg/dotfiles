@@ -8,7 +8,6 @@ import pty
 import pytest
 import select
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
@@ -141,6 +140,36 @@ end
     return config_path, repo_source_path, live_path
 
 
+def build_isolated_dotman_env(base_dir: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    env["HOME"] = str(base_dir)
+    env["XDG_STATE_HOME"] = str(base_dir / "state")
+    env.pop("DOTDROP_PROFILE", None)
+    return env
+
+
+def write_fake_uv_runner(helper_dir: Path) -> None:
+    fake_uv = helper_dir / "uv"
+    fake_uv.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "$1" != "run" ]]; then',
+                '  echo "fake uv only supports `uv run` in this test helper" >&2',
+                "  exit 2",
+                "fi",
+                "shift",
+                'if [[ "$1" == "--project" ]]; then',
+                "  shift 2",
+                "fi",
+                'exec python3 "$@"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
 def run_interactive_dotman(
     config_path: Path,
     target_path: Path | None,
@@ -148,7 +177,7 @@ def run_interactive_dotman(
     *,
     explicit_profile: bool = True,
 ) -> tuple[int, str]:
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(config_path.parent.parent)
     env["DOTDROP_CONFIG"] = str(config_path)
 
     command_parts = [
@@ -278,23 +307,7 @@ printf -- '--\n' >> "$SUDO_ARGS_FILE"
     )
     fake_sudo.chmod(0o755)
 
-    fake_uv = helper_dir / "uv"
-    fake_uv.write_text(
-        "\n".join(
-            [
-                "#!/usr/bin/env bash",
-                'if [[ "$1" != "run" ]]; then',
-                '  echo "fake uv only supports `uv run` in this test helper" >&2',
-                "  exit 2",
-                "fi",
-                "shift",
-                'exec python3 "$@"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    fake_uv.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
 
     env = os.environ.copy()
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
@@ -441,13 +454,15 @@ def test_directory_update_prompts_before_importing_live_only_file(tmp_path: Path
     assert not (repo_source_dir / "live-only.toml").exists()
 
 
-def test_inferred_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) -> None:
+def test_default_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) -> None:
     config_path, repo_source_dir, _live_dir = create_repro_project(tmp_path)
-    inferred_profile = socket.gethostname()
     config_path.write_text(
-        config_path.read_text(encoding="utf-8").replace("  repro:\n", f'  "{inferred_profile}":\n'),
+        config_path.read_text(encoding="utf-8").replace("  repro:\n", "  host_linux:\n"),
         encoding="utf-8",
     )
+    state_dir = tmp_path / "state" / "dotman"
+    state_dir.mkdir(parents=True)
+    (state_dir / "default-profile").write_text("host_linux\n", encoding="utf-8")
 
     exit_code, output = run_interactive_dotman(
         config_path,
@@ -458,7 +473,7 @@ def test_inferred_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) ->
 
     assert exit_code == 0
     assert 'Using dotdrop profile "repro"' not in output
-    assert f'Update all dotfiles for profile "{inferred_profile}" [Y/n] ?' in output
+    assert 'Update all dotfiles for profile "host_linux" [Y/n] ?' in output
     assert 'import live path into dotfiles "' in output
     assert 'overwrite dotfiles path "' in output
     assert 'settings.toml" [y/N] ?' in output
@@ -496,7 +511,7 @@ def test_unmatched_update_path_is_rejected(tmp_path: Path) -> None:
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
 
 
-def test_unknown_command_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
+def test_unknown_command_passthrough_is_augmented_with_metadata(tmp_path: Path) -> None:
     helper_dir = tmp_path / "bin"
     helper_dir.mkdir()
     args_file = tmp_path / "dotdrop-args.txt"
@@ -509,9 +524,11 @@ exit "${DOTDROP_EXIT_CODE:-0}"
         encoding="utf-8",
     )
     fake_dotdrop.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
 
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(tmp_path)
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_CONFIG"] = str(REPO_ROOT / "config.yaml")
     env["DOTDROP_ARGS_FILE"] = str(args_file)
     env["DOTDROP_EXIT_CODE"] = "23"
 
@@ -526,9 +543,98 @@ exit "${DOTDROP_EXIT_CODE:-0}"
 
     assert result.returncode == 23
     assert args_file.read_text(encoding="utf-8").splitlines() == [
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
         "compare",
-        "--profile",
-        "repro",
+        "--profile=repro",
+        "d_app",
+    ]
+
+
+def test_unknown_command_without_profile_uses_stored_default_before_passthrough(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    args_file = tmp_path / "dotdrop-args.txt"
+    fzf_marker = tmp_path / "fzf-called.txt"
+    fake_dotdrop = helper_dir / "dotdrop"
+    fake_dotdrop.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
+""",
+        encoding="utf-8",
+    )
+    fake_dotdrop.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
+    fake_fzf = helper_dir / "fzf"
+    fake_fzf.write_text(
+        """#!/usr/bin/env bash
+printf 'called\n' > "$DOTMAN_FZF_MARKER"
+exit 99
+""",
+        encoding="utf-8",
+    )
+    fake_fzf.chmod(0o755)
+
+    DOTMAN_MODULE.write_default_profile(tmp_path / "state" / "dotman", "stored-profile")
+
+    env = build_isolated_dotman_env(tmp_path)
+    env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_CONFIG"] = str(REPO_ROOT / "config.yaml")
+    env["DOTDROP_ARGS_FILE"] = str(args_file)
+    env["DOTMAN_FZF_MARKER"] = str(fzf_marker)
+
+    result = subprocess.run(
+        [str(DOTMAN_PATH), "compare", "d_app"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert args_file.read_text(encoding="utf-8").splitlines() == [
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
+        "--profile=stored-profile",
+        "compare",
+        "d_app",
+    ]
+    assert not fzf_marker.exists()
+
+def test_leading_option_with_explicit_cfg_avoids_duplicate_cfg(tmp_path: Path) -> None:
+    helper_dir = tmp_path / "bin"
+    helper_dir.mkdir()
+    args_file = tmp_path / "dotdrop-args.txt"
+    config_path = tmp_path / "custom-config.yaml"
+    config_path.write_text("config:\n  dotpath: dotfiles\n", encoding="utf-8")
+    fake_dotdrop = helper_dir / "dotdrop"
+    fake_dotdrop.write_text(
+        """#!/usr/bin/env bash
+printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
+""",
+        encoding="utf-8",
+    )
+    fake_dotdrop.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
+
+    env = build_isolated_dotman_env(tmp_path)
+    env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_ARGS_FILE"] = str(args_file)
+    env["DOTDROP_PROFILE"] = "env-profile"
+
+    result = subprocess.run(
+        [str(DOTMAN_PATH), "--cfg", str(config_path), "compare", "d_app"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert args_file.read_text(encoding="utf-8").splitlines() == [
+        "--profile=env-profile",
+        f"--cfg={config_path}",
+        "compare",
         "d_app",
     ]
 
@@ -572,8 +678,8 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
         "\n".join(
             [
                 "#!/usr/bin/env bash",
-                'printf \'%s\\n\' \"$@\" > \"$DOTMAN_UV_ARGS_FILE\"',
-                'printf \'%s\\n\' \"$DOTMAN_WRAPPER_VALUE\" > \"$DOTMAN_WRAPPER_MARKER\"',
+                'printf \'%s\\n\' "$@" > "$DOTMAN_UV_ARGS_FILE"',
+                'printf \'%s\\n\' "$DOTMAN_WRAPPER_VALUE" > "$DOTMAN_WRAPPER_MARKER"',
                 "exit 0",
                 "",
             ]
@@ -582,7 +688,7 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
     )
     fake_uv.chmod(0o755)
 
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(tmp_path)
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
     env["DOTMAN_UV_ARGS_FILE"] = str(args_file)
 
@@ -599,6 +705,8 @@ def test_wrapper_sources_repo_core_env_before_running_uv(tmp_path: Path) -> None
     assert marker_file.read_text(encoding="utf-8").strip() == "repo-profile-loaded"
     assert args_file.read_text(encoding="utf-8").splitlines() == [
         "run",
+        "--project",
+        str(repo_root),
         str(script_path),
         "install",
         "-f",
@@ -693,11 +801,12 @@ def test_install_remove_existing_preflight_runs_privileged_phase_for_removals(tm
         live_dir.chmod(0o755)
 
 
-def test_system_phase_needs_run_ignores_whitespace_prefixed_compare_logs(tmp_path: Path, monkeypatch) -> None:
+def test_install_phase_need_run_ignores_whitespace_prefixed_compare_logs(tmp_path: Path, monkeypatch) -> None:
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
     manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["--profile=repro"])
+    manager.resolved_profile = "repro"
     manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
 
     compare_completed = subprocess.CompletedProcess(
@@ -722,7 +831,42 @@ def test_system_phase_needs_run_ignores_whitespace_prefixed_compare_logs(tmp_pat
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    assert manager.system_phase_needs_run(["f_config"]) is False
+    assert manager.install_phase_need_run(["f_config"]) is False
+
+
+def test_install_phase_need_run_keeps_multiple_compare_targets(tmp_path: Path, monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["--profile=repro"])
+    manager.resolved_profile = "repro"
+    manager.normalized_destination_by_key = {
+        "f_config": "/root/.config/example.toml",
+        "f_other": "/root/.config/other.toml",
+    }
+
+    recorded_commands: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        recorded_commands.append(list(command))
+        return subprocess.CompletedProcess(command, 0, "", "1 dotfile(s) compared.\n")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.install_phase_need_run(["f_config", "f_other"]) is False
+    assert recorded_commands == [
+        [
+            "dotdrop",
+            "compare",
+            "-L",
+            "-b",
+            "--profile=repro",
+            "-C",
+            "/root/.config/example.toml",
+            "-C",
+            "/root/.config/other.toml",
+        ]
+    ]
 
 
 def test_no_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
@@ -741,9 +885,11 @@ fi
         encoding="utf-8",
     )
     fake_dotdrop.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
 
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(tmp_path)
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_CONFIG"] = str(REPO_ROOT / "config.yaml")
     env["DOTDROP_ARGS_FILE"] = str(args_file)
 
     result = subprocess.run(
@@ -759,7 +905,7 @@ fi
     assert args_file.read_text(encoding="utf-8") == ""
 
 
-def test_leading_option_without_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
+def test_leading_option_passthrough_keeps_explicit_profile_with_metadata(tmp_path: Path) -> None:
     helper_dir = tmp_path / "bin"
     helper_dir.mkdir()
     args_file = tmp_path / "dotdrop-args.txt"
@@ -771,9 +917,11 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
         encoding="utf-8",
     )
     fake_dotdrop.chmod(0o755)
+    write_fake_uv_runner(helper_dir)
 
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(tmp_path)
     env["PATH"] = f"{helper_dir}:{env['PATH']}"
+    env["DOTDROP_CONFIG"] = str(REPO_ROOT / "config.yaml")
     env["DOTDROP_ARGS_FILE"] = str(args_file)
 
     result = subprocess.run(
@@ -787,22 +935,20 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
 
     assert result.returncode == 0
     assert args_file.read_text(encoding="utf-8").splitlines() == [
-        "--profile",
-        "repro",
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
+        "--profile=repro",
     ]
 
 
 def test_python_entrypoint_reports_missing_dotdrop(tmp_path: Path) -> None:
     helper_dir = tmp_path / "bin"
     helper_dir.mkdir()
-    uv_path = shutil.which("uv")
-    assert uv_path is not None
 
-    env = os.environ.copy()
+    env = build_isolated_dotman_env(tmp_path)
     env["PATH"] = str(helper_dir)
 
     result = subprocess.run(
-        [uv_path, "run", str(DOTMAN_PY_PATH)],
+        [sys.executable, str(DOTMAN_PY_PATH)],
         cwd=REPO_ROOT,
         env=env,
         check=False,

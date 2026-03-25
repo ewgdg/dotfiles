@@ -77,7 +77,7 @@ class PhaseExecutionResult:
     changed_count: int
 
 class FlagList:
-    """Flag list that deduplicates simple flags on append, preserving last-wins semantics."""
+    """Flag list that deduplicates only known repeat-safe options."""
 
     __slots__ = ("_args", "_index")
 
@@ -104,8 +104,8 @@ class FlagList:
             self.append(arg)
 
     def _normalize(self, arg: str) -> str | None:
-        """Return canonical key for dedup, or None if not dedupable."""
-        # Simple boolean flags (short and long forms)
+        """Return canonical key for safe dedup, or None when adjacency matters."""
+        # Simple boolean flags (short and long forms).
         if arg in ("-b", "--no-banner"):
             return "-b"
         if arg in ("-f", "--force"):
@@ -118,18 +118,16 @@ class FlagList:
             return "-V"
         if arg in ("-R", "--remove-existing"):
             return "-R"
-        if arg in ("-L", "--link-"):
+        if arg == "-L":
             return "-L"
-        # Valued options that can repeat with different values
+        # Valued options that can repeat with different values.
         if arg.startswith("--ignore="):
             return None
-        # Valued options - dedup by flag name only (last wins)
+        # Known valued options emitted as single tokens; last one wins safely.
         if arg.startswith(("--cfg=", "--workers=", "--profile=", "--prompt=", "--height=", "--header=")):
             return arg.split("=", 1)[0]
-        # Unknown flags - treat as simple booleans
-        if arg.startswith("-") and "=" not in arg:
-            return arg
-        return None  # positional args or complex values
+        # Unknown options may consume the following token (for example `-C PATH`).
+        return None
 
 
 
@@ -179,6 +177,7 @@ class DotManager:
             return self.run_passthrough([])
 
         first = self.argv[0]
+
         self.operation = first
         self.command_args = self.argv[1:]
         self.parsed = self.parse_args(self.command_args)
@@ -191,9 +190,19 @@ class DotManager:
             return 2
 
         self.repo_root = str(Path(self.resolved_config_path).parent)
-        self.template_update_script = str(Path(self.repo_root) / "scripts" / "dotdrop_template_update.py")
+        self.template_update_script = str(
+            Path(self.repo_root) / "scripts" / "dotdrop_template_update.py"
+        )
 
         self.resolved_profile = self.resolve_profile()
+
+        is_passthrough = first.startswith("-") or first not in SUPPORTED_OPERATIONS
+        if is_passthrough:
+            flags = FlagList()
+            flags.extend(self.metadata_args)
+            flags.extend(self.argv)
+            return self.run_passthrough(list(flags))
+
         if not self.resolved_profile or (
             self.operation == "import"
             and not self.parsed.profile_was_explicitly_selected
@@ -213,9 +222,6 @@ class DotManager:
                 f"tip: run 'dotman default {self.resolved_profile}' to save as default",
                 file=sys.stderr,
             )
-
-        if self.operation not in SUPPORTED_OPERATIONS:
-            return self.run_passthrough(self.argv)
 
         if self.operation == "import":
             flags = FlagList()
@@ -822,7 +828,7 @@ class DotManager:
             return text
         return f"\033[{';'.join(codes)}m{text}{ANSI_RESET}"
 
-    def phase_need_run(self, operation_targets: list[str]) -> bool:
+    def install_phase_need_run(self, operation_targets: list[str]) -> bool:
         if not operation_targets:
             return False
 
@@ -1085,7 +1091,7 @@ class DotManager:
         _, operation_verb = self.operation_words(self.operation)
         self.print_phase_header(f"{operation_verb} {phase_name}")
         should_preflight = self.is_install_operation and run_with_sudo
-        if should_preflight and not self.phase_need_run(phase_targets):
+        if should_preflight and not self.install_phase_need_run(phase_targets):
             self.print_phase_summary(len(phase_targets), 0, 0)
             return
 

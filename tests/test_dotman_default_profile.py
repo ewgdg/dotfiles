@@ -162,7 +162,7 @@ def test_read_default_profile_ignores_whitespace(tmp_path: Path) -> None:
     assert DOTMAN_MODULE.read_default_profile(state_dir) == "my-profile"
 
 
-# --- resolve_effective_profile with stored default tests ---
+# --- resolve_profile precedence tests ---
 
 
 def test_resolve_profile_prefers_cli_over_stored_default(tmp_path: Path, monkeypatch) -> None:
@@ -172,37 +172,49 @@ def test_resolve_profile_prefers_cli_over_stored_default(tmp_path: Path, monkeyp
     manager = DotManager(["install", "-p", "cli-profile"])
     manager.parsed.profile_from_args = "cli-profile"
     monkeypatch.setattr(DOTMAN_MODULE, "get_dotman_state_dir", lambda: state_dir)
+    monkeypatch.delenv("DOTDROP_PROFILE", raising=False)
 
-    dotfiles_output = 'Dotfile(s) for profile "hostname-profile":\nf_zshrc,dst:~/.zshrc,src:zshrc'
-    result = manager.resolve_effective_profile(dotfiles_output)
+    result = manager.resolve_profile()
 
     assert result == "cli-profile"
 
 
-def test_resolve_profile_uses_stored_default_over_hostname(tmp_path: Path, monkeypatch) -> None:
+def test_resolve_profile_prefers_env_over_stored_default(tmp_path: Path, monkeypatch) -> None:
     state_dir = tmp_path / "state" / "dotman"
     DOTMAN_MODULE.write_default_profile(state_dir, "stored-profile")
 
     manager = DotManager(["install"])
     monkeypatch.setattr(DOTMAN_MODULE, "get_dotman_state_dir", lambda: state_dir)
+    monkeypatch.setenv("DOTDROP_PROFILE", "env-profile")
 
-    dotfiles_output = 'Dotfile(s) for profile "hostname-profile":\nf_zshrc,dst:~/.zshrc,src:zshrc'
-    result = manager.resolve_effective_profile(dotfiles_output)
+    result = manager.resolve_profile()
+
+    assert result == "env-profile"
+
+
+def test_resolve_profile_uses_stored_default_when_no_cli_or_env(tmp_path: Path, monkeypatch) -> None:
+    state_dir = tmp_path / "state" / "dotman"
+    DOTMAN_MODULE.write_default_profile(state_dir, "stored-profile")
+
+    manager = DotManager(["install"])
+    monkeypatch.setattr(DOTMAN_MODULE, "get_dotman_state_dir", lambda: state_dir)
+    monkeypatch.delenv("DOTDROP_PROFILE", raising=False)
+
+    result = manager.resolve_profile()
 
     assert result == "stored-profile"
 
 
-def test_resolve_profile_falls_back_to_hostname_when_no_stored_default(tmp_path: Path, monkeypatch) -> None:
+def test_resolve_profile_returns_empty_when_no_source_exists(tmp_path: Path, monkeypatch) -> None:
     state_dir = tmp_path / "state" / "dotman"
 
     manager = DotManager(["install"])
     monkeypatch.setattr(DOTMAN_MODULE, "get_dotman_state_dir", lambda: state_dir)
+    monkeypatch.delenv("DOTDROP_PROFILE", raising=False)
 
-    dotfiles_output = 'Dotfile(s) for profile "hostname-profile":\nf_zshrc,dst:~/.zshrc,src:zshrc'
-    result = manager.resolve_effective_profile(dotfiles_output)
+    result = manager.resolve_profile()
 
-    assert result == "hostname-profile"
-
+    assert result == ""
 
 # --- parse_profiles_from_config tests ---
 
