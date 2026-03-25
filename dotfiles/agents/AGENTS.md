@@ -23,6 +23,10 @@
 - When the agent executes a privileged command through a non-interactive shell, prefer `sudo -A`.
 - Do not apply this rule to repository scripts or command examples meant for normal interactive user use.
 
+## Problem Solving
+
+- when something does not work, do not blindly patch for niche cases repeatedly, but take a chance to rethink from the beginning to see if a simpler and generic approach can be taken
+
 ## Coding
 
 - Use latest libraries and frameworks, reference docs with `context7`
@@ -32,11 +36,13 @@
 - Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
+- No Slop, reuse or extend existing code if possible
 
 ## Testing
 
-- Test cases need to be robust and generic and concise
+- Test cases need to be robust, flexible and generic and concise, so that they will not easily fail for tiny changes
 - Write test cases first before bug fixes
+- if goal/implementations change, clean up the tests instead of adding backward compatibility.
 
 ## Context Efficiency
 
