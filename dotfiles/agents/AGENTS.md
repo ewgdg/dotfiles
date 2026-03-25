@@ -32,6 +32,10 @@
 - Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
+
+## Testing
+
+- Test cases need to be robust and generic and concise
 - Write test cases first before bug fixes
 
 ## Context Efficiency
