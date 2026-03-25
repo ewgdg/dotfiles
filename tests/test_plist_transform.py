@@ -52,7 +52,7 @@ def test_compare_file_preserves_existing_bytes(tmp_path: Path) -> None:
             str(input_path),
             str(output_path),
             "--mode",
-            "strip",
+            "cleanup",
             "--compare-file",
             str(compare_path),
             "--output-format",

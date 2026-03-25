@@ -80,6 +80,19 @@ class FlagList:
     """Flag list that deduplicates only known repeat-safe options."""
 
     __slots__ = ("_args", "_index")
+    SPLIT_VALUE_OPTIONS = {
+        "-c": "--cfg",
+        "--cfg": "--cfg",
+        "-p": "--profile",
+        "--profile": "--profile",
+        "-w": "--workers",
+        "--workers": "--workers",
+        "-i": "--ignore",
+        "--ignore": "--ignore",
+        "--prompt": "--prompt",
+        "--height": "--height",
+        "--header": "--header",
+    }
 
     def __init__(self) -> None:
         self._args: list[str] = []
@@ -99,9 +112,57 @@ class FlagList:
             self._index[key] = len(self._args)
             self._args.append(arg)
 
+    def append_if_absent(self, arg: str) -> None:
+        key = self._normalize(arg)
+        if key is None:
+            if arg not in self._args:
+                self._args.append(arg)
+            return
+        if key in self._index:
+            return
+        self._index[key] = len(self._args)
+        self._args.append(arg)
+
     def extend(self, args: Iterable[str]) -> None:
-        for arg in args:
+        for arg in self.normalize_args(args):
             self.append(arg)
+
+    def extend_if_absent(self, args: Iterable[str]) -> None:
+        for arg in self.normalize_args(args):
+            self.append_if_absent(arg)
+
+    @classmethod
+    def normalize_args(cls, args: Iterable[str]) -> list[str]:
+        normalized_args: list[str] = []
+        pending_value_option: str | None = None
+        literal_mode = False
+
+        for arg in args:
+            if pending_value_option is not None:
+                normalized_args.append(f"{pending_value_option}={arg}")
+                pending_value_option = None
+                continue
+
+            if literal_mode:
+                normalized_args.append(arg)
+                continue
+
+            if arg == "--":
+                normalized_args.append(arg)
+                literal_mode = True
+                continue
+
+            canonical_option = cls.SPLIT_VALUE_OPTIONS.get(arg)
+            if canonical_option is not None:
+                pending_value_option = canonical_option
+                continue
+
+            normalized_args.append(arg)
+
+        if pending_value_option is not None:
+            normalized_args.append(pending_value_option)
+
+        return normalized_args
 
     def _normalize(self, arg: str) -> str | None:
         """Return canonical key for safe dedup, or None when adjacency matters."""
@@ -177,10 +238,11 @@ class DotManager:
             return self.run_passthrough([])
 
         first = self.argv[0]
+        is_passthrough = first.startswith("-") or first not in SUPPORTED_OPERATIONS
 
         self.operation = first
         self.command_args = self.argv[1:]
-        self.parsed = self.parse_args(self.command_args)
+        self.parsed = self.parse_args(self.argv if is_passthrough else self.command_args)
         self.resolved_config_path = self.resolve_config_path()
         if not self.resolved_config_path:
             print(
@@ -196,12 +258,8 @@ class DotManager:
 
         self.resolved_profile = self.resolve_profile()
 
-        is_passthrough = first.startswith("-") or first not in SUPPORTED_OPERATIONS
         if is_passthrough:
-            flags = FlagList()
-            flags.extend(self.metadata_args)
-            flags.extend(self.argv)
-            return self.run_passthrough(list(flags))
+            return self.run_passthrough(self.build_passthrough_args())
 
         if not self.resolved_profile or (
             self.operation == "import"
@@ -344,6 +402,17 @@ class DotManager:
             args.append(f"--profile={profile}")
 
         return args
+
+    def build_passthrough_args(self) -> list[str]:
+        normalized_args = FlagList.normalize_args(self.argv)
+
+        flags = FlagList()
+        flags.extend(normalized_args)
+        if self.resolved_config_path:
+            flags.append_if_absent(f"--cfg={self.resolved_config_path}")
+        if self.resolved_profile:
+            flags.append_if_absent(f"--profile={self.resolved_profile}")
+        return list(flags)
 
     @staticmethod
     def operation_words(operation: str) -> tuple[str, str]:

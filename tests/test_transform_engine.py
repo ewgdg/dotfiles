@@ -29,7 +29,8 @@ class DummyEngine(MODULE.BaseTransformEngine):
     SELECTOR_SPECS = (
         MODULE.SelectorSpec(
             name="key",
-            cli_flag="key",
+            prefix="exact",
+            is_default=True,
             description="Exact key selector",
         ),
     )
@@ -38,15 +39,15 @@ class DummyEngine(MODULE.BaseTransformEngine):
         self.validate_request(request)
 
 
-def test_selector_spec_builds_typed_cli_flags() -> None:
+def test_selector_spec_records_prefix_and_default_status() -> None:
     spec = MODULE.SelectorSpec(
         name="table_regex",
-        cli_flag="table-regex",
+        prefix="re",
         description="Regex table selector",
     )
 
-    assert spec.option_name(MODULE.SelectorAction.RETAIN) == "--retain-table-regex"
-    assert spec.option_name(MODULE.SelectorAction.STRIP) == "--strip-table-regex"
+    assert spec.prefix == "re"
+    assert spec.is_default is False
 
 
 def test_transform_request_requires_overlay_in_merge_mode(tmp_path: Path) -> None:
@@ -62,12 +63,12 @@ def test_transform_request_requires_overlay_in_merge_mode(tmp_path: Path) -> Non
         request.validate_basic()
 
 
-def test_transform_request_rejects_overlay_in_strip_mode(tmp_path: Path) -> None:
+def test_transform_request_rejects_overlay_in_cleanup_mode(tmp_path: Path) -> None:
     request = MODULE.TransformRequest(
         base_path=tmp_path / "base",
         output_path=tmp_path / "output",
-        mode=MODULE.TransformMode.STRIP,
-        selector_action=MODULE.SelectorAction.STRIP,
+        mode=MODULE.TransformMode.CLEANUP,
+        selector_action=MODULE.SelectorAction.REMOVE,
         selectors_by_type={"key": ("model",)},
         overlay_path=tmp_path / "live",
     )
@@ -81,7 +82,7 @@ def test_base_engine_rejects_unknown_selector_types(tmp_path: Path) -> None:
     request = MODULE.TransformRequest(
         base_path=tmp_path / "base",
         output_path=tmp_path / "output",
-        mode=MODULE.TransformMode.STRIP,
+        mode=MODULE.TransformMode.CLEANUP,
         selector_action=MODULE.SelectorAction.RETAIN,
         selectors_by_type={"table_regex": (r"^projects\.",)},
     )

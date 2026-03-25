@@ -243,7 +243,7 @@ def test_merge_strip_node_matchers_merges_everything_else_from_overlay(tmp_path:
         output_path,
         overlay_path=live_path,
         node_matchers=["config/WindowGeometry"],
-        selector_action=MODULE.SelectorAction.STRIP,
+        selector_action=MODULE.SelectorAction.REMOVE,
     )
 
     root = parse_xml(output_path)

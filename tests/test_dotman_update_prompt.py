@@ -543,10 +543,10 @@ exit "${DOTDROP_EXIT_CODE:-0}"
 
     assert result.returncode == 23
     assert args_file.read_text(encoding="utf-8").splitlines() == [
-        f"--cfg={REPO_ROOT / 'config.yaml'}",
         "compare",
         "--profile=repro",
         "d_app",
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
     ]
 
 
@@ -593,10 +593,10 @@ exit 99
 
     assert result.returncode == 0
     assert args_file.read_text(encoding="utf-8").splitlines() == [
-        f"--cfg={REPO_ROOT / 'config.yaml'}",
-        "--profile=stored-profile",
         "compare",
         "d_app",
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
+        "--profile=stored-profile",
     ]
     assert not fzf_marker.exists()
 
@@ -632,10 +632,10 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
 
     assert result.returncode == 0
     assert args_file.read_text(encoding="utf-8").splitlines() == [
-        "--profile=env-profile",
         f"--cfg={config_path}",
         "compare",
         "d_app",
+        "--profile=env-profile",
     ]
 
 
@@ -935,8 +935,8 @@ printf '%s\n' "$@" > "$DOTDROP_ARGS_FILE"
 
     assert result.returncode == 0
     assert args_file.read_text(encoding="utf-8").splitlines() == [
-        f"--cfg={REPO_ROOT / 'config.yaml'}",
         "--profile=repro",
+        f"--cfg={REPO_ROOT / 'config.yaml'}",
     ]
 
 
@@ -1013,7 +1013,7 @@ def test_update_operation_counts_only_actual_changed_files_from_dry_run(monkeypa
     manager = DotManager(["update"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "update"
-    manager.parsed.base_args = ["-p", "repro"]
+    manager.parsed.base_args = ["--profile=repro"]
 
     dry_run_completed = subprocess.CompletedProcess(
         ["dotdrop", "update", "-d"],
@@ -1029,7 +1029,16 @@ def test_update_operation_counts_only_actual_changed_files_from_dry_run(monkeypa
     )
 
     def fake_run(command, **kwargs):
-        assert command == ["dotdrop", "update", "-b", "-d", "-p", "repro", "-f", "-k", "d_app"]
+        assert command == [
+            "dotdrop",
+            "update",
+            "-b",
+            "-d",
+            "--profile=repro",
+            "-f",
+            "-k",
+            "d_app",
+        ]
         assert kwargs["check"] is False
         assert kwargs["capture_output"] is True
         assert kwargs["text"] is True
