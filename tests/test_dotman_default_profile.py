@@ -1,25 +1,12 @@
 from __future__ import annotations
 
-import importlib.util
 import os
 from pathlib import Path
-import shutil
-import subprocess
-import sys
 
 import pytest
 
+from scripts import dotman as DOTMAN_MODULE
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DOTMAN_PATH = REPO_ROOT / "dotfiles" / "bin" / "dotman"
-DOTMAN_PY_PATH = REPO_ROOT / "scripts" / "dotman.py"
-
-DOTMAN_SPEC = importlib.util.spec_from_file_location("dotman_py", DOTMAN_PY_PATH)
-assert DOTMAN_SPEC is not None
-assert DOTMAN_SPEC.loader is not None
-DOTMAN_MODULE = importlib.util.module_from_spec(DOTMAN_SPEC)
-sys.modules[DOTMAN_SPEC.name] = DOTMAN_MODULE
-DOTMAN_SPEC.loader.exec_module(DOTMAN_MODULE)
 DotManager = DOTMAN_MODULE.DotManager
 
 

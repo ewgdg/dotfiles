@@ -1,26 +1,9 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 import plistlib
-import sys
 
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "plist_transform.py"
-
-
-def load_module():
-    spec = importlib.util.spec_from_file_location("plist_transform", SCRIPT_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"failed to load module from {SCRIPT_PATH}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-MODULE = load_module()
+from scripts import plist_transform as MODULE
 
 
 def load_plist(path: Path):

@@ -1,14 +1,9 @@
 """Tests for DotManager.parse_args and DotManager.files_args."""
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-# Allow importing the sibling module without installing it.
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from dotman import DotManager, ParsedArgs  # noqa: E402
+from scripts.dotman import DotManager, ParsedArgs
 
 
 def make_manager(operation: str = "update") -> DotManager:
