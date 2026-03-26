@@ -130,6 +130,35 @@ def test_write_document_with_compare_file_skips_rewrite_for_matching_output(
     assert output_path.stat().st_mtime_ns == 1
 
 
+def test_write_document_with_compare_file_skips_rewrite_for_semantic_match(
+    tmp_path: Path,
+) -> None:
+    repo_path = tmp_path / "repo.toml"
+    compare_path = tmp_path / "compare.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text('model_provider = "openai_http"\n', encoding="utf-8")
+    compare_path.write_text(
+        'model = "gpt-5.4"\nmodel_provider = "openai_http"\n',
+        encoding="utf-8",
+    )
+    output_path.write_text("stale\n", encoding="utf-8")
+    os.utime(output_path, ns=(1, 1))
+
+    merged_doc = MODULE.load_document(repo_path)
+    merged_doc["model"] = "gpt-5.4"
+
+    MODULE.write_document_if_changed(
+        output_path,
+        merged_doc,
+        mode_reference_path=repo_path,
+        compare_path=compare_path,
+    )
+
+    assert output_path.stat().st_mtime_ns != 1
+    assert output_path.read_text(encoding="utf-8") == compare_path.read_text(encoding="utf-8")
+
+
 def test_write_document_without_compare_file_rewrites_matching_output(
     tmp_path: Path,
  ) -> None:
@@ -251,6 +280,58 @@ PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
         merged_doc["mcp_servers"]["playwright"]["env"]["PLAYWRIGHT_MCP_EXTENSION_TOKEN"]
         == "secret"
     )
+
+
+def test_merge_with_compare_file_reuses_semantically_matching_live_bytes(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.toml"
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    repo_path.write_text(
+        """approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+personality = "pragmatic"
+
+model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+personality = "pragmatic"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+
+model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys(
+        repo_path,
+        output_path,
+        live_path,
+        {
+            ("model",),
+            ("model_reasoning_effort",),
+        },
+        [MODULE.re.compile(r"^projects\.")],
+        compare_path=live_path,
+    )
+
+    assert output_path.read_text(encoding="utf-8") == live_path.read_text(encoding="utf-8")
 
 
 def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:

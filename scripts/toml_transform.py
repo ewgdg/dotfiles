@@ -7,8 +7,6 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 import sys
-from typing import Any
-
 import tomlkit
 from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
@@ -47,12 +45,20 @@ def sync_mode(path: Path, reference_path: Path) -> None:
         path.chmod(target_mode)
 
 
-def get_existing_text_if_unchanged(compare_path: Path, content: str) -> str | None:
+def get_existing_text_if_unchanged(compare_path: Path, doc: TOMLDocument) -> str | None:
     if not compare_path.exists():
         return None
 
     existing_content = compare_path.read_text(encoding="utf-8")
-    if existing_content != content:
+    try:
+        existing_doc = tomlkit.parse(existing_content)
+    except Exception:
+        existing_doc = None
+
+    if existing_doc is not None and existing_doc.unwrap() == doc.unwrap():
+        return existing_content
+
+    if existing_content != doc.as_string():
         return None
 
     return existing_content
@@ -63,11 +69,11 @@ def write_document_if_changed(
     doc: TOMLDocument,
     mode_reference_path: Path,
     compare_path: Path | None = None,
- ) -> None:
+) -> None:
     content = doc.as_string()
     path.parent.mkdir(parents=True, exist_ok=True)
     if compare_path is not None:
-        existing_content = get_existing_text_if_unchanged(compare_path, content)
+        existing_content = get_existing_text_if_unchanged(compare_path, doc)
         if existing_content is not None:
             if compare_path != path:
                 path.write_text(existing_content, encoding="utf-8")
@@ -322,7 +328,7 @@ def merge_keys(
     retained_key_paths: Iterable[tuple[str, ...]],
     retained_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
- ) -> None:
+) -> None:
     base_doc = load_document(base_path)
     merged_doc = copy.deepcopy(base_doc)
     if overlay_path.exists():
