@@ -14,6 +14,56 @@ def make_manager(operation: str = "update") -> DotManager:
     return dm
 
 
+def test_find_supported_operation_as_first_arg():
+    assert DotManager.find_supported_operation(["update", "key1"]) == ("update", 0)
+
+
+def test_find_supported_operation_after_global_flags():
+    assert DotManager.find_supported_operation(["-c", "/tmp/config.yaml", "update", "key1"]) == (
+        "update",
+        2,
+    )
+
+
+def test_find_supported_operation_after_long_equals_flag():
+    assert DotManager.find_supported_operation(["--profile=host", "install"]) == ("install", 1)
+
+
+def test_find_supported_operation_after_known_boolean_flag():
+    assert DotManager.find_supported_operation(["-V", "update", "key1"]) == ("update", 1)
+
+
+def test_find_supported_operation_ignores_literal_targets_after_double_dash():
+    assert DotManager.find_supported_operation(["-f", "--", "update"]) is None
+
+
+def test_find_supported_operation_stops_at_first_non_option_positional():
+    assert DotManager.find_supported_operation(["files", "update"]) is None
+
+
+def test_find_supported_operation_does_not_scan_past_unknown_flag():
+    assert DotManager.find_supported_operation(["--some-dotdrop-only-flag", "update"]) is None
+
+
+def test_run_detects_operation_when_not_first_arg(monkeypatch: pytest.MonkeyPatch):
+    dm = DotManager(["--cfg=/tmp/config.yaml", "update", "key1"])
+    dm.dotdrop_cmd = "dotdrop"
+
+    monkeypatch.setattr(dm, "resolve_config_path", lambda: "/tmp/config.yaml")
+    monkeypatch.setattr(dm, "resolve_profile", lambda: "host")
+    monkeypatch.setattr(dm, "load_dotfiles_output", lambda: "")
+    monkeypatch.setattr(dm, "load_key_metadata", lambda _output: None)
+    monkeypatch.setattr(dm, "select_targets", lambda: None)
+    monkeypatch.setattr(dm, "confirm_update_overwrite_targets", lambda: None)
+    monkeypatch.setattr(dm, "run_update_phases", lambda: None)
+    monkeypatch.setattr(dm, "restore_declined_update_state", lambda: None)
+    monkeypatch.setattr(dm, "run_passthrough", lambda _args: pytest.fail("unexpected passthrough"))
+
+    assert dm.run() == 0
+    assert dm.operation == "update"
+    assert dm.command_args == ["--cfg=/tmp/config.yaml", "key1"]
+
+
 # ---------------------------------------------------------------------------
 # Basic flag parsing
 # ---------------------------------------------------------------------------

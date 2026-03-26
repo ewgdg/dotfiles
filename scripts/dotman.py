@@ -80,6 +80,20 @@ class FlagList:
     """Flag list that deduplicates only known repeat-safe options."""
 
     __slots__ = ("_args", "_index")
+    BOOLEAN_OPTIONS = {
+        "-b",
+        "--no-banner",
+        "-f",
+        "--force",
+        "-k",
+        "--key",
+        "-d",
+        "-V",
+        "--verbose",
+        "-R",
+        "--remove-existing",
+        "-L",
+    }
     SPLIT_VALUE_OPTIONS = {
         "-c": "--cfg",
         "--cfg": "--cfg",
@@ -237,12 +251,19 @@ class DotManager:
         if not self.argv:
             return self.run_passthrough([])
 
-        first = self.argv[0]
-        is_passthrough = first.startswith("-") or first not in SUPPORTED_OPERATIONS
+        detected_operation = self.find_supported_operation(self.argv)
+        is_passthrough = detected_operation is None
 
-        self.operation = first
-        self.command_args = self.argv[1:]
-        self.parsed = self.parse_args(self.argv if is_passthrough else self.command_args)
+        if detected_operation is None:
+            self.operation = ""
+            self.command_args = []
+            parseable_args = self.argv
+        else:
+            self.operation, operation_index = detected_operation
+            self.command_args = self.argv[:operation_index] + self.argv[operation_index + 1 :]
+            parseable_args = self.command_args
+
+        self.parsed = self.parse_args(parseable_args)
         self.resolved_config_path = self.resolve_config_path()
         if not self.resolved_config_path:
             print(
@@ -421,6 +442,43 @@ class DotManager:
         if operation == "update":
             return "Update", "updating"
         return operation.title(), operation
+
+    @staticmethod
+    def find_supported_operation(args: list[str]) -> tuple[str, int] | None:
+        pending_value_option = False
+
+        for idx, arg in enumerate(args):
+            if pending_value_option:
+                pending_value_option = False
+                continue
+
+            if arg == "--":
+                break
+
+            if arg in FlagList.SPLIT_VALUE_OPTIONS:
+                pending_value_option = True
+                continue
+
+            option_name, has_equals, _ = arg.partition("=")
+            if has_equals and option_name in FlagList.SPLIT_VALUE_OPTIONS:
+                continue
+
+            if arg in FlagList.BOOLEAN_OPTIONS:
+                continue
+
+            if arg.startswith("-"):
+                # Unknown options may belong to dotdrop itself and may consume the
+                # following token. Stop here rather than guessing where the
+                # operation starts.
+                return None
+
+            if arg in SUPPORTED_OPERATIONS:
+                return arg, idx
+
+            # The first positional token is the command/subcommand slot.
+            return None
+
+        return None
 
     def parse_args(self, args: list[str]) -> ParsedArgs:
         # Split on '--' first: everything after it is a literal target, not a flag.
