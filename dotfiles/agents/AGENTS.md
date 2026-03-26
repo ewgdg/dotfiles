@@ -25,7 +25,7 @@
 
 ## Problem Solving
 
-- when something does not work, do not blindly patch for niche cases repeatedly, but take a chance to rethink from the beginning to see if a simpler and generic approach can be taken
+- Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
 
 ## Coding
 
