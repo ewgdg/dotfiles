@@ -42,6 +42,7 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers."context-mode"]
 command = "context-mode"
+approval_mode = "approve"
 
 # [mcp_servers.chrome-devtools]
 # command = "npx"

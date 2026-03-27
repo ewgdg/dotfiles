@@ -50,8 +50,9 @@
 - Save tokens where possible without reducing accuracy or skipping necessary verification.
 - Prefer targeted inspection over full-file reads, especially for large or fast-changing files such as logs, generated artifacts, and lockfiles.
 - When examining logs, start with focused tools such as `rg` (or other grep-like text-search tools), `tail`, `head`, `sed -n`, `wc -l`, and `ls -lh` to narrow the relevant window before reading more.
-- Prefer high-signal tools such as `context7`, `cgc`, `context-mode`, and other structure-aware or search-first workflows when they can answer the question with less context than opening entire files.
-- For structural code questions, or when plain text search would require opening many files or large files, prefer `cgc` before generic text-search workflows. Structural questions include callers, callees, call chains, inheritance, overrides, symbol ownership, module dependencies, dead-code triage, and complexity hotspots. Use direct text search first for simple literal-text lookups, exact strings, small unambiguous matches, or when `cgc` is unavailable.
+- Prefer structure-aware or search-first workflows over full-file reads when they can answer the question with less context.
+- When the source is large and the task is retrieval-style, where the answer depends on finding a few relevant sections among many candidates, prefer `context-mode` indexing and search workflows over repeated full-file reads.
+- For structural code questions, prefer `cgc` before generic text-search workflows. Structural questions include callers, callees, call chains, inheritance, overrides, symbol ownership, module dependencies, dead-code triage, and complexity hotspots. Use direct text search first for simple literal-text lookups, exact strings, small unambiguous matches, or when `cgc` is unavailable.
 - When a large body of text needs triage or summarization, prefer delegating a bounded extraction or summarization task to a lightweight sub-agent if that reduces main-context usage without blocking critical reasoning.
 
 ## Python Related
