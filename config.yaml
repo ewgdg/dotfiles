@@ -281,6 +281,7 @@ dotfiles:
     dst: ~/.local/state/dotdrop/rustup-installed
     actions:
     - sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_rustup.sh'
+    - sh 'cargo install cargo-update'
   f_zprofile:
     src: zprofile
     dst: ~/.zprofile

@@ -959,7 +959,7 @@ class DotManager:
         if not operation_targets:
             return False
 
-        # use compare instead of dry-run bc dry-run always reports actions are needed.
+        # use compare instead of dry-run bc dry-run always assume changes
         flags = FlagList()
         flags.append(self.dotdrop_cmd)
         flags.append("compare")
