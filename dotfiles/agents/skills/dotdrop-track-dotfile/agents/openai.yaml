@@ -1,0 +1,4 @@
+interface:
+  display_name: "Track Dotfile"
+  short_description: "Track new files in dotdrop."
+  default_prompt: "Use $dotdrop-track-dotfile to add a new config file or directory to the dotdrop repo by updating config.yaml and copying the live file into dotfiles/."
