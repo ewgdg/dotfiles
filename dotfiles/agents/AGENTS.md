@@ -26,6 +26,7 @@
 ## Problem Solving
 
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
+- use GAN style thinking frameworks
 
 ## Coding
 
@@ -48,8 +49,9 @@
 
 - Save tokens where possible without reducing accuracy or skipping necessary verification.
 - Prefer targeted inspection over full-file reads, especially for large or fast-changing files such as logs, generated artifacts, and lockfiles.
-- When examining logs, start with focused tools such as `rg`, `tail`, `head`, `sed -n`, `wc -l`, and `ls -lh` to narrow the relevant window before reading more.
+- When examining logs, start with focused tools such as `rg` (or other grep-like text-search tools), `tail`, `head`, `sed -n`, `wc -l`, and `ls -lh` to narrow the relevant window before reading more.
 - Prefer high-signal tools such as `context7`, `cgc`, `context-mode`, and other structure-aware or search-first workflows when they can answer the question with less context than opening entire files.
+- For structural code questions, or when plain text search would require opening many files or large files, prefer `cgc` before generic text-search workflows. Structural questions include callers, callees, call chains, inheritance, overrides, symbol ownership, module dependencies, dead-code triage, and complexity hotspots. Use direct text search first for simple literal-text lookups, exact strings, small unambiguous matches, or when `cgc` is unavailable.
 - When a large body of text needs triage or summarization, prefer delegating a bounded extraction or summarization task to a lightweight sub-agent if that reduces main-context usage without blocking critical reasoning.
 
 ## Python Related

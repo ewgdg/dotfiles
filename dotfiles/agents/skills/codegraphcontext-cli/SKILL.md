@@ -5,9 +5,9 @@ description: Use CodeGraphContext (cgc) CLI to index repos and answer structural
 
 # CodeGraphContext CLI (cgc)
 
-Use this skill when you need graph-aware answers that `rg` cannot give reliably: callers/callees, call chains, inheritance, overrides, module dependencies, dead-code triage, or complexity hotspots.
+Use this skill by default for structural code questions, or when plain text search would require opening many files or large files: callers/callees, call chains, inheritance, overrides, symbol ownership, module dependencies, dead-code triage, or complexity hotspots.
 
-Do **not** default to `cgc` for simple literal-text lookups. If the repo is not indexed and the question is small, `rg` plus direct file reads is usually faster and less confusing.
+Do **not** default to `cgc` for simple literal-text lookups. Use direct text search and targeted file reads when the task is just finding exact text, a short string, or a small unambiguous file match. For structure or relationship questions, or when plain text search would force broad file reads, prefer `cgc` first and fall back only if `cgc` is unavailable or clearly too noisy for the query.
 
 ## Ground Rules
 
