@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository manages user and system configuration with `dotdrop`. The main mapping lives in `config.yaml`; Managed files are stored under `dotfiles/`, mirroring destination paths such as `dotfiles/config/nvim`, `dotfiles/bin`, and `dotfiles/etc`. Helper scripts live in `scripts/`. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
+This repository manages user and system configuration with `dotdrop`. The main mapping lives in `config.yaml`; managed files are stored under `dotfiles/`, mirroring destination paths such as `dotfiles/config/nvim`, `dotfiles/bin`, and `dotfiles/etc`. Helper scripts live in `scripts/`. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
 
 ## Develop Guidelines
 
@@ -18,7 +18,7 @@ Do not edit files with a `.archived` suffix unless the user explicitly asks.
 
 There is no application build step. The core workflow is syncing and validating managed files.
 
-`dotdrop compare` previews drift between the repo and live targets. `dotdrop-sudo update` imports local changes, including root-owned paths. `dotdrop-sudo install` applies a profile to the machine.
+Use `dotdrop` for agent workflows in this repo. `dotdrop compare` previews drift between the repo and live targets, and `dotdrop install` applies selected profiles or keys. If you need the user-facing wrapper for a specific manual workflow, refer to `README.md`, but keep agent instructions centered on `dotdrop`.
 
 ## Security & Configuration Tips
 
