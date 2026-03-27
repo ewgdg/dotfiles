@@ -169,7 +169,8 @@
                     "hidePassive": false,
                     "id": "Tray",
                     "pinned": [
-                        "Keyboard - English (US)"
+                        "Keyboard - English (US)",
+                        "Pinyin"
                     ]
                 },
                 {
