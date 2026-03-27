@@ -24,6 +24,8 @@ approval_policy = "on-request"
 network_access = true
 writable_roots = [
   "~/.local/share/Trash",
+  "~/.local/share",
+  "~/.cache",
   "/run/user",
   "~/.cache",
   "~/.npm",
