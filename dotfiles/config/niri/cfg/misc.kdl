@@ -15,6 +15,8 @@ screenshot-path null
 // If you want all processes to see the environment variables, you can set them in your login shell config instead (i.e. ~/.bash_profile). The niri-session shell script runs through the login shell and imports all environment variables to systemd before starting niri. Keep in mind that all compositors will see variables set in the login shell, not just niri.
 // alternatively, use autostart `dbus-update-activation-environment --systemd {ENV_VAR}` to inject env vars to systemd and dbus env
 environment {
+    // Keep terminal launches centralized so keybinds/autostarts only need one change.
+    TERMINAL "kitty"
 }
 
 cursor {

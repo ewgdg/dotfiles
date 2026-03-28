@@ -74,7 +74,7 @@ window-rule {
 
 window-rule {
     // Route the autostarted journal tail terminal to the logs workspace.
-    match app-id=r#"(?i)^alacritty$"# title="logs-journalctl"
+    match title="logs-journalctl"
     open-on-workspace "logs"
 }
 
