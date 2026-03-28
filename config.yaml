@@ -368,9 +368,10 @@ dotfiles:
     upignore: *agents_ignore
     instignore: *agents_ignore
     actions:
-    - sh 'mkdir -p ~/.codex ~/.claude'
+    - sh 'mkdir -p ~/.codex ~/.claude ~/.pi/agent'
     - symlink ~/.agents/AGENTS.md ~/.codex/AGENTS.md
-    - symlink ~/.agents/AGENTS.md ~/.claude/CLAUDE.md
+    - symlink ~/.agents/AGENTS.md ~/.claude/AGENTS.md
+    - symlink ~/.agents/AGENTS.md ~/.pi/agent/AGENTS.md
   f_Library_Preferences_GlobalPreferences.plist:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
