@@ -55,13 +55,13 @@ window-rule {
 }
 
 window-rule {
-    match at-startup=true title=r#"(?i)^Google AI Studio\b"# app-id=r#"(?i)^chrome-"#
+    match at-startup=true title=r#"(?i)^Google AI Studio\b"#
     open-focused false
 }
 
 window-rule {
-    match title=r#"(?i)^ChatGPT\b"# app-id=r#"(?i)^chrome-"#
-    match title=r#"(?i)^Google AI Studio\b"# app-id=r#"(?i)^chrome-"#
+    match title=r#"(?i)^ChatGPT\b"#
+    match title=r#"(?i)^Google AI Studio\b"#
     open-on-workspace "AI"
 }
 
