@@ -26,10 +26,32 @@ vi_mode_style = { shape = "Block", blinking = "Off" }
 [terminal]
 osc52 = "OnlyCopy"
 
-# shift+enter for new lines in some TUIs in tmux session
-# alacritty has bugs on supporting kitty keyboard protocol
-# https://github.com/alacritty/alacritty/issues/8836
+[[keyboard.bindings]]
+key = "Insert"
+mods = "Control"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "Insert"
+mods = "Shift"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "Delete"
+mods = "Shift"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "Delete"
+mods = "Shift"
+action = "ClearSelection"
+
+# shift+enter in tmux session
+# tmux does not fully support kitty keyboard protocol
+# need to explicit send the csi-u seq for shift+enter in tmux
 [[keyboard.bindings]]
 key = "Return"
 mods = "Shift"
+# \u001b = \x1b but toml does not allow escaping \x...
 chars = "\u001b[13;2u"
+
