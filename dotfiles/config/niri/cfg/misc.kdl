@@ -16,7 +16,7 @@ screenshot-path null
 // alternatively, use autostart `dbus-update-activation-environment --systemd {ENV_VAR}` to inject env vars to systemd and dbus env
 environment {
     // Keep terminal launches centralized so keybinds/autostarts only need one change.
-    TERMINAL "kitty"
+    TERMINAL "alacritty"
 }
 
 cursor {
