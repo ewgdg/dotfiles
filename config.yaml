@@ -308,6 +308,12 @@ dotfiles:
   d_config_environment.d:
     src: config/environment.d
     dst: ~/.config/environment.d
+  f_config_user-dirs.dirs:
+    src: config/user-dirs.dirs
+    dst: ~/.config/user-dirs.dirs
+    chmod: '600'
+    actions:
+    - sh 'mkdir -p ~/Templates'
   d_config_gtk-3.0:
     src: config/gtk-3.0
     dst: ~/.config/gtk-3.0
@@ -462,6 +468,7 @@ profiles:
     - d_etc_docker
     - d_config_autostart
     - d_config_environment.d
+    - f_config_user-dirs.dirs
     - d_config_xdg-desktop-portal
   os_arch:
     variables:
