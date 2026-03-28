@@ -27,7 +27,9 @@ vi_mode_style = { shape = "Block", blinking = "Off" }
 osc52 = "OnlyCopy"
 
 # shift+enter for new lines in some TUIs in tmux session
+# alacritty has bugs on supporting kitty keyboard protocol
+# https://github.com/alacritty/alacritty/issues/8836
 [[keyboard.bindings]]
 key = "Return"
 mods = "Shift"
-chars = "\u001B\r"
+chars = "\u001b[13;2u"
