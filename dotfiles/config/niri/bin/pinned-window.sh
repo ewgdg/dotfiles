@@ -3,7 +3,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s [--toggle-if-focused|--no-toggle-if-focused] <status-json|summon|toggle|clear>\n' "$0" >&2
+    printf 'usage: %s [--toggle-if-focused|--no-toggle-if-focused] <status-json|summon|pin|toggle|clear>\n' "$0" >&2
     exit 2
 }
 
@@ -176,7 +176,8 @@ summon_pinned_window() {
     exec niri msg action focus-window --id "$pinned_window_id"
 }
 
-toggle_pinned_window() {
+pin_focused_window() {
+    allow_toggle="${1:-0}"
     focused_window_json="$(niri msg -j focused-window 2>/dev/null || printf '{}')"
     focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
 
@@ -186,7 +187,7 @@ toggle_pinned_window() {
     fi
 
     current_pinned_window_id="$(read_pinned_window_id || true)"
-    if [ "$current_pinned_window_id" = "$focused_window_id" ]; then
+    if [ "$allow_toggle" -eq 1 ] && [ "$current_pinned_window_id" = "$focused_window_id" ]; then
         clear_pinned_window_id
         exit 0
     fi
@@ -201,8 +202,11 @@ case "$1" in
     summon)
         summon_pinned_window
         ;;
+    pin)
+        pin_focused_window 0
+        ;;
     toggle)
-        toggle_pinned_window
+        pin_focused_window 1
         ;;
     clear)
         clear_pinned_window_id
