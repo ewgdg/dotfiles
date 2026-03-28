@@ -588,7 +588,7 @@ profiles:
     - d_codex_agents
     - d_agents
     actions:
-    - sh 'bun add -g context-mode@latest'
+    - sh 'bun install -g context-mode@latest'
     - sh 'npm install -g @mariozechner/pi-coding-agent'
 
 variables:
