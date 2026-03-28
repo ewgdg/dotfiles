@@ -356,6 +356,9 @@ dotfiles:
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
+  d_codex_agents:
+    src: codex/agents
+    dst: ~/.codex/agents
   d_agents:
     src: agents
     dst: ~/.agents
@@ -564,6 +567,7 @@ profiles:
     - f_codex_config.toml
     - f_codex_AGENTS_override_md
     - d_codex_rules
+    - d_codex_agents
     - d_agents
     actions:
     - sh 'bun add -g context-mode@latest @oh-my-pi/pi-coding-agent'
