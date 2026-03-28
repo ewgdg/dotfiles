@@ -271,6 +271,9 @@ dotfiles:
     dst: ~/.local/share/applications/steam.desktop
     actions:
     - install steam
+  f_config_mimeapps.list:
+    src: config/mimeapps.list
+    dst: ~/.config/mimeapps.list
   f_zshenv:
     src: zshenv
     dst: ~/.zshenv
@@ -551,6 +554,7 @@ profiles:
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
     - f_local_share_applications_steam.desktop
+    - f_config_mimeapps.list
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
     - d_local_share_flatpak_overrides
