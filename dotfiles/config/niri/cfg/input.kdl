@@ -7,7 +7,7 @@ input {
             layout "us" // Use the American keyboard layout
             options "ctrl:nocaps"
         }
-        numlock // Enable numlock on startup
+        // numlock // Enable numlock on startup
     }
 
     touchpad {
