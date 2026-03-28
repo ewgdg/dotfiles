@@ -3,7 +3,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s <status-json|summon|toggle|clear>\n' "$0" >&2
+    printf 'usage: %s [--toggle-if-focused|--no-toggle-if-focused] <status-json|summon|toggle|clear>\n' "$0" >&2
     exit 2
 }
 
@@ -11,11 +11,36 @@ runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 state_file="$runtime_dir/niri-pinned-window.json"
 fallback_workspace="main"
 
+mkdir -p "$runtime_dir"
+
+toggle_if_focused=0
+
+while [ "$#" -gt 0 ]; do
+    case "${1:-}" in
+        --toggle-if-focused)
+            toggle_if_focused=1
+            shift
+            ;;
+        --no-toggle-if-focused)
+            toggle_if_focused=0
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            usage
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 if [ "$#" -ne 1 ]; then
     usage
 fi
-
-mkdir -p "$runtime_dir"
 
 write_state_json() {
     temp_file="$(mktemp "$runtime_dir/niri-pinned-window.XXXXXX")"
@@ -76,6 +101,24 @@ window_exists() {
         ' >/dev/null
 }
 
+focused_workspace_matches() {
+    niri msg -j workspaces 2>/dev/null \
+        | jq -e --arg workspace_ref "$1" '
+            any(.[]; .is_focused and (
+                ((.name // "") == $workspace_ref)
+                or ((.idx | tostring) == $workspace_ref)
+            ))
+        ' >/dev/null
+}
+
+focus_fallback_workspace() {
+    if [ "$toggle_if_focused" -eq 0 ] && focused_workspace_matches "$fallback_workspace"; then
+        exit 0
+    fi
+
+    exec niri msg action focus-workspace "$fallback_workspace"
+}
+
 print_status_json() {
     pinned_window_id="$(read_pinned_window_id || true)"
     if [ -z "$pinned_window_id" ]; then
@@ -116,17 +159,17 @@ print_status_json() {
 summon_pinned_window() {
     pinned_window_id="$(read_pinned_window_id || true)"
     if [ -z "$pinned_window_id" ]; then
-        exec niri msg action focus-workspace "$fallback_workspace"
+        focus_fallback_workspace
     fi
 
     if ! window_exists "$pinned_window_id"; then
         clear_pinned_window_id
-        exec niri msg action focus-workspace "$fallback_workspace"
+        focus_fallback_workspace
     fi
 
     focused_window_json="$(niri msg -j focused-window 2>/dev/null || printf '{}')"
     focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
-    if [ "$focused_window_id" = "$pinned_window_id" ]; then
+    if [ "$focused_window_id" = "$pinned_window_id" ] && [ "$toggle_if_focused" -eq 1 ]; then
         exec niri msg action focus-window-previous
     fi
 

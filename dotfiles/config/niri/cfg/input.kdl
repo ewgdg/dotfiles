@@ -31,7 +31,7 @@ input {
     // focus-follows-mouse max-scroll-amount="0%"
     
     // switching to the same workspace by index twice will switch back to the previous workspace.
-    workspace-auto-back-and-forth
+    // workspace-auto-back-and-forth
 
     // mod-key "Alt"
     // mod-key-nested "Super"

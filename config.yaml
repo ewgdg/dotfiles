@@ -211,6 +211,11 @@ dotfiles:
     dst: ~/.config/alacritty
     actions:
     - install alacritty
+  d_config_kitty:
+    src: config/kitty
+    dst: ~/.config/kitty
+    actions:
+    - install kitty
   d_config_tmux:
     src: config/tmux
     dst: ~/.config/tmux
@@ -406,6 +411,7 @@ profiles:
     - f_config_lazygit_config.yml
     - d_config_1password_ssh
     - d_config_alacritty
+    - d_config_kitty
   posix_base:
     include:
     - base
@@ -571,7 +577,8 @@ profiles:
     - d_codex_agents
     - d_agents
     actions:
-    - sh 'bun add -g context-mode@latest @oh-my-pi/pi-coding-agent'
+    - sh 'bun add -g context-mode@latest'
+    - sh 'npm install -g @mariozechner/pi-coding-agent'
 
 variables:
   install_cmd: echo 'no install cmd for {0} >&2'
