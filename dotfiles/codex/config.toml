@@ -3,7 +3,7 @@ sandbox_mode = "workspace-write"
 web_search = "live"
 personality = "pragmatic"
 
-model_provider = "openai_http"
+# model_provider = "openai_http"
 
 [model_providers.openai_http]
 name = "OpenAI HTTP only"

@@ -52,7 +52,7 @@ claudecode() {
     command claude --dangerously-skip-permissions "$@"
 }
 
-omp(){
+pi(){
   if ! _ensure_command omp "Pi coding agent"; then
     return 1
   fi
@@ -64,5 +64,5 @@ omp(){
     OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
     BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
     EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
-    command omp "$@"
+    command pi "$@"
 }
