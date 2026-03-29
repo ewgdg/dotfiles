@@ -67,22 +67,21 @@ _load_api_key() {
 }
 
 claude() {
-    if ! _ensure_command claude "Claude Code"; then
-        return 1
-    fi
+  if ! _ensure_command claude "Claude Code"; then
+      return 1
+  fi
 
-    _merge_agent_instructions "$HOME/.claude/AGENTS.md" "$HOME/.claude/AGENTS.claude.md" || return 1
-
-    # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
-    # ANTHROPIC_AUTH_TOKEN="litellm" \
-    # ANTHROPIC_SMALL_FAST_MODEL="gpt-mini" \
-    # ANTHROPIC_BASE_URL="http://0.0.0.0:8787" \
-    ANTHROPIC_SMALL_FAST_MODEL="gpt-5-nano" \
-    ANTHROPIC_BASE_URL="https://claude-router.service.xianzzz.com" \
-    command claude --dangerously-skip-permissions "$@"
+  _merge_agent_instructions "$HOME/.claude/AGENTS.md" "$HOME/.claude/AGENTS.claude.md" || return 1
+  command claude "$@"
 }
 
 claudecode() {
+  # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
+  # ANTHROPIC_AUTH_TOKEN="litellm" \
+  # ANTHROPIC_SMALL_FAST_MODEL="gpt-mini" \
+  # ANTHROPIC_BASE_URL="http://0.0.0.0:8787" \
+  ANTHROPIC_SMALL_FAST_MODEL="gpt-5-nano" \
+  ANTHROPIC_BASE_URL="https://claude-router.service.xianzzz.com" \
   claude "$@"
 }
 
