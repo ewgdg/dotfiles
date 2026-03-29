@@ -47,7 +47,11 @@ shift
 hide_focused_window() {
     focused_window_id="$1"
 
-    niri msg action focus-window-previous >/dev/null 2>&1 || true
+    if previous_focused_window_on_current_workspace "$focused_window_id" "$focused_workspace_id"; then
+        # Preserve the old placement anchor for tiled summon toggles, but only
+        # when the previous focus stays on this workspace.
+        niri msg action focus-window-previous >/dev/null 2>&1 || true
+    fi
 
     if [ "$hide_to_scratchpad" = "true" ]; then
         exec niri msg action move-window-to-workspace --window-id "$focused_window_id" --focus false scratchpad
@@ -56,11 +60,32 @@ hide_focused_window() {
     exec niri msg action close-window --id "$focused_window_id"
 }
 
+previous_focused_window_on_current_workspace() {
+    target_focused_window_id="$1"
+    target_workspace_id="$2"
+
+    [ -n "$target_focused_window_id" ] || return 1
+    [ -n "$target_workspace_id" ] || return 1
+
+    niri msg -j windows 2>/dev/null \
+        | jq -e \
+            --argjson target_focused_window_id "$target_focused_window_id" \
+            --argjson target_workspace_id "$target_workspace_id" '
+                (
+                    map(select(.id != $target_focused_window_id))
+                    | sort_by(.focus_timestamp.secs // 0, .focus_timestamp.nanos // 0)
+                    | last
+                    | .workspace_id?
+                ) == $target_workspace_id
+            ' >/dev/null
+}
+
 focused_window_json="$(
     niri msg -j focused-window 2>/dev/null || printf '{}'
 )"
 focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
 focused_app_id="$(printf '%s' "$focused_window_json" | jq -r '.app_id // empty')"
+focused_workspace_id="$(printf '%s' "$focused_window_json" | jq -r '.workspace_id // empty')"
 
 if printf '%s' "$focused_app_id" | jq -Rre --arg pattern "$app_id_pattern" 'test($pattern)' >/dev/null; then
     hide_focused_window "$focused_window_id"
