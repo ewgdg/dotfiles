@@ -1,12 +1,12 @@
 {
   "rules": [
     {
-      "name": "close-floating-goldendict-on-active-window-loss",
-      "event": "active-window-changed",
+      "name": "close-floating-goldendict-on-focus-loss",
+      "event": "focus-changed",
       "match": {
         "previous": {
           "app_id": {
-            "regex": "^(org\\.goldendict\\.GoldenDict|goldendict)$",
+            "regex": "goldendict",
             "ignore_case": true
           },
           "is_floating": true
