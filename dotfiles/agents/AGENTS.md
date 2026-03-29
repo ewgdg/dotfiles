@@ -33,7 +33,7 @@
 - Prefer modern and latest libraries and frameworks, reference docs with `context7`
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
-- Add concise comments when they clarify non-obvious or confusing logic, or make review easier.
+- Add concise comments when they clarify non-obvious or confusing logic, or make review easier. e.g. when patch for an edge case.
 - Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
