@@ -252,6 +252,12 @@ dotfiles:
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
     trans_update: xml_transform_strip "--sort-attributes --selector-type remove --selectors {{@@ goldendict_config_selectors @@}}"
     trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors @@}}"
+  f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config:
+    template: false
+    src: var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
+    dst: ~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
+    trans_update: xml_transform_strip "--sort-attributes --selector-type remove --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors @@}}"
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -262,7 +268,8 @@ dotfiles:
     chmod: '600'
     actions:
     - install flatpak
-    - sh 'flatpak install --noninteractive flathub org.goldendict.GoldenDict'
+    # - sh 'flatpak install --noninteractive flathub org.goldendict.GoldenDict'
+    - sh 'flatpak install --noninteractive flathub io.github.xiaoyifang.goldendict_ng'
   # Temporary Steam launcher override for Wayland IME input.
   # See docs/steam-ime-workaround.md and remove this once Steam's native
   # Wayland text input works reliably.
@@ -438,7 +445,7 @@ profiles:
     - d_config_fd
   posix_utils:
     actions:
-    - install 'ripgrep jq trash-cli'
+    - install 'ripgrep jq trash-cli xclip wl-clipboard'
     dotfiles:
     - d_bin
   toolchain_javascript:
@@ -555,7 +562,8 @@ profiles:
   apps_linux:
     variables:
       goldendict_config_selectors: >-
-        'config/*WindowGeometry' 'config/*WindowState' 'config/timeForNewReleaseCheck'
+        'config/*WindowGeometry*' 'config/*WindowState*' 'config/*Geometry*'
+        'config/*SplitterState*' 'config/*GroupId' 'config/*Release*'
     dotfiles:
     - d_config_fcitx5
     - f_local_share_applications_1password-quickaccess.desktop
@@ -565,7 +573,8 @@ profiles:
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
     - d_local_share_flatpak_overrides
-    - f_var_app_org.goldendict.goldendict_config_goldendict_config
+    # - f_var_app_org.goldendict.goldendict_config_goldendict_config
+    - f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
     actions:
     - install yazi

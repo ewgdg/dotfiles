@@ -19,7 +19,7 @@ binds {
     MOD+CTRL+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
     MOD+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
     MOD+CTRL+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
-    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run org.goldendict.GoldenDict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
+    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run io.github.xiaoyifang.goldendict_ng \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
 
