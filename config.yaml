@@ -445,7 +445,7 @@ profiles:
     - d_config_fd
   posix_utils:
     actions:
-    - install 'ripgrep jq trash-cli xclip wl-clipboard'
+    - install 'ripgrep jq trash-cli'
     dotfiles:
     - d_bin
   toolchain_javascript:
@@ -466,7 +466,7 @@ profiles:
     - posix_utils
     - framework_gtk
     actions:
-    - install zenity
+    - install 'zenity wl-clipboard'
     dotfiles:
     - f_etc_keyd_default.conf
     - d_config_keyd
