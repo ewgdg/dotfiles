@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+def read_if_nonempty(path: Path) -> str | None:
+    if not path.is_file() or path.stat().st_size == 0:
+        return None
+    return path.read_text()
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 3:
+        print("usage: agent-instruction-shim TARGET BASE [OVERLAY ...]", file=sys.stderr)
+        return 64
+
+    target = Path(argv[1]).expanduser()
+    base = Path(argv[2]).expanduser()
+    overlays = [Path(path).expanduser() for path in argv[3:]]
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    parts: list[str] = []
+    for path in [base, *overlays]:
+        content = read_if_nonempty(path)
+        if content:
+            parts.append(content)
+
+    if not parts:
+        print("no instruction sources found", file=sys.stderr)
+        return 1
+
+    merged = "\n\n".join(parts)
+
+    existing: str | None = None
+    target_is_symlink = target.is_symlink()
+    target_is_regular = target.is_file()
+    if target_is_symlink or target_is_regular:
+        try:
+            existing = target.read_text()
+        except OSError:
+            existing = None
+
+    if not target_is_symlink and target_is_regular and existing == merged:
+        return 0
+
+    if target_is_symlink:
+        target.unlink()
+
+    target.write_text(merged)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

@@ -371,9 +371,9 @@ dotfiles:
     dst: ~/.codex/config.toml
     trans_update: toml_transform_strip "--selector-type remove --selectors {{@@ codex_config_selectors @@}}"
     trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ codex_config_selectors @@}}"
-  f_codex_AGENTS_override_md:
-    src: codex/AGENTS.override.md
-    dst: ~/.codex/AGENTS.override.md
+  f_codex_AGENTS_codex_md:
+    src: codex/AGENTS.codex.md
+    dst: ~/.codex/AGENTS.codex.md
   d_codex_rules:
     src: codex/rules
     dst: ~/.codex/rules
@@ -390,9 +390,6 @@ dotfiles:
     instignore: *agents_ignore
     actions:
     - sh 'mkdir -p ~/.codex ~/.claude ~/.pi/agent'
-    - symlink ~/.agents/AGENTS.md ~/.codex/AGENTS.md
-    - symlink ~/.agents/AGENTS.md ~/.claude/AGENTS.md
-    - symlink ~/.agents/AGENTS.md ~/.pi/agent/AGENTS.md
   f_Library_Preferences_GlobalPreferences.plist:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
@@ -592,7 +589,7 @@ profiles:
         'model' 'model_reasoning_effort' 're:^projects\.' 're:^mcp_servers\.playwright\.env$'
     dotfiles:
     - f_codex_config.toml
-    - f_codex_AGENTS_override_md
+    - f_codex_AGENTS_codex_md
     - d_codex_rules
     - d_codex_agents
     - d_agents

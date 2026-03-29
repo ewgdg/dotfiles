@@ -1,5 +1,33 @@
 typeset -gA _API_KEY_CACHE
 
+_merge_agent_instructions() {
+  local target=$1
+  shift
+
+  local helper="$HOME/bin/agent-instruction-shim"
+  if [[ ! -x "$helper" ]]; then
+    print -u2 -- "Missing helper: $helper"
+    return 1
+  fi
+
+  command "$helper" "$target" "$HOME/.agents/AGENTS.md" "$@"
+}
+
+_disable_legacy_agent_override() {
+  local legacy_file=$1
+  local disabled_file="${legacy_file}.disabled"
+
+  if [[ ! -e "$legacy_file" && ! -L "$legacy_file" ]]; then
+    return 0
+  fi
+
+  if command -v trash-put >/dev/null 2>&1; then
+    command trash-put "$legacy_file" >/dev/null 2>&1 && return 0
+  fi
+
+  command mv -f "$legacy_file" "$disabled_file"
+}
+
 _load_api_key() {
   if ! _ensure_command op "1Password API key lookup"; then
     return 1
@@ -38,10 +66,12 @@ _load_api_key() {
   done
 }
 
-claudecode() {
+claude() {
     if ! _ensure_command claude "Claude Code"; then
         return 1
     fi
+
+    _merge_agent_instructions "$HOME/.claude/AGENTS.md" "$HOME/.claude/AGENTS.claude.md" || return 1
 
     # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
     # ANTHROPIC_AUTH_TOKEN="litellm" \
@@ -52,11 +82,16 @@ claudecode() {
     command claude --dangerously-skip-permissions "$@"
 }
 
+claudecode() {
+  claude "$@"
+}
+
 pi(){
   if ! _ensure_command omp "Pi coding agent"; then
     return 1
   fi
 
+  _merge_agent_instructions "$HOME/.pi/agent/AGENTS.md" "$HOME/.pi/agent/AGENTS.pi.md" || return 1
   _load_api_key openai-api anthropic-api openrouter-api brave-api exa-api || return 1
 
   OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
@@ -65,4 +100,14 @@ pi(){
     BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
     EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
     command pi "$@"
+}
+
+codex() {
+  if ! _ensure_command codex "Codex"; then
+    return 1
+  fi
+
+  _disable_legacy_agent_override "$HOME/.codex/AGENTS.override.md" || return 1
+  _merge_agent_instructions "$HOME/.codex/AGENTS.md" "$HOME/.codex/AGENTS.codex.md" || return 1
+  command codex "$@"
 }
