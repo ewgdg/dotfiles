@@ -37,6 +37,10 @@ MENU_HEADER_MARKER_STYLE = ("1", "34")
 MENU_INDEX_STYLE = ("1", "36")
 MENU_PROMPT_STYLE = ("1",)
 MENU_HINT_STYLE = ("2",)
+PROFILE_LABEL_STYLE = ("1", "34")
+PROFILE_VALUE_STYLE = ("1", "36")
+NOOP_LABEL_STYLE = ("1", "32")
+NOOP_MESSAGE_STYLE = ("1",)
 MENU_ACTION_STYLE_BY_NAME: dict[str, tuple[str, ...]] = {
     "install": ("1", "32"),
     "update": ("1", "36"),
@@ -733,7 +737,12 @@ class DotManager:
         return False
 
     def log_profile_selection(self) -> None:
-        print(f'Using dotdrop profile "{self.resolved_profile}"')
+        self.print_status_line(
+            "profile",
+            self.resolved_profile,
+            label_style=PROFILE_LABEL_STYLE,
+            message_style=PROFILE_VALUE_STYLE,
+        )
 
     def has_pending_operation_targets(self) -> bool:
         if self.is_update_operation:
@@ -744,10 +753,20 @@ class DotManager:
 
     def print_no_pending_operation_message(self) -> None:
         if self.is_update_operation:
-            print("nothing to update")
+            self.print_status_line(
+                "ok",
+                "nothing to update",
+                label_style=NOOP_LABEL_STYLE,
+                message_style=NOOP_MESSAGE_STYLE,
+            )
             return
         if self.is_install_operation:
-            print("nothing to install")
+            self.print_status_line(
+                "ok",
+                "nothing to install",
+                label_style=NOOP_LABEL_STYLE,
+                message_style=NOOP_MESSAGE_STYLE,
+            )
 
     def collect_update_changes(self) -> list[UpdateChange]:
         if not self.regular_update_keys:
@@ -1214,6 +1233,23 @@ class DotManager:
             print(f"\n{self.style_text('==>', '1', '34')} {self.style_text(header_text, '1')}\n")
             return
         print(f"\n==> {header_text}\n")
+
+    @classmethod
+    def print_status_line(
+        cls,
+        label: str,
+        message: str,
+        *,
+        label_style: tuple[str, ...] = ("1",),
+        message_style: tuple[str, ...] = (),
+    ) -> None:
+        if not cls.colors_enabled():
+            print(f"{label}: {message}")
+            return
+
+        styled_label = cls.style_text(f"{label}:", *label_style)
+        styled_message = cls.style_text(message, *message_style) if message_style else message
+        print(f"{styled_label} {styled_message}")
 
     @staticmethod
     def colors_enabled() -> bool:

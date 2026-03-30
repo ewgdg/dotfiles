@@ -523,7 +523,7 @@ def test_default_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) -> 
     )
 
     assert exit_code == 0
-    assert 'Using dotdrop profile "host_linux"' in output
+    assert "profile: host_linux" in output
     assert 'Update all dotfiles for profile "host_linux" [Y/n] ?' not in output
     assert 'Select items to exclude from update' in output
     assert 'overwrite dotfiles path "' not in output

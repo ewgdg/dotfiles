@@ -316,6 +316,36 @@ def test_prompt_for_excluded_items_keeps_plain_menu_when_colors_disabled(
     assert "\033[" not in output
 
 
+def test_log_profile_selection_uses_colored_status_line_when_enabled(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    manager = DotManager(["install"])
+    manager.resolved_profile = "host-linux"
+
+    monkeypatch.setattr(DotManager, "colors_enabled", staticmethod(lambda: True))
+
+    manager.log_profile_selection()
+    output = capsys.readouterr().out
+
+    assert "\033[1;34mprofile:\033[0m" in output
+    assert "\033[1;36mhost-linux\033[0m" in output
+
+
+def test_print_no_pending_operation_message_uses_colored_status_line_when_enabled(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    manager = DotManager(["install"])
+    manager.operation = "install"
+
+    monkeypatch.setattr(DotManager, "colors_enabled", staticmethod(lambda: True))
+
+    manager.print_no_pending_operation_message()
+    output = capsys.readouterr().out
+
+    assert "\033[1;32mok:\033[0m" in output
+    assert "\033[1mnothing to install\033[0m" in output
+
+
 def test_exclude_pending_update_items_removes_clean_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     manager = DotManager(["update"])
     manager.operation = "update"
@@ -354,7 +384,7 @@ def test_run_prints_nothing_to_install_when_pending_install_keys_are_empty(
 
     assert dm.run() == 0
     output = capsys.readouterr().out
-    assert 'Using dotdrop profile "host"' in output
+    assert "profile: host" in output
     assert "nothing to install" in output
 
 
@@ -386,7 +416,7 @@ def test_run_prints_nothing_to_update_when_pending_update_keys_are_empty(
 
     assert dm.run() == 0
     output = capsys.readouterr().out
-    assert 'Using dotdrop profile "host"' in output
+    assert "profile: host" in output
     assert "nothing to update" in output
 
 
