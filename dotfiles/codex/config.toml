@@ -31,6 +31,7 @@ writable_roots = [
   "~/.npm",
   "~/.agents",
   "~/.codex",
+  "~/.context-mode",
   "~/.codegraphcontext",
   "~/sandbox",
   "~/projects/knowledgebase",
@@ -42,6 +43,14 @@ args = ["-y", "@upstash/context7-mcp"]
 
 [mcp_servers."context-mode"]
 command = "context-mode"
+
+[mcp_servers."context-mode".tools.ctx_execute]
+approval_mode = "approve"
+
+[mcp_servers."context-mode".tools.ctx_batch_execute]
+approval_mode = "approve"
+
+[mcp_servers."context-mode".tools.ctx_search]
 approval_mode = "approve"
 
 # [mcp_servers.chrome-devtools]

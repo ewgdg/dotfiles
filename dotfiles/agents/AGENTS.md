@@ -41,9 +41,9 @@
 
 ## Testing
 
-- Test cases need to be robust, flexible and generic and concise, so that they will not easily fail for tiny changes
+- Test cases need to be robust, flexible and generic and concise, so that they will not easily break for tiny changes
 - Write test cases first before bug fixes
-- if goal/implementations change, clean up the tests instead of adding backward compatibility.
+- if the goals are changed or the code is refactored, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code.
 
 ## Context Efficiency
 
