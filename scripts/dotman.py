@@ -26,6 +26,8 @@ SUPPORTED_OPERATIONS = {"update", "install", "import"}
 PROFILE_HEADER_RE = re.compile(r'^Dotfile\(s\) for profile "([^"]+)":$')
 DOTDROP_PHASE_SUMMARY_RE = re.compile(r"\s*(\d+) (?:file|dotfile)\(s\) (?:updated|installed)\.\s*")
 DOTDROP_TEMPLATE_INCLUDE_RE = re.compile(r"{%@@\s*include\b")
+DOTDROP_COMPARE_QUOTED_KEY_RE = re.compile(r'^=> [^:]+: "([^"]+)"(?:\s|$)')
+DOTDROP_COMPARE_PLAIN_KEY_RE = re.compile(r"^=> compare ([^:]+): ")
 INTERRUPTED_EXIT_CODE = 130
 ANSI_RESET = "\033[0m"
 DEFAULT_PROFILE_FILENAME = "default-profile"
@@ -844,7 +846,25 @@ class DotManager:
                 self.remove_template_update_key(key_name)
 
     def collect_pending_install_keys(self) -> list[str]:
-        return [key_name for key_name in self.install_keys if self.install_phase_need_run([key_name])]
+        if not self.install_keys:
+            return []
+
+        compare_completed = self.run_install_compare(self.install_keys)
+        if compare_completed.returncode != 0:
+            return list(self.install_keys)
+
+        pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
+            compare_completed.stdout + compare_completed.stderr,
+            self.install_keys,
+        )
+        if compare_was_uncertain:
+            return list(self.install_keys)
+
+        if self.parsed.remove_existing_mode:
+            removal_keys = self.collect_remove_existing_pending_install_keys(self.install_keys)
+            pending_keys.update(removal_keys)
+
+        return [key_name for key_name in self.install_keys if key_name in pending_keys]
 
     def collect_pending_regular_update_candidates(self) -> list[tuple[str, UpdateChange]]:
         pending_candidates: list[tuple[str, UpdateChange]] = []
@@ -1208,6 +1228,24 @@ class DotManager:
         if not operation_targets:
             return False
 
+        compare_completed = self.run_install_compare(operation_targets)
+        if compare_completed.returncode != 0:
+            return True
+
+        pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
+            compare_completed.stdout + compare_completed.stderr,
+            operation_targets,
+        )
+        if compare_was_uncertain or pending_keys:
+            return True
+
+        # No diffs found - only check for removals if remove_existing_mode is on
+        if self.operation != "install" or not self.parsed.remove_existing_mode:
+            return False
+
+        return bool(self.collect_remove_existing_pending_install_keys(operation_targets))
+
+    def run_install_compare(self, operation_targets: list[str]) -> subprocess.CompletedProcess[str]:
         # use compare instead of dry-run bc dry-run always assume changes
         flags = FlagList()
         flags.append(self.dotdrop_cmd)
@@ -1220,29 +1258,49 @@ class DotManager:
                 focus_target, focus_target
             )
             flags.extend(["-C", compare_path])
-        compare_call = list(flags)
-
-        compare_completed = subprocess.run(
-            compare_call,
+        return subprocess.run(
+            list(flags),
             check=False,
             capture_output=True,
             text=True,
         )
-        if compare_completed.returncode != 0:
-            return True
 
-        compare_output = compare_completed.stdout + compare_completed.stderr
-        for line in compare_output.splitlines():
-            if not line or line[0].isspace():
+    def parse_compare_pending_keys(
+        self,
+        output_text: str,
+        operation_targets: list[str],
+    ) -> tuple[set[str], bool]:
+        target_key_set = set(operation_targets)
+        pending_keys: set[str] = set()
+        for raw_line in output_text.splitlines():
+            if not raw_line or raw_line[0].isspace():
                 continue
+
+            line = raw_line.strip()
             if line.endswith(" dotfile(s) compared."):
                 continue
-            return True
 
-        # No diffs found - only check for removals if remove_existing_mode is on
-        if self.operation != "install" or not self.parsed.remove_existing_mode:
-            return False
+            quoted_match = DOTDROP_COMPARE_QUOTED_KEY_RE.match(line)
+            if quoted_match:
+                matched_key = quoted_match.group(1)
+                if matched_key in target_key_set:
+                    pending_keys.add(matched_key)
+                    continue
+                return set(target_key_set), True
 
+            plain_match = DOTDROP_COMPARE_PLAIN_KEY_RE.match(line)
+            if plain_match:
+                matched_key = plain_match.group(1)
+                if matched_key in target_key_set:
+                    pending_keys.add(matched_key)
+                    continue
+                return set(target_key_set), True
+
+            return set(target_key_set), True
+
+        return pending_keys, False
+
+    def collect_remove_existing_pending_install_keys(self, operation_targets: list[str]) -> set[str]:
         dry_run_call = self.build_operation_call(
             operation_targets, dry_run=True, operation="install"
         )
@@ -1253,13 +1311,37 @@ class DotManager:
             text=True,
         )
         if dry_run_completed.returncode != 0:
-            return True
+            return set(operation_targets)
 
         dry_run_output = dry_run_completed.stdout + dry_run_completed.stderr
+        pending_keys: set[str] = set()
         for line in dry_run_output.splitlines():
             if line.startswith("[DRY] would remove "):
-                return True
-        return False
+                removed_path_text = self.trim_trailing_whitespace(line.removeprefix("[DRY] would remove "))
+                matched_key = self.find_matching_install_key_for_path(removed_path_text, operation_targets)
+                if matched_key:
+                    pending_keys.add(matched_key)
+                    continue
+                return set(operation_targets)
+        return pending_keys
+
+    def find_matching_install_key_for_path(self, candidate_path: str, operation_targets: list[str]) -> str:
+        normalized_candidate_path = self.normalize_target_path(candidate_path)
+        matched_key = ""
+        matched_length = 0
+        for key_name in operation_targets:
+            known_destination = self.normalized_destination_by_key.get(key_name, "")
+            if not known_destination:
+                continue
+            if normalized_candidate_path == known_destination:
+                return key_name
+            if (
+                normalized_candidate_path.startswith(known_destination + os.sep)
+                and len(known_destination) > matched_length
+            ):
+                matched_key = key_name
+                matched_length = len(known_destination)
+        return matched_key
 
     @staticmethod
     def parse_phase_changed_count(output_text: str) -> int:

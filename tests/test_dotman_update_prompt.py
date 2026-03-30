@@ -976,6 +976,107 @@ def test_install_phase_need_run_keeps_multiple_compare_targets(tmp_path: Path, m
     ]
 
 
+def test_collect_pending_install_keys_batches_compare_across_install_targets(monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
+    manager.resolved_profile = "repro"
+    manager.install_keys = ["f_alpha", "f_beta"]
+    manager.normalized_destination_by_key = {
+        "f_alpha": "/root/.config/alpha.toml",
+        "f_beta": "/root/.config/beta.toml",
+    }
+
+    recorded_commands: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        recorded_commands.append(list(command))
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            '=> differ: "f_alpha" "/root/.config/alpha.toml"\n\n2 dotfile(s) compared.\n',
+            "",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.collect_pending_install_keys() == ["f_alpha"]
+    assert recorded_commands == [
+        [
+            "dotdrop",
+            "compare",
+            "-L",
+            "-b",
+            "--profile=repro",
+            "-C",
+            "/root/.config/alpha.toml",
+            "-C",
+            "/root/.config/beta.toml",
+        ]
+    ]
+
+
+def test_collect_pending_install_keys_batches_remove_existing_dry_run(monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["-R"], remove_existing_mode=True)
+    manager.resolved_profile = "repro"
+    manager.install_keys = ["d_config", "f_other"]
+    manager.normalized_destination_by_key = {
+        "d_config": "/root/.config/example",
+        "f_other": "/root/.config/other.toml",
+    }
+
+    recorded_commands: list[list[str]] = []
+    run_results = [
+        subprocess.CompletedProcess(
+            ["dotdrop", "compare"],
+            0,
+            "",
+            "2 dotfile(s) compared.\n",
+        ),
+        subprocess.CompletedProcess(
+            ["dotdrop", "install", "-d"],
+            0,
+            f"[DRY] would remove /root/.config/example/extra.toml \n\n2 dotfile(s) installed.\n",
+            "",
+        ),
+    ]
+
+    def fake_run(command, **_kwargs):
+        recorded_commands.append(list(command))
+        return run_results.pop(0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.collect_pending_install_keys() == ["d_config"]
+    assert recorded_commands == [
+        [
+            "dotdrop",
+            "compare",
+            "-L",
+            "-b",
+            "--profile=repro",
+            "-C",
+            "/root/.config/example",
+            "-C",
+            "/root/.config/other.toml",
+        ],
+        [
+            "dotdrop",
+            "install",
+            "-b",
+            "-d",
+            "-R",
+            "--profile=repro",
+            "d_config",
+            "f_other",
+        ],
+    ]
+
+
 def test_no_action_is_delegated_to_dotdrop_unchanged(tmp_path: Path) -> None:
     helper_dir = tmp_path / "bin"
     helper_dir.mkdir()
