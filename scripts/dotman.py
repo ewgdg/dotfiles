@@ -350,6 +350,9 @@ class DotManager:
         if self.is_update_operation:
             try:
                 self.exclude_pending_operation_items()
+                if not self.has_pending_operation_targets():
+                    self.print_no_pending_operation_message()
+                    return self.overall_exit_code
                 self.confirm_update_overwrite_targets()
                 self.run_update_phases()
             finally:
@@ -357,6 +360,9 @@ class DotManager:
             return self.overall_exit_code
 
         self.exclude_pending_operation_items()
+        if not self.has_pending_operation_targets():
+            self.print_no_pending_operation_message()
+            return self.overall_exit_code
         self.run_install_phases()
         return self.overall_exit_code
 
@@ -727,6 +733,20 @@ class DotManager:
     def log_profile_selection(self) -> None:
         print(f'Using dotdrop profile "{self.resolved_profile}"')
 
+    def has_pending_operation_targets(self) -> bool:
+        if self.is_update_operation:
+            return bool(self.regular_update_keys or self.template_update_keys)
+        if self.is_install_operation:
+            return bool(self.install_keys)
+        return bool(self.parsed.explicit_targets)
+
+    def print_no_pending_operation_message(self) -> None:
+        if self.is_update_operation:
+            print("nothing to update")
+            return
+        if self.is_install_operation:
+            print("nothing to install")
+
     def collect_update_changes(self) -> list[UpdateChange]:
         if not self.regular_update_keys:
             return []
@@ -771,9 +791,14 @@ class DotManager:
 
     def exclude_pending_update_items(self) -> None:
         regular_candidates = self.collect_pending_regular_update_candidates()
+        template_candidate_keys = self.collect_pending_template_update_keys()
+        self.regular_update_keys = [key_name for key_name, _change in regular_candidates]
+        self.regular_update_key_set = set(self.regular_update_keys)
+        self.template_update_keys = list(template_candidate_keys)
+        self.template_update_key_set = set(self.template_update_keys)
+
         if self.parsed.force_mode or not sys.stdin.isatty():
             return
-        template_candidate_keys = self.collect_pending_template_update_keys()
 
         selection_items = [
             PendingSelectionItem(

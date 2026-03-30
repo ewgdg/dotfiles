@@ -316,6 +316,80 @@ def test_prompt_for_excluded_items_keeps_plain_menu_when_colors_disabled(
     assert "\033[" not in output
 
 
+def test_exclude_pending_update_items_removes_clean_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    manager = DotManager(["update"])
+    manager.operation = "update"
+    manager.parsed = ParsedArgs()
+    manager.regular_update_keys = ["f_settings"]
+    manager.regular_update_key_set = {"f_settings"}
+    manager.template_update_keys = ["f_template"]
+    manager.template_update_key_set = {"f_template"}
+
+    monkeypatch.setattr(manager, "collect_pending_regular_update_candidates", lambda: [])
+    monkeypatch.setattr(manager, "collect_pending_template_update_keys", lambda: [])
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    manager.exclude_pending_update_items()
+
+    assert manager.regular_update_keys == []
+    assert manager.regular_update_key_set == set()
+    assert manager.template_update_keys == []
+    assert manager.template_update_key_set == set()
+
+
+def test_run_prints_nothing_to_install_when_pending_install_keys_are_empty(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dm = DotManager(["install"])
+    dm.dotdrop_cmd = "dotdrop"
+
+    monkeypatch.setattr(dm, "resolve_config_path", lambda: "/tmp/config.yaml")
+    monkeypatch.setattr(dm, "resolve_profile", lambda: "host")
+    monkeypatch.setattr(dm, "load_dotfiles_output", lambda: "")
+    monkeypatch.setattr(dm, "load_key_metadata", lambda _output: None)
+    monkeypatch.setattr(dm, "select_targets", lambda: None)
+    monkeypatch.setattr(dm, "exclude_pending_operation_items", lambda: setattr(dm, "install_keys", []))
+    monkeypatch.setattr(dm, "run_install_phases", lambda: pytest.fail("unexpected install run"))
+    monkeypatch.setattr(dm, "run_passthrough", lambda _args: pytest.fail("unexpected passthrough"))
+
+    assert dm.run() == 0
+    output = capsys.readouterr().out
+    assert 'Using dotdrop profile "host"' in output
+    assert "nothing to install" in output
+
+
+def test_run_prints_nothing_to_update_when_pending_update_keys_are_empty(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dm = DotManager(["update"])
+    dm.dotdrop_cmd = "dotdrop"
+
+    monkeypatch.setattr(dm, "resolve_config_path", lambda: "/tmp/config.yaml")
+    monkeypatch.setattr(dm, "resolve_profile", lambda: "host")
+    monkeypatch.setattr(dm, "load_dotfiles_output", lambda: "")
+    monkeypatch.setattr(dm, "load_key_metadata", lambda _output: None)
+    monkeypatch.setattr(dm, "select_targets", lambda: None)
+    monkeypatch.setattr(
+        dm,
+        "exclude_pending_operation_items",
+        lambda: (
+            setattr(dm, "regular_update_keys", []),
+            setattr(dm, "regular_update_key_set", set()),
+            setattr(dm, "template_update_keys", []),
+            setattr(dm, "template_update_key_set", set()),
+        ),
+    )
+    monkeypatch.setattr(dm, "confirm_update_overwrite_targets", lambda: None)
+    monkeypatch.setattr(dm, "run_update_phases", lambda: pytest.fail("unexpected update run"))
+    monkeypatch.setattr(dm, "restore_declined_update_state", lambda: None)
+    monkeypatch.setattr(dm, "run_passthrough", lambda _args: pytest.fail("unexpected passthrough"))
+
+    assert dm.run() == 0
+    output = capsys.readouterr().out
+    assert 'Using dotdrop profile "host"' in output
+    assert "nothing to update" in output
+
+
 # ---------------------------------------------------------------------------
 # -- separator: literal targets
 # ---------------------------------------------------------------------------
