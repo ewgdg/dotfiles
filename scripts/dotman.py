@@ -30,6 +30,16 @@ INTERRUPTED_EXIT_CODE = 130
 ANSI_RESET = "\033[0m"
 DEFAULT_PROFILE_FILENAME = "default-profile"
 DOTMAN_STATE_DIR_NAME = "dotman"
+MENU_HEADER_MARKER = "::"
+MENU_HEADER_MARKER_STYLE = ("1", "34")
+MENU_INDEX_STYLE = ("1", "36")
+MENU_PROMPT_STYLE = ("1",)
+MENU_HINT_STYLE = ("2",)
+MENU_ACTION_STYLE_BY_NAME: dict[str, tuple[str, ...]] = {
+    "install": ("1", "32"),
+    "update": ("1", "36"),
+    "import": ("1", "33"),
+}
 
 
 @dataclass
@@ -864,18 +874,54 @@ class DotManager:
         *,
         operation: str,
     ) -> set[int]:
-        print(f"Select items to exclude from {operation}:")
+        cls.print_pending_selection_header(operation)
         for index, item in enumerate(selection_items, start=1):
-            print(f"  {index:>2}) [{item.action}] {item.key_name}: {item.from_path} -> {item.to_path}")
+            cls.print_pending_selection_item(index, item)
 
         while True:
-            answer = cls.prompt(
-                'Exclude by number or range (default: none; e.g. "1 2 4-6" or "^3"): '
-            )
+            answer = cls.prompt(cls.pending_selection_prompt())
             try:
                 return cls.parse_selection_indexes(answer, len(selection_items))
             except ValueError as exc:
                 print(f"invalid selection: {exc}", file=sys.stderr)
+
+    @classmethod
+    def print_pending_selection_header(cls, operation: str) -> None:
+        header_text = f"Select items to exclude from {operation}:"
+        if not cls.colors_enabled():
+            print(header_text)
+            return
+        print(
+            f"{cls.style_text(MENU_HEADER_MARKER, *MENU_HEADER_MARKER_STYLE)} "
+            f"{cls.style_text(header_text, '1')}"
+        )
+
+    @classmethod
+    def print_pending_selection_item(cls, index: int, item: PendingSelectionItem) -> None:
+        item_text = f"[{item.action}] {item.key_name}: {item.from_path} -> {item.to_path}"
+        if not cls.colors_enabled():
+            print(f"  {index:>2}) {item_text}")
+            return
+
+        item_style = MENU_ACTION_STYLE_BY_NAME.get(item.action, ("1",))
+        action_text = cls.style_text(f"[{item.action}]", *item_style)
+        key_text = cls.style_text(item.key_name, "1")
+        print(
+            f"  {cls.style_text(f'{index:>2})', *MENU_INDEX_STYLE)} "
+            f"{action_text} {key_text}: {item.from_path} -> {item.to_path}"
+        )
+
+    @classmethod
+    def pending_selection_prompt(cls) -> str:
+        prompt_text = 'Exclude by number or range'
+        hint_text = '(default: none; e.g. "1 2 4-6" or "^3")'
+        if not cls.colors_enabled():
+            return f"{prompt_text} {hint_text}: "
+        return (
+            f"{cls.style_text(MENU_HEADER_MARKER, *MENU_HEADER_MARKER_STYLE)} "
+            f"{cls.style_text(prompt_text, *MENU_PROMPT_STYLE)} "
+            f"{cls.style_text(hint_text, *MENU_HINT_STYLE)}: "
+        )
 
     @staticmethod
     def parse_selection_token(token: str, item_count: int) -> set[int]:

@@ -1,9 +1,11 @@
 """Tests for DotManager.parse_args."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from scripts.dotman import DotManager, ParsedArgs
+from scripts.dotman import DotManager, ParsedArgs, PendingSelectionItem
 
 
 def make_manager(operation: str = "update") -> DotManager:
@@ -253,6 +255,65 @@ def test_parse_selection_indexes_rejects_out_of_range_values():
 def test_parse_selection_indexes_rejects_descending_ranges():
     with pytest.raises(ValueError, match="invalid range"):
         DotManager.parse_selection_indexes("4-2", 5)
+
+
+def test_prompt_for_excluded_items_uses_colored_menu_when_enabled(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    selection_items = [
+        PendingSelectionItem(
+            key_name="f_alpha",
+            action="install",
+            from_path=Path("/repo/alpha.toml"),
+            to_path=Path("/home/.config/alpha.toml"),
+        )
+    ]
+
+    monkeypatch.setattr(DotManager, "colors_enabled", staticmethod(lambda: True))
+    monkeypatch.setattr(
+        DotManager,
+        "prompt",
+        staticmethod(lambda message: (print(message, end=""), "")[1]),
+    )
+
+    excluded = DotManager.prompt_for_excluded_items(selection_items, operation="install")
+    output = capsys.readouterr().out
+
+    assert excluded == set()
+    assert "\033[1;34m::\033[0m" in output
+    assert "\033[1;36m 1)\033[0m" in output
+    assert "\033[1;32m[install]\033[0m" in output
+    assert "\033[1mf_alpha\033[0m" in output
+    assert "Select items to exclude from install:" in output
+    assert "/repo/alpha.toml -> /home/.config/alpha.toml" in output
+    assert "Exclude by number or range" in output
+
+
+def test_prompt_for_excluded_items_keeps_plain_menu_when_colors_disabled(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    selection_items = [
+        PendingSelectionItem(
+            key_name="f_alpha",
+            action="install",
+            from_path=Path("/repo/alpha.toml"),
+            to_path=Path("/home/.config/alpha.toml"),
+        )
+    ]
+
+    monkeypatch.setattr(DotManager, "colors_enabled", staticmethod(lambda: False))
+    monkeypatch.setattr(
+        DotManager,
+        "prompt",
+        staticmethod(lambda message: (print(message, end=""), "")[1]),
+    )
+
+    DotManager.prompt_for_excluded_items(selection_items, operation="install")
+    output = capsys.readouterr().out
+
+    assert output.startswith("Select items to exclude from install:\n")
+    assert "  1) [install] f_alpha: /repo/alpha.toml -> /home/.config/alpha.toml\n" in output
+    assert "\033[" not in output
 
 
 # ---------------------------------------------------------------------------
