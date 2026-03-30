@@ -65,8 +65,25 @@ class UpdateChange:
     preview_transform: PreviewTransform | None = None
 
 
+@dataclass(frozen=True)
+class PendingSelectionItem:
+    key_name: str
+    action: str
+    from_path: Path
+    to_path: Path
+
+
 @dataclass
 class TemplateUpdateState:
+    changed: bool = False
+    skipped: bool = False
+
+
+@dataclass
+class PreparedTemplateUpdate:
+    exit_code: int
+    staged_output_path: str = ""
+    helper_output_compact: str = ""
     changed: bool = False
     skipped: bool = False
 
@@ -236,9 +253,11 @@ class DotManager:
         self.declined_update_backup_dir: Path | None = None
         self.declined_update_backup_entries: list[BackupEntry] = []
         self.template_update_staging_dir: Path | None = None
+        self.prepared_template_updates: dict[str, PreparedTemplateUpdate] = {}
 
         self.overall_exit_code = 0
         self.last_template_update = TemplateUpdateState()
+        self.used_combined_operation_selection = False
 
     def run(self) -> int:
         if self.argv and self.argv[0] == "default":
@@ -316,19 +335,18 @@ class DotManager:
         self.select_targets()
 
         if not self.parsed.explicit_targets and not self.parsed.force_mode:
-            if self.parsed.profile_was_explicitly_selected:
-                self.log_profile_selection()
-            elif not self.confirm_whole_profile_operation():
-                return 1
+            self.log_profile_selection()
 
         if self.is_update_operation:
             try:
+                self.exclude_pending_operation_items()
                 self.confirm_update_overwrite_targets()
                 self.run_update_phases()
             finally:
                 self.restore_declined_update_state()
             return self.overall_exit_code
 
+        self.exclude_pending_operation_items()
         self.run_install_phases()
         return self.overall_exit_code
 
@@ -534,8 +552,7 @@ class DotManager:
             parsed.config_path_from_args = namespace.cfg
 
         # Reconstruct base_args for dotdrop. Valued options are emitted as
-        # --opt=VALUE (single tokens) so files_args can filter unambiguously
-        # without also having to grab the adjacent value token.
+        # --opt=VALUE single tokens to keep downstream flag handling unambiguous.
         base_args: list[str] = []
         if namespace.force:
             base_args.append("-f")
@@ -709,6 +726,201 @@ class DotManager:
             return []
 
         return self.parse_update_changes(completed.stdout)
+
+    def exclude_pending_operation_items(self) -> None:
+        if self.is_update_operation:
+            self.exclude_pending_update_items()
+            return
+        if self.parsed.force_mode or not sys.stdin.isatty():
+            return
+        if self.is_install_operation:
+            self.exclude_pending_install_items()
+
+    def exclude_pending_install_items(self) -> None:
+        pending_keys = self.collect_pending_install_keys()
+        self.install_keys = pending_keys
+        if not pending_keys:
+            return
+
+        self.used_combined_operation_selection = True
+        selection_items = [
+            PendingSelectionItem(
+                key_name=key_name,
+                action="install",
+                from_path=Path(self.source_by_key[key_name]),
+                to_path=Path(self.destination_by_key[key_name]),
+            )
+            for key_name in pending_keys
+        ]
+        excluded_indexes = self.prompt_for_excluded_items(selection_items, operation="install")
+        self.install_keys = [
+            key_name
+            for index, key_name in enumerate(pending_keys, start=1)
+            if index not in excluded_indexes
+        ]
+
+    def exclude_pending_update_items(self) -> None:
+        regular_candidates = self.collect_pending_regular_update_candidates()
+        if self.parsed.force_mode or not sys.stdin.isatty():
+            return
+        template_candidate_keys = self.collect_pending_template_update_keys()
+
+        selection_items = [
+            PendingSelectionItem(
+                key_name=key_name,
+                action=self.pending_update_action_name(change),
+                from_path=change.live_path,
+                to_path=change.source_path,
+            )
+            for key_name, change in regular_candidates
+        ]
+        selection_items.extend(
+            PendingSelectionItem(
+                key_name=key_name,
+                action="template",
+                from_path=Path(self.destination_by_key[key_name]),
+                to_path=Path(self.source_by_key[key_name]),
+            )
+            for key_name in template_candidate_keys
+        )
+
+        if not selection_items:
+            return
+
+        self.used_combined_operation_selection = True
+        excluded_indexes = self.prompt_for_excluded_items(selection_items, operation="update")
+        included_regular_keys = {
+            key_name
+            for index, (key_name, _change) in enumerate(regular_candidates, start=1)
+            if index not in excluded_indexes
+        }
+
+        for key_name in list(self.regular_update_keys):
+            if key_name not in included_regular_keys:
+                self.remove_regular_update_key(key_name)
+
+        for index, (key_name, change) in enumerate(regular_candidates, start=1):
+            if index in excluded_indexes and key_name in included_regular_keys:
+                self.backup_declined_update_change(change)
+
+        template_index_offset = len(regular_candidates)
+        for offset, key_name in enumerate(template_candidate_keys, start=1):
+            if template_index_offset + offset in excluded_indexes:
+                self.remove_template_update_key(key_name)
+
+    def collect_pending_install_keys(self) -> list[str]:
+        return [key_name for key_name in self.install_keys if self.install_phase_need_run([key_name])]
+
+    def collect_pending_regular_update_candidates(self) -> list[tuple[str, UpdateChange]]:
+        pending_candidates: list[tuple[str, UpdateChange]] = []
+        for change in self.collect_update_changes():
+            normalized_live_file_path = self.normalize_target_path(str(change.live_path))
+            candidate_key = self.find_matching_update_key_for_path(normalized_live_file_path)
+
+            if (
+                candidate_key
+                and candidate_key in self.scoped_update_key_set
+                and normalized_live_file_path not in self.scoped_update_allowed_live_path_set
+            ):
+                self.backup_declined_update_change(change)
+                continue
+
+            pending_candidates.append((candidate_key, change))
+
+        return pending_candidates
+
+    def collect_pending_template_update_keys(self) -> list[str]:
+        pending_keys: list[str] = []
+        for key_name in self.template_update_keys:
+            prepare_exit_code, staged_output_path, helper_output_compact = self.prepare_template_update_for_key(
+                key_name
+            )
+            prepared_update = PreparedTemplateUpdate(
+                exit_code=prepare_exit_code,
+                staged_output_path=staged_output_path,
+                helper_output_compact=helper_output_compact,
+                changed=self.last_template_update.changed,
+                skipped=self.last_template_update.skipped,
+            )
+            self.prepared_template_updates[key_name] = prepared_update
+            if prepare_exit_code != 0:
+                if self.overall_exit_code == 0:
+                    self.overall_exit_code = prepare_exit_code
+                continue
+            if prepared_update.changed:
+                pending_keys.append(key_name)
+        return pending_keys
+
+    @staticmethod
+    def pending_update_action_name(change: UpdateChange) -> str:
+        if change.source_path.exists():
+            return "update"
+        return "import"
+
+    @classmethod
+    def prompt_for_excluded_items(
+        cls,
+        selection_items: list[PendingSelectionItem],
+        *,
+        operation: str,
+    ) -> set[int]:
+        print(f"Select items to exclude from {operation}:")
+        for index, item in enumerate(selection_items, start=1):
+            print(f"  {index:>2}) [{item.action}] {item.key_name}: {item.from_path} -> {item.to_path}")
+
+        while True:
+            answer = cls.prompt(
+                'Exclude by number or range (default: none; e.g. "1 2 4-6" or "^3"): '
+            )
+            try:
+                return cls.parse_selection_indexes(answer, len(selection_items))
+            except ValueError as exc:
+                print(f"invalid selection: {exc}", file=sys.stderr)
+
+    @staticmethod
+    def parse_selection_token(token: str, item_count: int) -> set[int]:
+        if token.isdigit():
+            index = int(token)
+            if not 1 <= index <= item_count:
+                raise ValueError(f"selection index out of range: {index}")
+            return {index}
+
+        if "-" not in token:
+            raise ValueError(f"unsupported token: {token}")
+
+        start_text, end_text = token.split("-", 1)
+        if not start_text.isdigit() or not end_text.isdigit():
+            raise ValueError(f"unsupported token: {token}")
+
+        start_index = int(start_text)
+        end_index = int(end_text)
+        if start_index > end_index:
+            raise ValueError(f"invalid range: {token}")
+        if start_index < 1 or end_index > item_count:
+            raise ValueError(f"selection index out of range: {token}")
+        return set(range(start_index, end_index + 1))
+
+    @classmethod
+    def parse_selection_indexes(cls, raw_answer: str, item_count: int) -> set[int]:
+        answer = raw_answer.strip()
+        if not answer:
+            return set()
+
+        keep_only_mode = answer.startswith("^")
+        if keep_only_mode:
+            answer = answer[1:].strip()
+            if not answer:
+                raise ValueError("missing keep-only selection after '^'")
+
+        selected_indexes: set[int] = set()
+        for token in re.split(r"[\s,]+", answer):
+            if not token:
+                continue
+            selected_indexes.update(cls.parse_selection_token(token, item_count))
+
+        if keep_only_mode:
+            return set(range(1, item_count + 1)) - selected_indexes
+        return selected_indexes
 
     @classmethod
     def parse_update_change_pairs(cls, output_text: str) -> list[tuple[str, str]]:
@@ -902,42 +1114,8 @@ class DotManager:
         return len(self.parse_update_changes(completed.stdout))
 
     def confirm_update_overwrite_targets(self) -> None:
-        if not self.is_update_operation:
+        if not self.is_update_operation or self.parsed.force_mode or not sys.stdin.isatty():
             return
-
-        overwrite_changes = self.collect_update_changes()
-        if not overwrite_changes:
-            return
-
-        for change in overwrite_changes:
-            normalized_live_file_path = self.normalize_target_path(str(change.live_path))
-            candidate_key = self.find_matching_update_key_for_path(normalized_live_file_path)
-
-            if (
-                candidate_key
-                and candidate_key in self.scoped_update_key_set
-                and normalized_live_file_path not in self.scoped_update_allowed_live_path_set
-            ):
-                self.backup_declined_update_change(change)
-                continue
-
-            if self.parsed.force_mode or not sys.stdin.isatty():
-                continue
-
-            source_path = change.source_path
-            live_path = change.live_path
-            if source_path.exists():
-                answer = self.prompt(f'overwrite dotfiles path "{source_path}" [y/N] ? ')
-            else:
-                answer = self.prompt(
-                    f'import live path into dotfiles "{source_path}" from "{live_path}" [y/N] ? '
-                )
-
-            if answer.lower() not in {"y", "yes"}:
-                if candidate_key and self.key_is_single_file_update_target(candidate_key, normalized_live_file_path):
-                    self.remove_regular_update_key(candidate_key)
-                    continue
-                self.backup_declined_update_change(change)
 
     def print_phase_header(self, header_text: str) -> None:
         if self.colors_enabled():
@@ -1323,6 +1501,8 @@ class DotManager:
     def confirm_template_update_overwrite(self, source_file_path: str) -> bool:
         if not self.is_update_operation or self.parsed.force_mode or not self.last_template_update.changed:
             return True
+        if self.used_combined_operation_selection:
+            return True
         if not sys.stdin.isatty():
             return True
         answer = self.prompt(f'overwrite template file "{source_file_path}" [y/N] ? ')
@@ -1359,7 +1539,20 @@ class DotManager:
         return DOTDROP_TEMPLATE_INCLUDE_RE.search(source_text) is not None
 
     def run_template_update_for_key(self, key_name: str) -> int:
-        prepare_exit_code, staged_output_path, helper_output_compact = self.prepare_template_update_for_key(key_name)
+        prepared_update = self.prepared_template_updates.pop(key_name, None)
+        if prepared_update is None:
+            prepare_exit_code, staged_output_path, helper_output_compact = self.prepare_template_update_for_key(
+                key_name
+            )
+        else:
+            self.last_template_update = TemplateUpdateState(
+                changed=prepared_update.changed,
+                skipped=prepared_update.skipped,
+            )
+            prepare_exit_code = prepared_update.exit_code
+            staged_output_path = prepared_update.staged_output_path
+            helper_output_compact = prepared_update.helper_output_compact
+
         if prepare_exit_code != 0:
             return prepare_exit_code
 
@@ -1437,6 +1630,13 @@ class DotManager:
             return
         self.template_update_keys.append(target_key)
         self.template_update_key_set.add(target_key)
+
+    def remove_template_update_key(self, target_key: str) -> None:
+        if target_key not in self.template_update_key_set:
+            return
+        self.template_update_keys = [key for key in self.template_update_keys if key != target_key]
+        self.template_update_key_set.remove(target_key)
+        self.prepared_template_updates.pop(target_key, None)
 
     def record_scoped_update_target(self, target_key: str, live_path: str) -> None:
         self.scoped_update_key_set.add(target_key)
@@ -1533,6 +1733,8 @@ class DotManager:
         self.restore_declined_update_paths()
         self.cleanup_declined_update_backups()
         self.cleanup_template_update_staging_dir()
+        self.prepared_template_updates = {}
+        self.used_combined_operation_selection = False
 
     def capture_or_exit(
         self,

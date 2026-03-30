@@ -133,6 +133,58 @@ end
     return config_path, repo_source_path, live_path
 
 
+def create_multi_install_repro_project(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
+    repo_root = tmp_path / "dotdrop-install-repro"
+    repo_source_dir = repo_root / "dotfiles" / "config"
+    live_dir = tmp_path / "home" / ".config"
+    workdir = tmp_path / "workdir"
+
+    repo_source_dir.mkdir(parents=True)
+    live_dir.mkdir(parents=True)
+    workdir.mkdir()
+
+    config_path = repo_root / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "config:",
+                "  backup: false",
+                "  create: true",
+                "  dotpath: dotfiles",
+                f"  workdir: {workdir}",
+                "",
+                "dotfiles:",
+                "  f_alpha:",
+                "    src: config/alpha.toml",
+                f"    dst: {live_dir / 'alpha.toml'}",
+                "  f_beta:",
+                "    src: config/beta.toml",
+                f"    dst: {live_dir / 'beta.toml'}",
+                "",
+                "profiles:",
+                "  repro:",
+                "    dotfiles:",
+                "      - f_alpha",
+                "      - f_beta",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    alpha_repo = repo_source_dir / "alpha.toml"
+    beta_repo = repo_source_dir / "beta.toml"
+    alpha_live = live_dir / "alpha.toml"
+    beta_live = live_dir / "beta.toml"
+
+    alpha_repo.write_text('value = "repo alpha"\n', encoding="utf-8")
+    beta_repo.write_text('value = "repo beta"\n', encoding="utf-8")
+    alpha_live.write_text('value = "live alpha"\n', encoding="utf-8")
+    beta_live.write_text('value = "live beta"\n', encoding="utf-8")
+
+    return config_path, alpha_repo, beta_repo, alpha_live, beta_live
+
+
 def build_isolated_dotman_env(base_dir: Path) -> dict[str, str]:
     env = os.environ.copy()
     env["HOME"] = str(base_dir)
@@ -168,17 +220,21 @@ def run_interactive_dotman(
     target_path: Path | None,
     answer: str,
     *,
+    operation: str = "update",
     explicit_profile: bool = True,
+    extra_args: list[str] | None = None,
 ) -> tuple[int, str]:
     env = build_isolated_dotman_env(config_path.parent.parent)
     env["DOTDROP_CONFIG"] = str(config_path)
 
     command_parts = [
         str(DOTMAN_PATH),
-        "update",
+        operation,
     ]
     if explicit_profile:
         command_parts.extend(["-p", "repro"])
+    if extra_args:
+        command_parts.extend(extra_args)
     if target_path is not None:
         command_parts.append(str(target_path))
 
@@ -318,13 +374,14 @@ printf -- '--\n' >> "$SUDO_ARGS_FILE"
 def test_directory_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotman(config_path, live_dir, "n\nn")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "1 2")
 
     assert exit_code == 0
-    assert output.count('overwrite dotfiles path "') == 1
-    assert output.count('import live path into dotfiles "') == 1
-    assert 'overwrite dotfiles path "' in output
-    assert 'settings.toml" [y/N] ?' in output
+    assert 'Select items to exclude from update' in output
+    assert '[update] d_app: ' in output
+    assert '[import] d_app: ' in output
+    assert 'overwrite dotfiles path "' not in output
+    assert 'import live path into dotfiles "' not in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
     assert not (repo_source_dir / "extra.toml").exists()
 
@@ -384,7 +441,7 @@ def test_declined_directory_import_removes_created_repo_file_on_restore(tmp_path
     assert manager.declined_update_backup_dir is None
 
 
-def test_declining_single_file_update_removes_key_from_regular_update_targets(monkeypatch, tmp_path: Path) -> None:
+def test_excluding_single_file_update_removes_key_from_regular_update_targets(monkeypatch, tmp_path: Path) -> None:
     manager = DotManager(["update"])
     manager.operation = "update"
     manager.parsed = DOTMAN_MODULE.ParsedArgs()
@@ -407,10 +464,10 @@ def test_declining_single_file_update_removes_key_from_regular_update_targets(mo
         "collect_update_changes",
         lambda: [DOTMAN_MODULE.UpdateChange(source_path=source_path, live_path=live_path)],
     )
-    monkeypatch.setattr(manager, "prompt", lambda _message: "n")
+    monkeypatch.setattr(DOTMAN_MODULE.DotManager, "prompt", staticmethod(lambda _message: "1"))
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
 
-    manager.confirm_update_overwrite_targets()
+    manager.exclude_pending_update_items()
 
     assert manager.regular_update_keys == []
     assert manager.regular_update_key_set == set()
@@ -420,12 +477,12 @@ def test_declining_single_file_update_removes_key_from_regular_update_targets(mo
 def test_directory_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotman(config_path, live_dir, "y\ny")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "")
 
     assert exit_code == 0
-    assert 'overwrite dotfiles path "' in output
-    assert 'import live path into dotfiles "' in output
-    assert 'settings.toml" [y/N] ?' in output
+    assert 'Select items to exclude from update' in output
+    assert 'overwrite dotfiles path "' not in output
+    assert 'import live path into dotfiles "' not in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
 
@@ -436,12 +493,13 @@ def test_directory_update_prompts_before_importing_live_only_file(tmp_path: Path
 
     live_only.write_text('value = "live only"\n', encoding="utf-8")
 
-    exit_code, output = run_interactive_dotman(config_path, live_dir, "y\nn\ny")
+    exit_code, output = run_interactive_dotman(config_path, live_dir, "2")
 
     assert exit_code == 0
-    assert 'overwrite dotfiles path "' in output
-    assert 'import live path into dotfiles "' in output
+    assert 'Select items to exclude from update' in output
     assert 'live-only.toml' in output
+    assert 'overwrite dotfiles path "' not in output
+    assert 'import live path into dotfiles "' not in output
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert (repo_source_dir / "extra.toml").read_text(encoding="utf-8") == 'value = "extra"\n'
     assert not (repo_source_dir / "live-only.toml").exists()
@@ -460,18 +518,17 @@ def test_default_profile_whole_update_prompt_defaults_to_yes(tmp_path: Path) -> 
     exit_code, output = run_interactive_dotman(
         config_path,
         None,
-        "\nn\nn",
+        "",
         explicit_profile=False,
     )
 
     assert exit_code == 0
-    assert 'Using dotdrop profile "repro"' not in output
-    assert 'Update all dotfiles for profile "host_linux" [Y/n] ?' in output
-    assert 'import live path into dotfiles "' in output
-    assert 'overwrite dotfiles path "' in output
-    assert 'settings.toml" [y/N] ?' in output
-    assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "repo"\n'
-    assert not (repo_source_dir / "extra.toml").exists()
+    assert 'Using dotdrop profile "host_linux"' in output
+    assert 'Update all dotfiles for profile "host_linux" [Y/n] ?' not in output
+    assert 'Select items to exclude from update' in output
+    assert 'overwrite dotfiles path "' not in output
+    assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
+    assert (repo_source_dir / "extra.toml").exists()
 
 def test_child_path_update_stays_scoped_to_requested_file(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
@@ -484,10 +541,35 @@ def test_child_path_update_stays_scoped_to_requested_file(tmp_path: Path) -> Non
     live_other.write_text('value = "live other"\n', encoding="utf-8")
     live_only.write_text('value = "live only"\n', encoding="utf-8")
 
-    exit_code, output = run_interactive_dotman(config_path, live_file, "y")
+    exit_code, output = run_interactive_dotman(config_path, live_file, "")
 
     assert exit_code == 0
-    assert output.count('overwrite dotfiles path "') == 1
+    assert 'Select items to exclude from update' in output
+    assert output.count('[update] d_app: ') == 1
+    assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
+    assert repo_other.read_text(encoding="utf-8") == 'value = "repo other"\n'
+    assert not (repo_source_dir / "live-only.toml").exists()
+
+
+@pytest.mark.parametrize("extra_args", [(), ("-f",)])
+def test_non_interactive_child_path_update_stays_scoped_to_requested_file(
+    tmp_path: Path,
+    extra_args: tuple[str, ...],
+) -> None:
+    config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
+    live_file = live_dir / "settings.toml"
+    repo_other = repo_source_dir / "other.toml"
+    live_other = live_dir / "other.toml"
+    live_only = live_dir / "live-only.toml"
+
+    repo_other.write_text('value = "repo other"\n', encoding="utf-8")
+    live_other.write_text('value = "live other"\n', encoding="utf-8")
+    live_only.write_text('value = "live only"\n', encoding="utf-8")
+
+    result = run_dotman(config_path, "update", "-p", "repro", *extra_args, str(live_file))
+
+    assert result.returncode == 0
+    assert 'Select items to exclude from update' not in (result.stdout + result.stderr)
     assert (repo_source_dir / "settings.toml").read_text(encoding="utf-8") == 'value = "live"\n'
     assert repo_other.read_text(encoding="utf-8") == 'value = "repo other"\n'
     assert not (repo_source_dir / "live-only.toml").exists()
@@ -724,6 +806,38 @@ def test_install_force_skips_whole_profile_confirmation(tmp_path: Path) -> None:
     assert (live_dir / "extra.toml").exists()
 
 
+def test_install_combined_selection_can_exclude_pending_item(monkeypatch, tmp_path: Path) -> None:
+    manager = DotManager(["install"])
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
+    alpha_repo = tmp_path / "repo" / "alpha.toml"
+    beta_repo = tmp_path / "repo" / "beta.toml"
+    alpha_live = tmp_path / "home" / "alpha.toml"
+    beta_live = tmp_path / "home" / "beta.toml"
+    alpha_repo.parent.mkdir(parents=True)
+    alpha_live.parent.mkdir(parents=True)
+    alpha_repo.write_text("repo alpha\n", encoding="utf-8")
+    beta_repo.write_text("repo beta\n", encoding="utf-8")
+
+    manager.install_keys = ["f_alpha", "f_beta"]
+    manager.source_by_key = {
+        "f_alpha": str(alpha_repo),
+        "f_beta": str(beta_repo),
+    }
+    manager.destination_by_key = {
+        "f_alpha": str(alpha_live),
+        "f_beta": str(beta_live),
+    }
+
+    monkeypatch.setattr(manager, "install_phase_need_run", lambda operation_targets: True)
+    monkeypatch.setattr(DOTMAN_MODULE.DotManager, "prompt", staticmethod(lambda _message: "2"))
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+    manager.exclude_pending_install_items()
+
+    assert manager.install_keys == ["f_alpha"]
+
+
 def test_install_remove_existing_deletes_unmanaged_directory_children(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
 
@@ -798,7 +912,7 @@ def test_install_phase_need_run_ignores_whitespace_prefixed_compare_logs(tmp_pat
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
-    manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["--profile=repro"])
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
     manager.resolved_profile = "repro"
     manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
 
@@ -831,7 +945,7 @@ def test_install_phase_need_run_keeps_multiple_compare_targets(tmp_path: Path, m
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
-    manager.parsed = DOTMAN_MODULE.ParsedArgs(base_args=["--profile=repro"])
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
     manager.resolved_profile = "repro"
     manager.normalized_destination_by_key = {
         "f_config": "/root/.config/example.toml",
@@ -1006,7 +1120,8 @@ def test_update_operation_counts_only_actual_changed_files_from_dry_run(monkeypa
     manager = DotManager(["update"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "update"
-    manager.parsed.base_args = ["--profile=repro"]
+    manager.parsed.base_args = []
+    manager.resolved_profile = "repro"
 
     dry_run_completed = subprocess.CompletedProcess(
         ["dotdrop", "update", "-d"],
@@ -1077,22 +1192,23 @@ def test_template_update_can_be_skipped_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
     original_source = repo_source_path.read_text(encoding="utf-8")
 
-    exit_code, output = run_interactive_dotman(config_path, live_path, "n")
+    exit_code, output = run_interactive_dotman(config_path, live_path, "1")
 
     assert exit_code == 0
-    assert 'overwrite template file "' in output
-    assert 'profile" [y/N] ?' in output
-    assert "skipped template update: key=f_profile" in output
+    assert 'Select items to exclude from update' in output
+    assert '[template] f_profile: ' in output
+    assert 'overwrite template file "' not in output
     assert repo_source_path.read_text(encoding="utf-8") == original_source
 
 
 def test_template_update_can_be_confirmed_interactively(tmp_path: Path) -> None:
     config_path, repo_source_path, live_path = create_template_repro_project(tmp_path)
 
-    exit_code, output = run_interactive_dotman(config_path, live_path, "y")
+    exit_code, output = run_interactive_dotman(config_path, live_path, "")
 
     assert exit_code == 0
-    assert 'overwrite template file "' in output
+    assert 'Select items to exclude from update' in output
+    assert 'overwrite template file "' not in output
     assert repo_source_path.read_text(encoding="utf-8") == """start
 {%@@ if os == \"linux\" @@%}
 live
@@ -1108,6 +1224,7 @@ def test_unchanged_template_update_skips_prompt(tmp_path: Path) -> None:
     exit_code, output = run_interactive_dotman(config_path, live_path, "y")
 
     assert exit_code == 0
+    assert 'Select items to exclude from update' not in output
     assert 'overwrite template file "' not in output
     assert repo_source_path.read_text(encoding="utf-8") == """start
 {%@@ if os == \"linux\" @@%}

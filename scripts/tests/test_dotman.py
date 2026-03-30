@@ -1,4 +1,4 @@
-"""Tests for DotManager.parse_args and DotManager.files_args."""
+"""Tests for DotManager.parse_args."""
 from __future__ import annotations
 
 import pytest
@@ -127,8 +127,6 @@ def test_profile_short_space_separated():
     result = dm.parse_args(["-p", "myhost"])
     assert result.profile_from_args == "myhost"
     assert result.profile_was_explicitly_selected is True
-    assert "--profile=myhost" in result.base_args
-    # Must be a single token — no bare "-p" in base_args
     assert "-p" not in result.base_args
 
 
@@ -137,14 +135,13 @@ def test_profile_long_equals():
     result = dm.parse_args(["--profile=myhost"])
     assert result.profile_from_args == "myhost"
     assert result.profile_was_explicitly_selected is True
-    assert "--profile=myhost" in result.base_args
+    assert "--profile=myhost" not in result.base_args
 
 
 def test_cfg_short_space_separated():
     dm = make_manager()
     result = dm.parse_args(["-c", "/tmp/config.yaml"])
     assert result.config_path_from_args == "/tmp/config.yaml"
-    assert "--cfg=/tmp/config.yaml" in result.base_args
     assert "-c" not in result.base_args
 
 
@@ -152,24 +149,18 @@ def test_cfg_long_equals():
     dm = make_manager()
     result = dm.parse_args(["--cfg=/tmp/config.yaml"])
     assert result.config_path_from_args == "/tmp/config.yaml"
-    assert "--cfg=/tmp/config.yaml" in result.base_args
+    assert "--cfg=/tmp/config.yaml" not in result.base_args
 
 
-def test_files_args_only_returns_profile_and_cfg():
-    """files_args must include profile/cfg tokens and nothing else."""
+def test_metadata_args_uses_resolved_profile_and_config():
     dm = make_manager()
-    dm.parsed = dm.parse_args(["-f", "--profile=myhost", "--cfg=/tmp/c.yaml", "-V"])
-    result = dm.files_args
-    assert "--profile=myhost" in result
-    assert "--cfg=/tmp/c.yaml" in result
-    assert "-f" not in result
-    assert "-V" not in result
+    dm.resolved_profile = "myhost"
+    dm.resolved_config_path = "/tmp/config.yaml"
 
-
-def test_files_args_empty_when_no_profile_or_cfg():
-    dm = make_manager()
-    dm.parsed = dm.parse_args(["-f", "-V"])
-    assert dm.files_args == []
+    assert dm.metadata_args == [
+        "--cfg=/tmp/config.yaml",
+        "--profile=myhost",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +226,33 @@ def test_key_flag_in_install_mode_forwarded_to_dotdrop():
     result = dm.parse_args(["-k"])
     assert result.key_mode is False
     assert "-k" in result.base_args
+
+
+# ---------------------------------------------------------------------------
+# Combined selection parsing
+# ---------------------------------------------------------------------------
+
+
+def test_parse_selection_indexes_returns_empty_for_blank_answer():
+    assert DotManager.parse_selection_indexes("", 4) == set()
+
+
+def test_parse_selection_indexes_supports_numbers_ranges_and_commas():
+    assert DotManager.parse_selection_indexes("1, 3-4 6", 6) == {1, 3, 4, 6}
+
+
+def test_parse_selection_indexes_supports_keep_only_inversion():
+    assert DotManager.parse_selection_indexes("^2 4", 5) == {1, 3, 5}
+
+
+def test_parse_selection_indexes_rejects_out_of_range_values():
+    with pytest.raises(ValueError, match="out of range"):
+        DotManager.parse_selection_indexes("5", 4)
+
+
+def test_parse_selection_indexes_rejects_descending_ranges():
+    with pytest.raises(ValueError, match="invalid range"):
+        DotManager.parse_selection_indexes("4-2", 5)
 
 
 # ---------------------------------------------------------------------------
@@ -308,23 +326,3 @@ def test_unknown_short_flag_forwarded():
 
 
 # ---------------------------------------------------------------------------
-# files_args: regression test for the two-token bug
-# ---------------------------------------------------------------------------
-
-
-def test_files_args_never_returns_bare_p_flag():
-    """Regression: space-separated -p VALUE must not produce a bare '-p' token."""
-    dm = make_manager()
-    dm.parsed = dm.parse_args(["-p", "host"])
-    for token in dm.files_args:
-        assert token != "-p", "bare '-p' without value must not appear in files_args"
-        assert token != "--profile", "bare '--profile' without value must not appear in files_args"
-
-
-def test_files_args_never_returns_bare_c_flag():
-    """Regression: space-separated -c VALUE must not produce a bare '-c' token."""
-    dm = make_manager()
-    dm.parsed = dm.parse_args(["-c", "/some/path.yaml"])
-    for token in dm.files_args:
-        assert token != "-c", "bare '-c' without value must not appear in files_args"
-        assert token != "--cfg", "bare '--cfg' without value must not appear in files_args"
