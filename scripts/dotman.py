@@ -37,6 +37,7 @@ MENU_HEADER_MARKER_STYLE = ("1", "34")
 MENU_INDEX_STYLE = ("1", "36")
 MENU_PROMPT_STYLE = ("1",)
 MENU_HINT_STYLE = ("2",)
+MENU_ARROW_STYLE = ("2",)
 PROFILE_LABEL_STYLE = ("1", "34")
 PROFILE_VALUE_STYLE = ("1", "36")
 NOOP_LABEL_STYLE = ("1", "32")
@@ -971,9 +972,10 @@ class DotManager:
         item_style = MENU_ACTION_STYLE_BY_NAME.get(item.action, ("1",))
         action_text = cls.style_text(f"[{item.action}]", *item_style)
         key_text = cls.style_text(item.key_name, "1")
+        arrow_text = cls.style_text("->", *MENU_ARROW_STYLE)
         print(
             f"  {cls.style_text(f'{index:>2})', *MENU_INDEX_STYLE)} "
-            f"{action_text} {key_text}: {item.from_path} -> {item.to_path}"
+            f"{action_text} {key_text}: {item.from_path} {arrow_text} {item.to_path}"
         )
 
     @classmethod
