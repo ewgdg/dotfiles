@@ -41,6 +41,7 @@
 
 ## Testing
 
+- Do not blindly create tests for every trivial details.
 - Test cases need to be robust, flexible and generic and concise, so that they will not easily break for tiny changes
 - Write test cases first before bug fixes
 - if the goals are changed or the code is refactored, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code.
