@@ -869,7 +869,7 @@ class DotManager:
             return []
 
         compare_completed = self.run_install_compare(self.install_keys)
-        if compare_completed.returncode != 0:
+        if compare_completed.returncode not in {0, 1}:
             return list(self.install_keys)
 
         pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
@@ -1188,6 +1188,8 @@ class DotManager:
             flags.append("-d")
         flags.extend(self.parsed.base_args)
         flags.extend(self.metadata_args)
+        if op == "install" and self.used_combined_operation_selection:
+            flags.append("-f")
         if op == "update":  # Use op param, not self.is_update_operation
             flags.extend(["-f", "-k"])
         flags.extend(operation_targets)
@@ -1266,7 +1268,7 @@ class DotManager:
             return False
 
         compare_completed = self.run_install_compare(operation_targets)
-        if compare_completed.returncode != 0:
+        if compare_completed.returncode not in {0, 1}:
             return True
 
         pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
@@ -1319,7 +1321,10 @@ class DotManager:
 
             quoted_match = DOTDROP_COMPARE_QUOTED_KEY_RE.match(line)
             if quoted_match:
-                matched_key = quoted_match.group(1)
+                matched_key = self.resolve_compare_pending_key(
+                    quoted_match.group(1),
+                    operation_targets,
+                )
                 if matched_key in target_key_set:
                     pending_keys.add(matched_key)
                     continue
@@ -1327,7 +1332,10 @@ class DotManager:
 
             plain_match = DOTDROP_COMPARE_PLAIN_KEY_RE.match(line)
             if plain_match:
-                matched_key = plain_match.group(1)
+                matched_key = self.resolve_compare_pending_key(
+                    plain_match.group(1),
+                    operation_targets,
+                )
                 if matched_key in target_key_set:
                     pending_keys.add(matched_key)
                     continue
@@ -1336,6 +1344,11 @@ class DotManager:
             return set(target_key_set), True
 
         return pending_keys, False
+
+    def resolve_compare_pending_key(self, candidate: str, operation_targets: list[str]) -> str:
+        if candidate in operation_targets:
+            return candidate
+        return self.find_matching_install_key_for_path(candidate, operation_targets)
 
     def collect_remove_existing_pending_install_keys(self, operation_targets: list[str]) -> set[str]:
         dry_run_call = self.build_operation_call(

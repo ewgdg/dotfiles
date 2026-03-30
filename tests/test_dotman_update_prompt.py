@@ -226,6 +226,7 @@ def run_interactive_dotman(
 ) -> tuple[int, str]:
     env = build_isolated_dotman_env(config_path.parent.parent)
     env["DOTDROP_CONFIG"] = str(config_path)
+    env["NO_COLOR"] = "1"
 
     command_parts = [
         str(DOTMAN_PATH),
@@ -1015,6 +1016,72 @@ def test_collect_pending_install_keys_batches_compare_across_install_targets(mon
             "/root/.config/beta.toml",
         ]
     ]
+
+
+def test_collect_pending_install_keys_accepts_compare_output_with_destination_path(monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
+    manager.resolved_profile = "repro"
+    manager.install_keys = ["f_alpha", "f_beta"]
+    manager.normalized_destination_by_key = {
+        "f_alpha": "/root/.config/alpha.toml",
+        "f_beta": "/root/.config/beta.toml",
+    }
+
+    recorded_commands: list[list[str]] = []
+
+    def fake_run(command, **_kwargs):
+        recorded_commands.append(list(command))
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            '=> differ: "/root/.config/alpha.toml"\n\n2 dotfile(s) compared.\n',
+            "",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.collect_pending_install_keys() == ["f_alpha"]
+    assert recorded_commands == [
+        [
+            "dotdrop",
+            "compare",
+            "-L",
+            "-b",
+            "--profile=repro",
+            "-C",
+            "/root/.config/alpha.toml",
+            "-C",
+            "/root/.config/beta.toml",
+        ]
+    ]
+
+
+def test_collect_pending_install_keys_accepts_compare_diff_exit_code(monkeypatch) -> None:
+    manager = DotManager(["install"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "install"
+    manager.parsed = DOTMAN_MODULE.ParsedArgs()
+    manager.resolved_profile = "repro"
+    manager.install_keys = ["f_alpha", "f_beta"]
+    manager.normalized_destination_by_key = {
+        "f_alpha": "/root/.config/alpha.toml",
+        "f_beta": "/root/.config/beta.toml",
+    }
+
+    def fake_run(command, **_kwargs):
+        return subprocess.CompletedProcess(
+            command,
+            1,
+            '=> differ: "f_alpha" "/root/.config/alpha.toml"\n\n2 dotfile(s) compared.\n',
+            "",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert manager.collect_pending_install_keys() == ["f_alpha"]
 
 
 def test_collect_pending_install_keys_batches_remove_existing_dry_run(monkeypatch) -> None:

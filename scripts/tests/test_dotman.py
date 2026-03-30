@@ -230,6 +230,39 @@ def test_key_flag_in_install_mode_forwarded_to_dotdrop():
     assert "-k" in result.base_args
 
 
+def test_build_operation_call_forces_install_after_combined_selection() -> None:
+    dm = make_manager(operation="install")
+    dm.parsed = ParsedArgs()
+    dm.resolved_config_path = ""
+    dm.resolved_profile = "host"
+    dm.used_combined_operation_selection = True
+
+    assert dm.build_operation_call(["f_config"]) == [
+        "dotdrop",
+        "install",
+        "-b",
+        "--profile=host",
+        "-f",
+        "f_config",
+    ]
+
+
+def test_build_operation_call_keeps_install_prompting_without_combined_selection() -> None:
+    dm = make_manager(operation="install")
+    dm.parsed = ParsedArgs()
+    dm.resolved_config_path = ""
+    dm.resolved_profile = "host"
+    dm.used_combined_operation_selection = False
+
+    assert dm.build_operation_call(["f_config"]) == [
+        "dotdrop",
+        "install",
+        "-b",
+        "--profile=host",
+        "f_config",
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Combined selection parsing
 # ---------------------------------------------------------------------------
