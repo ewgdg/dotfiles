@@ -888,7 +888,8 @@ class DotManager:
         pending_keys: list[str] = []
         for key_name in self.template_update_keys:
             prepare_exit_code, staged_output_path, helper_output_compact = self.prepare_template_update_for_key(
-                key_name
+                key_name,
+                report_skip_reason=False,
             )
             prepared_update = PreparedTemplateUpdate(
                 exit_code=prepare_exit_code,
@@ -1557,7 +1558,9 @@ class DotManager:
         failed_count = 1 if phase_result.exit_code != 0 else 0
         self.print_phase_summary(len(phase_targets), phase_result.changed_count, failed_count)
 
-    def prepare_template_update_for_key(self, key_name: str) -> tuple[int, str, str]:
+    def prepare_template_update_for_key(
+        self, key_name: str, *, report_skip_reason: bool = True
+    ) -> tuple[int, str, str]:
         self.last_template_update = TemplateUpdateState()
 
         target_src = self.source_by_key[key_name]
@@ -1570,10 +1573,11 @@ class DotManager:
             return 2, "", ""
 
         if self.template_source_uses_dotdrop_include(Path(target_src)):
-            print(
-                f"skipped template-aware update: key={key_name} output={target_src} "
-                "reason=dotdrop include directives are not supported"
-            )
+            if report_skip_reason:
+                print(
+                    f"skipped template-aware update: key={key_name} output={target_src} "
+                    "reason=dotdrop include directives are not supported"
+                )
             self.last_template_update.skipped = True
             return 0, "", ""
 

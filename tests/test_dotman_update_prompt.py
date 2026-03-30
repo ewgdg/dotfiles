@@ -1346,6 +1346,7 @@ def test_template_update_is_skipped_for_dotdrop_include_sources(tmp_path: Path) 
 
     assert result.returncode == 0
     assert 'overwrite template file "' not in (result.stdout + result.stderr)
-    assert "skipped template-aware update: key=f_profile" in result.stdout
-    assert "reason=dotdrop include directives are not supported" in result.stdout
+    assert "nothing to update" in result.stdout
+    assert "skipped template-aware update" not in result.stdout
+    assert "reason=dotdrop include directives are not supported" not in result.stdout
     assert repo_source_path.read_text(encoding="utf-8") == original_source
