@@ -276,8 +276,6 @@ dotfiles:
   f_local_share_applications_steam.desktop:
     src: local/share/applications/steam.desktop
     dst: ~/.local/share/applications/steam.desktop
-    actions:
-    - install steam
   f_config_mimeapps.list:
     src: config/mimeapps.list
     dst: ~/.config/mimeapps.list
@@ -556,16 +554,22 @@ profiles:
     dotfiles:
     - d_config_sunshine
     - d_config_systemd_user_sunshine.service.d
+  games_linux:
+    dotfiles:
+    - f_local_share_applications_steam.desktop
+    actions:
+    - install 'steam lutris wine-mono proton-ge-custom-bin'
   apps_linux:
     variables:
       goldendict_config_selectors: >-
         'config/*WindowGeometry*' 'config/*WindowState*' 'config/*Geometry*'
         'config/*SplitterState*' 'config/*GroupId' 'config/*Release*'
+    include:
+    - games_linux
     dotfiles:
     - d_config_fcitx5
     - f_local_share_applications_1password-quickaccess.desktop
     - f_local_share_applications_goldendict-search.desktop
-    - f_local_share_applications_steam.desktop
     - f_config_mimeapps.list
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
