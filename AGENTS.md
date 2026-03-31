@@ -9,6 +9,8 @@ This repository manages user and system configuration with `dotdrop`. The main m
 When add a new config file to dotdrop, also add an appropriate post/pre action for it if necessary, for example, installing the corresponding app for the config.
 When add a new dotdrop entry in `config.yaml`, also verify it is included by the relevant profile. A dotfile entry that is not referenced by the active profile will not be deployed by `dotdrop`.
 The action need to be idempotent.
+Use `install-if 'pkg' 'predicate'` to conditionally install a package (e.g. `- install-if 'foo' 'command -v foo'`). Arg order is package first, predicate second.
+Dotdrop action arguments use `{0}`, `{1}`, etc. as positional placeholders — dotdrop does NOT auto-append extra tokens. When calling an action with multiple packages, always quote them as a single argument: `- install 'pkg1 pkg2'`. Unquoted extra tokens (e.g. `- install pkg1 pkg2`) are silently dropped.
 If a dotdrop action is only used in one place, prefer inlining the command at that call site instead of creating a single-use named action.
 Dotdrop transform scripts must write the output path passed by dotdrop and preserve the source file mode on that output.
 Performance is a concern for long running services.

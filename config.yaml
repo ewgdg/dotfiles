@@ -161,7 +161,7 @@ dotfiles:
     dst: ~/.gitconfig
     chmod: '600'
     actions:
-    - install git lazygit
+    - install 'git lazygit'
   f_config_lazygit_config.yml:
     src: config/lazygit/config.yml
     dst: ~/.config/lazygit/config.yml
@@ -370,7 +370,7 @@ dotfiles:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
     actions:
-    - install sddm where-is-my-sddm-theme-git
+    - install 'sddm where-is-my-sddm-theme-git'
   f_etc_plasmalogin.conf:
     src: etc/plasmalogin.conf
     dst: /etc/plasmalogin.conf
@@ -589,6 +589,9 @@ profiles:
     - f_local_share_applications_steam.desktop
     actions:
     - install 'steam lutris wine-mono proton-ge-custom-bin'
+    # xembedsniproxy bridges legacy XEmbed tray icons for Wine on Wayland DEs;
+    # remove once Wine supports modern StatusNotifierItem natively
+    - install-if 'xembedsniproxy' '! command -v xembedsniproxy >/dev/null 2>&1'
   apps_linux:
     variables:
       goldendict_config_selectors: >-
@@ -609,7 +612,7 @@ profiles:
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
     - d_config_mpv
     actions:
-    - install yazi chafa
+    - install 'yazi chafa'
   apps_mac:
     variables:
       linearmouse_config_selectors: >-
@@ -637,6 +640,7 @@ variables:
   symlink_cmd: ln -sfn {0} {1}
 actions:
   install: '{{@@ install_cmd @@}}'
+  install-if: if {1}; then {{@@ install_cmd @@}}; fi
   symlink: '{{@@ symlink_cmd @@}}'
   ensure-systemd-service-enabled: sh '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/ensure_systemd_service_enabled.sh' {0} {1}
