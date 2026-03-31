@@ -210,7 +210,7 @@ dotfiles:
     src: config/alacritty
     dst: ~/.config/alacritty
     actions:
-    - install alacritty
+    - install alacritty chafa
   d_config_kitty:
     src: config/kitty
     dst: ~/.config/kitty
@@ -370,7 +370,7 @@ dotfiles:
     src: etc/sddm.conf
     dst: /etc/sddm.conf
     actions:
-    - install where-is-my-sddm-theme-git
+    - install sddm where-is-my-sddm-theme-git
   f_etc_plasmalogin.conf:
     src: etc/plasmalogin.conf
     dst: /etc/plasmalogin.conf
@@ -538,6 +538,7 @@ profiles:
     variables:
       desktop: niri
     dotfiles:
+    - d_etc_sddm.conf.d
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
     - f_config_systemd_user_niri-event-stream-rules.service
@@ -547,7 +548,7 @@ profiles:
     - f_config_systemd_user_noctalia-shell.service
     actions:
     - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look'
-    - install 'nautilus loupe papers gnome-text-editor file-roller mpv'
+    - install 'nautilus imv loupe papers gnome-text-editor file-roller mpv'
     - install 'ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd'
   os_mac:
     variables:
@@ -576,8 +577,8 @@ profiles:
       desktop: niri
     include:
     - os_arch
-    - de_niri
     - de_kde
+    - de_niri
     - apps_linux
     - apps_ai
     dotfiles:
