@@ -210,7 +210,7 @@ dotfiles:
     src: config/alacritty
     dst: ~/.config/alacritty
     actions:
-    - install alacritty chafa
+    - install alacritty
   d_config_kitty:
     src: config/kitty
     dst: ~/.config/kitty
@@ -609,7 +609,7 @@ profiles:
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
     - d_config_mpv
     actions:
-    - install yazi
+    - install yazi chafa
   apps_mac:
     variables:
       linearmouse_config_selectors: >-
