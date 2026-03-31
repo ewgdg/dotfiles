@@ -333,10 +333,14 @@ class DotManager:
             self.resolved_profile = picked
             self.parsed.profile_from_args = picked
             self.parsed.profile_was_explicitly_selected = True
-            print(
-                f"tip: run 'dotman default {self.resolved_profile}' to save as default",
-                file=sys.stderr,
-            )
+            if not read_default_profile(get_dotman_state_dir()):
+                print(
+                    self.style_text(
+                        f"tip: run 'dotman default {self.resolved_profile}' to save as default",
+                        *MENU_HINT_STYLE,
+                    ),
+                    file=sys.stderr,
+                )
 
         if self.operation == "import":
             flags = FlagList()
