@@ -609,10 +609,18 @@ class DotManager:
 
         for candidate in ("config.yaml", "config.toml"):
             candidate_path = Path.cwd() / candidate
-            if candidate_path.is_file():
+            if candidate_path.is_file() and self._is_dotdrop_config(candidate_path):
                 return str(candidate_path)
 
         return ""
+
+    def _is_dotdrop_config(self, path: Path) -> bool:
+        result = subprocess.run(
+            [self.dotdrop_cmd, "--cfg", str(path), "validate"],
+            capture_output=True,
+            check=False,
+        )
+        return result.returncode == 0
 
     def load_dotfiles_output(self) -> str:
         flags = FlagList()
