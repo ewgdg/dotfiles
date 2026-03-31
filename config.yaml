@@ -228,6 +228,11 @@ dotfiles:
   d_config_fd:
     src: config/fd
     dst: ~/.config/fd
+  d_config_mpv:
+    src: config/mpv
+    dst: ~/.config/mpv
+    actions:
+    - install mpv
   d_config_autostart:
     src: config/autostart
     dst: ~/.config/autostart
@@ -240,9 +245,7 @@ dotfiles:
     src: config/plasmashellrc
     dst: ~/.config/plasmashellrc
     chmod: '600'
-    actions:
-    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
-      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
+    
   d_local_share_flatpak_overrides:
     src: local/share/flatpak/overrides
     dst: ~/.local/share/flatpak/overrides
@@ -250,14 +253,20 @@ dotfiles:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
-    trans_update: xml_transform_strip "--sort-attributes --selector-type remove --selectors {{@@ goldendict_config_selectors @@}}"
-    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_update: xml_transform_strip "--sort-attributes --selector-type remove 
+      --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors 
+      @@}}"
   f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config:
     template: false
     src: var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
     dst: ~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
-    trans_update: xml_transform_strip "--sort-attributes --selector-type remove --selectors {{@@ goldendict_config_selectors @@}}"
-    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_update: xml_transform_strip "--sort-attributes --selector-type remove 
+      --selectors {{@@ goldendict_config_selectors @@}}"
+    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors 
+      @@}}"
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -269,7 +278,8 @@ dotfiles:
     actions:
     - install flatpak
     # - sh 'flatpak install --noninteractive flathub org.goldendict.GoldenDict'
-    - sh 'flatpak install --noninteractive flathub io.github.xiaoyifang.goldendict_ng'
+    - sh 'flatpak install --noninteractive flathub 
+      io.github.xiaoyifang.goldendict_ng'
   # Temporary Steam launcher override for Wayland IME input.
   # See docs/steam-ime-workaround.md and remove this once Steam's native
   # Wayland text input works reliably.
@@ -367,8 +377,10 @@ dotfiles:
   f_codex_config.toml:
     src: codex/config.toml
     dst: ~/.codex/config.toml
-    trans_update: toml_transform_strip "--selector-type remove --selectors {{@@ codex_config_selectors @@}}"
-    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --selector-type retain --selectors {{@@ codex_config_selectors @@}}"
+    trans_update: toml_transform_strip "--selector-type remove --selectors {{@@ 
+      codex_config_selectors @@}}"
+    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --selector-type retain --selectors {{@@ codex_config_selectors @@}}"
   f_codex_AGENTS_codex_md:
     src: codex/AGENTS.codex.md
     dst: ~/.codex/AGENTS.codex.md
@@ -392,20 +404,27 @@ dotfiles:
     src: Library/Preferences/.GlobalPreferences.plist
     dst: ~/Library/Preferences/.GlobalPreferences.plist
     chmod: '600'
-    trans_update: plist_transform_strip "--output-format xml --selector-type retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --selector-type retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
+    trans_update: plist_transform_strip "--output-format xml --selector-type 
+      retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --output-format binary --selector-type retain --selectors {{@@ 
+      mac_global_preferences_config_selectors @@}}"
   f_Library_Preferences_com_apple_symbolichotkeys.plist:
     src: Library/Preferences/com.apple.symbolichotkeys.plist
     dst: ~/Library/Preferences/com.apple.symbolichotkeys.plist
     chmod: '600'
     trans_update: plist_transform_strip "--output-format xml"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --output-format binary"
   f_Library_Preferences_com_lujjjh_LinearMouse.plist:
     src: Library/Preferences/com.lujjjh.LinearMouse.plist
     dst: ~/Library/Preferences/com.lujjjh.LinearMouse.plist
     chmod: '600'
-    trans_update: plist_transform_strip "--output-format xml --selector-type remove --selectors {{@@ linearmouse_config_selectors @@}}"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst @@}}' --output-format binary --selector-type retain --selectors {{@@ linearmouse_config_selectors @@}}"
+    trans_update: plist_transform_strip "--output-format xml --selector-type 
+      remove --selectors {{@@ linearmouse_config_selectors @@}}"
+    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
+      @@}}' --output-format binary --selector-type retain --selectors {{@@ 
+      linearmouse_config_selectors @@}}"
     actions:
     - install linearmouse
 profiles:
@@ -509,15 +528,15 @@ profiles:
     - f_config_kwalletrc
     - f_etc_sddm.conf
     - f_etc_plasmalogin.conf
+    actions:
+    - install 'dolphin dolphin-plugins spectacle ark okular gwenview filelight 
+      kate kcalc kwalletmanager kio-extras ffmpegthumbs'
   de_hypr:
     variables:
       desktop: hypr
   de_niri:
     variables:
       desktop: niri
-    actions:
-    - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme 
-      nwg-look'
     dotfiles:
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
@@ -526,11 +545,21 @@ profiles:
     - f_config_systemd_user_niri-wait-for-tray-host.service
     - d_config_noctalia
     - f_config_systemd_user_noctalia-shell.service
+    actions:
+    - install 'bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look'
+    - install 'nautilus loupe papers gnome-text-editor file-roller mpv'
+    - install 'ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd'
   os_mac:
     variables:
-      install_cmd: sh '{{@@ _dotdrop_dotpath @@}}/../scripts/install_homebrew_packages.sh' {0}
+      install_cmd: sh '{{@@ _dotdrop_dotpath 
+        @@}}/../scripts/install_homebrew_packages.sh' {0}
       mac_global_preferences_config_selectors: >-
-        NSUserKeyEquivalents ApplePressAndHoldEnabled AppleKeyboardUIMode AppleShowAllExtensions AppleInterfaceStyle com.apple.keyboard.fnState com.apple.swipescrolldirection com.apple.trackpad.forceClick com.apple.trackpad.scaling com.apple.mouse.scaling com.apple.scrollwheel.scaling NSAutomaticSpellingCorrectionEnabled NSAutomaticCapitalizationEnabled NSAutomaticDashSubstitutionEnabled NSAutomaticPeriodSubstitutionEnabled NSAutomaticQuoteSubstitutionEnabled NSAutomaticTextCompletionEnabled
+        NSUserKeyEquivalents ApplePressAndHoldEnabled AppleKeyboardUIMode AppleShowAllExtensions
+        AppleInterfaceStyle com.apple.keyboard.fnState com.apple.swipescrolldirection
+        com.apple.trackpad.forceClick com.apple.trackpad.scaling com.apple.mouse.scaling
+        com.apple.scrollwheel.scaling NSAutomaticSpellingCorrectionEnabled NSAutomaticCapitalizationEnabled
+        NSAutomaticDashSubstitutionEnabled NSAutomaticPeriodSubstitutionEnabled NSAutomaticQuoteSubstitutionEnabled
+        NSAutomaticTextCompletionEnabled
     include:
     - posix_base
     - posix_utils
@@ -577,18 +606,19 @@ profiles:
     # - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
+    - d_config_mpv
     actions:
     - install yazi
   apps_mac:
     variables:
       linearmouse_config_selectors: >-
-        LaunchAtLogin__hasMigrated 'NSStatusItem Preferred Position Item-0' 'NSWindow Frame SUUpdateAlert' SUEnableAutomaticChecks SUHasLaunchedBefore SULastCheckTime SUScheduledCheckInterval SUUpdateGroupIdentifier
+        LaunchAtLogin__hasMigrated 'NSStatusItem Preferred Position Item-0' 'NSWindow
+        Frame SUUpdateAlert' SUEnableAutomaticChecks SUHasLaunchedBefore SULastCheckTime
+        SUScheduledCheckInterval SUUpdateGroupIdentifier
     dotfiles:
     - f_Library_Preferences_com_lujjjh_LinearMouse.plist
   apps_ai:
     variables:
-      # Strip local Codex state from repo updates, then preserve it from the
-      # live file during install.
       codex_config_selectors: >-
         'model' 'model_reasoning_effort' 're:^projects\.' 're:^mcp_servers\.playwright\.env$'
     dotfiles:
@@ -613,16 +643,22 @@ actions:
   git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
     clone --depth=1 {0} "{1}"; fi
 trans_update:
-  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup
+  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
+    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup 
     {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   xml_transform_strip: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xml_transform.py' {0} {1} --mode cleanup {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
-  plist_transform_strip: python3 '{{@@ _dotdrop_dotpath @@}}/../scripts/plist_transform.py'
-    {0} {1} --mode cleanup {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
+    @@}}/../scripts/xml_transform.py' {0} {1} --mode cleanup {2} --compare-file 
+    "{{@@ _dotfile_abs_src @@}}"
+  plist_transform_strip: python3 '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/plist_transform.py' {0} {1} --mode cleanup {2} 
+    --compare-file "{{@@ _dotfile_abs_src @@}}"
 trans_install:
-  toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge
-    {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
-  xml_transform_merge: python '{{@@ _dotdrop_dotpath @@}}/../scripts/xml_transform.py' {0}
-    {1} --mode merge {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
+  toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
+    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge {2}
+    --compare-file "{{@@ _dotfile_abs_dst @@}}"
+  xml_transform_merge: python '{{@@ _dotdrop_dotpath 
+    @@}}/../scripts/xml_transform.py' {0} {1} --mode merge {2} --compare-file 
+    "{{@@ _dotfile_abs_dst @@}}"
   plist_transform_merge: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
+    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2} --compare-file 
+    "{{@@ _dotfile_abs_dst @@}}"
