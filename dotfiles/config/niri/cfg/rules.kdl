@@ -149,7 +149,7 @@ window-rule {
 
 // Games
 window-rule {
-    match app-id=r#"^steam_app_[0-9]+$"#
+    match app-id=r#"^steam_app_"#
     match app-id=r#"\.exe$"#
     open-floating true
     focus-ring {

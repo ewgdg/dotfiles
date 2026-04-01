@@ -39,16 +39,21 @@ class FieldMatcher:
 
 
 @dataclass(frozen=True)
-class CompiledRule:
-    name: str
-    event: str
-    previous_matchers: tuple[FieldMatcher, ...]
-    current_matchers: tuple[FieldMatcher, ...]
+class CompiledAction:
     action_type: str
     action_target: str
     action_workspace: str = ""
     action_width: str = ""
     action_height: str = ""
+
+
+@dataclass(frozen=True)
+class CompiledRule:
+    name: str
+    event: str
+    previous_matchers: tuple[FieldMatcher, ...]
+    current_matchers: tuple[FieldMatcher, ...]
+    actions: tuple[CompiledAction, ...]
 
 
 @dataclass
@@ -128,6 +133,25 @@ def set_window_size(window_id: str, width: str, height: str) -> None:
         return
 
 
+def hide_window(window_id: str, workspace: str) -> None:
+    """Move window to a workspace, float it, park at 0,0, and collapse to 1x1."""
+    if not window_id:
+        return
+    move_window_to_workspace(window_id, workspace or "scratchpad")
+    try:
+        subprocess.run(
+            ["niri", "msg", "action", "move-window-to-floating", "--id", window_id],
+            check=False,
+        )
+        subprocess.run(
+            ["niri", "msg", "action", "move-floating-window", "--id", window_id, "-x", "0", "-y", "0"],
+            check=False,
+        )
+    except Exception:
+        pass
+    set_window_size(window_id, "1", "1")
+
+
 def move_window_to_workspace(window_id: str, workspace: str) -> None:
     if not window_id or not workspace:
         return
@@ -171,26 +195,47 @@ def compile_matchers(match_spec: Any) -> tuple[FieldMatcher, ...]:
     )
 
 
-def compile_rule(rule: dict[str, Any]) -> CompiledRule:
-    event_name = str(rule.get("event", "") or "")
-    if event_name not in SUPPORTED_RULE_EVENTS:
-        raise ValueError(f"unsupported event {event_name!r}")
+SUPPORTED_ACTION_TYPES = {"close-window", "move-window-to-workspace", "set-window-size", "hide"}
 
-    action = rule.get("action", {})
-    if not isinstance(action, dict):
-        raise ValueError("action must be an object")
 
+def compile_action(action: dict[str, Any]) -> CompiledAction:
     action_type = str(action.get("type", "") or "")
-    if action_type not in {"close-window", "move-window-to-workspace", "set-window-size"}:
+    if action_type not in SUPPORTED_ACTION_TYPES:
         raise ValueError(f"unsupported action type {action_type!r}")
 
     action_target = str(action.get("target", "previous") or "previous")
     if action_target not in {"previous", "current"}:
         raise ValueError(f"unsupported action target {action_target!r}")
 
-    action_workspace = str(action.get("workspace", "") or "")
-    action_width = str(action.get("width", "") or "")
-    action_height = str(action.get("height", "") or "")
+    return CompiledAction(
+        action_type=action_type,
+        action_target=action_target,
+        action_workspace=str(action.get("workspace", "") or ""),
+        action_width=str(action.get("width", "") or ""),
+        action_height=str(action.get("height", "") or ""),
+    )
+
+
+def compile_rule(rule: dict[str, Any]) -> CompiledRule:
+    event_name = str(rule.get("event", "") or "")
+    if event_name not in SUPPORTED_RULE_EVENTS:
+        raise ValueError(f"unsupported event {event_name!r}")
+
+    if "actions" in rule:
+        raw_actions_val = rule["actions"]
+        if not isinstance(raw_actions_val, list):
+            raise ValueError("actions must be a list")
+        raw_actions: list[dict[str, Any]] = [a for a in raw_actions_val if isinstance(a, dict)]
+    elif "action" in rule:
+        action_val = rule["action"]
+        if not isinstance(action_val, dict):
+            raise ValueError("action must be an object")
+        raw_actions = [action_val]
+    else:
+        raise ValueError("rule must have an 'action' or 'actions' field")
+
+    if not raw_actions:
+        raise ValueError("rule must have at least one action")
 
     match_spec = rule.get("match", {})
     if not isinstance(match_spec, dict):
@@ -201,11 +246,7 @@ def compile_rule(rule: dict[str, Any]) -> CompiledRule:
         event=event_name,
         previous_matchers=compile_matchers(match_spec.get("previous", {})),
         current_matchers=compile_matchers(match_spec.get("current", {})),
-        action_type=action_type,
-        action_target=action_target,
-        action_workspace=action_workspace,
-        action_width=action_width,
-        action_height=action_height,
+        actions=tuple(compile_action(a) for a in raw_actions),
     )
 
 
@@ -276,15 +317,18 @@ def rule_matches(rule: CompiledRule, previous: dict[str, Any], current: dict[str
 
 
 def apply_action(rule: CompiledRule, previous: dict[str, Any], current: dict[str, Any]) -> None:
-    target_window = previous if rule.action_target == "previous" else current
-    window_id = str(target_window.get("id", "") or "")
+    for action in rule.actions:
+        target_window = previous if action.action_target == "previous" else current
+        window_id = str(target_window.get("id", "") or "")
 
-    if rule.action_type == "close-window":
-        close_window(window_id)
-    elif rule.action_type == "move-window-to-workspace":
-        move_window_to_workspace(window_id, rule.action_workspace)
-    elif rule.action_type == "set-window-size":
-        set_window_size(window_id, rule.action_width, rule.action_height)
+        if action.action_type == "close-window":
+            close_window(window_id)
+        elif action.action_type == "move-window-to-workspace":
+            move_window_to_workspace(window_id, action.action_workspace)
+        elif action.action_type == "set-window-size":
+            set_window_size(window_id, action.action_width, action.action_height)
+        elif action.action_type == "hide":
+            hide_window(window_id, action.action_workspace)
 
 
 def process_window_opened(

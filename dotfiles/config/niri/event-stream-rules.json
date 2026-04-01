@@ -1,6 +1,21 @@
 {
   "rules": [
     {
+      "name": "hide-null-window",
+      "event": "window-opened",
+      "match": {
+        "current": {
+          "app_id": { "equals": null },
+          "title": { "equals": null }
+        }
+      },
+      "action": {
+        "type": "hide",
+        "target": "current",
+        "workspace": "scratchpad"
+      }
+    },
+    {
       "name": "close-floating-goldendict-on-focus-loss",
       "event": "focus-changed",
       "match": {
