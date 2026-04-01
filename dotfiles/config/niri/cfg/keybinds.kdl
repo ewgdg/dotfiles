@@ -8,8 +8,8 @@ binds {
     // Applications
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-alacritty}\""; }
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
-    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --hide '^google-chrome$' google-chrome-stable"; }
-    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-singleton.sh\" --float '(?i)goldendict' flatpak run io.github.xiaoyifang.goldendict_ng"; }
+    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
+    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' flatpak run io.github.xiaoyifang.goldendict_ng"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
     MOD+CTRL+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
     MOD+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
@@ -23,8 +23,9 @@ binds {
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
 
-    // Please choose your own file manager.
-    MOD+E repeat=false hotkey-overlay-title="File Manager" { spawn-sh "\"$HOME/.config/niri/bin/spawn-or-focus.sh\" --same-workspace '^org.gnome.nautilus$' nautilus"; }
+    // Nautilus changes its title as you browse folders, so match the stable app ID.
+    // Summon Nautilus only from this workspace; relaunch a new window if it is already focused.
+    MOD+E repeat=false hotkey-overlay-title="Summon File Manager" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --same-workspace --relaunch-if-focused '(?i)^org\\.gnome\\.Nautilus$' nautilus --new-window"; }
 
     // Audio Controls
     // XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }

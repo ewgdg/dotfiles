@@ -104,9 +104,18 @@ focused_window_json="$(
     niri msg -j focused-window 2>/dev/null || printf '{}'
 )"
 focused_window_id="$(printf '%s' "$focused_window_json" | jq -r '.id // empty')"
-focused_window_column_index="$(printf '%s' "$focused_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
+target_window_column_index="$(printf '%s' "$target_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
+target_window_workspace_id="$(printf '%s' "$target_window_json" | jq -r '.workspace_id // empty')"
 target_is_floating="$(printf '%s' "$target_window_json" | jq -r '.is_floating // false')"
 placement_column_index=""
+column_repositioned=0
+anchor_window_id=""
+
+if [ "$place_near_focused_window" = "true" ] && [ -n "$focused_window_id" ] && [ "$focused_window_id" != "$target_window_id" ]; then
+    # Re-focus the original anchor just before the final summon focus so Niri
+    # keeps the viewport anchored around the caller, not around the moved window.
+    anchor_window_id="$focused_window_id"
+fi
 
 if [ -z "$place_after_window_id" ] && [ "$place_near_focused_window" = "true" ]; then
     place_after_window_id="$focused_window_id"
@@ -141,6 +150,7 @@ if [ -n "$place_after_window_id" ] && [ "$target_window_id" != "$place_after_win
 
     if [ "$placement_reference_on_target_workspace" = "true" ]; then
         placement_column_index="$(printf '%s' "$placement_reference_window_json" | jq -r '.layout.pos_in_scrolling_layout[0] // empty')"
+
     fi
 fi
 
@@ -149,11 +159,32 @@ if [ "$move_tiled_column" = "true" ] && [ "$target_is_floating" != "true" ]; the
         niri msg action focus-window --id "$target_window_id"
     fi
     niri msg action move-column-to-workspace --focus false "$target_workspace_ref"
+elif [ "$target_is_floating" != "true" ] \
+    && [ -n "$target_workspace_id" ] \
+    && [ "$target_window_workspace_id" = "$target_workspace_id" ]; then
+    # Reorder an existing tiled column directly on the same workspace. The
+    # workspace move path does not preserve the viewport anchor reliably here.
+    if [ "$focused_window_id" != "$target_window_id" ]; then
+        niri msg action focus-window --id "$target_window_id"
+    fi
+
+    if [ -n "$placement_column_index" ] && [ -n "$target_window_column_index" ]; then
+        # move-column-to-index inserts before the destination index. Adjust the
+        # target slot so the summoned column ends up just to the right of anchor.
+        target_column_destination_index=$((placement_column_index + 1))
+
+        if [ "$target_window_column_index" -lt "$placement_column_index" ]; then
+            target_column_destination_index=$placement_column_index
+        fi
+
+        niri msg action move-column-to-index "$target_column_destination_index"
+        column_repositioned=1
+    fi
 else
     niri msg action move-window-to-workspace --window-id "$target_window_id" --focus false "$target_workspace_ref"
 fi
 
-if [ -n "$placement_column_index" ] && [ "$target_is_floating" != "true" ]; then
+if [ "$column_repositioned" -eq 0 ] && [ -n "$placement_column_index" ] && [ "$target_is_floating" != "true" ]; then
     niri msg action focus-window --id "$target_window_id"
     niri msg action move-column-to-index $((placement_column_index + 1))
 fi
@@ -165,6 +196,10 @@ fi
 
 if [ "$center_window" = "true" ] || [ "$float_window" = "true" ]; then
     niri msg action center-window --id "$target_window_id"
+fi
+
+if [ -n "$anchor_window_id" ]; then
+    niri msg action focus-window --id "$anchor_window_id"
 fi
 
 exec niri msg action focus-window --id "$target_window_id"
