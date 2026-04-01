@@ -595,7 +595,7 @@ profiles:
   games_linux:
     dotfiles:
     - f_local_share_applications_steam.desktop
-    # - f_config_systemd_user_xembedsniproxy.service
+    - f_config_systemd_user_xembedsniproxy.service
     actions:
     - install 'steam lutris wine-mono proton-ge-custom-bin'
   apps_linux:
