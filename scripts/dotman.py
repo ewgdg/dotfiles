@@ -46,6 +46,7 @@ MENU_ACTION_STYLE_BY_NAME: dict[str, tuple[str, ...]] = {
     "install": ("1", "32"),
     "update": ("1", "36"),
     "import": ("1", "33"),
+    "remove": ("1", "31"),
 }
 
 
@@ -259,6 +260,8 @@ class DotManager:
         self.normalized_destination_by_key: dict[str, str] = {}
         self.effective_template_by_key: dict[str, int] = {}
 
+        self.pending_install_compare_output: str = ""
+        self.pending_install_removal_paths_by_key: dict[str, list[str]] = {}
         self.install_keys: list[str] = []
         self.regular_update_keys: list[str] = []
         self.template_update_keys: list[str] = []
@@ -795,8 +798,6 @@ class DotManager:
         if self.is_update_operation:
             self.exclude_pending_update_items()
             return
-        if self.parsed.force_mode or not sys.stdin.isatty():
-            return
         if self.is_install_operation:
             self.exclude_pending_install_items()
 
@@ -805,23 +806,71 @@ class DotManager:
         self.install_keys = pending_keys
         if not pending_keys:
             return
+        if self.parsed.force_mode or not sys.stdin.isatty():
+            return
 
         self.used_combined_operation_selection = True
-        selection_items = [
-            PendingSelectionItem(
+        selection_items = self._collect_install_file_selection_items(pending_keys)
+        if not selection_items:
+            return
+
+        excluded_indexes = self.prompt_for_excluded_items(selection_items, operation="install")
+        excluded_keys = {selection_items[i - 1].key_name for i in excluded_indexes}
+        self.install_keys = [k for k in pending_keys if k not in excluded_keys]
+
+    def _collect_install_file_selection_items(self, pending_keys: list[str]) -> list[PendingSelectionItem]:
+        items_by_key: dict[str, list[PendingSelectionItem]] = {}
+        for raw_line in self.pending_install_compare_output.splitlines():
+            if not raw_line or raw_line[0].isspace():
+                continue
+            quoted_match = DOTDROP_COMPARE_QUOTED_KEY_RE.match(raw_line.strip())
+            if not quoted_match:
+                continue
+            dest_path_str = quoted_match.group(1)
+            key_name = self.find_matching_install_key_for_path(dest_path_str, pending_keys)
+            if not key_name:
+                continue
+            source_path_str = self._derive_install_source_path(key_name, dest_path_str)
+            items_by_key.setdefault(key_name, []).append(PendingSelectionItem(
                 key_name=key_name,
                 action="install",
-                from_path=Path(self.source_by_key[key_name]),
-                to_path=Path(self.destination_by_key[key_name]),
-            )
-            for key_name in pending_keys
-        ]
-        excluded_indexes = self.prompt_for_excluded_items(selection_items, operation="install")
-        self.install_keys = [
-            key_name
-            for index, key_name in enumerate(pending_keys, start=1)
-            if index not in excluded_indexes
-        ]
+                from_path=Path(source_path_str),
+                to_path=Path(dest_path_str),
+            ))
+
+        result: list[PendingSelectionItem] = []
+        for key_name in pending_keys:
+            file_items = items_by_key.get(key_name, [])
+            removal_paths = self.pending_install_removal_paths_by_key.get(key_name, [])
+            removal_items = [
+                PendingSelectionItem(
+                    key_name=key_name,
+                    action="remove",
+                    from_path=Path(p),
+                    to_path=Path(p),
+                )
+                for p in removal_paths
+            ]
+            if file_items or removal_items:
+                result.extend(file_items)
+                result.extend(removal_items)
+            else:
+                result.append(PendingSelectionItem(
+                    key_name=key_name,
+                    action="install",
+                    from_path=Path(self.source_by_key[key_name]),
+                    to_path=Path(self.destination_by_key[key_name]),
+                ))
+        return result
+
+    def _derive_install_source_path(self, key_name: str, dest_path_str: str) -> str:
+        key_dest = self.normalized_destination_by_key.get(key_name, "")
+        key_src = self.source_by_key.get(key_name, "")
+        norm_dest = self.normalize_target_path(dest_path_str)
+        if key_dest and key_src and norm_dest.startswith(key_dest):
+            relative = norm_dest[len(key_dest):]
+            return key_src.rstrip(os.sep) + relative
+        return dest_path_str
 
     def exclude_pending_update_items(self) -> None:
         regular_candidates = self.collect_pending_regular_update_candidates()
@@ -885,8 +934,9 @@ class DotManager:
         if compare_completed.returncode not in {0, 1}:
             return list(self.install_keys)
 
+        compare_output = compare_completed.stdout + compare_completed.stderr
         pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
-            compare_completed.stdout + compare_completed.stderr,
+            compare_output,
             self.install_keys,
         )
         if compare_was_uncertain:
@@ -896,7 +946,10 @@ class DotManager:
             removal_keys = self.collect_remove_existing_pending_install_keys(self.install_keys)
             pending_keys.update(removal_keys)
 
-        return [key_name for key_name in self.install_keys if key_name in pending_keys]
+        result = [key_name for key_name in self.install_keys if key_name in pending_keys]
+        if result:
+            self.pending_install_compare_output = compare_output
+        return result
 
     def collect_pending_regular_update_candidates(self) -> list[tuple[str, UpdateChange]]:
         pending_candidates: list[tuple[str, UpdateChange]] = []
@@ -1277,27 +1330,6 @@ class DotManager:
             return text
         return f"\033[{';'.join(codes)}m{text}{ANSI_RESET}"
 
-    def install_phase_need_run(self, operation_targets: list[str]) -> bool:
-        if not operation_targets:
-            return False
-
-        compare_completed = self.run_install_compare(operation_targets)
-        if compare_completed.returncode not in {0, 1}:
-            return True
-
-        pending_keys, compare_was_uncertain = self.parse_compare_pending_keys(
-            compare_completed.stdout + compare_completed.stderr,
-            operation_targets,
-        )
-        if compare_was_uncertain or pending_keys:
-            return True
-
-        # No diffs found - only check for removals if remove_existing_mode is on
-        if self.operation != "install" or not self.parsed.remove_existing_mode:
-            return False
-
-        return bool(self.collect_remove_existing_pending_install_keys(operation_targets))
-
     def run_install_compare(self, operation_targets: list[str]) -> subprocess.CompletedProcess[str]:
         # use compare instead of dry-run bc dry-run always assume changes
         flags = FlagList()
@@ -1379,14 +1411,17 @@ class DotManager:
 
         dry_run_output = dry_run_completed.stdout + dry_run_completed.stderr
         pending_keys: set[str] = set()
+        removal_paths_by_key: dict[str, list[str]] = {}
         for line in dry_run_output.splitlines():
             if line.startswith("[DRY] would remove "):
                 removed_path_text = self.trim_trailing_whitespace(line.removeprefix("[DRY] would remove "))
                 matched_key = self.find_matching_install_key_for_path(removed_path_text, operation_targets)
                 if matched_key:
                     pending_keys.add(matched_key)
+                    removal_paths_by_key.setdefault(matched_key, []).append(removed_path_text)
                     continue
                 return set(operation_targets)
+        self.pending_install_removal_paths_by_key = removal_paths_by_key
         return pending_keys
 
     def find_matching_install_key_for_path(self, candidate_path: str, operation_targets: list[str]) -> str:
@@ -1612,11 +1647,6 @@ class DotManager:
 
         _, operation_verb = self.operation_words(self.operation)
         self.print_phase_header(f"{operation_verb} {phase_name}")
-        should_preflight = self.is_install_operation and run_with_sudo
-        if should_preflight and not self.install_phase_need_run(phase_targets):
-            self.print_phase_summary(len(phase_targets), 0, 0)
-            return
-
         phase_result = self.run_phase_operation(phase_name, run_with_sudo, phase_targets)
         failed_count = 1 if phase_result.exit_code != 0 else 0
         self.print_phase_summary(len(phase_targets), phase_result.changed_count, failed_count)

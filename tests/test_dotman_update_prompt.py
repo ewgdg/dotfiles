@@ -830,7 +830,7 @@ def test_install_combined_selection_can_exclude_pending_item(monkeypatch, tmp_pa
         "f_beta": str(beta_live),
     }
 
-    monkeypatch.setattr(manager, "install_phase_need_run", lambda operation_targets: True)
+    monkeypatch.setattr(manager, "collect_pending_install_keys", lambda: list(manager.install_keys))
     monkeypatch.setattr(DOTMAN_MODULE.DotManager, "prompt", staticmethod(lambda _message: "2"))
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
 
@@ -851,7 +851,7 @@ def test_install_remove_existing_deletes_unmanaged_directory_children(tmp_path: 
     assert not (live_dir / "extra.toml").exists()
 
 
-def test_install_remove_existing_preflight_skips_clean_privileged_phase(tmp_path: Path) -> None:
+def test_install_remove_existing_skips_clean_privileged_phase(tmp_path: Path) -> None:
     config_path, repo_source_dir, live_dir = create_repro_project(tmp_path)
     env, dotdrop_args_file, sudo_args_file, phase_runs_file = create_fake_dotdrop_tools(
         tmp_path,
@@ -873,7 +873,6 @@ def test_install_remove_existing_preflight_skips_clean_privileged_phase(tmp_path
         result = run_dotman(config_path, "install", "-R", "-f", "-p", "repro", extra_env=env)
 
         assert result.returncode == 0
-        assert "1 file(s) processed, 0 updated, 0 failed" in result.stdout
         assert "compare" in dotdrop_args_file.read_text(encoding="utf-8")
         assert "install" in dotdrop_args_file.read_text(encoding="utf-8")
         assert not sudo_args_file.exists()
@@ -909,12 +908,13 @@ def test_install_remove_existing_preflight_runs_privileged_phase_for_removals(tm
         live_dir.chmod(0o755)
 
 
-def test_install_phase_need_run_ignores_whitespace_prefixed_compare_logs(tmp_path: Path, monkeypatch) -> None:
+def test_collect_pending_install_keys_ignores_whitespace_prefixed_compare_logs(tmp_path: Path, monkeypatch) -> None:
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
     manager.parsed = DOTMAN_MODULE.ParsedArgs()
     manager.resolved_profile = "repro"
+    manager.install_keys = ["f_config"]
     manager.normalized_destination_by_key = {"f_config": "/root/.config/example.toml"}
 
     compare_completed = subprocess.CompletedProcess(
@@ -925,29 +925,18 @@ def test_install_phase_need_run_ignores_whitespace_prefixed_compare_logs(tmp_pat
         "\n1 dotfile(s) compared.\n",
     )
 
-    dry_run_completed = subprocess.CompletedProcess(
-        ["dotdrop", "install", "-d"],
-        0,
-        "",
-        "",
-    )
+    monkeypatch.setattr(subprocess, "run", lambda *_args, **_kwargs: compare_completed)
 
-    run_results = [compare_completed, dry_run_completed]
-
-    def fake_run(*_args, **_kwargs):
-        return run_results.pop(0)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-
-    assert manager.install_phase_need_run(["f_config"]) is False
+    assert manager.collect_pending_install_keys() == []
 
 
-def test_install_phase_need_run_keeps_multiple_compare_targets(tmp_path: Path, monkeypatch) -> None:
+def test_collect_pending_install_keys_passes_multiple_compare_targets(tmp_path: Path, monkeypatch) -> None:
     manager = DotManager(["install"])
     manager.dotdrop_cmd = "dotdrop"
     manager.operation = "install"
     manager.parsed = DOTMAN_MODULE.ParsedArgs()
     manager.resolved_profile = "repro"
+    manager.install_keys = ["f_config", "f_other"]
     manager.normalized_destination_by_key = {
         "f_config": "/root/.config/example.toml",
         "f_other": "/root/.config/other.toml",
@@ -961,7 +950,7 @@ def test_install_phase_need_run_keeps_multiple_compare_targets(tmp_path: Path, m
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    assert manager.install_phase_need_run(["f_config", "f_other"]) is False
+    assert manager.collect_pending_install_keys() == []
     assert recorded_commands == [
         [
             "dotdrop",
