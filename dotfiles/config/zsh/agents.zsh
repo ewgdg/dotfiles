@@ -72,7 +72,7 @@ claude() {
   fi
 
   _merge_agent_instructions "$HOME/.claude/AGENTS.md" "$HOME/.claude/AGENTS.claude.md" || return 1
-  command claude "$@"
+  command claude --dangerously-skip-permissions "$@"
 }
 
 claudecode() {
