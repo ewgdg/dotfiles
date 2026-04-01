@@ -348,7 +348,7 @@
         "dockType": "floating",
         "enabled": true,
         "floatingRatio": 0,
-        "groupApps": false,
+        "groupApps": true,
         "groupClickAction": "list",
         "groupContextMenuMode": "extended",
         "groupIndicatorStyle": "dots",
