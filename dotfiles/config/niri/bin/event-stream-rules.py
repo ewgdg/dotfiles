@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import os
 import re
 import socket
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, TextIO
@@ -18,7 +19,7 @@ RULES_PATH = (
     / "event-stream-rules.json"
 )
 NIRI_SOCKET_PATH = os.environ.get("NIRI_SOCKET", "")
-SUPPORTED_RULE_EVENTS = {"active-window-changed", "focus-changed"}
+SUPPORTED_RULE_EVENTS = {"active-window-changed", "focus-changed", "window-opened"}
 RELEVANT_EVENT_TYPES = {
     "WorkspacesChanged",
     "WorkspaceActivated",
@@ -45,6 +46,9 @@ class CompiledRule:
     current_matchers: tuple[FieldMatcher, ...]
     action_type: str
     action_target: str
+    action_workspace: str = ""
+    action_width: str = ""
+    action_height: str = ""
 
 
 @dataclass
@@ -105,6 +109,41 @@ def close_window(window_id: str) -> None:
         return
 
 
+def set_window_size(window_id: str, width: str, height: str) -> None:
+    if not window_id:
+        return
+
+    try:
+        if width:
+            subprocess.run(
+                ["niri", "msg", "action", "set-window-width", "--id", window_id, width],
+                check=False,
+            )
+        if height:
+            subprocess.run(
+                ["niri", "msg", "action", "set-window-height", "--id", window_id, height],
+                check=False,
+            )
+    except Exception:
+        return
+
+
+def move_window_to_workspace(window_id: str, workspace: str) -> None:
+    if not window_id or not workspace:
+        return
+
+    try:
+        subprocess.run(
+            [
+                "niri", "msg", "action", "move-window-to-workspace",
+                "--window-id", window_id, "--focus", "false", workspace,
+            ],
+            check=False,
+        )
+    except Exception:
+        return
+
+
 def compile_field_matcher(field_name: str, expected: Any) -> FieldMatcher:
     if isinstance(expected, dict):
         if "regex" in expected:
@@ -142,12 +181,16 @@ def compile_rule(rule: dict[str, Any]) -> CompiledRule:
         raise ValueError("action must be an object")
 
     action_type = str(action.get("type", "") or "")
-    if action_type != "close-window":
+    if action_type not in {"close-window", "move-window-to-workspace", "set-window-size"}:
         raise ValueError(f"unsupported action type {action_type!r}")
 
     action_target = str(action.get("target", "previous") or "previous")
     if action_target not in {"previous", "current"}:
         raise ValueError(f"unsupported action target {action_target!r}")
+
+    action_workspace = str(action.get("workspace", "") or "")
+    action_width = str(action.get("width", "") or "")
+    action_height = str(action.get("height", "") or "")
 
     match_spec = rule.get("match", {})
     if not isinstance(match_spec, dict):
@@ -160,6 +203,9 @@ def compile_rule(rule: dict[str, Any]) -> CompiledRule:
         current_matchers=compile_matchers(match_spec.get("current", {})),
         action_type=action_type,
         action_target=action_target,
+        action_workspace=action_workspace,
+        action_width=action_width,
+        action_height=action_height,
     )
 
 
@@ -235,6 +281,21 @@ def apply_action(rule: CompiledRule, previous: dict[str, Any], current: dict[str
 
     if rule.action_type == "close-window":
         close_window(window_id)
+    elif rule.action_type == "move-window-to-workspace":
+        move_window_to_workspace(window_id, rule.action_workspace)
+    elif rule.action_type == "set-window-size":
+        set_window_size(window_id, rule.action_width, rule.action_height)
+
+
+def process_window_opened(
+    rule_cache: RuleCache,
+    window: dict[str, Any],
+) -> None:
+    for rule in load_rules(rule_cache):
+        if rule.event != "window-opened":
+            continue
+        if matchers_match(rule.current_matchers, window):
+            apply_action(rule, {}, window)
 
 
 def replace_windows(payload: Any) -> dict[str, dict[str, Any]]:
@@ -439,12 +500,16 @@ def main() -> int:
                     if event_type not in RELEVANT_EVENT_TYPES:
                         continue
 
+                    prev_window_ids = set(windows_by_id.keys())
                     windows_by_id, workspaces_by_id = apply_event_to_state(
                         event_type,
                         payload,
                         windows_by_id,
                         workspaces_by_id,
                     )
+
+                    for new_id in set(windows_by_id.keys()) - prev_window_ids:
+                        process_window_opened(rule_cache, windows_by_id[new_id])
 
                     current_active = active_window_from_state(windows_by_id, workspaces_by_id)
                     current_focused = focused_window_from_state(windows_by_id)

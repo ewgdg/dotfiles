@@ -4,15 +4,14 @@ This repo adds a small Niri watcher that listens to `niri msg -j event-stream` a
 
 Current capabilities:
 
-- Triggers on focus changes
+- Triggers on focus changes and window-opened events
 - Maintains an in-memory window snapshot from `event-stream` instead of polling `focused-window`
 - Hot-reloads the rules file on mtime change
 - Compiles regex matchers once per rules reload
 - Matches against the previously focused window and the currently focused window
 - Supports literal equality and regex matches
 - Supports `close-window` actions targeting either the previous or current window
-
-The default rule closes floating GoldenDict when focus moves away from it.
+- Supports `move-window-to-workspace` actions
 
 Rule file:
 
