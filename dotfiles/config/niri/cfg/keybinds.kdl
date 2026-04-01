@@ -119,9 +119,9 @@ binds {
     Mod+Shift+I        { move-workspace-up; }
     Mod+Ctrl+U         { move-column-to-workspace-down; }
     Mod+Ctrl+I         { move-column-to-workspace-up; }
-    Mod+S              { focus-workspace "scratchpad"; }
-    Mod+Shift+S repeat=false hotkey-overlay-title="Summon Last Scratchpad Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-scratchpad.sh\""; }
-    Mod+Ctrl+S repeat=false { move-window-to-workspace "scratchpad" focus=false; }
+    Mod+S              { focus-workspace "stash"; }
+    Mod+Shift+S repeat=false hotkey-overlay-title="Summon Last Stash Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-stash.sh\""; }
+    Mod+Ctrl+S repeat=false { move-window-to-workspace "stash" focus=false; }
 
     MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
     MOD+WHEELSCROLLUP cooldown-ms=150 { focus-workspace-up; }

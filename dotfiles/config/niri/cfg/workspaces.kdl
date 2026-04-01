@@ -1,6 +1,6 @@
 // https://github.com/niri-wm/niri/wiki/Configuration:-Named-Workspaces
 
-workspace "scratchpad" {
+workspace "stash" {
     // Layout config overrides just for this named workspace.
     layout {
     }

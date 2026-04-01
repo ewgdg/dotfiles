@@ -3,7 +3,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s [--float] [--hide|--hide-to-scratchpad] <app-id-regex> <command> [args...]\n' "$0" >&2
+    printf 'usage: %s [--float] [--hide|--hide-to-stash] <app-id-regex> <command> [args...]\n' "$0" >&2
     exit 2
 }
 
@@ -12,7 +12,7 @@ if [ "$#" -lt 2 ]; then
 fi
 
 float_window=false
-hide_to_scratchpad=false
+hide_to_stash=false
 
 while [ "$#" -gt 0 ]; do
     case "${1:-}" in
@@ -20,8 +20,8 @@ while [ "$#" -gt 0 ]; do
             float_window=true
             shift
             ;;
-        --hide|--hide-to-scratchpad)
-            hide_to_scratchpad=true
+        --hide|--hide-to-stash)
+            hide_to_stash=true
             shift
             ;;
         --)
@@ -53,8 +53,8 @@ hide_focused_window() {
         niri msg action focus-window-previous >/dev/null 2>&1 || true
     fi
 
-    if [ "$hide_to_scratchpad" = "true" ]; then
-        exec niri msg action move-window-to-workspace --window-id "$focused_window_id" --focus false scratchpad
+    if [ "$hide_to_stash" = "true" ]; then
+        exec niri msg action move-window-to-workspace --window-id "$focused_window_id" --focus false stash
     fi
 
     exec niri msg action close-window --id "$focused_window_id"

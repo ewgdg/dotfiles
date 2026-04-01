@@ -137,7 +137,7 @@ def hide_window(window_id: str, workspace: str) -> None:
     """Move window to a workspace, float it, park at 0,0, and collapse to 1x1."""
     if not window_id:
         return
-    move_window_to_workspace(window_id, workspace or "scratchpad")
+    move_window_to_workspace(window_id, workspace or "stash")
     try:
         subprocess.run(
             ["niri", "msg", "action", "move-window-to-floating", "--id", window_id],

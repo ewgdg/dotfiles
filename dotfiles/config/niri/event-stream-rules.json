@@ -12,7 +12,7 @@
       "action": {
         "type": "hide",
         "target": "current",
-        "workspace": "scratchpad"
+        "workspace": "stash"
       }
     },
     {
