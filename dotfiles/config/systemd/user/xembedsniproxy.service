@@ -1,0 +1,16 @@
+[Unit]
+Description=Handle legacy XEmbed system tray icons
+PartOf=graphical-session.target
+After=graphical-session.target
+# KDE Plasma ships its own plasma-xembedsniproxy.service; skip on KDE
+ConditionEnvironment=!XDG_CURRENT_DESKTOP=KDE
+
+[Service]
+ExecStart=/usr/bin/env xembedsniproxy
+Restart=on-failure
+Type=simple
+Slice=background.slice
+TimeoutSec=5sec
+
+[Install]
+WantedBy=graphical-session.target

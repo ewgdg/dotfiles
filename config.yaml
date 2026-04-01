@@ -58,6 +58,14 @@ dotfiles:
     dst: ~/.config/systemd/user/network-virtual-mic.service
     actions:
     - ensure-systemd-service-enabled user network-virtual-mic.service
+  f_config_systemd_user_xembedsniproxy.service:
+    src: config/systemd/user/xembedsniproxy.service
+    dst: ~/.config/systemd/user/xembedsniproxy.service
+    actions:
+    # xembedsniproxy bridges legacy XEmbed tray icons for Wine on Wayland DEs;
+    # remove once Wine supports modern StatusNotifierItem natively
+    - install-if 'xembedsniproxy' '! command -v xembedsniproxy >/dev/null 2>&1'
+    - ensure-systemd-service-enabled user xembedsniproxy.service
   d_config_niri:
     src: config/niri
     dst: ~/.config/niri
@@ -587,11 +595,9 @@ profiles:
   games_linux:
     dotfiles:
     - f_local_share_applications_steam.desktop
+    - f_config_systemd_user_xembedsniproxy.service
     actions:
     - install 'steam lutris wine-mono proton-ge-custom-bin'
-    # xembedsniproxy bridges legacy XEmbed tray icons for Wine on Wayland DEs;
-    # remove once Wine supports modern StatusNotifierItem natively
-    - install-if 'xembedsniproxy' '! command -v xembedsniproxy >/dev/null 2>&1'
   apps_linux:
     variables:
       goldendict_config_selectors: >-
