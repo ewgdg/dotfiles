@@ -789,10 +789,7 @@ class DotManager:
             return []
 
         completed = self.run_update_preview(False, self.regular_update_keys)
-        if completed.returncode != 0:
-            return []
-
-        return self.parse_update_changes(completed.stdout)
+        return self.parse_update_changes_from_preview(completed)
 
     def exclude_pending_operation_items(self) -> None:
         if self.is_update_operation:
@@ -1289,9 +1286,26 @@ class DotManager:
 
     def count_actual_update_changes(self, run_with_sudo: bool, operation_targets: list[str]) -> int | None:
         completed = self.run_update_preview(run_with_sudo, operation_targets)
+        changes = self.parse_update_changes_from_preview(completed)
+        if changes:
+            return len(changes)
         if completed.returncode != 0:
             return None
-        return len(self.parse_update_changes(completed.stdout))
+        return 0
+
+    def parse_update_changes_from_preview(
+        self,
+        completed: subprocess.CompletedProcess[str],
+    ) -> list[UpdateChange]:
+        preview_output = completed.stdout
+        if completed.stderr:
+            preview_output = f"{preview_output}\n{completed.stderr}" if preview_output else completed.stderr
+        changes = self.parse_update_changes(preview_output)
+        if changes:
+            return changes
+        if completed.returncode != 0:
+            return []
+        return self.parse_update_changes(completed.stdout)
 
     def confirm_update_overwrite_targets(self) -> None:
         if not self.is_update_operation or self.parsed.force_mode or not sys.stdin.isatty():
