@@ -1,30 +1,49 @@
-# Plist Transform Selectors
+# Plist Transform
 
 `scripts/plist_transform.py` powers the plist-based dotdrop transforms in
 `config.yaml`.
 
 Shared CLI semantics live in
-[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
+[transform-cli-interface.md](transform-cli-interface.md).
 
 ## Selector Types
 
-The plist engine exposes one typed selector flag:
+The plist engine exposes one selector type:
 
-- `--retain-key` / `--strip-key`: exact top-level plist dictionary key
+- default `exact:` selector: exact top-level plist dictionary key
 
-Plist-specific details:
+Examples:
 
-- selectors target only top-level dictionary keys
+- `NSUserKeyEquivalents`
+- `bypassEventsFromOtherApplications`
+
+Plist-specific notes:
+
+- selectors operate on top-level dictionary keys only
 - selectorless operation is allowed
-- without selectors, the transform operates on the whole plist
+- with no selectors, cleanup is identity and merge starts from the whole base
+  plist before applying the overlay plist
 
-## Merge Direction
+## Merge Semantics
 
-In merge mode, the plist engine is overlay-authoritative:
+The plist engine follows the shared contract:
 
-- start from the overlay plist
-- selectors target the base plist
-- selected base keys are copied onto the overlay
+- selectors always target the base plist
+- merge preserves the selected or complementary top-level keys from the base
+  plist, depending on `--selector-type`
+- the overlay plist is then applied on top
+
+Because plist selectors work at top-level key granularity, nested deletions are
+reflected by replacing the entire selected key from the overlay plist.
+
+## Structural Notes
+
+- top-level key identity is exact string equality
+- when a selected key exists in both operands, the overlay value replaces the
+  preserved base value for that key
+- when a selected key was removed from the repo, it stays removed after install
+  because that top-level key was already excluded from the preserved base
+  partition
 
 ## Engine-Specific Flags
 
@@ -33,18 +52,20 @@ The plist engine also supports:
 - `--output-format xml|binary`
 - `--compare-file PATH`
 
-`--compare-file` is opt-in. When provided, the engine reuses that file's
-existing bytes if its parsed plist matches the transformed data, which avoids
-no-op rewrites caused by `plistlib` serialization. Without `--compare-file`,
-the engine always serializes fresh output in the requested format.
+`--compare-file` is opt-in.
+When provided, the engine reuses that file's existing bytes if its parsed plist
+matches the transformed data, which avoids no-op rewrites caused by
+`plistlib` serialization.
+Without `--compare-file`, the engine always serializes fresh output in the
+requested format.
 
 ## Example
 
 ```sh
-python3 scripts/plist_transform.py base.plist output.plist \
+python3 scripts/plist_transform.py live.plist output.plist \
   --mode merge \
-  --overlay-file live.plist \
+  --overlay-file repo.plist \
   --output-format binary \
-  --retain-key NSUserKeyEquivalents \
-  --retain-key AppleInterfaceStyle
+  --selector-type remove \
+  --selectors 'NSUserKeyEquivalents'
 ```

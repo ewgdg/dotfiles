@@ -1,49 +1,72 @@
-# XML Transform Selectors
+# XML Transform
 
-`scripts/xml_transform.py` powers the `xml_transform_strip` and
-`xml_transform_merge` dotdrop transforms.
+`scripts/xml_transform.py` powers the XML-based dotdrop transforms in
+`config.yaml`.
 
 Shared CLI semantics live in
-[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
+[transform-cli-interface.md](transform-cli-interface.md).
 
 ## Selector Types
 
-The XML engine exposes one typed selector flag:
+The XML engine exposes one selector type:
 
-- `--retain-node-matcher` / `--strip-node-matcher`: `fnmatch`-style XML node
-  path matcher
+- default `exact:` selector: `fnmatch`-style XML node path matcher
 
-The matcher syntax is the existing root-relative slash path, for example:
+Examples:
 
 - `config/WindowGeometry`
 - `config/*WindowState`
-- `config/timeForNewReleaseCheck`
 
-Comma-separated matcher lists are accepted for compatibility, but repeated or
-space-separated values are preferred.
+XML-specific notes:
 
-XML-specific details:
+- selectors match node paths, not raw text fragments
+- `retain` in cleanup mode preserves the root element and any required ancestor
+  chain for retained descendants
+- selectorless operation is not supported
 
-- retain mode preserves the root element and any required ancestor chain
-- merge mode is base-authoritative
-- selectors target the overlay XML during merge
+## Merge Semantics
+
+The XML engine follows the shared contract:
+
+- selectors always target the base XML tree
+- merge preserves the selected or complementary region from the base tree,
+  depending on `--selector-type`
+- the overlay XML tree is then applied on top
+
+This gives the intended round-trip behavior:
+
+- unmanaged live-only XML survives install
+- repo-side deletions survive install because the managed XML region was
+  removed from the base side before the overlay tree was applied
+
+## Structural Notes
+
+- repeated siblings are matched by tag plus lightweight identity hints when
+  available
+- the current XML identity hints are `id`, `name`, `key`, `uuid`, and
+  non-empty text content
+- path matching uses `fnmatch`-style globs
+- nested deletions inside a managed subtree are reflected when the repo subtree
+  replaces the discarded base subtree
 
 ## Engine-Specific Flags
 
 The XML engine also supports:
 
-- `--sort-attributes`
 - `--compare-file PATH`
+- `--sort-attributes`
 
-`--compare-file` is opt-in. When provided, the engine reuses that file's
-bytes if its parsed XML is semantically unchanged. Without
-`--compare-file`, the engine always serializes fresh output.
+`--compare-file` is opt-in.
+When provided, the engine reuses that file's bytes if its parsed XML is
+semantically unchanged after the transform.
+Without `--compare-file`, the engine always writes fresh output.
 
 ## Example
 
 ```sh
-python scripts/xml_transform.py base.xml output.xml \
+python scripts/xml_transform.py live.xml output.xml \
   --mode merge \
-  --overlay-file live.xml \
-  --retain-node-matcher config/WindowGeometry config/WindowState
+  --overlay-file repo.xml \
+  --selector-type retain \
+  --selectors 'config/WindowGeometry'
 ```

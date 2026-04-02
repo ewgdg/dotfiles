@@ -1,26 +1,23 @@
 # Transform Engine Interface
 
-This document defines the Python contract for the shared transform CLI.
-The goal is to separate:
+This document defines the Python-side contract behind the shared transform CLI.
 
-- shared CLI concerns: mode selection, typed selector flags, request validation
-- engine concerns: parsing, format-aware matching, merge/strip behavior, output
-  serialization
+It is the implementation guide for aligning each engine with the redesigned CLI
+semantics.
 
 ## Core Types
 
-The reference contract lives in
-[`scripts/transform_engine.py`](/Users/xian/Projects/dotfiles/scripts/transform_engine.py).
+The reference types live in [../scripts/transform_engine.py](../scripts/transform_engine.py).
 
 - `TransformMode`
-  - `strip`
+  - `cleanup`
   - `merge`
 - `SelectorAction`
-  - `strip`
+  - `remove`
   - `retain`
 - `SelectorSpec`
   - declares one selector type supported by an engine
-  - includes a stable engine name and a CLI-safe flag suffix
+  - includes a stable engine name and a CLI-safe prefix
 - `TransformRequest`
   - normalized request passed from the shared CLI into the engine
 - `TransformEngine`
@@ -28,20 +25,33 @@ The reference contract lives in
 - `BaseTransformEngine`
   - convenience base class with common request validation
 
-`TransformRequest` can also carry engine-specific parsed options through
-`engine_options` when a format needs extra non-selector flags.
+Important `TransformRequest` roles:
 
-## Selector Model
+- `base_path`: primary operand and selector target
+- `overlay_path`: secondary operand applied on top in merge mode
+- `selectors_by_type`: parsed selector values grouped by engine-declared
+  selector type
+- `engine_options`: extra parsed flags for engine-specific behavior
 
-Selectors are typed. The shared CLI should derive its flags from
-`SelectorSpec.option_name()` instead of relying on string prefixes like `re:`.
+## Shared Request Semantics
 
-That means a TOML engine can expose selector types such as:
+For a selector set `S`:
 
-- `key` -> `--retain-key` / `--strip-key`
-- `table-regex` -> `--retain-table-regex` / `--strip-table-regex`
+- cleanup + `retain`: write the retained subset of `base_path`
+- cleanup + `remove`: write `base_path` with the matched subset removed
+- merge + `retain`: overlay `overlay_path` onto the retained subset of
+  `base_path`
+- merge + `remove`: overlay `overlay_path` onto `base_path` with the matched
+  subset removed
 
-This avoids collisions between matcher syntax and key-path content.
+Selectors always target `TransformRequest.base_path`.
+`TransformRequest.overlay_path` is never a selector target in the shared
+contract.
+
+To preserve repo-side deletions, an engine must build the preserved base
+partition first and only then apply the overlay operand.
+That rule applies recursively to nested managed content, not only to top-level
+fields.
 
 ## Engine Contract
 
@@ -74,62 +84,38 @@ Design expectations:
 - engines may add format-specific CLI flags through `configure_parser()`
 - engines may opt into selectorless operation through `requires_selectors()`
 - parsed extra flags flow into `TransformRequest.engine_options`
-- the engine validates engine-specific selector support
-- the engine owns parsing, matching, and writing output
-- merge semantics remain engine-defined, including which operand the standard
-  selectors target in merge mode, but the request shape stays shared
+- the engine validates engine-specific selector syntax and supported modes
+- the engine owns format-aware parsing, overlaying, and writing output
+- merge semantics are shared, not engine-defined
+- in merge mode, the engine must not recover removed managed content from the
+  base operand after the overlay has been applied
+- engine docs must document selector syntax, identity rules for repeated or
+  nested structures, and any unsupported collection semantics
 
-For merge-capable engines, treat `TransformRequest.base_path` and
-`TransformRequest.overlay_path` as stable operand roles, not as a promise about
-selector targeting. If an engine needs selectors over both operands, keep the
-shared selector model for the primary operand and parse secondary-operand
-selectors through engine-specific flags in `configure_parser()`, then pass them
-through `engine_options`.
+## Reference Pseudocode
 
-## Example
+The shared contract is easier to reason about as two steps:
 
 ```python
-from scripts.transform_engine import (
-    BaseTransformEngine,
-    SelectorSpec,
-    TransformRequest,
-)
+preserved_base = filter_base(request.base_path, request.selector_action, selectors)
 
+if request.mode == TransformMode.CLEANUP:
+    write_output(preserved_base)
+    return
 
-class TomlEngine(BaseTransformEngine):
-    name = "toml"
-    SELECTOR_SPECS = (
-        SelectorSpec(
-            name="key",
-            cli_flag="key",
-            description="Exact TOML key path",
-            examples=("model", "mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN"),
-        ),
-        SelectorSpec(
-            name="table_regex",
-            cli_flag="table-regex",
-            description="Regex matching dotted TOML table paths",
-            examples=(r"^projects\.", r"^mcp_servers\.playwright\.env$"),
-        ),
-    )
-
-    def transform(self, request: TransformRequest) -> None:
-        self.validate_request(request)
-        ...
+overlay_doc = load_overlay(request.overlay_path)
+result = overlay(preserved_base, overlay_doc)
+write_output(result)
 ```
 
-An engine like the plist transformer can override `requires_selectors()` and
-return `False` so the shared CLI can support compare-only or whole-file
-transforms without fake selector flags.
+The exact representation of `filter_base()` and `overlay()` is engine-specific,
+but the operand roles are not.
 
 ## Why This Shape
 
-- keeps CLI concerns out of format engines
-- avoids ambiguous matcher prefixes
-- lets each engine declare its own selector vocabulary
-- gives the shared CLI enough metadata to generate flags and help text
-- leaves room for engines to support explicit secondary-operand merge controls
-  without changing the shared request shape
-
-The shared CLI implementation now lives in
-[`scripts/transform_cli.py`](/Users/xian/Projects/dotfiles/scripts/transform_cli.py).
+- gives every engine the same selector target and the same merge model
+- makes repo-managed deletions propagate on install, including nested deletions
+- keeps format-specific complexity in selector parsing and structure identity,
+  where it belongs
+- leaves room for compare or serialization flags without changing semantic
+  behavior

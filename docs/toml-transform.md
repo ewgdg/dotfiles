@@ -1,39 +1,53 @@
-# TOML Transform Selectors
+# TOML Transform
 
 `scripts/toml_transform.py` powers the `toml_transform_strip` and
 `toml_transform_merge` dotdrop transforms.
 
 Shared CLI semantics live in
-[`docs/transform-cli-interface.md`](/Users/xian/Projects/dotfiles/docs/transform-cli-interface.md).
+[transform-cli-interface.md](transform-cli-interface.md).
 
 ## Selector Types
 
-The TOML engine exposes these typed selector flags:
+The TOML engine exposes these selector types:
 
-- `--retain-key` / `--strip-key`: exact TOML key path
-- `--retain-table-regex` / `--strip-table-regex`: regex against dotted table
-  path
+- default `exact:` selector: exact TOML key path
+- `re:` selector: regex matching a dotted TOML table path
 
-All selector flags in a single invocation must use the same action:
+Examples:
 
-- `retain`: select only matching content
-- `strip`: exclude matching content
+- `model`
+- `mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN`
+- `re:^projects\.`
+- `re:^mcp_servers\.playwright\.env$`
 
-TOML-specific details:
+TOML-specific notes:
 
 - key selectors match exact dotted TOML key paths
 - table regex selectors match whole tables, not one nested key inside a table
 - selectorless operation is not supported
 
-## Operand Roles
+## Merge Semantics
 
-In merge mode, the TOML engine is base-authoritative:
+The TOML engine follows the shared contract:
 
-- start from the base TOML
-- selectors target the overlay TOML
-- selected overlay content is copied onto the base
+- selectors always target the base TOML document
+- merge preserves the selected or complementary region from the base document,
+  depending on `--selector-type`
+- the overlay TOML document is then applied on top
 
-That makes it a good fit for repo-base plus preserved-live-subset installs.
+This gives the intended round-trip behavior:
+
+- unmanaged live residue survives install
+- repo-managed deletions survive install because the managed region was removed
+  from the base side before the overlay document was applied
+
+## Structural Notes
+
+- overlaying tables is recursive
+- if a managed key or table was removed from the repo, it stays removed after
+  install because it was already excluded from the preserved base partition
+- array or collection semantics should be treated according to normal TOML value
+  replacement, not implicit element-level merging
 
 ## Engine-Specific Flags
 
@@ -41,16 +55,18 @@ The TOML engine also supports:
 
 - `--compare-file PATH`
 
-`--compare-file` is opt-in. When provided, the engine reuses that file's
-exact text if it already matches the transformed document. Without
-`--compare-file`, the engine always writes fresh output.
+`--compare-file` is opt-in.
+When provided, the engine reuses that file's exact text if it already matches
+the transformed document.
+Without `--compare-file`, the engine always writes fresh output.
 
 ## Example
 
 ```sh
-uv run --project . scripts/toml_transform.py repo.toml output.toml \
+uv run --project . scripts/toml_transform.py live.toml output.toml \
   --mode merge \
-  --overlay-file live.toml \
-  --retain-key model mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN \
-  --retain-table-regex '^mcp_servers\.playwright\.env$'
+  --overlay-file repo.toml \
+  --selector-type retain \
+  --selectors 'mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN' \
+  're:^mcp_servers\.playwright\.env$'
 ```
