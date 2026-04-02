@@ -263,18 +263,16 @@ dotfiles:
     dst: ~/.var/app/org.goldendict.GoldenDict/config/goldendict/config
     trans_update: xml_transform_strip "--sort-attributes --selector-type remove 
       --selectors {{@@ goldendict_config_selectors @@}}"
-    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors 
-      @@}}"
+    trans_install: xml_transform_merge "--selector-type retain --selectors {{@@ 
+      goldendict_config_selectors @@}}"
   f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config:
     template: false
     src: var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
     dst: ~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config
     trans_update: xml_transform_strip "--sort-attributes --selector-type remove 
       --selectors {{@@ goldendict_config_selectors @@}}"
-    trans_install: xml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --selector-type retain --selectors {{@@ goldendict_config_selectors 
-      @@}}"
+    trans_install: xml_transform_merge "--selector-type retain --selectors {{@@ 
+      goldendict_config_selectors @@}}"
   f_local_share_applications_1password-quickaccess.desktop:
     src: local/share/applications/1password-quickaccess.desktop
     dst: ~/.local/share/applications/1password-quickaccess.desktop
@@ -337,24 +335,45 @@ dotfiles:
     chmod: '600'
     actions:
     - sh 'mkdir -p ~/Templates'
+  f_config_gsettings_desktop:
+    src: config/gsettings/desktop.ini
+    dst: ~/.config/gsettings/desktop.ini
+    trans_update: gsettings_dump
+    actions:
+    - gsettings_apply
+  f_config_gsettings_nautilus:
+    src: config/gsettings/nautilus.ini
+    dst: ~/.config/gsettings/nautilus.ini
+    trans_update: gsettings_dump
+    actions:
+    - gsettings_apply
   d_config_gtk-3.0:
     src: config/gtk-3.0
     dst: ~/.config/gtk-3.0
     chmod: '700'
-    actions:
-    - sh "env UV_CACHE_DIR=/tmp/uv-cache uv run '{{@@ _dotdrop_dotpath 
-      @@}}/../scripts/sync_gtk_gsettings.py' '{{@@ _dotfile_abs_dst 
-      @@}}/settings.ini'"
     cmpignore: &gtk3_ignore
     - assets/*
     - bookmarks
     - '*.backup.*'
+    - settings.ini
     upignore: *gtk3_ignore
     instignore: *gtk3_ignore
+  f_config_gtk-3.0_settings:
+    src: config/gtk-3.0/settings.ini
+    dst: ~/.config/gtk-3.0/settings.ini
+    trans_update: sync_gtk3_from_gsettings
   d_config_gtk-4.0:
     src: config/gtk-4.0
     dst: ~/.config/gtk-4.0
     chmod: '700'
+    cmpignore: &gtk4_ignore
+    - settings.ini
+    upignore: *gtk4_ignore
+    instignore: *gtk4_ignore
+  f_config_gtk-4.0_settings:
+    src: config/gtk-4.0/settings.ini
+    dst: ~/.config/gtk-4.0/settings.ini
+    trans_update: sync_gtk4_from_gsettings
   d_config_xdg-desktop-portal:
     src: config/xdg-desktop-portal
     dst: ~/.config/xdg-desktop-portal
@@ -387,8 +406,8 @@ dotfiles:
     dst: ~/.codex/config.toml
     trans_update: toml_transform_strip "--selector-type remove --selectors {{@@ 
       codex_config_selectors @@}}"
-    trans_install: toml_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --selector-type retain --selectors {{@@ codex_config_selectors @@}}"
+    trans_install: toml_transform_merge "--selector-type retain --selectors {{@@ 
+      codex_config_selectors @@}}"
   f_codex_AGENTS_codex_md:
     src: codex/AGENTS.codex.md
     dst: ~/.codex/AGENTS.codex.md
@@ -414,25 +433,22 @@ dotfiles:
     chmod: '600'
     trans_update: plist_transform_strip "--output-format xml --selector-type 
       retain --selectors {{@@ mac_global_preferences_config_selectors @@}}"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --output-format binary --selector-type retain --selectors {{@@ 
-      mac_global_preferences_config_selectors @@}}"
+    trans_install: plist_transform_merge "--output-format binary --selector-type 
+      remove --selectors {{@@ mac_global_preferences_config_selectors @@}}"
   f_Library_Preferences_com_apple_symbolichotkeys.plist:
     src: Library/Preferences/com.apple.symbolichotkeys.plist
     dst: ~/Library/Preferences/com.apple.symbolichotkeys.plist
     chmod: '600'
     trans_update: plist_transform_strip "--output-format xml"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --output-format binary"
+    trans_install: plist_transform_merge "--output-format binary"
   f_Library_Preferences_com_lujjjh_LinearMouse.plist:
     src: Library/Preferences/com.lujjjh.LinearMouse.plist
     dst: ~/Library/Preferences/com.lujjjh.LinearMouse.plist
     chmod: '600'
     trans_update: plist_transform_strip "--output-format xml --selector-type 
       remove --selectors {{@@ linearmouse_config_selectors @@}}"
-    trans_install: plist_transform_merge "--overlay-file '{{@@ _dotfile_abs_dst 
-      @@}}' --output-format binary --selector-type retain --selectors {{@@ 
-      linearmouse_config_selectors @@}}"
+    trans_install: plist_transform_merge "--output-format binary --selector-type 
+      retain --selectors {{@@ linearmouse_config_selectors @@}}"
     actions:
     - install linearmouse
 profiles:
@@ -481,7 +497,9 @@ profiles:
   framework_gtk:
     dotfiles:
     - d_config_gtk-3.0
+    - f_config_gtk-3.0_settings
     - d_config_gtk-4.0
+    - f_config_gtk-4.0_settings
   os_linux:
     include:
     - posix_base
@@ -546,6 +564,8 @@ profiles:
     variables:
       desktop: niri
     dotfiles:
+    - f_config_gsettings_desktop
+    - f_config_gsettings_nautilus
     - d_etc_sddm.conf.d
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
@@ -651,9 +671,18 @@ actions:
   ensure-systemd-service-enabled: sh '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/ensure_systemd_service_enabled.sh' {0} {1}
   sh: sh -c "{0}"
-  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git 
+  git-clone: if [ -d "{1}" ]; then cd "{1}" && git pull --depth=1; else git
     clone --depth=1 {0} "{1}"; fi
+  gsettings_apply: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath
+    @@}}/../scripts/gsettings_sync.py' {1} --mode apply
 trans_update:
+  gsettings_dump: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath
+    @@}}/../scripts/gsettings_sync.py' {0} {1} --mode dump --template-file
+    '{{@@ _dotfile_abs_src @@}}'
+  sync_gtk3_from_gsettings: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@
+    _dotdrop_dotpath @@}}/../scripts/sync_gsettings_gtk.py' {0} {1} --mode gtk3
+  sync_gtk4_from_gsettings: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@
+    _dotdrop_dotpath @@}}/../scripts/sync_gsettings_gtk.py' {0} {1} --mode gtk4
   toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
     _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup 
     {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
@@ -665,11 +694,12 @@ trans_update:
     --compare-file "{{@@ _dotfile_abs_src @@}}"
 trans_install:
   toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
-    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode merge {2}
-    --compare-file "{{@@ _dotfile_abs_dst @@}}"
+    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' "{{@@ _dotfile_abs_dst 
+    @@}}" {1} --mode merge --overlay-file {0} {2} --compare-file "{{@@ 
+    _dotfile_abs_dst @@}}"
   xml_transform_merge: python '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/xml_transform.py' {0} {1} --mode merge {2} --compare-file 
-    "{{@@ _dotfile_abs_dst @@}}"
+    @@}}/../scripts/xml_transform.py' "{{@@ _dotfile_abs_dst @@}}" {1} --mode 
+    merge --overlay-file {0} {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
   plist_transform_merge: python3 '{{@@ _dotdrop_dotpath 
-    @@}}/../scripts/plist_transform.py' {0} {1} --mode merge {2} --compare-file 
-    "{{@@ _dotfile_abs_dst @@}}"
+    @@}}/../scripts/plist_transform.py' "{{@@ _dotfile_abs_dst @@}}" {1} --mode 
+    merge --overlay-file {0} {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
