@@ -71,7 +71,7 @@ claude() {
       return 1
   fi
 
-  _merge_agent_instructions "$HOME/.claude/AGENTS.md" "$HOME/.claude/AGENTS.claude.md" || return 1
+  _merge_agent_instructions "$HOME/.claude/CLAUDE.md" "$HOME/.claude/AGENTS.claude.md" || return 1
   command claude --dangerously-skip-permissions "$@"
 }
 
