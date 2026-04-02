@@ -566,6 +566,7 @@ profiles:
     dotfiles:
     - f_config_gsettings_desktop
     - f_config_gsettings_nautilus
+    - f_etc_sddm.conf
     - d_etc_sddm.conf.d
     - f_etc_nvidia_nvidia-application-profiles-rc.d_50-limit-free-buffer-pool-in-wayland-compositors.json
     - d_config_niri
@@ -605,7 +606,7 @@ profiles:
       desktop: niri
     include:
     - os_arch
-    - de_kde
+    # - de_kde
     - de_niri
     - apps_linux
     - apps_ai
