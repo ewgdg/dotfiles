@@ -3,13 +3,15 @@
 gsettings_sync.py - Sync GNOME gsettings with repo-managed INI files.
 
 dump mode (trans_update):
-  Reads current values from gsettings for every schema/key listed in
-  --template-file, then writes them to the output path.
+  Reads the current GSettings user-value state for every schema/key listed in
+  --template-file. Keys with a user value are written with their current
+  effective gsettings value; tracked keys without a user value are written as
+  `__RESET__`.
   The base_path argument ({0}) is ignored.
 
 apply mode (action):
   Reads the repo INI file (base_path, {0}) and applies each key via
-  `gsettings set`.
+  `gsettings set`, or `gsettings reset` when the value is `__RESET__`.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ import configparser
 import shutil
 import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -40,6 +43,13 @@ def gsettings_set(schema: str, key: str, value: str) -> None:
     )
 
 
+def gsettings_reset(schema: str, key: str) -> None:
+    subprocess.run(
+        ["gsettings", "reset", schema, key],
+        check=True,
+    )
+
+
 def read_ini(path: Path) -> configparser.RawConfigParser:
     parser = configparser.RawConfigParser()
     parser.optionxform = str
@@ -55,6 +65,7 @@ def write_ini(parser: configparser.RawConfigParser, path: Path) -> None:
 
 
 _FULL_SCHEMA_SUFFIX = ".*"
+RESET_MARKER = "__RESET__"
 
 
 def resolve_schema_name(section_name: str) -> str:
@@ -74,6 +85,42 @@ def gsettings_list_keys(schema: str) -> list[str]:
     return sorted(result.stdout.splitlines())
 
 
+@lru_cache(maxsize=None)
+def load_gio():
+    try:
+        import gi
+    except ImportError as exc:
+        raise RuntimeError("PyGObject is required for gsettings sync") from exc
+
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio
+    return Gio
+
+
+@lru_cache(maxsize=None)
+def gio_settings_for_schema(schema: str):
+    Gio = load_gio()
+
+    schema_source = Gio.SettingsSchemaSource.get_default()
+    if schema_source is None:
+        raise RuntimeError("default GSettings schema source is unavailable")
+
+    schema_definition = schema_source.lookup(schema, False)
+    if schema_definition is None:
+        raise RuntimeError(f"gsettings schema not found: {schema}")
+
+    if schema_definition.get_path() is None:
+        raise RuntimeError(
+            f"gsettings schema {schema} is relocatable; explicit path support is required"
+        )
+
+    return Gio.Settings.new(schema)
+
+
+def gsettings_has_user_value(schema: str, key: str) -> bool:
+    return gio_settings_for_schema(schema).get_user_value(key) is not None
+
+
 def iter_template_keys(template: configparser.RawConfigParser, section_name: str) -> list[str]:
     if section_name.endswith(_FULL_SCHEMA_SUFFIX):
         return gsettings_list_keys(resolve_schema_name(section_name))
@@ -81,7 +128,7 @@ def iter_template_keys(template: configparser.RawConfigParser, section_name: str
 
 
 def run_dump(template_path: Path, output_path: Path) -> None:
-    """Read current gsettings values and write them to output_path."""
+    """Write current overrides as values and defaults as RESET_MARKER."""
     template = read_ini(template_path)
     output = configparser.RawConfigParser()
     output.optionxform = str
@@ -92,6 +139,9 @@ def run_dump(template_path: Path, output_path: Path) -> None:
 
         output.add_section(section_name)
         for key in keys:
+            if not gsettings_has_user_value(schema, key):
+                output.set(section_name, key, RESET_MARKER)
+                continue
             value = gsettings_get(schema, key)
             if value is None:
                 print(
@@ -111,6 +161,9 @@ def run_apply(input_path: Path) -> None:
     for section_name in parser.sections():
         schema = resolve_schema_name(section_name)
         for key, value in parser.items(section_name):
+            if value == RESET_MARKER:
+                gsettings_reset(schema, key)
+                continue
             gsettings_set(schema, key, value)
 
 
