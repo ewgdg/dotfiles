@@ -682,8 +682,10 @@ trans_update:
     '{{@@ _dotfile_abs_src @@}}'
   sync_gtk3_from_gsettings: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@
     _dotdrop_dotpath @@}}/../scripts/sync_gsettings_gtk.py' {0} {1} --mode gtk3
+    --template-file '{{@@ _dotfile_abs_src @@}}'
   sync_gtk4_from_gsettings: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@
     _dotdrop_dotpath @@}}/../scripts/sync_gsettings_gtk.py' {0} {1} --mode gtk4
+    --template-file '{{@@ _dotfile_abs_src @@}}'
   toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
     _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup 
     {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
