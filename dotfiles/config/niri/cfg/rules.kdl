@@ -26,8 +26,8 @@ window-rule {
 window-rule {
     match app-id=r#"(?i)goldendict"#
     open-floating true
-    // default-window-height { fixed 600; }
-    // default-column-width { fixed 800; }
+    default-window-height { fixed 600; }
+    default-column-width { fixed 800; }
     max-height 600
     max-width 800
 }
