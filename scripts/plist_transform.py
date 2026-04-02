@@ -61,6 +61,12 @@ def select_plist_data(
     return filter_retained_keys(data, selected_keys)
 
 
+def overlay_plist_data(base_data: PlistDict, overlay_data: PlistDict) -> PlistDict:
+    merged_data = dict(base_data)
+    merged_data.update(overlay_data)
+    return merged_data
+
+
 def plist_format_from_name(format_name: str) -> int:
     return plistlib.FMT_XML if format_name == "xml" else plistlib.FMT_BINARY
 
@@ -156,9 +162,9 @@ class PlistTransformEngine(BaseTransformEngine):
         selected_keys = request.selector_values("key")
         output_format = str(request.engine_option("output_format", "xml"))
 
-        source_data = load_plist(request.base_path)
+        base_data = load_plist(request.base_path)
         transformed_data = select_plist_data(
-            source_data,
+            base_data,
             request.selector_action,
             selected_keys,
         )
@@ -167,14 +173,7 @@ class PlistTransformEngine(BaseTransformEngine):
         if request.mode == TransformMode.MERGE:
             assert request.overlay_path is not None
             overlay_data = load_plist(request.overlay_path)
-            transformed_base_data = select_plist_data(
-                source_data,
-                request.selector_action,
-                selected_keys,
-            )
-            transformed_data = dict(overlay_data)
-            transformed_data.update(transformed_base_data)
-            mode_reference_path = request.overlay_path
+            transformed_data = overlay_plist_data(transformed_data, overlay_data)
 
         compare_path = request.engine_option("compare_path")
 

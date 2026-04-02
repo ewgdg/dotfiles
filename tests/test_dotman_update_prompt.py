@@ -1322,6 +1322,49 @@ def test_update_operation_counts_only_actual_changed_files_from_dry_run(monkeypa
     assert result.changed_count == 2
 
 
+def test_collect_update_changes_uses_preview_output_even_when_dry_run_exits_nonzero() -> None:
+    manager = DotManager(["update"])
+    manager.regular_update_keys = ["d_app"]
+
+    manager.run_update_preview = lambda *_args, **_kwargs: subprocess.CompletedProcess(
+        ["dotdrop", "update", "-d"],
+        1,
+        "[DRY] would update content of /repo/settings.toml from /live/settings.toml\n",
+        '[ERR] "/live/missing.toml" does not exist\n',
+    )
+
+    changes = manager.collect_update_changes()
+
+    assert changes == [
+        DOTMAN_MODULE.UpdateChange(
+            source_path=Path("/repo/settings.toml"),
+            live_path=Path("/live/settings.toml"),
+        )
+    ]
+
+
+def test_count_actual_update_changes_uses_preview_output_even_when_dry_run_exits_nonzero(
+    monkeypatch,
+) -> None:
+    manager = DotManager(["update"])
+    manager.dotdrop_cmd = "dotdrop"
+    manager.operation = "update"
+    manager.parsed.base_args = []
+
+    monkeypatch.setattr(
+        manager,
+        "run_update_preview",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            ["dotdrop", "update", "-d"],
+            1,
+            "[DRY] would cp /live/extra.toml /repo/extra.toml\n",
+            '[ERR] "/live/missing.toml" does not exist\n',
+        ),
+    )
+
+    assert manager.count_actual_update_changes(False, ["d_app"]) == 1
+
+
 def test_update_operation_falls_back_to_dotdrop_summary_when_dry_run_fails(monkeypatch) -> None:
     manager = DotManager(["update"])
     manager.dotdrop_cmd = "dotdrop"

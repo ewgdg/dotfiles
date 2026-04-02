@@ -114,3 +114,26 @@ def test_shared_cli_allows_no_selector_flags_when_engine_supports_identity_mode(
     request = engine.requests[0]
     assert request.selector_action == ENGINE_MODULE.SelectorAction.RETAIN
     assert request.selector_values("key") == ()
+
+
+def test_shared_cli_help_text_describes_base_targeting() -> None:
+    parser = CLI_MODULE.build_parser(RecordingEngine())
+    help_by_dest = {
+        action.dest: action.help
+        for action in parser._actions
+        if action.help is not None
+    }
+
+    assert help_by_dest["base_path"] == "Base file. Selectors always apply to this file."
+    assert (
+        help_by_dest["overlay_path"]
+        == "Overlay file applied on top of the filtered base. Required when --mode=merge."
+    )
+    assert (
+        help_by_dest["selector_type"]
+        == "Preserve or remove the selected region from the base file."
+    )
+    assert (
+        help_by_dest["selectors"]
+        == "List of base-file matchers/selectors with optional prefixes."
+    )

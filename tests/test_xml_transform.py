@@ -9,19 +9,20 @@ from scripts import xml_transform as MODULE
 def parse_xml(path: Path) -> ET.Element:
     return ET.parse(path).getroot()
 
+
 def write_semantically_equal_overlay_xml(repo_path: Path, live_path: Path) -> str:
     repo_path.write_text(
         """<config>
-  <keep id=\"1\"></keep>
+  <keep id="1"></keep>
   <tail></tail>
 </config>
 """,
         encoding="utf-8",
     )
-    live_text = """<?xml version=\"1.0\"?>
+    live_text = """<?xml version="1.0"?>
 <config>
- <keep id=\"1\"/>
- <WindowGeometry y=\"200\" x=\"100\"/>
+ <keep id="1"/>
+ <WindowGeometry y="200" x="100"/>
  <tail/>
 </config>"""
     live_path.write_text(live_text, encoding="utf-8")
@@ -57,12 +58,12 @@ def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
 
     exit_code = MODULE.main(
         [
-            str(repo_path),
+            str(live_path),
             str(output_path),
             "--mode",
             "merge",
             "--overlay-file",
-            str(live_path),
+            str(repo_path),
             "--selector-type",
             "retain",
             "--selectors",
@@ -122,18 +123,13 @@ def test_strip_nodes_removes_selected_live_only_xml_paths(tmp_path: Path) -> Non
     assert root.find("timeForNewReleaseCheck") is None
 
 
-def test_overlay_retained_nodes_uses_repo_xml_as_base(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.xml"
+def test_merge_mode_retain_preserves_selected_live_paths_and_reapplies_repo_tree(
+    tmp_path: Path,
+) -> None:
     live_path = tmp_path / "live.xml"
+    repo_path = tmp_path / "repo.xml"
     output_path = tmp_path / "output.xml"
 
-    repo_path.write_text(
-        """<config>
-  <keep>repo</keep>
-</config>
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """<config>
   <keep>live</keep>
@@ -144,16 +140,24 @@ def test_overlay_retained_nodes_uses_repo_xml_as_base(tmp_path: Path) -> None:
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """<config>
+  <keep>repo</keep>
+</config>
+""",
+        encoding="utf-8",
+    )
 
     MODULE.transform_xml(
-        str(repo_path),
+        str(live_path),
         str(output_path),
-        overlay_path=str(live_path),
+        overlay_path=str(repo_path),
         node_matchers=[
             "config/WindowGeometry",
             "config/WindowState",
             "config/timeForNewReleaseCheck",
         ],
+        selector_action=MODULE.SelectorAction.RETAIN,
     )
 
     root = parse_xml(output_path)
@@ -198,47 +202,89 @@ def test_retain_node_matchers_in_strip_mode_keeps_only_selected_paths(tmp_path: 
     assert root.find("Section/KeepNested") is None
 
 
-def test_merge_strip_node_matchers_merges_everything_else_from_overlay(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.xml"
+def test_merge_mode_remove_preserves_unselected_live_paths_and_reapplies_repo_tree(
+    tmp_path: Path,
+) -> None:
     live_path = tmp_path / "live.xml"
+    repo_path = tmp_path / "repo.xml"
     output_path = tmp_path / "output.xml"
 
-    repo_path.write_text(
-        """<config>
-  <keep>repo</keep>
-  <WindowGeometry x="10" y="10" />
-</config>
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """<config>
-  <keep>live</keep>
+  <KeepLocal>noise</KeepLocal>
   <WindowGeometry x="100" y="200" />
   <WindowState fullscreen="true" />
 </config>
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """<config>
+  <WindowGeometry x="10" y="10" />
+</config>
+""",
+        encoding="utf-8",
+    )
 
     MODULE.transform_xml(
-        repo_path,
+        live_path,
         output_path,
-        overlay_path=live_path,
+        overlay_path=repo_path,
         node_matchers=["config/WindowGeometry"],
         selector_action=MODULE.SelectorAction.REMOVE,
     )
 
     root = parse_xml(output_path)
 
-    assert root.findtext("keep") == "live"
+    assert root.findtext("KeepLocal") == "noise"
     assert root.find("WindowGeometry").attrib == {"x": "10", "y": "10"}
     assert root.find("WindowState") is not None
 
 
-def test_overlay_retained_nodes_with_compare_file_preserves_live_order_and_bytes(
+def test_merge_mode_remove_reflects_nested_deletions_from_repo(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.xml"
+    repo_path = tmp_path / "repo.xml"
+    output_path = tmp_path / "output.xml"
+
+    live_path.write_text(
+        """<config>
+  <KeepLocal>noise</KeepLocal>
+  <Managed>
+    <NestedValue>repo</NestedValue>
+    <DeleteMe>stale</DeleteMe>
+  </Managed>
+</config>
+""",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        """<config>
+  <Managed>
+    <NestedValue>repo</NestedValue>
+  </Managed>
+</config>
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.transform_xml(
+        live_path,
+        output_path,
+        overlay_path=repo_path,
+        node_matchers=["config/Managed"],
+        selector_action=MODULE.SelectorAction.REMOVE,
+    )
+
+    root = parse_xml(output_path)
+
+    assert root.findtext("KeepLocal") == "noise"
+    assert root.findtext("Managed/NestedValue") == "repo"
+    assert root.find("Managed/DeleteMe") is None
+
+
+def test_merge_with_compare_file_preserves_live_order_and_bytes_when_semantically_equal(
     tmp_path: Path,
- ) -> None:
+) -> None:
     repo_path = tmp_path / "repo.xml"
     live_path = tmp_path / "live.xml"
     output_path = tmp_path / "output.xml"
@@ -246,9 +292,9 @@ def test_overlay_retained_nodes_with_compare_file_preserves_live_order_and_bytes
     live_text = write_semantically_equal_overlay_xml(repo_path, live_path)
 
     MODULE.transform_xml(
-        str(repo_path),
+        str(live_path),
         str(output_path),
-        overlay_path=str(live_path),
+        overlay_path=str(repo_path),
         node_matchers=["config/WindowGeometry"],
         compare_path=str(live_path),
     )
@@ -256,9 +302,9 @@ def test_overlay_retained_nodes_with_compare_file_preserves_live_order_and_bytes
     assert output_path.read_text(encoding="utf-8") == live_text
 
 
-def test_overlay_retained_nodes_without_compare_file_reserializes_semantically_equal_output(
+def test_merge_without_compare_file_reserializes_semantically_equal_output(
     tmp_path: Path,
- ) -> None:
+) -> None:
     repo_path = tmp_path / "repo.xml"
     live_path = tmp_path / "live.xml"
     output_path = tmp_path / "output.xml"
@@ -266,9 +312,9 @@ def test_overlay_retained_nodes_without_compare_file_reserializes_semantically_e
     live_text = write_semantically_equal_overlay_xml(repo_path, live_path)
 
     MODULE.transform_xml(
-        str(repo_path),
+        str(live_path),
         str(output_path),
-        overlay_path=str(live_path),
+        overlay_path=str(repo_path),
         node_matchers=["config/WindowGeometry"],
     )
 

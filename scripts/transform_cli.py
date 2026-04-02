@@ -46,7 +46,11 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
             f"Run the {engine.name} transform engine using the shared transform CLI."
         )
     )
-    parser.add_argument("base_path", type=Path, help="Base file. Repo file for install mode.")
+    parser.add_argument(
+        "base_path",
+        type=Path,
+        help="Base file. Selectors always apply to this file.",
+    )
     parser.add_argument("output_path", type=Path, help="Transformed output path.")
     parser.add_argument(
         "--mode",
@@ -59,19 +63,19 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
         "--merge-file",
         dest="overlay_path",
         type=Path,
-        help="Overlay file. Required when --mode=merge.",
+        help="Overlay file applied on top of the filtered base. Required when --mode=merge.",
     )
     parser.add_argument(
         "--selector-type",
         choices=[action.value for action in SelectorAction],
         default=SelectorAction.RETAIN.value,
-        help="Action to take after selection.",
+        help="Preserve or remove the selected region from the base file.",
     )
     parser.add_argument(
         "--selectors",
         nargs="*",
         default=[],
-        help="List of matchers/selectors with optional prefixes.",
+        help="List of base-file matchers/selectors with optional prefixes.",
     )
 
     engine.configure_parser(parser)

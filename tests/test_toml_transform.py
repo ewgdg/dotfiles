@@ -18,18 +18,10 @@ def test_toml_engine_declares_typed_selectors() -> None:
 
 
 def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
-        """approval_policy = "on-request"
-
-[mcp_servers.context7]
-command = "npx"
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "on-request"
 model = "gpt-5.4"
@@ -39,15 +31,23 @@ PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+
+[mcp_servers.context7]
+command = "npx"
+""",
+        encoding="utf-8",
+    )
 
     exit_code = MODULE.main(
         [
-            str(repo_path),
+            str(live_path),
             str(output_path),
             "--mode",
             "merge",
             "--overlay-file",
-            str(live_path),
+            str(repo_path),
             "--selector-type",
             "retain",
             "--selectors",
@@ -179,20 +179,11 @@ def test_write_document_without_compare_file_rewrites_matching_output(
     assert output_path.stat().st_mtime_ns != 1
 
 
-def test_merge_replaces_unmanaged_live_keys_but_preserves_selected_keys(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
+def test_merge_preserves_selected_live_keys_and_reapplies_repo_content(tmp_path: Path) -> None:
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
-        """approval_policy = "on-request"
-web_search = "live"
-
-[mcp_servers.context7]
-command = "npx"
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "on-request"
 model = "gpt-5.4"
@@ -211,11 +202,20 @@ trust_level = "trusted"
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+web_search = "repo"
+
+[mcp_servers.context7]
+command = "npx"
+""",
+        encoding="utf-8",
+    )
 
     MODULE.merge_keys(
-        repo_path,
-        output_path,
         live_path,
+        output_path,
+        repo_path,
         {
             ("model",),
             ("mcp_servers", "playwright", "env", "PLAYWRIGHT_MCP_EXTENSION_TOKEN"),
@@ -226,6 +226,7 @@ trust_level = "trusted"
     merged_doc = MODULE.load_document(output_path)
 
     assert merged_doc["model"] == "gpt-5.4"
+    assert merged_doc["web_search"] == "repo"
     assert "projects" not in merged_doc
     assert "playwright" in merged_doc["mcp_servers"]
     assert "command" not in merged_doc["mcp_servers"]["playwright"]
@@ -236,18 +237,10 @@ trust_level = "trusted"
 
 
 def test_merge_restores_regex_selected_tables(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
-        """approval_policy = "on-request"
-
-[mcp_servers.context7]
-command = "npx"
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "on-request"
 
@@ -262,11 +255,19 @@ PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+
+[mcp_servers.context7]
+command = "npx"
+""",
+        encoding="utf-8",
+    )
 
     MODULE.merge_keys(
-        repo_path,
-        output_path,
         live_path,
+        output_path,
+        repo_path,
         set(),
         [MODULE.re.compile(r"^mcp_servers\.playwright\.env$")],
     )
@@ -283,23 +284,10 @@ PLAYWRIGHT_MCP_EXTENSION_TOKEN = "secret"
 
 
 def test_merge_with_compare_file_reuses_semantically_matching_live_bytes(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
-        """approval_policy = "on-request"
-sandbox_mode = "workspace-write"
-web_search = "live"
-personality = "pragmatic"
-
-model_provider = "openai_http"
-
-[model_providers.openai_http]
-name = "OpenAI HTTP only"
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -318,11 +306,24 @@ trust_level = "trusted"
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+personality = "pragmatic"
+
+model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+""",
+        encoding="utf-8",
+    )
 
     MODULE.merge_keys(
-        repo_path,
-        output_path,
         live_path,
+        output_path,
+        repo_path,
         {
             ("model",),
             ("model_reasoning_effort",),
@@ -335,53 +336,45 @@ trust_level = "trusted"
 
 
 def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
+    live_path.write_text(
         """approval_policy = "on-request"
 """,
         encoding="utf-8",
     )
-    live_path.write_text(
+    repo_path.write_text(
         """approval_policy = "on-request"
 """,
         encoding="utf-8",
     )
 
     MODULE.merge_keys(
-        repo_path,
-        output_path,
         live_path,
+        output_path,
+        repo_path,
         {("mcp_servers", "playwright", "env", "PLAYWRIGHT_MCP_EXTENSION_TOKEN")},
         [],
     )
 
     merged_doc = MODULE.load_document(output_path)
 
+    assert merged_doc["approval_policy"] == "on-request"
     assert "mcp_servers" not in merged_doc
 
 
-def test_merge_strip_matchers_merges_everything_else_from_overlay(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
+def test_merge_remove_preserves_unselected_live_keys_and_reapplies_repo_content(
+    tmp_path: Path,
+) -> None:
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
     output_path = tmp_path / "output.toml"
 
-    repo_path.write_text(
-        """approval_policy = "on-request"
-model = "repo-model"
-
-[mcp_servers.context7]
-command = "repo-context7"
-
-[projects."/tmp/example"]
-trust_level = "repo"
-""",
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "live"
+keep_local = "noise"
 model = "live-model"
 
 [mcp_servers.context7]
@@ -395,37 +388,50 @@ trust_level = "trusted"
 """,
         encoding="utf-8",
     )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+model = "repo-model"
+
+[mcp_servers.context7]
+command = "repo-context7"
+
+[projects."/tmp/example"]
+trust_level = "repo"
+""",
+        encoding="utf-8",
+    )
 
     MODULE.merge_keys_except_stripped(
-        repo_path,
-        output_path,
         live_path,
+        output_path,
+        repo_path,
         [("model",)],
         [MODULE.re.compile(r"^projects\.")],
     )
 
     merged_doc = MODULE.load_document(output_path)
 
-    assert merged_doc["approval_policy"] == "live"
+    assert merged_doc["approval_policy"] == "on-request"
+    assert merged_doc["keep_local"] == "noise"
     assert merged_doc["model"] == "repo-model"
-    assert merged_doc["mcp_servers"]["context7"]["command"] == "live-context7"
+    assert merged_doc["mcp_servers"]["context7"]["command"] == "repo-context7"
     assert merged_doc["mcp_servers"]["playwright"]["command"] == "live-playwright"
     assert merged_doc["projects"]["/tmp/example"]["trust_level"] == "repo"
 
 
 def test_merge_preserves_overlay_key_order_across_hash_seeds(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.toml"
     live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
 
-    repo_path.write_text(
-        'approval_policy = "on-request"\n',
-        encoding="utf-8",
-    )
     live_path.write_text(
         """approval_policy = "on-request"
 model_reasoning_effort = "high"
 model = "gpt-5.4"
 """,
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        'approval_policy = "on-request"\n',
         encoding="utf-8",
     )
 
@@ -440,20 +446,21 @@ from pathlib import Path
 from scripts import toml_transform as module
 
 repo_path = Path(sys.argv[1])
-live_path = Path(sys.argv[2])
+live_path = Path(sys.argv[1])
+repo_path = Path(sys.argv[2])
 output_path = Path(sys.argv[3])
 
 module.merge_keys(
-    repo_path,
-    output_path,
     live_path,
+    output_path,
+    repo_path,
     {("model",), ("model_reasoning_effort",)},
     [],
 )
 print(output_path.read_text(encoding="utf-8"))
 """,
-            str(repo_path),
             str(live_path),
+            str(repo_path),
             str(tmp_path / "output.toml"),
         ],
         capture_output=True,

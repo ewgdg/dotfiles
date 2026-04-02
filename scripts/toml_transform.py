@@ -309,16 +309,99 @@ def build_document_with_retained_matchers(
     return normalize_document(retained_doc)
 
 
-def merge_overlay_document(overlay_doc: TomlContainer, base_doc: TomlContainer) -> None:
-    for key, overlay_value in overlay_doc.items():
-        key_name = str(key)
-        base_value = base_doc.get(key_name)
+def build_document_with_selector_action(
+    source_doc: TOMLDocument,
+    selector_action: SelectorAction,
+    key_paths: list[tuple[str, ...]],
+    table_regexes: list[re.Pattern[str]],
+) -> TOMLDocument:
+    if selector_action == SelectorAction.REMOVE:
+        return build_document_with_stripped_matchers(
+            source_doc,
+            key_paths,
+            table_regexes,
+        )
+    return build_document_with_retained_matchers(
+        source_doc,
+        key_paths,
+        table_regexes,
+    )
 
-        if isinstance(overlay_value, Table) and isinstance(base_value, Table):
-            merge_overlay_document(overlay_value, base_value)
+
+def clone_empty_container(source: TomlContainer) -> TomlContainer:
+    cloned = copy.deepcopy(source)
+    for key in list(cloned.keys()):
+        del cloned[key]
+    return cloned
+
+
+def overlay_with_base_slots(
+    original_base: TomlContainer,
+    preserved_base: TomlContainer,
+    overlay_doc: TomlContainer,
+) -> TomlContainer:
+    merged = clone_empty_container(preserved_base)
+
+    for key in original_base.keys():
+        key_name = str(key)
+        base_value = original_base.get(key_name)
+        preserved_value = preserved_base.get(key_name)
+        overlay_value = overlay_doc.get(key_name)
+
+        if (
+            isinstance(base_value, Table)
+            and isinstance(preserved_value, Table)
+            and isinstance(overlay_value, Table)
+        ):
+            merged[key_name] = overlay_with_base_slots(base_value, preserved_value, overlay_value)
             continue
 
-        base_doc[key_name] = copy.deepcopy(overlay_value)
+        if overlay_value is not None:
+            merged[key_name] = copy.deepcopy(overlay_value)
+            continue
+
+        if preserved_value is not None:
+            merged[key_name] = copy.deepcopy(preserved_value)
+
+    for key, overlay_value in overlay_doc.items():
+        key_name = str(key)
+        if key_name in merged:
+            continue
+        merged[key_name] = copy.deepcopy(overlay_value)
+
+    for key, preserved_value in preserved_base.items():
+        key_name = str(key)
+        if key_name in merged:
+            continue
+        merged[key_name] = copy.deepcopy(preserved_value)
+
+    return merged
+
+
+def merge_with_selector_action(
+    base_path: Path,
+    output_path: Path,
+    overlay_path: Path,
+    selector_action: SelectorAction,
+    key_paths: list[tuple[str, ...]],
+    table_regexes: list[re.Pattern[str]],
+    compare_path: Path | None = None,
+) -> None:
+    base_doc = load_document(base_path)
+    preserved_base = build_document_with_selector_action(
+        base_doc,
+        selector_action,
+        key_paths,
+        table_regexes,
+    )
+    overlay_doc = load_document(overlay_path)
+    merged_doc = normalize_document(overlay_with_base_slots(base_doc, preserved_base, overlay_doc))
+    write_document_if_changed(
+        output_path,
+        merged_doc,
+        mode_reference_path=base_path,
+        compare_path=compare_path,
+    )
 
 
 def merge_keys(
@@ -329,16 +412,13 @@ def merge_keys(
     retained_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
 ) -> None:
-    base_doc = load_document(base_path)
-    merged_doc = copy.deepcopy(base_doc)
-    if overlay_path.exists():
-        overlay_doc = load_document(overlay_path)
-        overlay_preserved_tables(overlay_doc, merged_doc, retained_table_regexes)
-        overlay_preserved_keys(overlay_doc, merged_doc, retained_key_paths)
-    write_document_if_changed(
+    merge_with_selector_action(
+        base_path,
         output_path,
-        merged_doc,
-        mode_reference_path=base_path,
+        overlay_path,
+        SelectorAction.RETAIN,
+        list(retained_key_paths),
+        retained_table_regexes,
         compare_path=compare_path,
     )
 
@@ -351,20 +431,13 @@ def merge_keys_except_stripped(
     stripped_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
  ) -> None:
-    base_doc = load_document(base_path)
-    merged_doc = copy.deepcopy(base_doc)
-    if overlay_path.exists():
-        overlay_doc = load_document(overlay_path)
-        filtered_overlay_doc = build_document_with_stripped_matchers(
-            overlay_doc,
-            stripped_key_paths,
-            stripped_table_regexes,
-        )
-        merge_overlay_document(filtered_overlay_doc, merged_doc)
-    write_document_if_changed(
+    merge_with_selector_action(
+        base_path,
         output_path,
-        merged_doc,
-        mode_reference_path=base_path,
+        overlay_path,
+        SelectorAction.REMOVE,
+        stripped_key_paths,
+        stripped_table_regexes,
         compare_path=compare_path,
     )
 
@@ -420,14 +493,15 @@ class TomlTransformEngine(BaseTransformEngine):
                     compare_path=compare_path,
                 )
             else:
-                retained_doc = build_document_with_retained_matchers(
+                filtered_doc = build_document_with_selector_action(
                     load_document(request.base_path),
+                    request.selector_action,
                     key_paths,
                     table_regexes,
                 )
                 write_document_if_changed(
                     request.output_path,
-                    retained_doc,
+                    filtered_doc,
                     mode_reference_path=request.base_path,
                     compare_path=compare_path,
                 )

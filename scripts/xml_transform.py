@@ -36,26 +36,89 @@ def matches_node_path(node_path: str, node_matchers: list[str]) -> bool:
     return any(fnmatch.fnmatch(node_path, node_matcher) for node_matcher in node_matchers)
 
 
+def element_identity_key(element: ET.Element) -> tuple[tuple[str, str], ...] | None:
+    identity_parts: list[tuple[str, str]] = []
+    for attribute_name in ("id", "name", "key", "uuid"):
+        attribute_value = element.attrib.get(attribute_name)
+        if attribute_value is not None:
+            identity_parts.append((attribute_name, attribute_value))
+
+    text_value = (element.text or "").strip()
+    if text_value:
+        identity_parts.append(("text", text_value))
+
+    if not identity_parts:
+        return None
+
+    return tuple(identity_parts)
+
+
+def pop_matching_child(
+    target: ET.Element,
+    candidates: list[ET.Element],
+) -> ET.Element | None:
+    identity_key = element_identity_key(target)
+    if identity_key is not None:
+        for index, child in enumerate(candidates):
+            if child.tag == target.tag and element_identity_key(child) == identity_key:
+                return candidates.pop(index)
+
+    for index, child in enumerate(candidates):
+        if child.tag == target.tag:
+            return candidates.pop(index)
+
+    return None
+
+
+def overlay_with_base_slots(
+    original_base_node: ET.Element,
+    preserved_base_node: ET.Element | None,
+    overlay_node: ET.Element,
+) -> ET.Element:
+    if preserved_base_node is None:
+        return copy.deepcopy(overlay_node)
+
+    result = copy.deepcopy(preserved_base_node)
+    result.attrib.clear()
+    result.attrib.update(copy.deepcopy(overlay_node.attrib))
+    result.text = overlay_node.text
+    result.tail = overlay_node.tail
+
+    preserved_children = list(preserved_base_node)
+    overlay_children = [copy.deepcopy(child) for child in overlay_node]
+    merged_children: list[ET.Element] = []
+
+    for base_child in original_base_node:
+        preserved_child = pop_matching_child(base_child, preserved_children)
+        overlay_child = pop_matching_child(base_child, overlay_children)
+
+        if overlay_child is not None and preserved_child is not None:
+            merged_children.append(
+                overlay_with_base_slots(base_child, preserved_child, overlay_child)
+            )
+            continue
+        if overlay_child is not None:
+            merged_children.append(overlay_child)
+            continue
+        if preserved_child is not None:
+            merged_children.append(preserved_child)
+
+    merged_children.extend(preserved_children)
+    merged_children.extend(overlay_children)
+    result[:] = merged_children
+    return result
+
+
 def overlay_retained_nodes(
     base_root: ET.Element,
     overlay_root: ET.Element,
     node_matchers: list[str] | None = None,
 ) -> None:
-    def element_identity_key(element: ET.Element) -> tuple[tuple[str, str], ...] | None:
-        identity_parts: list[tuple[str, str]] = []
-        for attribute_name in ("id", "name", "key", "uuid"):
-            attribute_value = element.attrib.get(attribute_name)
-            if attribute_value is not None:
-                identity_parts.append((attribute_name, attribute_value))
-
-        text_value = (element.text or "").strip()
-        if text_value:
-            identity_parts.append(("text", text_value))
-
-        if not identity_parts:
-            return None
-
-        return tuple(identity_parts)
+    if node_matchers is None:
+        base_root.attrib.clear()
+        base_root.attrib.update(copy.deepcopy(overlay_root.attrib))
+        base_root.text = overlay_root.text
+        base_root.tail = overlay_root.tail
 
     def overlay_retained_nodes_recursion(
         base_node: ET.Element,
@@ -193,6 +256,18 @@ def build_tree_with_stripped_nodes(
     return stripped_root
 
 
+def build_tree_with_selector_action(
+    source_root: ET.Element,
+    node_matchers: list[str],
+    selector_action: SelectorAction,
+) -> ET.Element:
+    if not node_matchers:
+        return copy.deepcopy(source_root)
+    if selector_action == SelectorAction.RETAIN:
+        return build_tree_with_retained_nodes(source_root, node_matchers)
+    return build_tree_with_stripped_nodes(source_root, node_matchers)
+
+
 def parse_node_matchers(raw_node_matchers: tuple[str, ...]) -> list[str]:
     parsed_node_matchers: list[str] = []
     for raw_matcher_group in raw_node_matchers:
@@ -276,47 +351,31 @@ def transform_xml(
     )
     parsed_node_matchers = node_matchers or []
 
-    tree = None
-    overlay_root = None
+    base_root = None
     if base_path.is_file():
-        tree = ET.parse(base_path)
+        base_root = ET.parse(base_path).getroot()
 
+    overlay_root = None
     if overlay_path is not None and overlay_path.is_file():
-        overlay_tree = ET.parse(overlay_path)
-        overlay_root = overlay_tree.getroot()
-        if tree is None:
-            root = ET.Element(overlay_root.tag)
-            tree = ET.ElementTree(root)
-        else:
-            root = tree.getroot()
+        overlay_root = ET.parse(overlay_path).getroot()
 
-        filtered_overlay_root = (
-            build_tree_with_retained_nodes(overlay_root, parsed_node_matchers)
-            if effective_selector_action == SelectorAction.RETAIN
-            else build_tree_with_stripped_nodes(overlay_root, parsed_node_matchers)
+    if base_root is None:
+        if overlay_root is None:
+            raise FileNotFoundError(f"File not found: {base_path}")
+        root = ET.Element(overlay_root.tag)
+    else:
+        root = build_tree_with_selector_action(
+            base_root,
+            parsed_node_matchers,
+            effective_selector_action,
         )
-        if effective_selector_action == SelectorAction.RETAIN:
-            overlay_retained_nodes(root, overlay_root, parsed_node_matchers)
+
+    if overlay_root is not None:
+        if base_root is None:
+            root = copy.deepcopy(overlay_root)
         else:
-            overlay_retained_nodes(root, filtered_overlay_root)
-
-    if tree is None:
-        raise FileNotFoundError(f"File not found: {base_path}")
-
-    root = tree.getroot()
-    if root is None:
-        raise ValueError("Root element not found in the XML file.")
-
-    if parsed_node_matchers and overlay_path is None:
-        if effective_selector_action == SelectorAction.RETAIN:
-            retained_root = build_tree_with_retained_nodes(root, parsed_node_matchers)
-            root.clear()
-            root.attrib.update(retained_root.attrib)
-            root.text = retained_root.text
-            root.tail = retained_root.tail
-            root.extend(list(retained_root))
-        else:
-            strip_nodes(root, parsed_node_matchers)
+            preserved_root = root
+            root = overlay_with_base_slots(base_root, preserved_root, overlay_root)
 
     if sort_attributes:
         sort_xml_attributes(root)

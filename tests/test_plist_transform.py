@@ -74,21 +74,21 @@ def test_strip_mode_without_compare_file_reserializes_requested_format(
 def test_merge_mode_without_compare_file_reserializes_requested_format(
     tmp_path: Path,
  ) -> None:
-    repo_path = tmp_path / "repo.plist"
     live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
     output_path = tmp_path / "output.plist"
 
-    write_plist(repo_path, {"Alpha": 1})
     write_plist(live_path, {"Alpha": 1}, fmt=plistlib.FMT_BINARY)
+    write_plist(repo_path, {"Alpha": 1})
 
     exit_code = MODULE.main(
         [
-            str(repo_path),
+            str(live_path),
             str(output_path),
             "--mode",
             "merge",
             "--overlay-file",
-            str(live_path),
+            str(repo_path),
             "--output-format",
             "xml",
         ]
@@ -129,69 +129,69 @@ def test_strip_mode_retain_key_keeps_only_selected_keys(tmp_path: Path) -> None:
 
 
 def test_merge_mode_retain_key_merges_selected_overlay_keys(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.plist"
     live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
     output_path = tmp_path / "output.plist"
 
-    write_plist(repo_path, {"KeepRepo": "repo", "bypassEventsFromOtherApplications": False})
     write_plist(
         live_path,
         {
-            "KeepRepo": "live",
-            "bypassEventsFromOtherApplications": True,
+            "WindowGeometry": "noise",
             "SULastCheckTime": "noise",
         },
         fmt=plistlib.FMT_BINARY,
     )
+    write_plist(repo_path, {"KeepRepo": "repo"})
 
     exit_code = MODULE.main(
         [
-            str(repo_path),
+            str(live_path),
             str(output_path),
             "--mode",
             "merge",
             "--overlay-file",
-            str(live_path),
+            str(repo_path),
             "--output-format",
             "binary",
             "--selector-type",
             "retain",
             "--selectors",
-            "bypassEventsFromOtherApplications",
+            "WindowGeometry",
+            "SULastCheckTime",
         ]
     )
 
     assert exit_code == 0
     assert load_plist(output_path) == {
-        "KeepRepo": "live",
-        "bypassEventsFromOtherApplications": False,
+        "KeepRepo": "repo",
+        "WindowGeometry": "noise",
         "SULastCheckTime": "noise",
     }
 
 
-def test_merge_mode_strip_key_merges_everything_else_from_overlay(tmp_path: Path) -> None:
-    repo_path = tmp_path / "repo.plist"
+def test_merge_mode_remove_key_preserves_unselected_live_keys(tmp_path: Path) -> None:
     live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
     output_path = tmp_path / "output.plist"
 
-    write_plist(repo_path, {"KeepRepo": "repo", "WindowGeometry": "repo-geometry"})
     write_plist(
         live_path,
         {
-            "KeepRepo": "live",
+            "KeepLocal": "noise",
             "WindowGeometry": "noise",
             "WindowState": "fullscreen",
         },
     )
+    write_plist(repo_path, {"WindowGeometry": "repo-geometry"})
 
     exit_code = MODULE.main(
         [
-            str(repo_path),
+            str(live_path),
             str(output_path),
             "--mode",
             "merge",
             "--overlay-file",
-            str(live_path),
+            str(repo_path),
             "--selector-type",
             "remove",
             "--selectors",
@@ -201,7 +201,93 @@ def test_merge_mode_strip_key_merges_everything_else_from_overlay(tmp_path: Path
 
     assert exit_code == 0
     assert load_plist(output_path) == {
-        "KeepRepo": "repo",
-        "WindowGeometry": "noise",
+        "KeepLocal": "noise",
+        "WindowGeometry": "repo-geometry",
         "WindowState": "fullscreen",
+    }
+
+
+def test_merge_mode_remove_key_reapplies_repo_over_unmanaged_live_keys(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(
+        live_path,
+        {
+            "KeepLocal": "noise",
+            "ManagedKey": "live-value",
+            "WindowState": "fullscreen",
+        },
+    )
+    write_plist(repo_path, {"ManagedKey": "repo-value"})
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "ManagedKey",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {
+        "KeepLocal": "noise",
+        "ManagedKey": "repo-value",
+        "WindowState": "fullscreen",
+    }
+
+
+def test_merge_mode_remove_key_reflects_nested_deletions_from_repo(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(
+        live_path,
+        {
+            "KeepLocal": "noise",
+            "ManagedKey": {
+                "NestedValue": "repo",
+                "DeleteMe": "stale",
+            },
+        },
+    )
+    write_plist(
+        repo_path,
+        {
+            "ManagedKey": {
+                "NestedValue": "repo",
+            },
+        },
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "ManagedKey",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {
+        "KeepLocal": "noise",
+        "ManagedKey": {
+            "NestedValue": "repo",
+        },
     }
