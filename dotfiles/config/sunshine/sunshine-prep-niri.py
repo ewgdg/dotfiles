@@ -13,8 +13,8 @@ Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
 - `undo` reloads Niri config, then explicitly re-enables any connected outputs
   that are still disabled.
-- Optionally uses `systemd-inhibit --what=idle` and Noctalia's idle inhibitor IPC
-  while active to prevent the session idling (pass `--inhibit`).
+- Optionally inhibits idle via D-Bus org.freedesktop.ScreenSaver (niri-native)
+  with systemd-inhibit as fallback (pass `--inhibit`).
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ import math
 import os
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -49,29 +50,92 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
     )
 
 
-def set_noctalia_idle_inhibitor(enabled: bool) -> None:
-    if not which("qs"):
-        return
+def _screensaver_inhibit_pidfile() -> Path:
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    return Path(runtime_dir) / "sunshine-screensaver-inhibit.pid"
 
-    action = "enable" if enabled else "disable"
-    subprocess.run(
-        ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+
+def _kill_by_pidfile(pidfile: Path) -> None:
+    try:
+        pid = int(pidfile.read_text().strip())
+        os.kill(pid, signal.SIGTERM)
+    except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
+        pass
+    try:
+        pidfile.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def kill_runtime_inhibit() -> None:
-    set_noctalia_idle_inhibitor(False)
+    _kill_by_pidfile(_screensaver_inhibit_pidfile())
+    # Kill systemd-inhibit fallback
     subprocess.run(
         ["pkill", "-f", INHIBIT_REASON],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    # set_noctalia_idle_inhibitor(False)
 
 
-def start_runtime_inhibit() -> None:
-    kill_runtime_inhibit()
+_SCREENSAVER_INHIBIT_SCRIPT = """\
+import signal, sys, os
+from gi.repository import Gio, GLib
+
+bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+SS_DEST = "org.freedesktop.ScreenSaver"
+SS_PATH = "/org/freedesktop/ScreenSaver"
+cookie = bus.call_sync(
+    SS_DEST, SS_PATH, SS_DEST, "Inhibit",
+    GLib.Variant("(ss)", (os.environ["_INHIBIT_WHO"], os.environ["_INHIBIT_REASON"])),
+    GLib.VariantType("(u)"), Gio.DBusCallFlags.NONE, -1, None,
+).unpack()[0]
+
+pidfile = os.environ["_INHIBIT_PIDFILE"]
+open(pidfile, "w").write(str(os.getpid()))
+
+def _cleanup(*_):
+    try:
+        bus.call_sync(
+            SS_DEST, SS_PATH, SS_DEST, "UnInhibit",
+            GLib.Variant("(u)", (cookie,)), None,
+            Gio.DBusCallFlags.NONE, -1, None,
+        )
+    except Exception: pass
+    try: os.unlink(pidfile)
+    except FileNotFoundError: pass
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, _cleanup)
+signal.signal(signal.SIGINT, _cleanup)
+print(f"screensaver-inhibit: active (pid={os.getpid()}, cookie={cookie})", file=sys.stderr, flush=True)
+GLib.MainLoop().run()
+"""
+
+
+def start_screensaver_inhibit() -> None:
+    """Spawn a subprocess that holds a D-Bus org.freedesktop.ScreenSaver inhibitor."""
+    pidfile = _screensaver_inhibit_pidfile()
+    _kill_by_pidfile(pidfile)
+    try:
+        subprocess.Popen(
+            [sys.executable, "-c", _SCREENSAVER_INHIBIT_SCRIPT],
+            env={
+                **os.environ,
+                "_INHIBIT_WHO": INHIBIT_WHO,
+                "_INHIBIT_REASON": INHIBIT_REASON,
+                "_INHIBIT_PIDFILE": str(pidfile),
+            },
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
+
+
+def start_systemd_inhibit() -> None:
+    """Fallback: logind inhibitor for non-Wayland idle consumers."""
     try:
         subprocess.Popen(
             [
@@ -88,7 +152,26 @@ def start_runtime_inhibit() -> None:
         )
     except Exception:
         pass
-    set_noctalia_idle_inhibitor(True)
+
+
+def set_noctalia_idle_inhibitor(enabled: bool) -> None:
+    if not which("qs"):
+        return
+    action = "enable" if enabled else "disable"
+    subprocess.run(
+        ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def start_runtime_inhibit() -> None:
+    kill_runtime_inhibit()
+    start_screensaver_inhibit()
+    start_systemd_inhibit()
+    # Noctalia's own idle inhibitor via IPC. Not used because it's tied to the
+    # noctalia process — if noctalia crashes and restarts, the inhibitor is lost.
+    # set_noctalia_idle_inhibitor(True)
 
 
 def should_inhibit(inhibit_flag: bool) -> bool:
@@ -643,7 +726,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_do.add_argument(
         "--inhibit",
         action="store_true",
-        help="Use systemd-inhibit plus `qs -c noctalia-shell ipc call idleInhibitor ...`",
+        help="Inhibit idle via D-Bus ScreenSaver (niri) + systemd-inhibit (logind fallback)",
     )
     p_do.add_argument(
         "--autodiscover-socket",

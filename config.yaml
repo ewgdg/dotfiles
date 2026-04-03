@@ -138,7 +138,8 @@ dotfiles:
     - tests/*
     upignore: *sunshine_ignore
     actions:
-    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf 
+    - install 'sunshine python-gobject'
+    - symlink {{@@_dotfile_abs_dst@@}}/sunshine-{{@@desktop@@}}.conf
       {{@@_dotfile_abs_dst@@}}/sunshine.conf
   d_etc_sddm.conf.d:
     src: etc/sddm.conf.d
@@ -185,7 +186,6 @@ dotfiles:
     src: config/systemd/user/sunshine.service.d
     dst: ~/.config/systemd/user/sunshine.service.d
     actions:
-    - install sunshine
     - ensure-systemd-service-enabled user sunshine.service
   d_ssh:
     src: ssh
