@@ -10,7 +10,7 @@ Before=graphical-session.target
 Type=exec
 TimeoutStartSec=20
 ExecStart=/usr/bin/qs -c noctalia-shell
-ExecStartPost=/home/xian/bin/wait-for-tray-host
+ExecStartPost=%h/bin/wait-for-tray-host
 Restart=on-failure
 RestartSec=2
 
