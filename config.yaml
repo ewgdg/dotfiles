@@ -11,7 +11,6 @@ config:
   - '*.log'
   - '*.DS_Store'
   - '*/__pycache__'
-  - '*.archived'
   cmpignore: *global_ignore
   upignore: *global_ignore
   instignore: *global_ignore
@@ -341,8 +340,7 @@ dotfiles:
     dst: ~/.config/gsettings/desktop.ini
     trans_update: gsettings_dump
     actions:
-      - pre_install python-gobject
-      - gsettings_apply
+    - gsettings_apply
   f_config_gsettings_nautilus:
     src: config/gsettings/nautilus.ini
     dst: ~/.config/gsettings/nautilus.ini
@@ -668,7 +666,6 @@ variables:
   install_cmd: echo 'no install cmd for {0} >&2'
   symlink_cmd: ln -sfn {0} {1}
 actions:
-  pre_install: '{{@@ install_cmd @@}}'
   install: '{{@@ install_cmd @@}}'
   install-if: if {1}; then {{@@ install_cmd @@}}; fi
   symlink: '{{@@ symlink_cmd @@}}'
