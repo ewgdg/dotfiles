@@ -11,6 +11,7 @@ config:
   - '*.log'
   - '*.DS_Store'
   - '*/__pycache__'
+  - '*.archived'
   cmpignore: *global_ignore
   upignore: *global_ignore
   instignore: *global_ignore
