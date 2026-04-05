@@ -28,8 +28,9 @@ import signal
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 INHIBIT_REASON = "sunshine-connection"
@@ -50,15 +51,39 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
     )
 
 
-def _screensaver_inhibit_pidfile() -> Path:
+def _runtime_file(name: str) -> Path:
     runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    return Path(runtime_dir) / "sunshine-screensaver-inhibit.pid"
+    return Path(runtime_dir) / name
 
 
-def _kill_by_pidfile(pidfile: Path) -> None:
+def _screensaver_inhibit_pidfile() -> Path:
+    return _runtime_file("sunshine-screensaver-inhibit.pid")
+
+
+def _screensaver_inhibit_cookiefile() -> Path:
+    return _runtime_file("sunshine-screensaver-inhibit.cookie")
+
+
+
+def _kill_by_pidfile(pidfile: Path, *, timeout: float = 5.0) -> None:
     try:
         pid = int(pidfile.read_text().strip())
         os.kill(pid, signal.SIGTERM)
+        # Wait for the process to exit so its cleanup handler (e.g. D-Bus
+        # UnInhibit) has time to complete before we proceed.
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                os.kill(pid, 0)  # probe — raises if gone
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            # Still alive after timeout — force kill.
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
     except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
         pass
     try:
@@ -67,15 +92,47 @@ def _kill_by_pidfile(pidfile: Path) -> None:
         pass
 
 
+def _release_stale_screensaver_cookie() -> None:
+    """Fallback: release the D-Bus ScreenSaver cookie via the saved cookie file,
+    in case the inhibit process died without calling UnInhibit."""
+    cookiefile = _screensaver_inhibit_cookiefile()
+    try:
+        cookie = int(cookiefile.read_text().strip())
+    except (FileNotFoundError, ValueError):
+        return
+    try:
+        from gi.repository import Gio, GLib
+
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+        bus.call_sync(
+            "org.freedesktop.ScreenSaver",
+            "/org/freedesktop/ScreenSaver",
+            "org.freedesktop.ScreenSaver",
+            "UnInhibit",
+            GLib.Variant("(u)", (cookie,)),
+            None,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            None,
+        )
+    except Exception:
+        pass
+    try:
+        cookiefile.unlink()
+    except FileNotFoundError:
+        pass
+
+
 def kill_runtime_inhibit() -> None:
     _kill_by_pidfile(_screensaver_inhibit_pidfile())
-    # Kill systemd-inhibit fallback
+    _release_stale_screensaver_cookie()
+    # Kill systemd-inhibit and its children. pkill -f matches the unique
+    # --why= string and also catches stale processes from crashed sessions.
     subprocess.run(
         ["pkill", "-f", INHIBIT_REASON],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    # set_noctalia_idle_inhibitor(False)
 
 
 _SCREENSAVER_INHIBIT_SCRIPT = """\
@@ -92,7 +149,9 @@ cookie = bus.call_sync(
 ).unpack()[0]
 
 pidfile = os.environ["_INHIBIT_PIDFILE"]
+cookiefile = os.environ["_INHIBIT_COOKIEFILE"]
 open(pidfile, "w").write(str(os.getpid()))
+open(cookiefile, "w").write(str(cookie))
 
 def _cleanup(*_):
     try:
@@ -102,8 +161,9 @@ def _cleanup(*_):
             Gio.DBusCallFlags.NONE, -1, None,
         )
     except Exception: pass
-    try: os.unlink(pidfile)
-    except FileNotFoundError: pass
+    for f in (pidfile, cookiefile):
+        try: os.unlink(f)
+        except FileNotFoundError: pass
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, _cleanup)
@@ -125,6 +185,7 @@ def start_screensaver_inhibit() -> None:
                 "_INHIBIT_WHO": INHIBIT_WHO,
                 "_INHIBIT_REASON": INHIBIT_REASON,
                 "_INHIBIT_PIDFILE": str(pidfile),
+                "_INHIBIT_COOKIEFILE": str(_screensaver_inhibit_cookiefile()),
             },
             start_new_session=True,
             stdout=subprocess.DEVNULL,
