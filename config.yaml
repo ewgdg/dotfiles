@@ -255,9 +255,14 @@ dotfiles:
     dst: ~/.config/plasmashellrc
     chmod: '600'
     
-  d_local_share_flatpak_overrides:
-    src: local/share/flatpak/overrides
-    dst: ~/.local/share/flatpak/overrides
+  f_local_share_flatpak_overrides_goldendict_ng:
+    src: local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng
+    dst: ~/.local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng
+    chmod: '644'
+  f_local_share_flatpak_overrides_goldendict:
+    src: local/share/flatpak/overrides/org.goldendict.GoldenDict
+    dst: ~/.local/share/flatpak/overrides/org.goldendict.GoldenDict
+    chmod: '644'
   f_var_app_org.goldendict.goldendict_config_goldendict_config:
     template: false
     src: var/app/org.goldendict.GoldenDict/config/goldendict/config
@@ -634,7 +639,8 @@ profiles:
     - f_config_mimeapps.list
     - f_config_chrome-flags.conf
     - f_config_chromium-flags.conf
-    - d_local_share_flatpak_overrides
+    - f_local_share_flatpak_overrides_goldendict_ng
+    - f_local_share_flatpak_overrides_goldendict
     # - f_var_app_org.goldendict.goldendict_config_goldendict_config
     - f_var_app_io.github.xiaoyifang.goldendict_ng_config_goldendict_config
     - f_config_systemd_user_drkonqi-coredump-launcher.socket.d_override.conf
