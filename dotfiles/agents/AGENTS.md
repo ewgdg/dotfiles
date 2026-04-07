@@ -33,7 +33,9 @@
 - Prefer modern and latest libraries and frameworks, reference docs with `context7`
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
-- Add concise comments when they clarify non-obvious or confusing logic, or make review easier. e.g. when patch for an edge case.
+- Add concise comments when they clarify non-obvious or confusing logic, or make review easier.
+- Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context.
+- In those cases, comment the reason, constraint, or symptom being handled, not just what the code does.
 - Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
