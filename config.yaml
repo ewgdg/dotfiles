@@ -693,9 +693,7 @@ trans_update:
   sync_gtk4_from_gsettings: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@
     _dotdrop_dotpath @@}}/../scripts/sync_gsettings_gtk.py' {0} {1} --mode gtk4
     --template-file '{{@@ _dotfile_abs_src @@}}'
-  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
-    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup 
-    {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
+  toml_transform_strip: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' {0} {1} --mode cleanup {2} --compare-file "{{@@ _dotfile_abs_src @@}}"
   xml_transform_strip: python '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/xml_transform.py' {0} {1} --mode cleanup {2} --compare-file 
     "{{@@ _dotfile_abs_src @@}}"
@@ -703,10 +701,7 @@ trans_update:
     @@}}/../scripts/plist_transform.py' {0} {1} --mode cleanup {2} 
     --compare-file "{{@@ _dotfile_abs_src @@}}"
 trans_install:
-  toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ 
-    _dotdrop_dotpath @@}}/../scripts/toml_transform.py' "{{@@ _dotfile_abs_dst 
-    @@}}" {1} --mode merge --overlay-file {0} {2} --compare-file "{{@@ 
-    _dotfile_abs_dst @@}}"
+  toml_transform_merge: uv run --project '{{@@ _dotdrop_dotpath @@}}/..' '{{@@ _dotdrop_dotpath @@}}/../scripts/toml_transform.py' "{{@@ _dotfile_abs_dst @@}}" {1} --mode merge --overlay-file  {0} {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
   xml_transform_merge: python '{{@@ _dotdrop_dotpath 
     @@}}/../scripts/xml_transform.py' "{{@@ _dotfile_abs_dst @@}}" {1} --mode 
     merge --overlay-file {0} {2} --compare-file "{{@@ _dotfile_abs_dst @@}}"
