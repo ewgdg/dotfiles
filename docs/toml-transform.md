@@ -56,9 +56,13 @@ The TOML engine also supports:
 - `--compare-file PATH`
 
 `--compare-file` is opt-in.
-When provided, the engine reuses that file's exact text if it already matches
-the transformed document.
-Without `--compare-file`, the engine always writes fresh output.
+When provided, the engine may reuse that file's exact text if it already
+matches the transformed document.
+`--compare-file` is a serialization-stability optimization only; it must not
+change the semantic result.
+Without `--compare-file`, the engine may still preserve untouched base-region
+formatting or comments when the TOML writer can patch those regions in place,
+but changed managed regions may still be serialized fresh.
 
 ## Example
 
