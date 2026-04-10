@@ -1,103 +1,121 @@
 # Dotfiles
 
-This repo manages user and system configuration with `dotdrop`.
+This repo manages user and system configuration with the new [`dotman`](https://github.com/ewgdg/dotman) repo layout.
 
-- Managed sources live under `dotfiles/`.
-- Source-to-destination mappings, profiles, actions, and transforms live in `config.yaml`.
-- Use `dotman` when a target set includes privileged paths such as `/etc`.
-- Use plain `dotdrop` when you are only working with user-owned files under `~`.
+## Repo Layout
 
-## First Install
+Active repo content lives under:
+
+- `packages/` — package definitions and tracked source files under `packages/<id>/files/...`
+- `groups/` — reusable selector composition
+- `profiles/` — variable-only profile definitions
+- `scripts/` — shared helper scripts used by package hooks and target commands
+- `repo.toml` — repo-wide defaults such as ignore rules
+- `local.toml` — machine-local overrides that should not be committed
+
+## First Bootstrap
 
 Use `init.sh` on a new machine:
 
 ```sh
-./init.sh -p <profile>
+./init.sh -p host/linux
+# or
+./init.sh main:host/linux@host/linux
 ```
 
-`init.sh` will:
+What `init.sh` does:
 
-- install `uv` if needed
-- install `dotdrop` as a `uv` tool
-- source the shared repo core environment from `dotfiles/env.core.sh`
-- use this repo's `config.yaml`
-- run `dotman install` by default
+- installs `uv` if needed
+- installs `dotman` with `uv tool install`
+- sources `packages/shell/files/env.core.sh`
+- creates a temporary single-repo dotman manager config for this checkout
+- runs `dotman track` and `dotman push` by default
 
-Bootstrap only, without applying files:
+By default `init.sh` installs dotman from:
+
+```sh
+git+https://github.com/ewgdg/dotman.git
+```
+
+Override it with `DOTMAN_TOOL_SPEC` only if you need a different source:
+
+```sh
+DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh -p host/linux
+```
+
+Bootstrap only, without tracking or pushing:
 
 ```sh
 ./init.sh --no-install
 ```
 
-## Main Commands
+## Normal Workflow
 
-For system + user files, use the wrapper in `dotfiles/bin/dotman`:
-
-```sh
-dotman install -p <profile>
-dotman update -p <profile>
-```
-
-Use this when the selected profile or keys include both home-directory files and
-privileged destinations.
-
-Before `dotman` invokes `dotdrop`, it sources
-`dotfiles/env.core.sh` so install-time tools see the same XDG and PATH
-defaults as the managed shell profile.
-
-For templated file sources, `dotman update` automatically uses the repo's
-template-aware merge helper instead of plain `dotdrop update`.
-
-For user-only files, use plain `dotdrop` directly:
-
-```sh
-dotdrop compare -p <profile>
-dotdrop install -p <profile> -k d_config_nvim
-dotdrop update -p <profile> -k d_config_nvim
-```
-
-That pattern is appropriate for keys that only write under your home directory,
-for example `~/.config/...`, `~/bin`, or `~/.ssh/...`.
-
-## Finding Keys
-
-If you do not remember the key name, list the keys for a profile and filter the
-output:
-
-```sh
-dotdrop files -p <profile> --grepable | rg nvim
-```
-
-That is usually the fastest way to find a key by app name, destination path, or
-source path. Once you have a match, inspect it in more detail with:
-
-```sh
-dotdrop detail -p <profile> <key>
-```
-
-## Profiles
-
-Profiles are defined in `config.yaml`. Choose the machine-specific profile you
-want to install and pass it as `<profile>` in the commands above.
-
-There are also shared building-block profiles such as `base`, `posix_base`,
-`os_arch`, `os_mac`, `de_kde`, and `de_niri`.
-
-When adding new dotfiles, make sure the entry is included by the profile you
-actually install, otherwise `dotdrop install` will never deploy it.
-
-## Workflow
+After bootstrap, use dotman as the primary interface.
 
 Typical flow:
 
-1. Run `./init.sh -p <profile>` on first setup.
-2. Use `dotman install -p <profile>` for full applies that include system files.
-3. Use `dotdrop` directly for user-only keys during focused iteration.
-4. Use `dotman update -p <profile>` to sync live changes back into the repo when privileged files are involved.
+1. Register this repo in your dotman manager config.
+2. Track the binding you want.
+3. Use `dotman push` for repo-to-live changes.
+4. Use `dotman pull` for live-to-repo changes.
+
+Example commands below assume the repo is registered as `main` in your dotman
+config:
+
+```sh
+dotman track main:host/linux@host/linux
+dotman push
+dotman pull
+
+dotman list tracked
+dotman info tracked git
+```
+
+For narrower work, you can track or inspect smaller selectors directly:
+
+```sh
+dotman track main:git@host/linux
+dotman push git
+dotman pull git
+```
+
+## Choosing Bindings
+
+Common host entrypoints:
+
+- `main:host/linux@host/linux`
+- `main:host/mac@host/mac`
+
+Examples of smaller selectors:
+
+- `main:git@host/linux`
+- `main:nvim@host/linux`
+- `main:shell@host/linux`
+
+Groups choose what to manage.
+Profiles provide the variable context used to resolve those selections.
+
+## Local Overrides
+
+Use `local.toml` for machine-local values that should not be committed.
+
+Example:
+
+```toml
+[vars]
+hostname = "workstation"
+```
+
+## Notes
+
+- Shared shell bootstrap behavior now comes from
+  `packages/shell/files/env.core.sh`.
+- Transform helpers in `scripts/` are still part of the active repo and are used
+  by package target commands.
 
 ## Related Docs
 
-- `docs/dotdrop-bootstrap.md`
-- `docs/dotdrop-template-update.md`
-- `docs/dotdrop-vs-chezmoi-vs-ansible.md`
-- `docs/user-systemd-service-actions.md`
+- `docs/bootstrap.md`
+- `docs/transform-cli-interface.md`
+- `docs/transform-engine-interface.md`

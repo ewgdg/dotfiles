@@ -31,7 +31,10 @@ class RecordingEngine(ENGINE_MODULE.BaseTransformEngine):
         parser.add_argument("--sort-attributes", action="store_true")
 
     def build_engine_options(self, parsed_args) -> dict[str, bool]:
-        return {"sort_attributes": parsed_args.sort_attributes}
+        return {
+            "sort_attributes": parsed_args.sort_attributes,
+            "stdout": parsed_args.stdout,
+        }
 
     def transform(self, request: ENGINE_MODULE.TransformRequest) -> None:
         self.validate_request(request)
@@ -116,6 +119,29 @@ def test_shared_cli_allows_no_selector_flags_when_engine_supports_identity_mode(
     assert request.selector_values("key") == ()
 
 
+def test_shared_cli_accepts_stdout_without_output_path(tmp_path: Path) -> None:
+    engine = RecordingEngine()
+
+    exit_code = CLI_MODULE.run_engine_cli(
+        engine,
+        [
+            str(tmp_path / "base.toml"),
+            "--mode",
+            "cleanup",
+            "--stdout",
+            "--selector-type",
+            "retain",
+            "--selectors",
+            "model",
+        ],
+    )
+
+    assert exit_code == 0
+    request = engine.requests[0]
+    assert request.output_path is None
+    assert request.engine_option("stdout") is True
+
+
 def test_shared_cli_help_text_describes_base_targeting() -> None:
     parser = CLI_MODULE.build_parser(RecordingEngine())
     help_by_dest = {
@@ -125,6 +151,7 @@ def test_shared_cli_help_text_describes_base_targeting() -> None:
     }
 
     assert help_by_dest["base_path"] == "Base file. Selectors always apply to this file."
+    assert help_by_dest["output_path"] == "Transformed output path. Optional when --stdout is used."
     assert (
         help_by_dest["overlay_path"]
         == "Overlay file applied on top of the filtered base. Required when --mode=merge."
@@ -137,3 +164,4 @@ def test_shared_cli_help_text_describes_base_targeting() -> None:
         help_by_dest["selectors"]
         == "List of base-file matchers/selectors with optional prefixes."
     )
+    assert help_by_dest["stdout"] == "Write the transformed output to stdout instead of a file."

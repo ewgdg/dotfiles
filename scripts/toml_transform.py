@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass
 import re
 from collections.abc import Iterable
 from pathlib import Path
 import sys
 import tomlkit
-from tomlkit.items import Table
+from tomlkit.items import Null, Table
 from tomlkit.toml_document import TOMLDocument
 
 
@@ -27,6 +28,14 @@ from scripts.transform_engine import (  # noqa: E402
 
 
 TomlContainer = TOMLDocument | Table
+
+
+@dataclass(frozen=True)
+class TopLevelBodyRegion:
+    key_name: str
+    key: object
+    item: object
+    leading_entries: tuple[tuple[None, object], ...]
 
 
 def load_document(path: Path) -> TOMLDocument:
@@ -65,20 +74,32 @@ def get_existing_text_if_unchanged(compare_path: Path, doc: TOMLDocument) -> str
 
 
 def write_document_if_changed(
-    path: Path,
+    path: Path | None,
     doc: TOMLDocument,
     mode_reference_path: Path,
     compare_path: Path | None = None,
+    stdout: bool = False,
 ) -> None:
     content = doc.as_string()
-    path.parent.mkdir(parents=True, exist_ok=True)
     if compare_path is not None:
         existing_content = get_existing_text_if_unchanged(compare_path, doc)
         if existing_content is not None:
+            if stdout:
+                sys.stdout.write(existing_content)
+                return
+            assert path is not None
+            path.parent.mkdir(parents=True, exist_ok=True)
             if compare_path != path:
                 path.write_text(existing_content, encoding="utf-8")
             sync_mode(path, mode_reference_path)
             return
+
+    if stdout:
+        sys.stdout.write(content)
+        return
+
+    assert path is not None
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     sync_mode(path, mode_reference_path)
 
@@ -222,6 +243,89 @@ def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlCo
     return current
 
 
+def collect_top_level_body_regions(
+    source_doc: TOMLDocument,
+) -> tuple[dict[str, TopLevelBodyRegion], tuple[tuple[None, object], ...]]:
+    regions: dict[str, TopLevelBodyRegion] = {}
+    pending_leading_entries: list[tuple[None, object]] = []
+
+    for key, item in source_doc._body:
+        if key is None:
+            if isinstance(item, Null):
+                continue
+            pending_leading_entries.append((None, copy.deepcopy(item)))
+            continue
+
+        if isinstance(item, Null):
+            continue
+
+        key_name = key.key
+        regions[key_name] = TopLevelBodyRegion(
+            key_name=key_name,
+            key=copy.deepcopy(key),
+            item=copy.deepcopy(item),
+            leading_entries=tuple(pending_leading_entries),
+        )
+        pending_leading_entries = []
+
+    return regions, tuple(pending_leading_entries)
+
+
+def restore_top_level_leading_trivia(
+    merged_doc: TOMLDocument,
+    overlay_doc: TOMLDocument,
+    base_doc: TOMLDocument,
+    preserved_base: TOMLDocument,
+) -> TOMLDocument:
+    merged_regions, _merged_trailing_entries = collect_top_level_body_regions(merged_doc)
+    overlay_regions, overlay_trailing_entries = collect_top_level_body_regions(overlay_doc)
+    base_regions, base_trailing_entries = collect_top_level_body_regions(base_doc)
+    preserved_regions, _preserved_trailing_entries = collect_top_level_body_regions(preserved_base)
+
+    rebuilt_doc = tomlkit.document()
+
+    for merged_region in merged_regions.values():
+        overlay_region = overlay_regions.get(merged_region.key_name)
+        base_region = base_regions.get(merged_region.key_name)
+        preserved_region = preserved_regions.get(merged_region.key_name)
+
+        if overlay_region is not None:
+            leading_entries = overlay_region.leading_entries
+        elif base_region is not None:
+            leading_entries = base_region.leading_entries
+        elif preserved_region is not None:
+            leading_entries = preserved_region.leading_entries
+        else:
+            leading_entries = ()
+
+        if (
+            overlay_region is not None
+            and preserved_region is not None
+            and isinstance(overlay_region.item, Table)
+            and isinstance(preserved_region.item, Table)
+        ):
+            item_region = merged_region
+        elif overlay_region is not None:
+            item_region = overlay_region
+        elif base_region is not None:
+            item_region = base_region
+        else:
+            item_region = merged_region
+
+        # tomlkit stores standalone comments/blank lines outside keyed items.
+        # Reattach the source-side leading trivia block to the following top-level
+        # region so merge does not silently discard intentional commented config.
+        for _unused_key, entry in leading_entries:
+            rebuilt_doc.add(copy.deepcopy(entry))
+        rebuilt_doc.append(copy.deepcopy(item_region.key), copy.deepcopy(item_region.item))
+
+    trailing_entries: tuple[tuple[None, object], ...] = overlay_trailing_entries or base_trailing_entries
+    for _unused_key, entry in trailing_entries:
+        rebuilt_doc.add(copy.deepcopy(entry))
+
+    return rebuilt_doc
+
+
 def build_document_with_stripped_matchers(
     source_doc: TOMLDocument,
     stripped_key_paths: list[tuple[str, ...]],
@@ -241,10 +345,11 @@ def build_document_with_stripped_matchers(
 
 def strip_keys(
     base_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     stripped_key_paths: list[tuple[str, ...]],
     stripped_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
+    stdout: bool = False,
  ) -> None:
     normalized_doc = build_document_with_stripped_matchers(
         load_document(base_path),
@@ -256,6 +361,7 @@ def strip_keys(
         normalized_doc,
         mode_reference_path=base_path,
         compare_path=compare_path,
+        stdout=stdout,
     )
 
 
@@ -380,12 +486,13 @@ def overlay_with_base_slots(
 
 def merge_with_selector_action(
     base_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     overlay_path: Path,
     selector_action: SelectorAction,
     key_paths: list[tuple[str, ...]],
     table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
+    stdout: bool = False,
 ) -> None:
     base_doc = load_document(base_path)
     preserved_base = build_document_with_selector_action(
@@ -396,21 +503,24 @@ def merge_with_selector_action(
     )
     overlay_doc = load_document(overlay_path)
     merged_doc = normalize_document(overlay_with_base_slots(base_doc, preserved_base, overlay_doc))
+    merged_doc = restore_top_level_leading_trivia(merged_doc, overlay_doc, base_doc, preserved_base)
     write_document_if_changed(
         output_path,
         merged_doc,
         mode_reference_path=base_path,
         compare_path=compare_path,
+        stdout=stdout,
     )
 
 
 def merge_keys(
     base_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     overlay_path: Path,
     retained_key_paths: Iterable[tuple[str, ...]],
     retained_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
+    stdout: bool = False,
 ) -> None:
     merge_with_selector_action(
         base_path,
@@ -420,16 +530,18 @@ def merge_keys(
         list(retained_key_paths),
         retained_table_regexes,
         compare_path=compare_path,
+        stdout=stdout,
     )
 
 
 def merge_keys_except_stripped(
     base_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     overlay_path: Path,
     stripped_key_paths: list[tuple[str, ...]],
     stripped_table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
+    stdout: bool = False,
  ) -> None:
     merge_with_selector_action(
         base_path,
@@ -439,6 +551,7 @@ def merge_keys_except_stripped(
         stripped_key_paths,
         stripped_table_regexes,
         compare_path=compare_path,
+        stdout=stdout,
     )
 
 
@@ -470,6 +583,7 @@ class TomlTransformEngine(BaseTransformEngine):
     def build_engine_options(self, parsed_args) -> dict[str, Any]:
         return {
             "compare_path": parsed_args.compare_file,
+            "stdout": parsed_args.stdout,
         }
 
     def validate_request(self, request: TransformRequest) -> None:
@@ -482,6 +596,7 @@ class TomlTransformEngine(BaseTransformEngine):
         key_paths = parse_key_paths(request.selector_values("key"))
         table_regexes = compile_table_regexes(request.selector_values("table_regex"))
         compare_path = request.engine_option("compare_path")
+        stdout = request.engine_option("stdout", False)
 
         if request.mode == TransformMode.CLEANUP:
             if request.selector_action == SelectorAction.REMOVE:
@@ -491,6 +606,7 @@ class TomlTransformEngine(BaseTransformEngine):
                     key_paths,
                     table_regexes,
                     compare_path=compare_path,
+                    stdout=stdout,
                 )
             else:
                 filtered_doc = build_document_with_selector_action(
@@ -504,6 +620,7 @@ class TomlTransformEngine(BaseTransformEngine):
                     filtered_doc,
                     mode_reference_path=request.base_path,
                     compare_path=compare_path,
+                    stdout=stdout,
                 )
             return
 
@@ -516,6 +633,7 @@ class TomlTransformEngine(BaseTransformEngine):
                 key_paths,
                 table_regexes,
                 compare_path=compare_path,
+                stdout=stdout,
             )
             return
 
@@ -526,6 +644,7 @@ class TomlTransformEngine(BaseTransformEngine):
             key_paths,
             table_regexes,
             compare_path=compare_path,
+            stdout=stdout,
         )
 
 

@@ -1,0 +1,11 @@
+id = "mpv"
+description = "mpv configuration"
+
+[targets.d_config_mpv]
+source = "files/config/mpv"
+path = "~/.config/mpv"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} mpv",
+]

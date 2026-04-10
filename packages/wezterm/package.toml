@@ -1,0 +1,6 @@
+id = "wezterm"
+description = "WezTerm configuration"
+
+[targets.d_config_wezterm]
+source = "files/config/wezterm"
+path = "~/.config/wezterm"

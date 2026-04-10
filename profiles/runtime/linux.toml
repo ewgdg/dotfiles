@@ -1,0 +1,6 @@
+includes = ["runtime/core"]
+
+[vars]
+GSETTINGS_SYNC     = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/gsettings_sync.py\""
+SYNC_GSETTINGS_GTK = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/sync_gsettings_gtk.py\""
+ENSURE_SYSTEMD     = "sh \"$DOTMAN_REPO_ROOT/scripts/ensure_systemd_service_enabled.sh\""

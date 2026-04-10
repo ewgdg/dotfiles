@@ -1,0 +1,19 @@
+id = "agents"
+description = "Shared agent skill repository"
+
+[targets.d_agents]
+source = "files/agents"
+path = "~/.agents"
+push_ignore = [
+  "skills/agent-web-context/references/openapi_cache/*",
+  "*/__pycache__/*",
+]
+pull_ignore = [
+  "skills/agent-web-context/references/openapi_cache/*",
+  "*/__pycache__/*",
+]
+
+[hooks]
+pre_push = [
+  'mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.pi/agent"',
+]

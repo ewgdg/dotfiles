@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import io
 import math
 import shutil
 import subprocess
@@ -133,10 +134,11 @@ def set_managed_value(
 
 def patch_and_write(
     base_path: Path,
-    output_path: Path,
+    output_path: Path | None,
     *,
     gtk3_extras: bool,
     template_path: Path | None = None,
+    stdout: bool = False,
 ) -> None:
     effective_template_path = template_path if template_path is not None else base_path
     if not effective_template_path.exists():
@@ -152,6 +154,11 @@ def patch_and_write(
             f"warning: no [Settings] section in {effective_template_path}; copying verbatim",
             file=sys.stderr,
         )
+        if stdout:
+            sys.stdout.write(effective_template_path.read_text(encoding="utf-8"))
+            return
+        if output_path is None:
+            raise ValueError("output_path is required when stdout is false")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(effective_template_path.read_bytes())
         return
@@ -283,6 +290,14 @@ def patch_and_write(
             prefer_dark = "true" if gvariant_to_gtk_value(value) == "prefer-dark" else "false"
             set_managed_value(parser, _GTK3_COLOR_SCHEME_KEY, prefer_dark)
 
+    if stdout:
+        buffer = io.StringIO()
+        parser.write(buffer, space_around_delimiters=False)
+        sys.stdout.write(buffer.getvalue())
+        return
+
+    if output_path is None:
+        raise ValueError("output_path is required when stdout is false")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
         parser.write(f, space_around_delimiters=False)
@@ -293,7 +308,7 @@ def main() -> int:
         description="Dotdrop trans_update: patch gtk settings.ini with gsettings values."
     )
     p.add_argument("base_path", type=Path, help="System settings.ini ({0}).")
-    p.add_argument("output_path", type=Path, help="Repo output settings.ini ({1}).")
+    p.add_argument("output_path", type=Path, nargs="?", default=None, help="Repo output settings.ini ({1}).")
     p.add_argument("--mode", choices=["gtk3", "gtk4"], required=True)
     p.add_argument(
         "--template-file",
@@ -301,10 +316,21 @@ def main() -> int:
         default=None,
         help="Tracked repo settings.ini template. Defaults to base_path when not provided.",
     )
+    p.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Write patched settings.ini to stdout instead of a file.",
+    )
     args = p.parse_args()
 
     if shutil.which("gsettings") is None:
         print("gsettings not found; copying settings.ini verbatim", file=sys.stderr)
+        if args.stdout:
+            sys.stdout.write(args.base_path.read_text(encoding="utf-8"))
+            return 0
+        if args.output_path is None:
+            print("output_path is required unless --stdout is used", file=sys.stderr)
+            return 2
         args.output_path.parent.mkdir(parents=True, exist_ok=True)
         args.output_path.write_bytes(args.base_path.read_bytes())
         return 0
@@ -318,6 +344,7 @@ def main() -> int:
         args.output_path,
         gtk3_extras=(args.mode == "gtk3"),
         template_path=args.template_file,
+        stdout=args.stdout,
     )
     return 0
 

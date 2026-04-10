@@ -1,7 +1,7 @@
 # Niri KWallet Startup Unlock Helper
 
-`dotfiles/config/niri/bin/startup-unlock-kwallet.sh` triggers the KWallet unlock prompt
-during session startup.
+`packages/niri/files/config/niri/bin/startup-unlock-kwallet.sh` triggers the
+KWallet unlock prompt during session startup.
 
 ## Behavior
 
@@ -26,7 +26,7 @@ during session startup.
 
 - The helper is currently retained in the repo but is not launched automatically at startup.
 - Noctalia's `screenUnlock` hook is currently disabled for auth-prompt reconciliation.
-- 1Password is intentionally not triggered here because I did not find a documented
+- 1Password is intentionally not triggered here because there is no documented
   "unlock prompt only" CLI mode that avoids opening Quick Access or the main app window.
-- Match patterns are heuristic. If KWallet changes the dialog app id or title, verify
-  the live values with `niri msg pick-window` and update the jq filters.
+- Match patterns are heuristic. If KWallet changes the dialog app id or title,
+  verify the live values with `niri msg pick-window` and update the jq filters.

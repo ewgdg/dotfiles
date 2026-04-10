@@ -1,0 +1,6 @@
+id = "arch-kernel"
+description = "Arch kernel initramfs configuration"
+
+[targets.f_etc_mkinitcpio_conf]
+source = "files/etc/mkinitcpio.conf"
+path = "/etc/mkinitcpio.conf"

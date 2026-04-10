@@ -1,0 +1,15 @@
+id = "nvim"
+description = "Neovim configuration"
+
+[targets.d_config_nvim]
+source = "files/config/nvim"
+path = "~/.config/nvim"
+pull_ignore = [
+  "*lock.json",
+  ".nvimlog",
+]
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} neovim",
+]

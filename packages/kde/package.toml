@@ -1,0 +1,40 @@
+id = "kde"
+description = "KDE Plasma user and supporting system configuration"
+
+[targets.f_config_kdeglobals]
+source = "files/config/kdeglobals"
+path = "~/.config/kdeglobals"
+chmod = "600"
+
+[targets.f_config_kglobalshortcutsrc]
+source = "files/config/kglobalshortcutsrc"
+path = "~/.config/kglobalshortcutsrc"
+chmod = "600"
+
+[targets.f_config_kscreenlockerrc]
+source = "files/config/kscreenlockerrc"
+path = "~/.config/kscreenlockerrc"
+chmod = "600"
+
+[targets.f_config_kwalletrc]
+source = "files/config/kwalletrc"
+path = "~/.config/kwalletrc"
+chmod = "600"
+
+[targets.f_config_kwinrulesrc]
+source = "files/config/kwinrulesrc"
+path = "~/.config/kwinrulesrc"
+chmod = "600"
+
+[targets.f_config_plasmashellrc]
+source = "files/config/plasmashellrc"
+path = "~/.config/plasmashellrc"
+chmod = "600"
+
+[targets.f_config_systemd_user_drkonqi_coredump_launcher_socket_d_override_conf]
+source = "files/config/systemd/user/drkonqi-coredump-launcher.socket.d/override.conf"
+path = "~/.config/systemd/user/drkonqi-coredump-launcher.socket.d/override.conf"
+
+[targets.f_etc_plasmalogin_conf]
+source = "files/etc/plasmalogin.conf"
+path = "/etc/plasmalogin.conf"

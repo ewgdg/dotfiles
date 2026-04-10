@@ -1,0 +1,19 @@
+id = "macos-preferences"
+description = "Bundled macOS global preferences and symbolic hotkeys"
+
+[vars.macos_preferences]
+global_selector_args = "'NSUserKeyEquivalents' 'ApplePressAndHoldEnabled' 'AppleKeyboardUIMode' 'AppleShowAllExtensions' 'AppleInterfaceStyle' 'com.apple.keyboard.fnState' 'com.apple.swipescrolldirection' 'com.apple.trackpad.forceClick' 'com.apple.trackpad.scaling' 'com.apple.mouse.scaling' 'com.apple.scrollwheel.scaling' 'NSAutomaticSpellingCorrectionEnabled' 'NSAutomaticCapitalizationEnabled' 'NSAutomaticDashSubstitutionEnabled' 'NSAutomaticPeriodSubstitutionEnabled' 'NSAutomaticQuoteSubstitutionEnabled' 'NSAutomaticTextCompletionEnabled'"
+
+[targets.f_library_preferences_globalpreferences_plist]
+source = "files/Library/Preferences/.GlobalPreferences.plist"
+path = "~/Library/Preferences/.GlobalPreferences.plist"
+chmod = "600"
+render = '{{ PLIST_RENDER }} --output-format binary --selector-type remove --selectors {{ vars.macos_preferences.global_selector_args }}'
+capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type retain --selectors {{ vars.macos_preferences.global_selector_args }}'
+
+[targets.f_library_preferences_com_apple_symbolichotkeys_plist]
+source = "files/Library/Preferences/com.apple.symbolichotkeys.plist"
+path = "~/Library/Preferences/com.apple.symbolichotkeys.plist"
+chmod = "600"
+render = '{{ PLIST_RENDER }} --output-format binary'
+capture = '{{ PLIST_CAPTURE }} --output-format xml'

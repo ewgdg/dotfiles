@@ -1,0 +1,24 @@
+id = "codex"
+description = "Bundled Codex CLI configuration, agents, and rules"
+
+[vars.codex]
+config_selector_args = "'model' 'model_reasoning_effort' 're:^projects\\.' 're:^mcp_servers\\.playwright\\.env$'"
+
+[targets.f_codex_config_toml]
+source = "files/codex/config.toml"
+path = "~/.codex/config.toml"
+chmod = "600"
+render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.codex.config_selector_args }}'
+capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.codex.config_selector_args }}'
+
+[targets.f_codex_agents_codex_md]
+source = "files/codex/AGENTS.codex.md"
+path = "~/.codex/AGENTS.codex.md"
+
+[targets.d_codex_rules]
+source = "files/codex/rules"
+path = "~/.codex/rules"
+
+[targets.d_codex_agents]
+source = "files/codex/agents"
+path = "~/.codex/agents"

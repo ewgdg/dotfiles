@@ -1,0 +1,31 @@
+id = "ssh"
+description = "SSH identity and client configuration"
+
+[targets.d_ssh]
+source = "files/ssh"
+path = "~/.ssh"
+chmod = "700"
+push_ignore = [
+  "known_hosts*",
+  "config",
+  "agent",
+]
+pull_ignore = [
+  "known_hosts*",
+  "config",
+  "agent",
+]
+
+[targets.f_ssh_config]
+source = "files/ssh/config"
+path = "~/.ssh/config"
+pull_view_repo = "render"
+pull_view_live = "raw"
+reconcile_io = "tty"
+reconcile = '''
+dotman reconcile editor \
+  --review-repo-path "${DOTMAN_REVIEW_REPO_PATH:-$DOTMAN_REPO_PATH}" \
+  --review-live-path "${DOTMAN_REVIEW_LIVE_PATH:-$DOTMAN_LIVE_PATH}" \
+  --repo-path "$DOTMAN_REPO_PATH" \
+  --live-path "$DOTMAN_LIVE_PATH"
+'''

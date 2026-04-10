@@ -1,7 +1,7 @@
 # Steam Wayland IME Workaround
 
-`dotfiles/local/share/applications/steam.desktop` overrides the stock Steam launcher
-to start Steam with:
+`packages/steam/files/local/share/applications/steam.desktop` overrides the
+stock Steam launcher to start Steam with:
 
 ```desktop
 Exec=env XMODIFIERS=@im=fcitx GTK_IM_MODULE=xim /usr/bin/steam %U

@@ -1,7 +1,7 @@
 # Plist Transform
 
-`scripts/plist_transform.py` powers the plist-based dotdrop transforms in
-`config.yaml`.
+`scripts/plist_transform.py` powers the plist-based cleanup/merge helpers used
+by package target commands in this repo.
 
 Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).

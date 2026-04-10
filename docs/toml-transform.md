@@ -1,7 +1,7 @@
 # TOML Transform
 
-`scripts/toml_transform.py` powers the `toml_transform_strip` and
-`toml_transform_merge` dotdrop transforms.
+`scripts/toml_transform.py` powers the TOML cleanup/merge helpers used by
+package target commands in this repo.
 
 Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).

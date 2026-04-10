@@ -58,7 +58,17 @@ def read_ini(path: Path) -> configparser.RawConfigParser:
     return parser
 
 
-def write_ini(parser: configparser.RawConfigParser, path: Path) -> None:
+def write_ini(
+    parser: configparser.RawConfigParser,
+    path: Path | None,
+    *,
+    stdout: bool = False,
+) -> None:
+    if stdout:
+        parser.write(sys.stdout)
+        return
+    if path is None:
+        raise ValueError("path is required when stdout is false")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         parser.write(handle)
@@ -127,7 +137,12 @@ def iter_template_keys(template: configparser.RawConfigParser, section_name: str
     return list(template.options(section_name))
 
 
-def run_dump(template_path: Path, output_path: Path) -> None:
+def run_dump(
+    template_path: Path,
+    output_path: Path | None,
+    *,
+    stdout: bool = False,
+) -> None:
     """Write current overrides as values and defaults as RESET_MARKER."""
     template = read_ini(template_path)
     output = configparser.RawConfigParser()
@@ -151,7 +166,7 @@ def run_dump(template_path: Path, output_path: Path) -> None:
                 continue
             output.set(section_name, key, value)
 
-    write_ini(output, output_path)
+    write_ini(output, output_path, stdout=stdout)
 
 
 def run_apply(input_path: Path) -> None:
@@ -191,6 +206,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="(dump mode) INI file listing schemas/keys to read from gsettings. "
         "Defaults to base_path when not provided.",
     )
+    parser.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Write dump output to stdout instead of a file.",
+    )
     return parser
 
 
@@ -202,8 +222,8 @@ def main() -> int:
         return 0
 
     if args.mode == "dump":
-        if args.output_path is None:
-            print("error: output_path is required for dump mode", file=sys.stderr)
+        if args.output_path is None and not args.stdout:
+            print("error: output_path is required for dump mode unless --stdout is used", file=sys.stderr)
             return 2
         template_path = args.template_file if args.template_file is not None else args.base_path
         if not template_path.exists():
@@ -212,7 +232,7 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 0
-        run_dump(template_path, args.output_path)
+        run_dump(template_path, args.output_path, stdout=args.stdout)
         return 0
 
     if not args.base_path.exists():

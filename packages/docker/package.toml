@@ -1,0 +1,11 @@
+id = "docker"
+description = "Docker daemon configuration"
+
+[targets.d_etc_docker]
+source = "files/etc/docker"
+path = "/etc/docker"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} docker docker-compose lazydocker",
+]

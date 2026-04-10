@@ -1,0 +1,19 @@
+id = "steam"
+description = "Steam launcher and XEmbed SNI proxy service"
+
+[targets.f_local_share_applications_steam_desktop]
+source = "files/local/share/applications/steam.desktop"
+path = "~/.local/share/applications/steam.desktop"
+
+[targets.f_config_systemd_user_xembedsniproxy_service]
+source = "files/config/systemd/user/xembedsniproxy.service"
+path = "~/.config/systemd/user/xembedsniproxy.service"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} steam",
+  'if ! command -v xembedsniproxy >/dev/null 2>&1; then {{ INSTALL }} xembedsniproxy; fi',
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user xembedsniproxy.service',
+]

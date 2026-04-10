@@ -1,0 +1,12 @@
+id = "1password"
+description = "1Password SSH agent config and quick access launcher"
+
+[targets.d_config_1password_ssh]
+source = "files/config/1Password/ssh"
+path = "~/.config/1Password/ssh"
+chmod = "700"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} 1password 1password-cli",
+]

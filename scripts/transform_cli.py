@@ -51,7 +51,12 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
         type=Path,
         help="Base file. Selectors always apply to this file.",
     )
-    parser.add_argument("output_path", type=Path, help="Transformed output path.")
+    parser.add_argument(
+        "output_path",
+        nargs="?",
+        type=Path,
+        help="Transformed output path. Optional when --stdout is used.",
+    )
     parser.add_argument(
         "--mode",
         choices=[mode.value for mode in TransformMode],
@@ -76,6 +81,11 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
         nargs="*",
         default=[],
         help="List of base-file matchers/selectors with optional prefixes.",
+    )
+    parser.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Write the transformed output to stdout instead of a file.",
     )
 
     engine.configure_parser(parser)

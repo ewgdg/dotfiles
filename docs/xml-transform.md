@@ -1,7 +1,7 @@
 # XML Transform
 
-`scripts/xml_transform.py` powers the XML-based dotdrop transforms in
-`config.yaml`.
+`scripts/xml_transform.py` powers the XML-based cleanup/merge helpers used by
+package target commands in this repo.
 
 Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).

@@ -1,0 +1,23 @@
+id = "keyd"
+description = "keyd keyboard remapping config and user service"
+
+[targets.f_etc_keyd_default_conf]
+source = "files/etc/keyd/default.conf"
+path = "/etc/keyd/default.conf"
+
+[targets.f_config_systemd_user_keyd_application_mapper_service]
+source = "files/config/systemd/user/keyd-application-mapper.service"
+path = "~/.config/systemd/user/keyd-application-mapper.service"
+
+[targets.f_config_keyd_app_conf]
+source = "files/config/keyd/app.conf"
+path = "~/.config/keyd/app.conf"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} keyd",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} system keyd.service',
+  '{{ ENSURE_SYSTEMD }} user keyd-application-mapper.service',
+]

@@ -320,10 +320,16 @@ def get_existing_xml_bytes_if_semantically_unchanged(
 
 
 def write_output_bytes(
-    output_path: Path,
+    output_path: Path | None,
     content: bytes,
     mode_reference_path: Path,
+    stdout: bool = False,
  ) -> None:
+    if stdout:
+        sys.stdout.buffer.write(content)
+        return
+
+    assert output_path is not None
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(content)
     sync_mode(mode_reference_path, output_path)
@@ -331,15 +337,16 @@ def write_output_bytes(
 
 def transform_xml(
     base_path: str | Path,
-    output_path: str | Path,
+    output_path: str | Path | None,
     node_matchers: list[str] | None = None,
     sort_attributes: bool = False,
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
     compare_path: str | Path | None = None,
+    stdout: bool = False,
  ) -> None:
     base_path = Path(base_path)
-    output_path = Path(output_path)
+    output_path = Path(output_path) if output_path is not None else None
     overlay_path = Path(overlay_path) if overlay_path is not None else None
     compare_path = Path(compare_path) if compare_path is not None else None
     effective_selector_action = (
@@ -383,7 +390,7 @@ def transform_xml(
     if compare_path is not None:
         existing_bytes = get_existing_xml_bytes_if_semantically_unchanged(compare_path, root)
         if existing_bytes is not None:
-            write_output_bytes(output_path, existing_bytes, base_path)
+            write_output_bytes(output_path, existing_bytes, base_path, stdout=stdout)
             return
 
     xml_string = ET.tostring(root, encoding="unicode")
@@ -396,6 +403,11 @@ def transform_xml(
         if len(line.strip()) > 0
     )
 
+    if stdout:
+        sys.stdout.write(pretty_xml)
+        return
+
+    assert output_path is not None
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(pretty_xml, encoding="utf-8")
     sync_mode(base_path, output_path)
@@ -430,6 +442,7 @@ class XmlTransformEngine(BaseTransformEngine):
         return {
             "compare_path": parsed_args.compare_file,
             "sort_attributes": parsed_args.sort_attributes,
+            "stdout": parsed_args.stdout,
         }
 
     def validate_request(self, request: TransformRequest) -> None:
@@ -447,6 +460,7 @@ class XmlTransformEngine(BaseTransformEngine):
             overlay_path=request.overlay_path,
             selector_action=request.selector_action,
             compare_path=request.engine_option("compare_path"),
+            stdout=bool(request.engine_option("stdout", False)),
         )
 
 def main(argv: list[str] | None = None) -> int:

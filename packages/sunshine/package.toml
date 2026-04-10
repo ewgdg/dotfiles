@@ -1,0 +1,36 @@
+id = "sunshine"
+description = "Sunshine host streaming configuration"
+
+[targets.d_config_sunshine]
+source = "files/config/sunshine"
+path = "~/.config/sunshine"
+push_ignore = [
+  "__pycache__/*",
+  "tests/*",
+  "sunshine-*.conf",
+]
+pull_ignore = [
+  "__pycache__/*",
+  "tests/*",
+  "sunshine-*.conf",
+  "sunshine.conf",
+  "credentials/*",
+  "sunshine.log",
+  "*state.json",
+]
+
+[targets.f_config_sunshine_sunshine_conf]
+source = "files/config/sunshine/sunshine-{{ desktop }}.conf"
+path = "~/.config/sunshine/sunshine.conf"
+
+[targets.d_config_systemd_user_sunshine_service_d]
+source = "files/config/systemd/user/sunshine.service.d"
+path = "~/.config/systemd/user/sunshine.service.d"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} sunshine python-gobject",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user sunshine.service',
+]

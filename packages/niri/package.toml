@@ -1,0 +1,34 @@
+id = "niri"
+description = "Niri compositor configuration"
+
+[targets.d_config_niri]
+source = "files/config/niri"
+path = "~/.config/niri"
+push_ignore = [
+  "*/__pycache__/*",
+]
+pull_ignore = [
+  "*/__pycache__/*",
+]
+
+[targets.f_config_systemd_user_niri_event_stream_rules_service]
+source = "files/config/systemd/user/niri-event-stream-rules.service"
+path = "~/.config/systemd/user/niri-event-stream-rules.service"
+
+[targets.f_config_systemd_user_niri_session_setup_service]
+source = "files/config/systemd/user/niri-session-setup.service"
+path = "~/.config/systemd/user/niri-session-setup.service"
+
+[targets.f_config_systemd_user_niri_wait_for_tray_host_service]
+source = "files/config/systemd/user/niri-wait-for-tray-host.service"
+path = "~/.config/systemd/user/niri-wait-for-tray-host.service"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} niri xwayland-satellite xdg-desktop-portal-gnome jq",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user niri-event-stream-rules.service',
+  '{{ ENSURE_SYSTEMD }} user niri-session-setup.service',
+  '{{ ENSURE_SYSTEMD }} user niri-wait-for-tray-host.service',
+]

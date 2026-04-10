@@ -1,0 +1,60 @@
+id = "shell"
+description = "Shell and prompt workflow configuration"
+
+[targets.d_config_zsh]
+source = "files/config/zsh"
+path = "~/.config/zsh"
+chmod = "700"
+
+[targets.d_config_oh_my_posh]
+source = "files/config/oh-my-posh"
+path = "~/.config/oh-my-posh"
+
+[targets.d_config_tmux]
+source = "files/config/tmux"
+path = "~/.config/tmux"
+push_ignore = [
+  "plugins/*",
+]
+pull_ignore = [
+  "plugins/*",
+]
+
+[targets.d_config_fd]
+source = "files/config/fd"
+path = "~/.config/fd"
+
+[targets.f_profile]
+source = "files/profile"
+path = "~/.profile"
+pull_view_repo = "render"
+pull_view_live = "raw"
+reconcile_io = "tty"
+reconcile = '''
+dotman reconcile editor \
+  --review-repo-path "${DOTMAN_REVIEW_REPO_PATH:-$DOTMAN_REPO_PATH}" \
+  --review-live-path "${DOTMAN_REVIEW_LIVE_PATH:-$DOTMAN_LIVE_PATH}" \
+  --repo-path "$DOTMAN_REPO_PATH" \
+  --live-path "$DOTMAN_LIVE_PATH" \
+  --additional-source "$DOTMAN_PACKAGE_ROOT/files/env.core.sh"
+'''
+
+[targets.f_zprofile]
+source = "files/zprofile"
+path = "~/.zprofile"
+
+[targets.f_zshenv]
+source = "files/zshenv"
+path = "~/.zshenv"
+
+[targets.f_zshrc]
+source = "files/zshrc"
+path = "~/.zshrc"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} fzf bat fd eza",
+  "{{ INSTALL }} zoxide",
+  "{{ INSTALL }} tmux",
+  "{{ INSTALL }} oh-my-posh",
+]

@@ -1,0 +1,15 @@
+id = "terminals"
+description = "Bundled Alacritty and Kitty terminal configuration"
+
+[targets.d_config_alacritty]
+source = "files/config/alacritty"
+path = "~/.config/alacritty"
+
+[targets.d_config_kitty]
+source = "files/config/kitty"
+path = "~/.config/kitty"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} alacritty kitty",
+]

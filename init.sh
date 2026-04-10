@@ -15,23 +15,17 @@ script_dir="$(
   pwd -P
 )"
 repo_root="${script_dir}"
-
-if [ -r "${repo_root}/dotfiles/env.core.sh" ]; then
-  # Use the shared core shell environment so installs land in the same
-  # locations the managed shell profile expects.
-  # shellcheck source=/dev/null
-  . "${repo_root}/dotfiles/env.core.sh"
-fi
-
-dotdrop_config_path="${repo_root}/config.yaml"
-
-if [ ! -f "${dotdrop_config_path}" ]; then
-  die "dotdrop config not found at ${dotdrop_config_path}"
-fi
-
+repo_core_env_path="${repo_root}/packages/shell/files/env.core.sh"
 default_uv_bin_dir="${HOME}/.local/bin"
-dotman_script="${repo_root}/dotfiles/bin/dotman"
-export DOTDROP_CONFIG="${dotdrop_config_path}"
+dotman_repo_name="${DOTMAN_REPO_NAME:-main}"
+dotman_tool_spec_default='git+https://github.com/ewgdg/dotman.git'
+dotman_tool_spec="${DOTMAN_TOOL_SPEC:-$dotman_tool_spec_default}"
+
+if [ -r "${repo_core_env_path}" ]; then
+  # Keep bootstrap-time PATH/XDG behavior aligned with the managed shell profile.
+  # shellcheck source=/dev/null
+  . "${repo_core_env_path}"
+fi
 
 prepend_path() {
   case ":${PATH:-}:" in
@@ -58,13 +52,11 @@ normalize_dir() {
 }
 
 run_installer_script() {
-  local installer_script_path
-
   installer_script_path="$(mktemp "${TMPDIR:-/tmp}/uv-install.XXXXXX.sh")"
   trap 'rm -f "${installer_script_path}"' EXIT
 
   curl --proto '=https' -LsSf https://astral.sh/uv/install.sh -o "${installer_script_path}"
-  env UV_UNMANAGED_INSTALL="${default_uv_bin_dir}" sh "${installer_script_path}"
+  env UV_UNMANAGED_INSTALL="${default_uv_bin_dir}" UV_NO_MODIFY_PATH=1 sh "${installer_script_path}"
 }
 
 install_uv() {
@@ -119,33 +111,72 @@ install_uv() {
   run_installer_script
 }
 
-install_dotdrop() {
-  log "installing dotdrop and dependencies"
-  if [ "$(uname -s)" = "Darwin" ]; then
-    brew install --quiet libmagic coreutils
-  fi
-  # uv sync
+install_dotman() {
+  log "installing dotman with uv tool install --upgrade ${dotman_tool_spec}"
+  uv tool install --upgrade "${dotman_tool_spec}"
 }
 
-run_dotdrop_apply() {
-  if [ ! -x "${dotman_script}" ]; then
-    die "dotman wrapper not found at ${dotman_script}"
-  fi
-
-  log "running dotman install"
-  "${dotman_script}" install "$@"
+write_dotman_config() {
+  dotman_config_path="$(mktemp "${TMPDIR:-/tmp}/dotman-config.XXXXXX.toml")"
+  cat >"${dotman_config_path}" <<EOF
+[repos.${dotman_repo_name}]
+path = "${repo_root}"
+order = 10
+EOF
+  printf '%s\n' "${dotman_config_path}"
 }
 
-should_run_dotdrop_install=true
-
-for arg do
+run_dotman_apply() {
+  binding="$1"
   shift
-  case "$arg" in
+
+  if ! command -v dotman >/dev/null 2>&1; then
+    die "dotman not found in PATH after installation"
+  fi
+
+  dotman_config_path="$(write_dotman_config)"
+  trap 'rm -f "${dotman_config_path}"' EXIT HUP INT TERM
+
+  log "tracking ${binding}"
+  dotman --config "${dotman_config_path}" track "${binding}"
+
+  log "running dotman push"
+  dotman --config "${dotman_config_path}" push "$@"
+}
+
+should_run_dotman_push=true
+binding=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
     --no-install)
-      should_run_dotdrop_install=false
+      should_run_dotman_push=false
+      shift
+      ;;
+    -p|--profile)
+      [ "$#" -ge 2 ] || die "$1 requires a value"
+      binding="${dotman_repo_name}:$2@$2"
+      shift 2
+      ;;
+    -b|--binding)
+      [ "$#" -ge 2 ] || die "$1 requires a value"
+      binding="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      break
       ;;
     *)
-      set -- "$@" "$arg"
+      if [ -z "${binding}" ]; then
+        binding="$1"
+        shift
+      else
+        break
+      fi
       ;;
   esac
 done
@@ -161,10 +192,13 @@ fi
 
 export PATH
 
-install_dotdrop
+install_dotman
 
-if [ "${should_run_dotdrop_install}" = true ]; then
-  run_dotdrop_apply "$@"
+if [ "${should_run_dotman_push}" = true ]; then
+  if [ -z "${binding}" ]; then
+    die "missing binding: pass a full binding like host/linux@host/linux or use -p host/linux"
+  fi
+  run_dotman_apply "${binding}" "$@"
 fi
 
 log "bootstrap complete"

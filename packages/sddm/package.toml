@@ -1,0 +1,18 @@
+id = "sddm"
+description = "SDDM configuration"
+
+[targets.f_etc_sddm_conf]
+source = "files/etc/sddm.conf"
+path = "/etc/sddm.conf"
+
+[targets.d_etc_sddm_conf_d]
+source = "files/etc/sddm.conf.d"
+path = "/etc/sddm.conf.d"
+pull_ignore = [
+  "zzz-autologin.local.conf",
+]
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} sddm where-is-my-sddm-theme-git",
+]

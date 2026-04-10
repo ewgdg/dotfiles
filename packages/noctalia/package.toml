@@ -1,0 +1,28 @@
+id = "noctalia"
+description = "Noctalia shell configuration and user service"
+
+[targets.d_config_noctalia]
+source = "files/config/noctalia"
+path = "~/.config/noctalia"
+push_ignore = [
+  "plugins",
+  "!plugins/*/settings.json",
+  "!plugins/pinned-window",
+]
+pull_ignore = [
+  "plugins",
+  "!plugins/*/settings.json",
+  "!plugins/pinned-window",
+]
+
+[targets.f_config_systemd_user_noctalia_shell_service]
+source = "files/config/systemd/user/noctalia-shell.service"
+path = "~/.config/systemd/user/noctalia-shell.service"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} noctalia-qs noctalia-shell",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user noctalia-shell.service',
+]

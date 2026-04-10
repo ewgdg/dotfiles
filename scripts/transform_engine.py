@@ -46,7 +46,7 @@ class SelectorSpec:
 @dataclass(frozen=True)
 class TransformRequest:
     base_path: Path
-    output_path: Path
+    output_path: Path | None
     mode: TransformMode
     selector_action: SelectorAction
     selectors_by_type: Mapping[str, tuple[str, ...]]
@@ -58,6 +58,8 @@ class TransformRequest:
             raise ValueError("overlay_path is required when mode=merge")
         if self.mode == TransformMode.CLEANUP and self.overlay_path is not None:
             raise ValueError("overlay_path is only valid when mode=merge")
+        if self.output_path is None and not self.engine_option("stdout", False):
+            raise ValueError("output_path is required unless stdout output is enabled")
 
     def selector_values(self, selector_type: str) -> tuple[str, ...]:
         return self.selectors_by_type.get(selector_type, ())

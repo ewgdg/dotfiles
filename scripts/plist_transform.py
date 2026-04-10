@@ -77,6 +77,10 @@ def write_plist(path: Path, data: PlistDict, fmt: str) -> None:
         plistlib.dump(data, handle, fmt=plist_format_from_name(fmt), sort_keys=True)
 
 
+def plist_bytes(data: PlistDict, fmt: str) -> bytes:
+    return plistlib.dumps(data, fmt=plist_format_from_name(fmt), sort_keys=True)
+
+
 def get_existing_bytes_if_semantically_unchanged(
     path: Path,
     data: PlistDict,
@@ -103,21 +107,31 @@ def mirror_mode(reference_path: Path, output_path: Path) -> None:
 
 
 def write_plist_if_changed(
-    output_path: Path,
+    output_path: Path | None,
     data: PlistDict,
     output_format: str,
     mode_reference_path: Path,
     compare_path: Path | None,
+    stdout: bool = False,
 ) -> None:
     if compare_path is not None:
         existing_bytes = get_existing_bytes_if_semantically_unchanged(compare_path, data)
         if existing_bytes is not None:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(existing_bytes)
-            if mode_reference_path != output_path:
-                mirror_mode(mode_reference_path, output_path)
+            if stdout:
+                sys.stdout.buffer.write(existing_bytes)
+            else:
+                assert output_path is not None
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_bytes(existing_bytes)
+                if mode_reference_path != output_path:
+                    mirror_mode(mode_reference_path, output_path)
             return
 
+    if stdout:
+        sys.stdout.buffer.write(plist_bytes(data, output_format))
+        return
+
+    assert output_path is not None
     write_plist(output_path, data, output_format)
     if mode_reference_path != output_path:
         mirror_mode(mode_reference_path, output_path)
@@ -155,6 +169,7 @@ class PlistTransformEngine(BaseTransformEngine):
         return {
             "compare_path": parsed_args.compare_file,
             "output_format": parsed_args.output_format,
+            "stdout": parsed_args.stdout,
         }
 
     def transform(self, request: TransformRequest) -> None:
@@ -183,6 +198,7 @@ class PlistTransformEngine(BaseTransformEngine):
             output_format,
             mode_reference_path=mode_reference_path,
             compare_path=compare_path,
+            stdout=bool(request.engine_option("stdout", False)),
         )
 
 

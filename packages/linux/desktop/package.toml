@@ -1,0 +1,31 @@
+id = "linux/desktop"
+description = "Linux desktop session and portal configuration"
+
+[targets.d_config_autostart]
+source = "files/config/autostart"
+path = "~/.config/autostart"
+
+[targets.d_config_environment_d]
+source = "files/config/environment.d"
+path = "~/.config/environment.d"
+
+[targets.f_config_user_dirs_dirs]
+source = "files/config/user-dirs.dirs"
+path = "~/.config/user-dirs.dirs"
+
+[targets.f_config_mimeapps_list]
+source = "files/config/mimeapps.list"
+path = "~/.config/mimeapps.list"
+
+[targets.d_config_xdg_desktop_portal]
+source = "files/config/xdg-desktop-portal"
+path = "~/.config/xdg-desktop-portal"
+
+[targets.f_config_systemd_user_network_virtual_mic_service]
+source = "files/config/systemd/user/network-virtual-mic.service"
+path = "~/.config/systemd/user/network-virtual-mic.service"
+
+[hooks]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user network-virtual-mic.service',
+]

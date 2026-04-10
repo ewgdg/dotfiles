@@ -1,0 +1,12 @@
+id = "linearmouse"
+description = "LinearMouse preferences"
+
+[vars.linearmouse]
+config_selector_args = "'LaunchAtLogin__hasMigrated' 'NSStatusItem Preferred Position Item-0' 'NSWindow Frame SUUpdateAlert' 'SUEnableAutomaticChecks' 'SUHasLaunchedBefore' 'SULastCheckTime' 'SUScheduledCheckInterval' 'SUUpdateGroupIdentifier'"
+
+[targets.f_library_preferences_com_lujjjh_linearmouse_plist]
+source = "files/Library/Preferences/com.lujjjh.LinearMouse.plist"
+path = "~/Library/Preferences/com.lujjjh.LinearMouse.plist"
+chmod = "600"
+render = '{{ PLIST_RENDER }} --output-format binary --selector-type retain --selectors {{ vars.linearmouse.config_selector_args }}'
+capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type remove --selectors {{ vars.linearmouse.config_selector_args }}'

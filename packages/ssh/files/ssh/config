@@ -1,0 +1,17 @@
+# os: {{ os }}
+
+{% if os == "linux" %}
+Match host * exec "test -z $SSH_TTY"
+    IdentityAgent ~/.1password/agent.sock
+{% elif os == "darwin" %}
+Include ${HOME}/.colima/ssh_config
+
+Host *
+    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+    UseKeychain yes
+{% else %}
+Host *
+    AddKeysToAgent yes
+    IdentityFile ~/.ssh/id_ed25519
+{% endif %}
+ServerAliveInterval 120

@@ -1,0 +1,31 @@
+id = "arch-system"
+description = "Arch Linux package manager and base system configuration"
+
+[targets.f_etc_pacman_conf]
+source = "files/etc/pacman.conf"
+path = "/etc/pacman.conf"
+
+[targets.f_etc_makepkg_conf]
+source = "files/etc/makepkg.conf"
+path = "/etc/makepkg.conf"
+
+[targets.f_etc_locale_gen]
+source = "files/etc/locale.gen"
+path = "/etc/locale.gen"
+
+[targets.f_etc_fonts_local_conf]
+source = "files/etc/fonts/local.conf"
+path = "/etc/fonts/local.conf"
+
+[targets.d_config_paru]
+source = "files/config/paru"
+path = "~/.config/paru"
+
+[targets.d_config_yay]
+source = "files/config/yay"
+path = "~/.config/yay"
+
+[hooks]
+post_push = [
+  'if [ "$(id -u)" -eq 0 ]; then locale-gen; else sudo -A locale-gen; fi',
+]

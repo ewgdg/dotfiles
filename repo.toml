@@ -1,0 +1,7 @@
+[ignore]
+pull = [
+    "*.dotdropbak",
+]
+push = [
+    "*.archived",
+]

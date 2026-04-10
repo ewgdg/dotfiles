@@ -159,6 +159,33 @@ def test_write_document_with_compare_file_skips_rewrite_for_semantic_match(
     assert output_path.read_text(encoding="utf-8") == compare_path.read_text(encoding="utf-8")
 
 
+def test_write_document_with_compare_file_reuses_existing_text_in_stdout_mode(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    repo_path = tmp_path / "repo.toml"
+    compare_path = tmp_path / "compare.toml"
+
+    repo_path.write_text('model_provider = "openai_http"\n', encoding="utf-8")
+    compare_path.write_text(
+        'model = "gpt-5.4"\n# keep me\nmodel_provider = "openai_http"\n',
+        encoding="utf-8",
+    )
+
+    merged_doc = MODULE.load_document(repo_path)
+    merged_doc["model"] = "gpt-5.4"
+
+    MODULE.write_document_if_changed(
+        None,
+        merged_doc,
+        mode_reference_path=repo_path,
+        compare_path=compare_path,
+        stdout=True,
+    )
+
+    assert capsys.readouterr().out == compare_path.read_text(encoding="utf-8")
+
+
 def test_write_document_without_compare_file_rewrites_matching_output(
     tmp_path: Path,
  ) -> None:
@@ -333,6 +360,57 @@ name = "OpenAI HTTP only"
     )
 
     assert output_path.read_text(encoding="utf-8") == live_path.read_text(encoding="utf-8")
+
+
+def test_merge_preserves_top_level_leading_comments_without_compare_file(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_text = """approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+personality = "pragmatic"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+
+# model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+"""
+    repo_path.write_text(
+        """approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+personality = "pragmatic"
+
+# model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(live_text, encoding="utf-8")
+
+    MODULE.merge_keys(
+        live_path,
+        output_path,
+        repo_path,
+        {
+            ("model",),
+            ("model_reasoning_effort",),
+        },
+        [MODULE.re.compile(r"^projects\.")],
+    )
+
+    assert output_path.read_text(encoding="utf-8") == live_text
 
 
 def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:

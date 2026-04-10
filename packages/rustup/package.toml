@@ -1,0 +1,13 @@
+id = "rustup"
+description = "Rust toolchain bootstrap marker and install hooks"
+
+[targets.f_local_state_dotdrop_rustup_installed]
+source = "files/local/state/dotdrop/rustup-installed"
+path = "~/.local/state/dotdrop/rustup-installed"
+
+# todo support always run hooks?
+[hooks]
+pre_push = [
+  'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
+  'if [ -x "$HOME/.cargo/bin/cargo" ]; then "$HOME/.cargo/bin/cargo" install cargo-update; elif command -v cargo >/dev/null 2>&1; then cargo install cargo-update; else echo "cargo not found after rustup bootstrap" >&2; exit 1; fi',
+]

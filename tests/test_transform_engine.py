@@ -60,6 +60,32 @@ def test_transform_request_rejects_overlay_in_cleanup_mode(tmp_path: Path) -> No
         request.validate_basic()
 
 
+def test_transform_request_requires_output_path_without_stdout(tmp_path: Path) -> None:
+    request = MODULE.TransformRequest(
+        base_path=tmp_path / "base",
+        output_path=None,
+        mode=MODULE.TransformMode.CLEANUP,
+        selector_action=MODULE.SelectorAction.RETAIN,
+        selectors_by_type={"key": ("model",)},
+    )
+
+    with pytest.raises(ValueError, match="output_path is required unless stdout output is enabled"):
+        request.validate_basic()
+
+
+def test_transform_request_allows_stdout_without_output_path(tmp_path: Path) -> None:
+    request = MODULE.TransformRequest(
+        base_path=tmp_path / "base",
+        output_path=None,
+        mode=MODULE.TransformMode.CLEANUP,
+        selector_action=MODULE.SelectorAction.RETAIN,
+        selectors_by_type={"key": ("model",)},
+        engine_options={"stdout": True},
+    )
+
+    request.validate_basic()
+
+
 def test_base_engine_rejects_unknown_selector_types(tmp_path: Path) -> None:
     engine = DummyEngine()
     request = MODULE.TransformRequest(

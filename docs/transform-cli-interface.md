@@ -27,8 +27,8 @@ script BASE OUTPUT \
   on top of it.
 - `--overlay-file`: secondary operand. Required in merge mode.
 
-In the intended dotdrop round-trip workflow, `BASE` is the current live file
-for `trans_install`, and `OVERLAY` is the repo file being reapplied.
+In the intended repo round-trip workflow, `BASE` is the current live file and
+`OVERLAY` is the repo file being reapplied.
 
 ## Goal
 
@@ -56,7 +56,7 @@ removed from `BASE` before `OVERLAY` is applied.
 
 ## Round-Trip Rule
 
-For a paired `trans_update` and `trans_install`:
+For a paired cleanup and merge workflow:
 
 - reuse the same selector set for both steps
 - flip `--selector-type` between cleanup and merge
@@ -71,9 +71,9 @@ live_next = overlay(preserved_live, repo_current)
 
 This is the core mental model:
 
-- `trans_update` decides which part of the live file becomes repo-managed
-- `trans_install` preserves the complementary live residue
-- `trans_install` then reapplies the repo file on top
+- cleanup decides which part of the live file becomes repo-managed
+- merge preserves the complementary live residue
+- merge then reapplies the repo file on top
 
 If the repo deletes something inside the repo-managed region, that deletion is
 preserved on install because the old managed content was discarded before the
@@ -87,8 +87,8 @@ Use this when the repo should contain everything except a noisy local subset
 `A`.
 
 ```text
-trans_update: cleanup remove A
-trans_install: merge retain A
+cleanup step: cleanup remove A
+merge step: merge retain A
 ```
 
 Meaning:
@@ -102,8 +102,8 @@ Meaning:
 Use this when the repo should store only subset `B`.
 
 ```text
-trans_update: cleanup retain B
-trans_install: merge remove B
+cleanup step: cleanup retain B
+merge step: merge remove B
 ```
 
 Meaning:
@@ -154,9 +154,7 @@ Examples:
 - each format doc must document identity rules for repeated or nested
   structures, plus any unsupported cases
 
-## Dotdrop Note
+## Repo-to-Live Note
 
-For the redesigned install flow, the merge engine should be invoked with the
-current live file as `BASE` and the repo file as `OVERLAY`.
-If the dotdrop action wrappers still pass those operands in the old order, they
-need to be updated to match this contract.
+For repo-to-live application, invoke the merge engine with the current live
+file as `BASE` and the repo file as `OVERLAY`.

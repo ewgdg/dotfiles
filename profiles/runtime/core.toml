@@ -1,0 +1,13 @@
+[vars]
+UV_RUN = "uv run --project \"$DOTMAN_REPO_ROOT\""
+XML_TRANSFORM  = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/xml_transform.py\""
+TOML_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/toml_transform.py\""
+PLIST_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/plist_transform.py\""
+
+XML_RENDER   = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
+TOML_RENDER  = "{{ TOML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
+PLIST_RENDER = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\""
+
+XML_CAPTURE   = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
+TOML_CAPTURE  = "{{ TOML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
+PLIST_CAPTURE = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
