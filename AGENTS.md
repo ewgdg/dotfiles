@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository manages user and system configuration with `dotdrop`. The main mapping lives in `config.yaml`; managed files are stored under `dotfiles/`, mirroring destination paths such as `dotfiles/config/nvim`, `dotfiles/bin`, and `dotfiles/etc`. Helper scripts live in `scripts/`. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
+This repository manages user and system configuration with `dotdrop`. The main mapping lives in `config.yaml`; managed files are stored under `dotfiles/`, mirroring destination paths such as `dotfiles/config/nvim`, `dotfiles/bin`, and `dotfiles/etc`. Shared cross-package helper scripts live in `scripts/`. Package-specific helpers should live under that package, for example `packages/<id>/scripts/`, and be referenced via `DOTMAN_PACKAGE_ROOT` so package stays self-contained. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
 
 ## Develop Guidelines
 

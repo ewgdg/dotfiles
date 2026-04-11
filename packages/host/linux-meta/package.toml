@@ -29,4 +29,5 @@ depends = [
   "steam",
   "sunshine",
   "terminals",
+  "xsettings",
 ]

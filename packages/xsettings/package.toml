@@ -1,0 +1,25 @@
+id = "xsettings"
+description = "xsettingsd config and session activation"
+
+[targets.f_config_xsettingsd_xsettingsd_conf]
+source = "files/config/xsettingsd/xsettingsd.conf"
+path = "~/.config/xsettingsd/xsettingsd.conf"
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_xsettingsd.py" "$DOTMAN_LIVE_PATH" --template-file "$DOTMAN_REPO_PATH" --stdout'
+
+[targets.f_config_systemd_user_xsettingsd_session_target]
+source = "files/config/systemd/user/xsettingsd-session.target"
+path = "~/.config/systemd/user/xsettingsd-session.target"
+
+[targets.f_config_systemd_user_xsettingsd_service_d_session_conf]
+source = "files/config/systemd/user/xsettingsd.service.d/session.conf"
+path = "~/.config/systemd/user/xsettingsd.service.d/session.conf"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} xsettingsd",
+]
+post_push = [
+  'if [ "$(systemctl --user show --property=FragmentPath --value xsettingsd.service 2>/dev/null)" = "$HOME/.config/systemd/user/xsettingsd.service" ]; then systemctl --user disable --now xsettingsd.service || true; fi',
+  'if [ -e "$HOME/.config/systemd/user/xsettingsd.service" ]; then trash-put "$HOME/.config/systemd/user/xsettingsd.service"; fi',
+  '{{ ENSURE_SYSTEMD }} user xsettingsd-session.target',
+]

@@ -1,0 +1,7 @@
+[Unit]
+Description=Pull xsettingsd into the graphical session
+Wants=xsettingsd.service
+PartOf=graphical-session.target
+
+[Install]
+WantedBy=graphical-session.target
