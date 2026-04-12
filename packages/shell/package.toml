@@ -27,17 +27,7 @@ path = "~/.config/fd"
 [targets.f_profile]
 source = "files/profile"
 path = "~/.profile"
-pull_view_repo = "render"
-pull_view_live = "raw"
-reconcile_io = "tty"
-reconcile = '''
-dotman reconcile editor \
-  --review-repo-path "${DOTMAN_REVIEW_REPO_PATH:-$DOTMAN_REPO_PATH}" \
-  --review-live-path "${DOTMAN_REVIEW_LIVE_PATH:-$DOTMAN_LIVE_PATH}" \
-  --repo-path "$DOTMAN_REPO_PATH" \
-  --live-path "$DOTMAN_LIVE_PATH" \
-  --additional-source "$DOTMAN_PACKAGE_ROOT/files/env.core.sh"
-'''
+preset = "jinja-editor"
 
 [targets.f_zprofile]
 source = "files/zprofile"
