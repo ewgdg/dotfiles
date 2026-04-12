@@ -2,17 +2,5 @@ id = "host/mac-meta"
 description = "macOS host entrypoint meta package"
 
 depends = [
-  "agents",
-  "bin",
-  "codex",
-  "git",
-  "javascript-toolchain",
-  "linearmouse",
-  "macos-preferences",
-  "nvim",
-  "1password",
-  "rustup",
-  "shell",
-  "ssh",
-  "terminals",
+  "host/mac",
 ]

@@ -54,7 +54,9 @@ path = "~/.zshrc"
 [hooks]
 pre_push = [
   "{{ INSTALL }} fzf bat fd eza",
-  "{{ INSTALL }} zoxide",
+  "{{ INSTALL }} zoxide ripgrep",
   "{{ INSTALL }} tmux",
   "{{ INSTALL }} oh-my-posh",
+  "{{ INSTALL }} trash-cli",
+  "{{ INSTALL }} yazi chafa",
 ]

@@ -1,1 +1,1 @@
-members = ["games/linux", "browser", "fcitx5", "goldendict", "linux/1password", "mpv"]
+members = ["games/linux", "browser", "fcitx5", "goldendict", "linux/1password", "linux/lutris", "mpv", "sunshine"]

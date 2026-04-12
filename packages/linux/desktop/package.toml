@@ -26,6 +26,9 @@ source = "files/config/systemd/user/network-virtual-mic.service"
 path = "~/.config/systemd/user/network-virtual-mic.service"
 
 [hooks]
+pre_push = [
+  "{{ INSTALL }} wl-clipboard",
+]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user network-virtual-mic.service',
 ]

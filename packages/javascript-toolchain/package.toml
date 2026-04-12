@@ -1,7 +1,0 @@
-id = "javascript-toolchain"
-description = "Node.js and npm user configuration"
-
-[targets.f_npmrc]
-source = "files/npmrc"
-path = "~/.npmrc"
-chmod = "600"

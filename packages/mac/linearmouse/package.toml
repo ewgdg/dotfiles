@@ -1,4 +1,4 @@
-id = "linearmouse"
+id = "mac/linearmouse"
 description = "LinearMouse preferences"
 
 [vars.linearmouse]
@@ -10,3 +10,8 @@ path = "~/Library/Preferences/com.lujjjh.LinearMouse.plist"
 chmod = "600"
 render = '{{ PLIST_RENDER }} --output-format binary --selector-type retain --selectors {{ vars.linearmouse.config_selector_args }}'
 capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type remove --selectors {{ vars.linearmouse.config_selector_args }}'
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} linearmouse",
+]

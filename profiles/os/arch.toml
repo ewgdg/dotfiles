@@ -2,3 +2,4 @@ includes = ["runtime/linux"]
 
 [vars]
 INSTALL = "sh \"$DOTMAN_REPO_ROOT/scripts/install_arch_packages.sh\""
+NODEJS_INSTALL_PACKAGES = "nodejs npm"

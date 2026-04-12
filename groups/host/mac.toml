@@ -1,1 +1,1 @@
-members = ["host/mac-meta"]
+members = ["os/mac", "apps/mac", "apps/ai"]

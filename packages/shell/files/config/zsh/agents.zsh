@@ -89,7 +89,7 @@ claudecode() {
 }
 
 pi(){
-  if ! _ensure_command omp "Pi coding agent"; then
+  if ! _ensure_command pi "Pi coding agent"; then
     return 1
   fi
 

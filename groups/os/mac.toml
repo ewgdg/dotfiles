@@ -1,1 +1,1 @@
-members = ["posix/base", "posix/utils", "macos-preferences"]
+members = ["unix/base", "unix/utils", "macos-preferences"]

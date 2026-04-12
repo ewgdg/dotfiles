@@ -1,0 +1,14 @@
+id = "nodejs"
+description = "Node.js user configuration and toolchain bootstrap"
+
+[targets.f_npmrc]
+source = "files/npmrc"
+path = "~/.npmrc"
+chmod = "600"
+
+[hooks]
+# Package-manager names differ across OS profiles (`nodejs` on Arch, `node` on Homebrew).
+pre_push = [
+  "{{ INSTALL }} {{ NODEJS_INSTALL_PACKAGES }}",
+  "{{ INSTALL }} bun fnm",
+]

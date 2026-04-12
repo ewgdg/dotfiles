@@ -1,6 +1,10 @@
 id = "niri"
 description = "Niri compositor configuration"
 
+depends = [
+  "noctalia",
+]
+
 [targets.d_config_niri]
 source = "files/config/niri"
 path = "~/.config/niri"
@@ -23,9 +27,19 @@ path = "~/.config/systemd/user/niri-session-setup.service"
 source = "files/config/systemd/user/niri-wait-for-tray-host.service"
 path = "~/.config/systemd/user/niri-wait-for-tray-host.service"
 
+# This NVIDIA override only matters for the Niri session in this repo, so keep ownership here.
+[targets.f_etc_nvidia_nvidia_application_profiles_rc_d_50_limit_free_buffer_pool_in_wayland_compositors_json]
+source = "files/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
+path = "/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
+
 [hooks]
+# Niri session expects these desktop apps/themes via keybinds, mime defaults, and GTK/icon settings.
 pre_push = [
   "{{ INSTALL }} niri xwayland-satellite xdg-desktop-portal-gnome jq",
+  "{{ INSTALL }} nautilus imv loupe papers gnome-text-editor file-roller",
+  "{{ INSTALL }} bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look",
+  # for nautilus
+  "{{ INSTALL }} ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd",
 ]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user niri-event-stream-rules.service',

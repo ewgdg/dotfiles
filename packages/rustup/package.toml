@@ -1,9 +1,9 @@
 id = "rustup"
 description = "Rust toolchain bootstrap marker and install hooks"
 
-[targets.f_local_state_dotdrop_rustup_installed]
-source = "files/local/state/dotdrop/rustup-installed"
-path = "~/.local/state/dotdrop/rustup-installed"
+[targets.f_local_state_dotman_installed_rustup]
+source = "files/local/state/dotman/installed/rustup"
+path = "~/.local/state/dotman/installed/rustup"
 
 # todo support always run hooks?
 [hooks]

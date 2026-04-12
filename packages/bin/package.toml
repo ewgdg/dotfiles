@@ -4,3 +4,8 @@ description = "Personal command-line scripts"
 [targets.d_bin]
 source = "files/bin"
 path = "~/bin"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} zenity",
+]

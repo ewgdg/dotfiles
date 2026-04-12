@@ -1,1 +1,1 @@
-members = ["host/linux-meta"]
+members = ["os/arch", "de/niri", "apps/linux", "apps/ai"]

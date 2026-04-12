@@ -1,6 +1,10 @@
 id = "agents"
 description = "Shared agent skill repository"
 
+depends = [
+  "nodejs",
+]
+
 [targets.d_agents]
 source = "files/agents"
 path = "~/.agents"
@@ -16,4 +20,5 @@ pull_ignore = [
 [hooks]
 pre_push = [
   'mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.pi/agent"',
+  "bun install -g @mariozechner/pi-coding-agent",
 ]

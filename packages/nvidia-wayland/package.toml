@@ -1,6 +1,0 @@
-id = "nvidia-wayland"
-description = "NVIDIA Wayland compositor profile override"
-
-[targets.f_etc_nvidia_nvidia_application_profiles_rc_d_50_limit_free_buffer_pool_in_wayland_compositors_json]
-source = "files/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
-path = "/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
