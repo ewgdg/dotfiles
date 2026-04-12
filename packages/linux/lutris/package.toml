@@ -1,13 +1,22 @@
 id = "linux/lutris"
-description = "Lutris install marker"
+description = "Lutris install marker and XEmbed SNI proxy service"
 
 [targets.f_local_state_dotman_installed_linux_lutris]
 source = "files/local/state/dotman/installed/lutris"
 path = "~/.local/state/dotman/installed/lutris"
+
+[targets.f_config_systemd_user_xembedsniproxy_service]
+source = "files/config/systemd/user/xembedsniproxy.service"
+path = "~/.config/systemd/user/xembedsniproxy.service"
 
 # Marker exists so install-only packages still have tracked state in dotman.
 [hooks]
 pre_push = [
   # wine-gecko optional
   "{{ INSTALL }} lutris wine-mono proton-ge-custom-bin",
+  # Keep XEmbed tray proxy with Lutris, which still needs the legacy tray bridge.
+  'if ! command -v xembedsniproxy >/dev/null 2>&1; then {{ INSTALL }} xembedsniproxy; fi',
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user xembedsniproxy.service',
 ]

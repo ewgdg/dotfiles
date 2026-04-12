@@ -24,17 +24,17 @@ Examples:
 Example install-only package:
 
 ```toml
-id = "linux/lutris"
-description = "Lutris install marker"
+id = "rustup"
+description = "Rust toolchain bootstrap marker and install hooks"
 
-[targets.f_local_state_dotman_installed_linux_lutris]
-source = "files/local/state/dotman/installed/lutris"
-path = "~/.local/state/dotman/installed/lutris"
+[targets.f_local_state_dotman_installed_rustup]
+source = "files/local/state/dotman/installed/rustup"
+path = "~/.local/state/dotman/installed/rustup"
 
 # Marker exists so install-only packages still have tracked state in dotman.
 [hooks]
 pre_push = [
-  "{{ INSTALL }} lutris",
+  'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
 ]
 ```
 
