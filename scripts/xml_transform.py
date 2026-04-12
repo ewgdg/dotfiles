@@ -268,7 +268,7 @@ def build_tree_with_selector_action(
     return build_tree_with_stripped_nodes(source_root, node_matchers)
 
 
-def parse_node_matchers(raw_node_matchers: tuple[str, ...]) -> list[str]:
+def parse_node_matchers(raw_node_matchers: tuple[str, ...] | list[str]) -> list[str]:
     parsed_node_matchers: list[str] = []
     for raw_matcher_group in raw_node_matchers:
         for raw_matcher in raw_matcher_group.split(","):
@@ -293,16 +293,41 @@ def strip_whitespace_text_nodes(root: ET.Element) -> None:
             elem.tail = None
 
 
-def normalized_xml_for_compare(root: ET.Element) -> str:
+def canonical_xml_sort_key(element: ET.Element) -> str:
+    normalized = copy.deepcopy(element)
+    strip_whitespace_text_nodes(normalized)
+    sort_xml_attributes(normalized)
+    return ET.tostring(normalized, encoding="unicode")
+
+
+def sort_selected_children(root: ET.Element, parent_matchers: list[str]) -> None:
+    def sort_selected_children_recursion(current: ET.Element, cur_path: str) -> None:
+        if matches_node_path(cur_path, parent_matchers):
+            current[:] = sorted(current, key=canonical_xml_sort_key)
+
+        for child in current:
+            child_path = f"{cur_path}/{child.tag}"
+            sort_selected_children_recursion(child, child_path)
+
+    sort_selected_children_recursion(root, root.tag)
+
+
+def normalized_xml_for_compare(
+    root: ET.Element,
+    child_sort_parent_matchers: list[str] | None = None,
+) -> str:
     normalized = copy.deepcopy(root)
     strip_whitespace_text_nodes(normalized)
     sort_xml_attributes(normalized)
+    if child_sort_parent_matchers:
+        sort_selected_children(normalized, child_sort_parent_matchers)
     return ET.tostring(normalized, encoding="unicode")
 
 
 def get_existing_xml_bytes_if_semantically_unchanged(
     compare_path: Path,
     root: ET.Element,
+    child_sort_parent_matchers: list[str] | None = None,
  ) -> bytes | None:
     if not compare_path.is_file():
         return None
@@ -313,7 +338,13 @@ def get_existing_xml_bytes_if_semantically_unchanged(
     except ET.ParseError:
         return None
 
-    if normalized_xml_for_compare(existing_root) != normalized_xml_for_compare(root):
+    if normalized_xml_for_compare(
+        existing_root,
+        child_sort_parent_matchers=child_sort_parent_matchers,
+    ) != normalized_xml_for_compare(
+        root,
+        child_sort_parent_matchers=child_sort_parent_matchers,
+    ):
         return None
 
     return existing_bytes
@@ -343,6 +374,7 @@ def transform_xml(
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
     compare_path: str | Path | None = None,
+    child_sort_parent_matchers: list[str] | None = None,
     stdout: bool = False,
  ) -> None:
     base_path = Path(base_path)
@@ -357,6 +389,7 @@ def transform_xml(
         else SelectorAction.REMOVE
     )
     parsed_node_matchers = node_matchers or []
+    parsed_child_sort_parent_matchers = child_sort_parent_matchers or []
 
     base_root = None
     if base_path.is_file():
@@ -386,9 +419,15 @@ def transform_xml(
 
     if sort_attributes:
         sort_xml_attributes(root)
+    if parsed_child_sort_parent_matchers:
+        sort_selected_children(root, parsed_child_sort_parent_matchers)
 
     if compare_path is not None:
-        existing_bytes = get_existing_xml_bytes_if_semantically_unchanged(compare_path, root)
+        existing_bytes = get_existing_xml_bytes_if_semantically_unchanged(
+            compare_path,
+            root,
+            child_sort_parent_matchers=parsed_child_sort_parent_matchers,
+        )
         if existing_bytes is not None:
             write_output_bytes(output_path, existing_bytes, base_path, stdout=stdout)
             return
@@ -437,11 +476,22 @@ class XmlTransformEngine(BaseTransformEngine):
             dest="sort_attributes",
             help="Sort attributes of each element alphabetically.",
         )
+        parser.add_argument(
+            "--sort-children",
+            action="append",
+            default=[],
+            metavar="NODE_PATH",
+            help=(
+                "Sort immediate children under matching XML node paths. "
+                "Accepts repeated flags and comma-separated values."
+            ),
+        )
 
     def build_engine_options(self, parsed_args) -> dict[str, object]:
         return {
             "compare_path": parsed_args.compare_file,
             "sort_attributes": parsed_args.sort_attributes,
+            "child_sort_parent_matchers": tuple(parsed_args.sort_children),
             "stdout": parsed_args.stdout,
         }
 
@@ -460,6 +510,9 @@ class XmlTransformEngine(BaseTransformEngine):
             overlay_path=request.overlay_path,
             selector_action=request.selector_action,
             compare_path=request.engine_option("compare_path"),
+            child_sort_parent_matchers=parse_node_matchers(
+                request.engine_option("child_sort_parent_matchers", ())
+            ),
             stdout=bool(request.engine_option("stdout", False)),
         )
 

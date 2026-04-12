@@ -79,6 +79,43 @@ def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
     assert root.find("WindowGeometry").attrib == {"x": "100", "y": "200"}
 
 
+def test_main_accepts_sort_children_flags(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.xml"
+    output_path = tmp_path / "output.xml"
+
+    input_path.write_text(
+        """<config>
+  <mutedDictionaries>
+    <mutedDictionary>b</mutedDictionary>
+    <mutedDictionary>a</mutedDictionary>
+  </mutedDictionaries>
+</config>
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--sort-children",
+            "config/mutedDictionaries",
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "config/WindowGeometry",
+        ]
+    )
+
+    assert exit_code == 0
+    root = parse_xml(output_path)
+    assert [
+        child.text for child in root.findall("mutedDictionaries/mutedDictionary")
+    ] == ["a", "b"]
+
+
 def test_parse_node_matchers_accepts_repeated_and_comma_separated_values() -> None:
     assert MODULE.parse_node_matchers(
         ("config/WindowGeometry,config/WindowState", "config/timeForNewReleaseCheck")
@@ -324,3 +361,78 @@ def test_merge_without_compare_file_reserializes_semantically_equal_output(
     assert root.find("keep").attrib == {"id": "1"}
     assert root.find("WindowGeometry") is not None
     assert root.find("WindowGeometry").attrib == {"x": "100", "y": "200"}
+
+
+def test_sort_children_canonicalizes_only_selected_parent_paths(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.xml"
+    output_path = tmp_path / "output.xml"
+
+    input_path.write_text(
+        """<config>
+  <mutedDictionaries>
+    <mutedDictionary>b</mutedDictionary>
+    <mutedDictionary>a</mutedDictionary>
+    <mutedDictionary>c</mutedDictionary>
+  </mutedDictionaries>
+  <programs>
+    <program name="b" />
+    <program name="a" />
+  </programs>
+</config>
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.transform_xml(
+        input_path,
+        output_path,
+        node_matchers=["config/WindowGeometry"],
+        selector_action=MODULE.SelectorAction.REMOVE,
+        child_sort_parent_matchers=["config/mutedDictionaries"],
+    )
+
+    root = parse_xml(output_path)
+
+    assert [
+        child.text for child in root.findall("mutedDictionaries/mutedDictionary")
+    ] == ["a", "b", "c"]
+    assert [
+        child.attrib["name"] for child in root.findall("programs/program")
+    ] == ["b", "a"]
+
+
+def test_cleanup_with_compare_file_treats_selected_child_lists_as_semantically_equal(
+    tmp_path: Path,
+) -> None:
+    repo_path = tmp_path / "repo.xml"
+    live_path = tmp_path / "live.xml"
+    output_path = tmp_path / "output.xml"
+
+    repo_text = """<?xml version="1.0"?>
+<config>
+  <mutedDictionaries>
+    <mutedDictionary>a</mutedDictionary>
+    <mutedDictionary>b</mutedDictionary>
+  </mutedDictionaries>
+</config>"""
+    repo_path.write_text(repo_text, encoding="utf-8")
+    live_path.write_text(
+        """<?xml version="1.0"?>
+<config>
+  <mutedDictionaries>
+    <mutedDictionary>b</mutedDictionary>
+    <mutedDictionary>a</mutedDictionary>
+  </mutedDictionaries>
+</config>""",
+        encoding="utf-8",
+    )
+
+    MODULE.transform_xml(
+        live_path,
+        output_path,
+        node_matchers=["config/WindowGeometry"],
+        compare_path=repo_path,
+        child_sort_parent_matchers=["config/mutedDictionaries"],
+    )
+
+    assert output_path.read_text(encoding="utf-8") == repo_text

@@ -55,11 +55,17 @@ The XML engine also supports:
 
 - `--compare-file PATH`
 - `--sort-attributes`
+- `--sort-children NODE_PATH`
 
 `--compare-file` is opt-in.
 When provided, the engine reuses that file's bytes if its parsed XML is
 semantically unchanged after the transform.
 Without `--compare-file`, the engine always writes fresh output.
+
+`--sort-children` canonically sorts the immediate children of matching parent
+paths. This is useful for XML lists that behave like sets in the application,
+such as GoldenDict NG's `config/mutedDictionaries`, where sibling order may
+churn even when the effective content is unchanged.
 
 ## Example
 
@@ -67,6 +73,7 @@ Without `--compare-file`, the engine always writes fresh output.
 python scripts/xml_transform.py live.xml output.xml \
   --mode merge \
   --overlay-file repo.xml \
+  --sort-children 'config/mutedDictionaries' \
   --selector-type retain \
   --selectors 'config/WindowGeometry'
 ```

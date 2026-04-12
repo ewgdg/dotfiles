@@ -4,13 +4,14 @@ description = "Bundled GoldenDict NG configuration and launcher files"
 
 [vars.goldendict]
 config_selector_args = "'config/*WindowGeometry*' 'config/*WindowState*' 'config/*Geometry*' 'config/*SplitterState*' 'config/*GroupId' 'config/*Release*'"
+unordered_child_selector_args = "'config/mutedDictionaries' 'config/popupMutedDictionaries'"
 
 [targets.f_var_app_io_github_xiaoyifang_goldendict_ng_config_goldendict_config]
 source = "files/var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config"
 path = "~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config"
 chmod = "644"
-render = '{{ XML_RENDER }} --selector-type retain --selectors {{ vars.goldendict.config_selector_args }}'
-capture = '{{ XML_CAPTURE }} --sort-attributes --selector-type remove --selectors {{ vars.goldendict.config_selector_args }}'
+render = '{{ XML_RENDER }} --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selector-type retain --selectors {{ vars.goldendict.config_selector_args }}'
+capture = '{{ XML_CAPTURE }} --sort-attributes --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selector-type remove --selectors {{ vars.goldendict.config_selector_args }}'
 
 [targets.f_local_share_applications_goldendict_search_desktop]
 source = "files/local/share/applications/goldendict-search.desktop"
@@ -26,8 +27,8 @@ chmod = "644"
 source = "files/var/app/org.goldendict.GoldenDict/config/goldendict/config"
 path = "~/.var/app/org.goldendict.GoldenDict/config/goldendict/config"
 chmod = "644"
-render = '{{ XML_RENDER }} --selector-type retain --selectors {{ vars.goldendict.config_selector_args }}'
-capture = '{{ XML_CAPTURE }} --sort-attributes --selector-type remove --selectors {{ vars.goldendict.config_selector_args }}'
+render = '{{ XML_RENDER }} --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selector-type retain --selectors {{ vars.goldendict.config_selector_args }}'
+capture = '{{ XML_CAPTURE }} --sort-attributes --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selector-type remove --selectors {{ vars.goldendict.config_selector_args }}'
 disabled = true
 
 [targets.f_local_share_flatpak_overrides_org_goldendict_goldendict]
