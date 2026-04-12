@@ -9,10 +9,10 @@ depends = [
 source = "files/config/niri"
 path = "~/.config/niri"
 push_ignore = [
-  "*/__pycache__/*",
+  "__pycache__/",
 ]
 pull_ignore = [
-  "*/__pycache__/*",
+  "__pycache__/",
 ]
 
 [targets.f_config_systemd_user_niri_event_stream_rules_service]

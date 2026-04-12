@@ -5,14 +5,14 @@ description = "Noctalia shell configuration and user service"
 source = "files/config/noctalia"
 path = "~/.config/noctalia"
 push_ignore = [
-  "plugins",
+  "plugins/",
   "!plugins/*/settings.json",
-  "!plugins/pinned-window",
+  "!plugins/pinned-window/",
 ]
 pull_ignore = [
-  "plugins",
+  "plugins/",
   "!plugins/*/settings.json",
-  "!plugins/pinned-window",
+  "!plugins/pinned-window/",
 ]
 
 [targets.f_config_systemd_user_noctalia_shell_service]

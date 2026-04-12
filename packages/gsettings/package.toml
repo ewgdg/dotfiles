@@ -16,13 +16,13 @@ source = "files/config/gtk-3.0"
 path = "~/.config/gtk-3.0"
 chmod = "700"
 push_ignore = [
-  "assets/*",
+  "assets/",
   "bookmarks",
   "*.backup.*",
   "settings.ini",
 ]
 pull_ignore = [
-  "assets/*",
+  "assets/",
   "bookmarks",
   "*.backup.*",
   "settings.ini",

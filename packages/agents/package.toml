@@ -10,11 +10,11 @@ source = "files/agents"
 path = "~/.agents"
 push_ignore = [
   "skills/agent-web-context/references/openapi_cache/",
-  "*/__pycache__/",
+  "__pycache__/",
 ]
 pull_ignore = [
   "skills/agent-web-context/references/openapi_cache/",
-  "*/__pycache__/",
+  "__pycache__/",
 ]
 
 [targets.f_local_state_skills_skill_lock_json]

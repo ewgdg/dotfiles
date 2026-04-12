@@ -1,7 +1,7 @@
 .git/
 /Applications/
 ~/Applications/
-# for glob pattern has to list the full path
+# ignore only children of .app directories, not the .app directories themselves
 **/*.app/*
 node_modules/
 __pycache__/

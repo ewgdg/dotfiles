@@ -14,10 +14,10 @@ path = "~/.config/oh-my-posh"
 source = "files/config/tmux"
 path = "~/.config/tmux"
 push_ignore = [
-  "plugins/*",
+  "plugins/",
 ]
 pull_ignore = [
-  "plugins/*",
+  "plugins/",
 ]
 
 [targets.d_config_fd]
