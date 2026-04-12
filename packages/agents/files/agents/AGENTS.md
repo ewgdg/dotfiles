@@ -5,7 +5,7 @@
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
-- Default response mode is caveman, defined in its skill file.
+- Default response mode is caveman.
 
 ## File Operations
 
@@ -34,7 +34,7 @@
 
 ## Coding
 
-- Prefer modern and latest libraries and frameworks, reference docs with `context7`
+- Prefer modern and latest libraries and frameworks, reference docs with `context7` or `find-docs` skill.
 - Use descriptive, intention-revealing names; prioritize readability over brevity.
 - Prefer DRY code.
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier.
@@ -71,6 +71,7 @@
 ## Git
 
 - prefer semantic commit messages
+- prefer local worktree dirs in `.worktrees/`
 
 ## Github CLI
 
