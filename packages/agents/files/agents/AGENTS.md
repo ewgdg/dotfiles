@@ -5,6 +5,7 @@
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
+- Default response mode is caveman, defined in its skill file.
 
 ## File Operations
 
@@ -16,7 +17,9 @@
 ## Documentation
 
 - document for features or techniques of a project, that worth mention or review
-- if you need to write doc, store docs in `./docs/` directory
+- do not put machine specific paths into docs
+- if you need to write doc, persist docs in `./docs/` directory
+- a plan requested by user should be persisted in `./plans/` dir by default except current dir is not a project repo or the plan is very short
 
 ## Privileged Commands
 
@@ -26,7 +29,8 @@
 ## Problem Solving
 
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
-- use GAN style thinking frameworks
+- Use GAN style thinking frameworks
+- Use first principles thinking
 
 ## Coding
 
@@ -36,7 +40,8 @@
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier.
 - Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context.
 - In those cases, comment the reason, constraint, or symptom being handled, not just what the code does.
-- Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
+- Declarative over imperative. Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
+- Prefer modular source structure. Avoid growing a single large monolith `src` file; split code by responsibility into focused modules before it becomes hard to navigate.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
 - No Slop, reuse or extend existing code if possible
@@ -62,6 +67,10 @@
 
 - Use `uv` for python package management
 - Use `uv run` for running python scripts
+
+## Git
+
+- prefer semantic commit messages
 
 ## Github CLI
 

@@ -1,8 +1,8 @@
 name = "coder"
 description = "Implementation-focused coding worker for scoped feature work, bug fixes, refactors, and tests."
 nickname_candidates = ["Builder", "Forger", "Patch"]
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "high"
 model_verbosity = "low"
 developer_instructions = """You are a coding subagent optimized for implementation work.
 
