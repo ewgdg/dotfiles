@@ -58,6 +58,7 @@ _GTK_XFT_HINTSTYLE_KEY = "gtk-xft-hintstyle"
 _GTK_XFT_RGBA_KEY = "gtk-xft-rgba"
 _DEFAULT_BASE_DPI = 96
 _GTK_DPI_SCALE = 1024
+_GTK_DEFAULT_XFT_DPI = "-1"
 
 _INTERFACE_SCHEMA = "org.gnome.desktop.interface"
 _SOUND_SCHEMA = "org.gnome.desktop.sound"
@@ -91,6 +92,10 @@ def text_scaling_factor_to_gtk_xft_dpi(gvariant: str) -> str:
     scaling_factor = float(gvariant_to_gtk_value(gvariant))
     gtk_xft_dpi = math.ceil(_DEFAULT_BASE_DPI * scaling_factor * _GTK_DPI_SCALE)
     return str(gtk_xft_dpi)
+
+
+def is_default_text_scaling_factor(gvariant: str) -> bool:
+    return math.isclose(float(gvariant_to_gtk_value(gvariant)), 1.0)
 
 
 def gvariant_bool_to_gtk_numeric(gvariant: str) -> str:
@@ -187,11 +192,16 @@ def patch_and_write(
             file=sys.stderr,
         )
     else:
-        set_managed_value(
-            parser,
-            _GTK_XFT_DPI_KEY,
-            text_scaling_factor_to_gtk_xft_dpi(text_scaling_factor),
-        )
+        if is_default_text_scaling_factor(text_scaling_factor):
+            # Keep the key at GTK's documented default so future non-default
+            # text scaling can still be captured back into the repo template.
+            set_managed_value(parser, _GTK_XFT_DPI_KEY, _GTK_DEFAULT_XFT_DPI)
+        else:
+            set_managed_value(
+                parser,
+                _GTK_XFT_DPI_KEY,
+                text_scaling_factor_to_gtk_xft_dpi(text_scaling_factor),
+            )
 
     decoration_layout = gsettings_get("button-layout", schema=_WM_PREFERENCES_SCHEMA)
     if decoration_layout is None:
