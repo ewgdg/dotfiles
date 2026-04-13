@@ -1,7 +1,9 @@
 [ignore]
 pull = [
     "*.dotdropbak",
+    "*.bak",
 ]
 push = [
     "*.archived",
+    "*.bak",
 ]
