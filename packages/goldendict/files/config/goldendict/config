@@ -105,7 +105,7 @@
     <hideSingleTab>0</hideSingleTab>
     <mruTabOrder>0</mruTabOrder>
     <hideMenubar>0</hideMenubar>
-    <panelsLocked>0</panelsLocked>
+    <panelsLocked>1</panelsLocked>
     <enableTrayIcon>1</enableTrayIcon>
     <startToTray>1</startToTray>
     <closeToTray>1</closeToTray>

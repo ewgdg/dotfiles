@@ -9,7 +9,7 @@ binds {
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-alacritty}\""; }
     // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
-    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' flatpak run io.github.xiaoyifang.goldendict_ng"; }
+    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
     MOD+CTRL+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
     MOD+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
@@ -19,7 +19,7 @@ binds {
     MOD+CTRL+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
     MOD+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
     MOD+CTRL+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
-    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "flatpak run io.github.xiaoyifang.goldendict_ng \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
+    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict \"$(if [ \"$XDG_SESSION_TYPE\" = \"wayland\" ]; then wl-paste; else xclip -o; fi)\""; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
 
