@@ -22,6 +22,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Keep the shared parser helper in one place while allowing this script to live
+# under the package that owns it.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.configparser_utils import CaseSensitiveRawConfigParser
+
 
 # Maps org.gnome.desktop.interface key → gtk settings.ini key.
 # Applied to both gtk3 and gtk4 settings.ini files.
@@ -117,8 +125,7 @@ def font_hinting_to_gtk_xft_hintstyle(gvariant: str) -> str:
 
 
 def read_settings_ini(path: Path) -> configparser.RawConfigParser:
-    parser = configparser.RawConfigParser()
-    parser.optionxform = str
+    parser = CaseSensitiveRawConfigParser()
     parser.read(path, encoding="utf-8")
     return parser
 
@@ -287,7 +294,7 @@ def patch_and_write(
     if gtk3_extras:
         value = gsettings_get("color-scheme")
         if value is not None:
-            prefer_dark = "true" if gvariant_to_gtk_value(value) == "prefer-dark" else "false"
+            prefer_dark = "1" if gvariant_to_gtk_value(value) == "prefer-dark" else "0"
             set_managed_value(parser, _GTK3_COLOR_SCHEME_KEY, prefer_dark)
 
     if stdout:

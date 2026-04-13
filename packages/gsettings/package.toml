@@ -4,12 +4,12 @@ description = "Bundled GNOME desktop, Nautilus, and GTK settings"
 [targets.f_config_gsettings_desktop_ini]
 source = "files/config/gsettings/desktop.ini"
 path = "~/.config/gsettings/desktop.ini"
-capture = '{{ GSETTINGS_SYNC }} "$DOTMAN_LIVE_PATH" --mode dump --template-file "$DOTMAN_REPO_PATH" --stdout'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/gsettings_sync.py" "$DOTMAN_LIVE_PATH" --mode dump --template-file "$DOTMAN_REPO_PATH" --stdout'
 
 [targets.f_config_gsettings_nautilus_ini]
 source = "files/config/gsettings/nautilus.ini"
 path = "~/.config/gsettings/nautilus.ini"
-capture = '{{ GSETTINGS_SYNC }} "$DOTMAN_LIVE_PATH" --mode dump --template-file "$DOTMAN_REPO_PATH" --stdout'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/gsettings_sync.py" "$DOTMAN_LIVE_PATH" --mode dump --template-file "$DOTMAN_REPO_PATH" --stdout'
 
 [targets.d_config_gtk_3_0]
 source = "files/config/gtk-3.0"
@@ -31,7 +31,7 @@ pull_ignore = [
 [targets.f_config_gtk_3_0_settings_ini]
 source = "files/config/gtk-3.0/settings.ini"
 path = "~/.config/gtk-3.0/settings.ini"
-capture = '{{ SYNC_GSETTINGS_GTK }} "$DOTMAN_LIVE_PATH" --mode gtk3 --template-file "$DOTMAN_REPO_PATH" --stdout'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_gsettings_gtk.py" "$DOTMAN_LIVE_PATH" --mode gtk3 --template-file "$DOTMAN_REPO_PATH" --stdout'
 
 [targets.d_config_gtk_4_0]
 source = "files/config/gtk-4.0"
@@ -47,10 +47,10 @@ pull_ignore = [
 [targets.f_config_gtk_4_0_settings_ini]
 source = "files/config/gtk-4.0/settings.ini"
 path = "~/.config/gtk-4.0/settings.ini"
-capture = '{{ SYNC_GSETTINGS_GTK }} "$DOTMAN_LIVE_PATH" --mode gtk4 --template-file "$DOTMAN_REPO_PATH" --stdout'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_gsettings_gtk.py" "$DOTMAN_LIVE_PATH" --mode gtk4 --template-file "$DOTMAN_REPO_PATH" --stdout'
 
 [hooks]
 post_push = [
-  '{{ GSETTINGS_SYNC }} "$DOTMAN_PACKAGE_ROOT/files/config/gsettings/desktop.ini" --mode apply',
-  '{{ GSETTINGS_SYNC }} "$DOTMAN_PACKAGE_ROOT/files/config/gsettings/nautilus.ini" --mode apply',
+  '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/gsettings_sync.py" "$DOTMAN_PACKAGE_ROOT/files/config/gsettings/desktop.ini" --mode apply',
+  '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/gsettings_sync.py" "$DOTMAN_PACKAGE_ROOT/files/config/gsettings/nautilus.ini" --mode apply',
 ]

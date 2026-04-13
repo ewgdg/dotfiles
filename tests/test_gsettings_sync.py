@@ -2,8 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+import io
 
-from scripts import gsettings_sync as module
+import pytest
+
+from packages.gsettings.scripts import gsettings_sync as module
+
+
+@pytest.fixture(autouse=True)
+def clear_gsettings_sync_caches():
+    module.schema_keys.cache_clear()
+    module.gio_settings_for_schema.cache_clear()
+    yield
+    module.schema_keys.cache_clear()
+    module.gio_settings_for_schema.cache_clear()
 
 
 def test_run_dump_preserves_full_schema_section_names(
@@ -23,7 +35,7 @@ def test_run_dump_preserves_full_schema_section_names(
         "gsettings_list_keys",
         lambda schema: ["captions", "default-zoom-level"]
         if schema == "org.gnome.nautilus.icon-view"
-        else [],
+        else ["default-folder-viewer"],
     )
     monkeypatch.setattr(
         module,
@@ -262,3 +274,122 @@ def test_run_apply_resets_keys_marked_with_reset_token(
     assert set_calls == [
         ("org.gnome.desktop.interface", "icon-theme", "'Papirus-Dark'")
     ]
+
+
+def test_run_apply_skips_unknown_keys_in_explicit_sections(
+    monkeypatch, tmp_path: Path
+) -> None:
+    input_path = tmp_path / "nautilus.ini"
+    input_path.write_text(
+        "[org.gnome.nautilus.preferences]\n"
+        "install-mime-activation = __RESET__\n"
+        "show-hidden-files = true\n",
+        encoding="utf-8",
+    )
+    reset_calls: list[tuple[str, str]] = []
+    set_calls: list[tuple[str, str, str]] = []
+    stderr = io.StringIO()
+    monkeypatch.setattr(
+        module,
+        "schema_has_key",
+        lambda schema, key: key == "show-hidden-files",
+    )
+    monkeypatch.setattr(
+        module,
+        "gsettings_reset",
+        lambda schema, key: reset_calls.append((schema, key)),
+    )
+    monkeypatch.setattr(
+        module,
+        "gsettings_set",
+        lambda schema, key, value: set_calls.append((schema, key, value)),
+    )
+    monkeypatch.setattr(module.sys, "stderr", stderr)
+
+    module.run_apply(input_path)
+
+    assert reset_calls == []
+    assert set_calls == [
+        ("org.gnome.nautilus.preferences", "show-hidden-files", "true")
+    ]
+    assert "unknown gsettings key org.gnome.nautilus.preferences install-mime-activation" in stderr.getvalue()
+
+
+def test_run_dump_skips_unknown_keys_in_explicit_sections(
+    monkeypatch, tmp_path: Path
+) -> None:
+    template_path = tmp_path / "nautilus.ini"
+    template_path.write_text(
+        "[org.gnome.nautilus.preferences]\n"
+        "install-mime-activation = ignored\n"
+        "show-hidden-files = ignored\n",
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "output.ini"
+    stderr = io.StringIO()
+    monkeypatch.setattr(
+        module,
+        "schema_has_key",
+        lambda schema, key: key == "show-hidden-files",
+    )
+    monkeypatch.setattr(
+        module,
+        "gsettings_has_user_value",
+        lambda schema, key: True,
+    )
+    monkeypatch.setattr(
+        module,
+        "gsettings_get",
+        lambda schema, key: "true",
+    )
+    monkeypatch.setattr(module.sys, "stderr", stderr)
+
+    module.run_dump(template_path, output_path)
+
+    result = module.read_ini(output_path)
+
+    assert list(result["org.gnome.nautilus.preferences"]) == ["show-hidden-files"]
+    assert "unknown gsettings key org.gnome.nautilus.preferences install-mime-activation" in stderr.getvalue()
+
+
+def test_run_dump_drops_explicit_section_when_all_keys_are_invalid(
+    monkeypatch, tmp_path: Path
+) -> None:
+    template_path = tmp_path / "nautilus.ini"
+    template_path.write_text(
+        "[org.gnome.nautilus.preferences]\n"
+        "install-mime-activation = ignored\n",
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "output.ini"
+    stderr = io.StringIO()
+    monkeypatch.setattr(module, "schema_has_key", lambda schema, key: False)
+    monkeypatch.setattr(module.sys, "stderr", stderr)
+
+    module.run_dump(template_path, output_path)
+
+    result = module.read_ini(output_path)
+
+    assert result.sections() == []
+    assert "has no valid keys; dropping section" in stderr.getvalue()
+
+
+def test_run_dump_drops_wildcard_section_when_schema_has_no_live_keys(
+    monkeypatch, tmp_path: Path
+) -> None:
+    template_path = tmp_path / "nautilus.ini"
+    template_path.write_text(
+        "[org.gnome.nautilus.preferences.*]\n",
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "output.ini"
+    stderr = io.StringIO()
+    monkeypatch.setattr(module, "gsettings_list_keys", lambda schema: [])
+    monkeypatch.setattr(module.sys, "stderr", stderr)
+
+    module.run_dump(template_path, output_path)
+
+    result = module.read_ini(output_path)
+
+    assert result.sections() == []
+    assert "has no live keys; dropping section" in stderr.getvalue()

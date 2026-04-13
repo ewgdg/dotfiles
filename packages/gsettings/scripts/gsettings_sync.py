@@ -23,6 +23,13 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
+from scripts.configparser_utils import CaseSensitiveRawConfigParser
+
+# Keep the shared parser helper in one place while allowing this script to live
+# under the package that owns it.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def gsettings_get(schema: str, key: str) -> str | None:
@@ -51,8 +58,7 @@ def gsettings_reset(schema: str, key: str) -> None:
 
 
 def read_ini(path: Path) -> configparser.RawConfigParser:
-    parser = configparser.RawConfigParser()
-    parser.optionxform = str
+    parser = CaseSensitiveRawConfigParser()
     if path.exists():
         parser.read(path, encoding="utf-8")
     return parser
@@ -96,6 +102,15 @@ def gsettings_list_keys(schema: str) -> list[str]:
 
 
 @lru_cache(maxsize=None)
+def schema_keys(schema: str) -> frozenset[str]:
+    return frozenset(gsettings_list_keys(schema))
+
+
+def schema_has_key(schema: str, key: str) -> bool:
+    return key in schema_keys(schema)
+
+
+@lru_cache(maxsize=None)
 def load_gio():
     try:
         import gi
@@ -104,6 +119,7 @@ def load_gio():
 
     gi.require_version("Gio", "2.0")
     from gi.repository import Gio
+
     return Gio
 
 
@@ -131,10 +147,48 @@ def gsettings_has_user_value(schema: str, key: str) -> bool:
     return gio_settings_for_schema(schema).get_user_value(key) is not None
 
 
-def iter_template_keys(template: configparser.RawConfigParser, section_name: str) -> list[str]:
+def iter_template_keys(
+    template: configparser.RawConfigParser, section_name: str
+) -> list[str]:
     if section_name.endswith(_FULL_SCHEMA_SUFFIX):
         return gsettings_list_keys(resolve_schema_name(section_name))
-    return list(template.options(section_name))
+    schema = resolve_schema_name(section_name)
+    keys: list[str] = []
+    for key in template.options(section_name):
+        if schema_has_key(schema, key):
+            keys.append(key)
+            continue
+        print(
+            f"warning: unknown gsettings key {schema} {key}; skipping",
+            file=sys.stderr,
+        )
+    return keys
+
+
+def should_drop_invalid_section(
+    template: configparser.RawConfigParser,
+    section_name: str,
+    keys: list[str],
+) -> bool:
+    schema = resolve_schema_name(section_name)
+    if section_name.endswith(_FULL_SCHEMA_SUFFIX):
+        if keys:
+            return False
+        print(
+            f"warning: gsettings schema {schema} has no live keys; dropping section {section_name}",
+            file=sys.stderr,
+        )
+        return True
+
+    template_keys = list(template.options(section_name))
+    if not template_keys or keys:
+        return False
+
+    print(
+        f"warning: gsettings section {section_name} has no valid keys; dropping section",
+        file=sys.stderr,
+    )
+    return True
 
 
 def run_dump(
@@ -145,12 +199,13 @@ def run_dump(
 ) -> None:
     """Write current overrides as values and defaults as RESET_MARKER."""
     template = read_ini(template_path)
-    output = configparser.RawConfigParser()
-    output.optionxform = str
+    output = CaseSensitiveRawConfigParser()
 
     for section_name in template.sections():
         schema = resolve_schema_name(section_name)
         keys = iter_template_keys(template, section_name)
+        if should_drop_invalid_section(template, section_name, keys):
+            continue
 
         output.add_section(section_name)
         for key in keys:
@@ -176,6 +231,12 @@ def run_apply(input_path: Path) -> None:
     for section_name in parser.sections():
         schema = resolve_schema_name(section_name)
         for key, value in parser.items(section_name):
+            if not schema_has_key(schema, key):
+                print(
+                    f"warning: unknown gsettings key {schema} {key}; skipping",
+                    file=sys.stderr,
+                )
+                continue
             if value == RESET_MARKER:
                 gsettings_reset(schema, key)
                 continue
@@ -223,9 +284,14 @@ def main() -> int:
 
     if args.mode == "dump":
         if args.output_path is None and not args.stdout:
-            print("error: output_path is required for dump mode unless --stdout is used", file=sys.stderr)
+            print(
+                "error: output_path is required for dump mode unless --stdout is used",
+                file=sys.stderr,
+            )
             return 2
-        template_path = args.template_file if args.template_file is not None else args.base_path
+        template_path = (
+            args.template_file if args.template_file is not None else args.base_path
+        )
         if not template_path.exists():
             print(
                 f"template file not found: {template_path}; skipping gsettings dump",
