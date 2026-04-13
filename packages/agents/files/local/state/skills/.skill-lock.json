@@ -45,6 +45,15 @@
       "skillFolderHash": "ccd99a8580519fa9e65dcea938e92cb1c3a2f7a4",
       "installedAt": "2026-04-12T07:27:03.518Z",
       "updatedAt": "2026-04-12T07:27:03.518Z"
+    },
+    "brave-search": {
+      "source": "badlogic/pi-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/badlogic/pi-skills.git",
+      "skillPath": "brave-search/SKILL.md",
+      "skillFolderHash": "079a8cb038b9166f6570a1db1f8b576efbb30b24",
+      "installedAt": "2026-04-12T17:12:42.183Z",
+      "updatedAt": "2026-04-12T17:12:42.183Z"
     }
   },
   "dismissed": {
