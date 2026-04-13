@@ -5,8 +5,12 @@
       "event": "window-opened",
       "match": {
         "current": {
-          "app_id": { "equals": null },
-          "title": { "equals": null }
+          "app_id": {
+            "equals": null
+          },
+          "title": {
+            "equals": null
+          }
         }
       },
       "action": {
