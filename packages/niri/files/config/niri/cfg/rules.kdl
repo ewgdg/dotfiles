@@ -52,6 +52,7 @@ window-rule {
     match app-id="steam"
     match app-id="lutris"
     open-on-workspace "games"
+    open-focused true
 }
 
 window-rule {
