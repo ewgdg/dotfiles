@@ -1,5 +1,6 @@
 .DS_Store
 /.codex
+/.worktrees/
 
 # Ignore Alfred cache directories
 alfred/Alfred.alfredpreferences/workflows/*/[Cc]aches/
