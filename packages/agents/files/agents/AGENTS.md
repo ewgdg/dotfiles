@@ -71,7 +71,7 @@
 ## Git
 
 - prefer semantic commit messages
-- prefer local worktree dirs in `.worktrees/`
+- prefer local worktree dirs in `./.worktrees/` when user asks for worktree
 
 ## Github CLI
 
