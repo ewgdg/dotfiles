@@ -36,9 +36,10 @@ class RecordingEngine(ENGINE_MODULE.BaseTransformEngine):
             "stdout": parsed_args.stdout,
         }
 
-    def transform(self, request: ENGINE_MODULE.TransformRequest) -> None:
+    def transform(self, request: ENGINE_MODULE.TransformRequest) -> ENGINE_MODULE.TransformOutput:
         self.validate_request(request)
         self.requests.append(request)
+        return ENGINE_MODULE.TransformOutput(content="ok\n", mode_reference_path=request.base_path)
 
 
 def test_shared_cli_builds_request_with_typed_selector_flags(tmp_path: Path) -> None:
@@ -92,9 +93,10 @@ class SelectorOptionalEngine(ENGINE_MODULE.BaseTransformEngine):
     def __init__(self) -> None:
         self.requests: list[ENGINE_MODULE.TransformRequest] = []
 
-    def transform(self, request: ENGINE_MODULE.TransformRequest) -> None:
+    def transform(self, request: ENGINE_MODULE.TransformRequest) -> ENGINE_MODULE.TransformOutput:
         self.validate_request(request)
         self.requests.append(request)
+        return ENGINE_MODULE.TransformOutput(content="ok\n", mode_reference_path=request.base_path)
 
 
 def test_shared_cli_allows_no_selector_flags_when_engine_supports_identity_mode(

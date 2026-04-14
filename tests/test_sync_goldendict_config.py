@@ -98,3 +98,28 @@ def test_render_repo_xml_replaces_template_placeholder_with_expanded_path(
 
     assert "/srv/docs/Dictionaries" in rendered_xml
     assert TEMPLATE_PLACEHOLDER not in rendered_xml
+
+
+def test_merge_rendered_repo_xml_reuses_existing_live_bytes_when_semantically_equal(
+    tmp_path: Path,
+) -> None:
+    base_path = tmp_path / "live.xml"
+    base_text = """<?xml version="1.0"?>
+<config>
+ <keep id="1"/>
+ <WindowGeometry y="200" x="100"/>
+ <tail/>
+</config>"""
+    base_path.write_text(base_text, encoding="utf-8")
+
+    merged_xml = module.merge_rendered_repo_xml(
+        base_path,
+        rendered_repo_xml="""<config>
+  <keep id="1"></keep>
+  <tail></tail>
+</config>""",
+        selectors=("config/WindowGeometry",),
+        sort_children=(),
+    )
+
+    assert merged_xml == base_text

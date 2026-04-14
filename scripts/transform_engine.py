@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+import sys
 from typing import Any, ClassVar, Protocol, runtime_checkable
 
 
@@ -68,6 +69,82 @@ class TransformRequest:
         return self.engine_options.get(option_name, default)
 
 
+@dataclass(frozen=True)
+class TransformOutput:
+    content: str | bytes
+    mode_reference_path: Path
+    reused_compare_path: Path | None = None
+
+    @property
+    def is_binary(self) -> bool:
+        return isinstance(self.content, bytes)
+
+    def as_text(self, encoding: str = "utf-8") -> str:
+        if isinstance(self.content, str):
+            return self.content
+        return self.content.decode(encoding, errors="surrogateescape")
+
+
+def sync_output_mode(reference_path: Path, output_path: Path) -> None:
+    if not reference_path.exists() or not output_path.exists():
+        return
+
+    target_mode = reference_path.stat().st_mode & 0o777
+    current_mode = output_path.stat().st_mode & 0o777
+    if current_mode != target_mode:
+        output_path.chmod(target_mode)
+
+
+
+def write_output_to_stdout(output: TransformOutput) -> None:
+    if isinstance(output.content, str):
+        sys.stdout.write(output.content)
+        return
+
+    stdout_buffer = getattr(sys.stdout, "buffer", None)
+    if stdout_buffer is not None:
+        stdout_buffer.write(output.content)
+        return
+
+    # Non-interactive runners may replace stdout with a text-only stream like
+    # io.StringIO. Decode with surrogateescape so byte-preserving compare reuse
+    # still works when stdout is captured as text.
+    stdout_encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    sys.stdout.write(output.content.decode(stdout_encoding, errors="surrogateescape"))
+
+
+
+def write_output_to_path(output_path: Path, output: TransformOutput) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Reusing the existing compare file is intentional. If that same path is also
+    # the destination, skip the rewrite to preserve metadata like mtime.
+    if output.reused_compare_path is not None and output.reused_compare_path == output_path:
+        sync_output_mode(output.mode_reference_path, output_path)
+        return
+
+    if isinstance(output.content, bytes):
+        output_path.write_bytes(output.content)
+    else:
+        output_path.write_text(output.content, encoding="utf-8")
+    sync_output_mode(output.mode_reference_path, output_path)
+
+
+
+def emit_transform_output(
+    output_path: Path | None,
+    output: TransformOutput,
+    *,
+    stdout: bool = False,
+) -> None:
+    if stdout:
+        write_output_to_stdout(output)
+        return
+
+    assert output_path is not None
+    write_output_to_path(output_path, output)
+
+
 @runtime_checkable
 class TransformEngine(Protocol):
     name: str
@@ -91,7 +168,7 @@ class TransformEngine(Protocol):
     def validate_request(self, request: TransformRequest) -> None:
         ...
 
-    def transform(self, request: TransformRequest) -> None:
+    def transform(self, request: TransformRequest) -> TransformOutput:
         ...
 
 
@@ -150,5 +227,5 @@ class BaseTransformEngine(ABC):
             )
 
     @abstractmethod
-    def transform(self, request: TransformRequest) -> None:
+    def transform(self, request: TransformRequest) -> TransformOutput:
         raise NotImplementedError

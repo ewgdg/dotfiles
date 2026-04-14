@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import fnmatch
 from pathlib import Path
-import sys
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
@@ -14,18 +13,10 @@ from scripts.transform_engine import (
     BaseTransformEngine,
     SelectorAction,
     SelectorSpec,
+    TransformOutput,
     TransformRequest,
+    emit_transform_output,
 )
-
-
-def sync_mode(reference_path: Path, output_path: Path) -> None:
-    if not reference_path.is_file() or not output_path.exists():
-        return
-
-    target_mode = reference_path.stat().st_mode & 0o777
-    current_mode = output_path.stat().st_mode & 0o777
-    if current_mode != target_mode:
-        output_path.chmod(target_mode)
 
 
 def matches_node_path(node_path: str, node_matchers: list[str]) -> bool:
@@ -346,35 +337,24 @@ def get_existing_xml_bytes_if_semantically_unchanged(
     return existing_bytes
 
 
-def write_output_bytes(
-    output_path: Path | None,
-    content: bytes,
-    mode_reference_path: Path,
-    stdout: bool = False,
- ) -> None:
-    if stdout:
-        sys.stdout.buffer.write(content)
-        return
-
-    assert output_path is not None
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_bytes(content)
-    sync_mode(mode_reference_path, output_path)
+def build_pretty_xml_text(root: ET.Element) -> str:
+    xml_string = ET.tostring(root, encoding="unicode")
+    dom = xml.dom.minidom.parseString(xml_string)
+    pretty_xml = dom.toprettyxml(indent="  ", newl="\n")
+    return "\n".join(line for line in pretty_xml.splitlines() if line.strip())
 
 
-def transform_xml(
+
+def render_xml_output(
     base_path: str | Path,
-    output_path: str | Path | None,
     node_matchers: list[str] | None = None,
     sort_attributes: bool = False,
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
     compare_path: str | Path | None = None,
     child_sort_parent_matchers: list[str] | None = None,
-    stdout: bool = False,
- ) -> None:
+) -> TransformOutput:
     base_path = Path(base_path)
-    output_path = Path(output_path) if output_path is not None else None
     overlay_path = Path(overlay_path) if overlay_path is not None else None
     compare_path = Path(compare_path) if compare_path is not None else None
     effective_selector_action = (
@@ -425,27 +405,43 @@ def transform_xml(
             child_sort_parent_matchers=parsed_child_sort_parent_matchers,
         )
         if existing_bytes is not None:
-            write_output_bytes(output_path, existing_bytes, base_path, stdout=stdout)
-            return
+            return TransformOutput(
+                content=existing_bytes,
+                mode_reference_path=base_path,
+                reused_compare_path=compare_path,
+            )
 
-    xml_string = ET.tostring(root, encoding="unicode")
-    dom = xml.dom.minidom.parseString(xml_string)
-    pretty_xml = dom.toprettyxml(indent="  ", newl="\n")
-    lines = pretty_xml.splitlines()
-    pretty_xml = "\n".join(
-        line
-        for line in lines
-        if len(line.strip()) > 0
+    return TransformOutput(
+        content=build_pretty_xml_text(root),
+        mode_reference_path=base_path,
     )
 
-    if stdout:
-        sys.stdout.write(pretty_xml)
-        return
 
-    assert output_path is not None
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(pretty_xml, encoding="utf-8")
-    sync_mode(base_path, output_path)
+
+def transform_xml(
+    base_path: str | Path,
+    output_path: str | Path | None,
+    node_matchers: list[str] | None = None,
+    sort_attributes: bool = False,
+    overlay_path: str | Path | None = None,
+    selector_action: SelectorAction | None = None,
+    compare_path: str | Path | None = None,
+    child_sort_parent_matchers: list[str] | None = None,
+    stdout: bool = False,
+ ) -> None:
+    emit_transform_output(
+        Path(output_path) if output_path is not None else None,
+        render_xml_output(
+            base_path,
+            node_matchers=node_matchers,
+            sort_attributes=sort_attributes,
+            overlay_path=overlay_path,
+            selector_action=selector_action,
+            compare_path=compare_path,
+            child_sort_parent_matchers=child_sort_parent_matchers,
+        ),
+        stdout=stdout,
+    )
 
 
 class XmlTransformEngine(BaseTransformEngine):
@@ -496,11 +492,10 @@ class XmlTransformEngine(BaseTransformEngine):
         if not parse_node_matchers(request.selector_values("node_matcher")):
             raise ValueError("node matchers must not be empty")
 
-    def transform(self, request: TransformRequest) -> None:
+    def transform(self, request: TransformRequest) -> TransformOutput:
         self.validate_request(request)
-        transform_xml(
+        return render_xml_output(
             request.base_path,
-            request.output_path,
             node_matchers=parse_node_matchers(request.selector_values("node_matcher")),
             sort_attributes=bool(request.engine_option("sort_attributes", False)),
             overlay_path=request.overlay_path,
@@ -509,7 +504,6 @@ class XmlTransformEngine(BaseTransformEngine):
             child_sort_parent_matchers=parse_node_matchers(
                 request.engine_option("child_sort_parent_matchers", ())
             ),
-            stdout=bool(request.engine_option("stdout", False)),
         )
 
 def main(argv: list[str] | None = None) -> int:

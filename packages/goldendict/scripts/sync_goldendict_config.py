@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import contextlib
-import io
 import os
 from pathlib import Path
 import re
@@ -16,7 +14,7 @@ import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
 from scripts.transform_engine import SelectorAction
-from scripts.xml_transform import transform_xml
+from scripts.xml_transform import render_xml_output
 
 
 REPO_DICTIONARY_DIR_PLACEHOLDER = "{{ vars.goldendict.dictionary_dir }}"
@@ -58,18 +56,13 @@ def cleanup_xml_text(
     selectors: tuple[str, ...],
     sort_children: tuple[str, ...],
 ) -> str:
-    output = io.StringIO()
-    with contextlib.redirect_stdout(output):
-        transform_xml(
-            base_path,
-            None,
-            node_matchers=list(selectors),
-            sort_attributes=True,
-            selector_action=SelectorAction.REMOVE,
-            child_sort_parent_matchers=list(sort_children),
-            stdout=True,
-        )
-    return output.getvalue()
+    return render_xml_output(
+        base_path,
+        node_matchers=list(selectors),
+        sort_attributes=True,
+        selector_action=SelectorAction.REMOVE,
+        child_sort_parent_matchers=list(sort_children),
+    ).as_text()
 
 
 def render_repo_template(repo_path: Path) -> str:
@@ -125,19 +118,14 @@ def merge_rendered_repo_xml(
         overlay_path = Path(temp_dir) / "overlay.xml"
         overlay_path.write_text(rendered_repo_xml, encoding="utf-8")
 
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            transform_xml(
-                base_path,
-                None,
-                node_matchers=list(selectors),
-                overlay_path=overlay_path,
-                selector_action=SelectorAction.RETAIN,
-                compare_path=base_path,
-                child_sort_parent_matchers=list(sort_children),
-                stdout=True,
-            )
-        return output.getvalue()
+        return render_xml_output(
+            base_path,
+            node_matchers=list(selectors),
+            overlay_path=overlay_path,
+            selector_action=SelectorAction.RETAIN,
+            compare_path=base_path,
+            child_sort_parent_matchers=list(sort_children),
+        ).as_text()
 
 
 def build_parser() -> argparse.ArgumentParser:

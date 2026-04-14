@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import sys
 from typing import Any
 
 from scripts.transform_cli import run_engine_cli
@@ -13,7 +12,9 @@ from scripts.transform_engine import (
     SelectorAction,
     SelectorSpec,
     TransformMode,
+    TransformOutput,
     TransformRequest,
+    emit_transform_output,
 )
 
 
@@ -30,10 +31,12 @@ def load_json(path: Path) -> JsonDict:
     return loaded
 
 
+
 def filter_retained_keys(data: JsonDict, retained_keys: tuple[str, ...]) -> JsonDict:
     if not retained_keys:
         return dict(data)
     return {key: data[key] for key in retained_keys if key in data}
+
 
 
 def filter_stripped_keys(data: JsonDict, stripped_keys: tuple[str, ...]) -> JsonDict:
@@ -41,6 +44,7 @@ def filter_stripped_keys(data: JsonDict, stripped_keys: tuple[str, ...]) -> Json
         return dict(data)
     stripped_key_set = set(stripped_keys)
     return {key: value for key, value in data.items() if key not in stripped_key_set}
+
 
 
 def select_json_data(
@@ -53,14 +57,17 @@ def select_json_data(
     return filter_retained_keys(data, selected_keys)
 
 
+
 def overlay_json_data(base_data: JsonDict, overlay_data: JsonDict) -> JsonDict:
     merged_data = dict(base_data)
     merged_data.update(overlay_data)
     return merged_data
 
 
+
 def json_text(data: JsonDict) -> str:
     return json.dumps(data, indent="\t", ensure_ascii=False) + "\n"
+
 
 
 def get_existing_text_if_semantically_unchanged(path: Path, data: JsonDict) -> str | None:
@@ -79,10 +86,27 @@ def get_existing_text_if_semantically_unchanged(path: Path, data: JsonDict) -> s
     return existing_text
 
 
-def mirror_mode(reference_path: Path, output_path: Path) -> None:
-    if not reference_path.exists() or not output_path.exists():
-        return
-    output_path.chmod(reference_path.stat().st_mode & 0o777)
+
+def build_json_output(
+    data: JsonDict,
+    *,
+    mode_reference_path: Path,
+    compare_path: Path | None = None,
+) -> TransformOutput:
+    if compare_path is not None:
+        existing_text = get_existing_text_if_semantically_unchanged(compare_path, data)
+        if existing_text is not None:
+            return TransformOutput(
+                content=existing_text,
+                mode_reference_path=mode_reference_path,
+                reused_compare_path=compare_path,
+            )
+
+    return TransformOutput(
+        content=json_text(data),
+        mode_reference_path=mode_reference_path,
+    )
+
 
 
 def write_json_if_changed(
@@ -92,29 +116,15 @@ def write_json_if_changed(
     compare_path: Path | None,
     stdout: bool = False,
 ) -> None:
-    if compare_path is not None:
-        existing_text = get_existing_text_if_semantically_unchanged(compare_path, data)
-        if existing_text is not None:
-            if stdout:
-                sys.stdout.write(existing_text)
-            else:
-                assert output_path is not None
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text(existing_text, encoding="utf-8")
-                if mode_reference_path != output_path:
-                    mirror_mode(mode_reference_path, output_path)
-            return
-
-    serialized_text = json_text(data)
-    if stdout:
-        sys.stdout.write(serialized_text)
-        return
-
-    assert output_path is not None
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(serialized_text, encoding="utf-8")
-    if mode_reference_path != output_path:
-        mirror_mode(mode_reference_path, output_path)
+    emit_transform_output(
+        output_path,
+        build_json_output(
+            data,
+            mode_reference_path=mode_reference_path,
+            compare_path=compare_path,
+        ),
+        stdout=stdout,
+    )
 
 
 class JsonTransformEngine(BaseTransformEngine):
@@ -145,7 +155,7 @@ class JsonTransformEngine(BaseTransformEngine):
             "stdout": parsed_args.stdout,
         }
 
-    def transform(self, request: TransformRequest) -> None:
+    def transform(self, request: TransformRequest) -> TransformOutput:
         self.validate_request(request)
         selected_keys = request.selector_values("key")
 
@@ -161,13 +171,12 @@ class JsonTransformEngine(BaseTransformEngine):
             overlay_data = load_json(request.overlay_path)
             transformed_data = overlay_json_data(transformed_data, overlay_data)
 
-        write_json_if_changed(
-            request.output_path,
+        return build_json_output(
             transformed_data,
             mode_reference_path=request.base_path,
             compare_path=request.engine_option("compare_path"),
-            stdout=bool(request.engine_option("stdout", False)),
         )
+
 
 
 def main(argv: list[str] | None = None) -> int:

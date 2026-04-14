@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import re
 from collections.abc import Iterable
 from pathlib import Path
-import sys
 import tomlkit
 from tomlkit.items import Null, Table
 from tomlkit.toml_document import TOMLDocument
@@ -18,7 +17,9 @@ from scripts.transform_engine import (
     SelectorAction,
     SelectorSpec,
     TransformMode,
+    TransformOutput,
     TransformRequest,
+    emit_transform_output,
 )
 
 
@@ -37,16 +38,6 @@ def load_document(path: Path) -> TOMLDocument:
     if not path.exists():
         return tomlkit.document()
     return tomlkit.parse(path.read_text(encoding="utf-8"))
-
-
-def sync_mode(path: Path, reference_path: Path) -> None:
-    if not path.exists() or not reference_path.exists():
-        return
-
-    target_mode = reference_path.stat().st_mode & 0o777
-    current_mode = path.stat().st_mode & 0o777
-    if current_mode != target_mode:
-        path.chmod(target_mode)
 
 
 def get_existing_text_if_unchanged(compare_path: Path, doc: TOMLDocument) -> str | None:
@@ -68,6 +59,29 @@ def get_existing_text_if_unchanged(compare_path: Path, doc: TOMLDocument) -> str
     return existing_content
 
 
+def build_document_output(
+    doc: TOMLDocument,
+    *,
+    mode_reference_path: Path,
+    compare_path: Path | None = None,
+) -> TransformOutput:
+    content = doc.as_string()
+    if compare_path is not None:
+        existing_content = get_existing_text_if_unchanged(compare_path, doc)
+        if existing_content is not None:
+            return TransformOutput(
+                content=existing_content,
+                mode_reference_path=mode_reference_path,
+                reused_compare_path=compare_path,
+            )
+
+    return TransformOutput(
+        content=content,
+        mode_reference_path=mode_reference_path,
+    )
+
+
+
 def write_document_if_changed(
     path: Path | None,
     doc: TOMLDocument,
@@ -75,28 +89,15 @@ def write_document_if_changed(
     compare_path: Path | None = None,
     stdout: bool = False,
 ) -> None:
-    content = doc.as_string()
-    if compare_path is not None:
-        existing_content = get_existing_text_if_unchanged(compare_path, doc)
-        if existing_content is not None:
-            if stdout:
-                sys.stdout.write(existing_content)
-                return
-            assert path is not None
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if compare_path != path:
-                path.write_text(existing_content, encoding="utf-8")
-            sync_mode(path, mode_reference_path)
-            return
-
-    if stdout:
-        sys.stdout.write(content)
-        return
-
-    assert path is not None
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-    sync_mode(path, mode_reference_path)
+    emit_transform_output(
+        path,
+        build_document_output(
+            doc,
+            mode_reference_path=mode_reference_path,
+            compare_path=compare_path,
+        ),
+        stdout=stdout,
+    )
 
 
 def parse_key_path(raw_key: str) -> tuple[str, ...]:
@@ -338,6 +339,25 @@ def build_document_with_stripped_matchers(
     return normalize_document(stripped_doc)
 
 
+def build_stripped_document_output(
+    base_path: Path,
+    stripped_key_paths: list[tuple[str, ...]],
+    stripped_table_regexes: list[re.Pattern[str]],
+    compare_path: Path | None = None,
+) -> TransformOutput:
+    normalized_doc = build_document_with_stripped_matchers(
+        load_document(base_path),
+        stripped_key_paths,
+        stripped_table_regexes,
+    )
+    return build_document_output(
+        normalized_doc,
+        mode_reference_path=base_path,
+        compare_path=compare_path,
+    )
+
+
+
 def strip_keys(
     base_path: Path,
     output_path: Path | None,
@@ -346,16 +366,14 @@ def strip_keys(
     compare_path: Path | None = None,
     stdout: bool = False,
  ) -> None:
-    normalized_doc = build_document_with_stripped_matchers(
-        load_document(base_path),
-        stripped_key_paths,
-        stripped_table_regexes,
-    )
-    write_document_if_changed(
+    emit_transform_output(
         output_path,
-        normalized_doc,
-        mode_reference_path=base_path,
-        compare_path=compare_path,
+        build_stripped_document_output(
+            base_path,
+            stripped_key_paths,
+            stripped_table_regexes,
+            compare_path=compare_path,
+        ),
         stdout=stdout,
     )
 
@@ -479,16 +497,14 @@ def overlay_with_base_slots(
     return merged
 
 
-def merge_with_selector_action(
+def build_merged_document_output(
     base_path: Path,
-    output_path: Path | None,
     overlay_path: Path,
     selector_action: SelectorAction,
     key_paths: list[tuple[str, ...]],
     table_regexes: list[re.Pattern[str]],
     compare_path: Path | None = None,
-    stdout: bool = False,
-) -> None:
+) -> TransformOutput:
     base_doc = load_document(base_path)
     preserved_base = build_document_with_selector_action(
         base_doc,
@@ -499,11 +515,34 @@ def merge_with_selector_action(
     overlay_doc = load_document(overlay_path)
     merged_doc = normalize_document(overlay_with_base_slots(base_doc, preserved_base, overlay_doc))
     merged_doc = restore_top_level_leading_trivia(merged_doc, overlay_doc, base_doc, preserved_base)
-    write_document_if_changed(
-        output_path,
+    return build_document_output(
         merged_doc,
         mode_reference_path=base_path,
         compare_path=compare_path,
+    )
+
+
+
+def merge_with_selector_action(
+    base_path: Path,
+    output_path: Path | None,
+    overlay_path: Path,
+    selector_action: SelectorAction,
+    key_paths: list[tuple[str, ...]],
+    table_regexes: list[re.Pattern[str]],
+    compare_path: Path | None = None,
+    stdout: bool = False,
+) -> None:
+    emit_transform_output(
+        output_path,
+        build_merged_document_output(
+            base_path,
+            overlay_path,
+            selector_action,
+            key_paths,
+            table_regexes,
+            compare_path=compare_path,
+        ),
         stdout=stdout,
     )
 
@@ -586,60 +625,41 @@ class TomlTransformEngine(BaseTransformEngine):
         parse_key_paths(request.selector_values("key"))
         compile_table_regexes(request.selector_values("table_regex"))
 
-    def transform(self, request: TransformRequest) -> None:
+    def transform(self, request: TransformRequest) -> TransformOutput:
         self.validate_request(request)
         key_paths = parse_key_paths(request.selector_values("key"))
         table_regexes = compile_table_regexes(request.selector_values("table_regex"))
         compare_path = request.engine_option("compare_path")
-        stdout = request.engine_option("stdout", False)
 
         if request.mode == TransformMode.CLEANUP:
             if request.selector_action == SelectorAction.REMOVE:
-                strip_keys(
+                return build_stripped_document_output(
                     request.base_path,
-                    request.output_path,
                     key_paths,
                     table_regexes,
                     compare_path=compare_path,
-                    stdout=stdout,
                 )
-            else:
-                filtered_doc = build_document_with_selector_action(
-                    load_document(request.base_path),
-                    request.selector_action,
-                    key_paths,
-                    table_regexes,
-                )
-                write_document_if_changed(
-                    request.output_path,
-                    filtered_doc,
-                    mode_reference_path=request.base_path,
-                    compare_path=compare_path,
-                    stdout=stdout,
-                )
-            return
 
-        assert request.overlay_path is not None
-        if request.selector_action == SelectorAction.REMOVE:
-            merge_keys_except_stripped(
-                request.base_path,
-                request.output_path,
-                request.overlay_path,
+            filtered_doc = build_document_with_selector_action(
+                load_document(request.base_path),
+                request.selector_action,
                 key_paths,
                 table_regexes,
-                compare_path=compare_path,
-                stdout=stdout,
             )
-            return
+            return build_document_output(
+                filtered_doc,
+                mode_reference_path=request.base_path,
+                compare_path=compare_path,
+            )
 
-        merge_keys(
+        assert request.overlay_path is not None
+        return build_merged_document_output(
             request.base_path,
-            request.output_path,
             request.overlay_path,
+            request.selector_action,
             key_paths,
             table_regexes,
             compare_path=compare_path,
-            stdout=stdout,
         )
 
 

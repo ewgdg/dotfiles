@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import pytest
@@ -18,8 +19,9 @@ class DummyEngine(MODULE.BaseTransformEngine):
         ),
     )
 
-    def transform(self, request: MODULE.TransformRequest) -> None:
+    def transform(self, request: MODULE.TransformRequest) -> MODULE.TransformOutput:
         self.validate_request(request)
+        return MODULE.TransformOutput(content="ok\n", mode_reference_path=request.base_path)
 
 
 def test_selector_spec_records_prefix_and_default_status() -> None:
@@ -98,3 +100,47 @@ def test_base_engine_rejects_unknown_selector_types(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="does not support selector types"):
         engine.validate_request(request)
+
+
+def test_emit_transform_output_decodes_binary_when_stdout_is_text_only(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    base_path = tmp_path / "base"
+    base_path.write_text("ref\n", encoding="utf-8")
+
+    fake_stdout = io.StringIO()
+    monkeypatch.setattr(MODULE.sys, "stdout", fake_stdout)
+
+    MODULE.emit_transform_output(
+        None,
+        MODULE.TransformOutput(content="snowman ☃".encode("utf-8"), mode_reference_path=base_path),
+        stdout=True,
+    )
+
+    assert fake_stdout.getvalue() == "snowman ☃"
+
+
+def test_emit_transform_output_skips_rewrite_when_reusing_same_compare_path(
+    tmp_path: Path,
+) -> None:
+    reference_path = tmp_path / "reference"
+    output_path = tmp_path / "output"
+    reference_path.write_text("ref\n", encoding="utf-8")
+    output_path.write_text("keep\n", encoding="utf-8")
+    output_path.chmod(0o600)
+    output_path.touch()
+    original_mtime = output_path.stat().st_mtime_ns
+
+    MODULE.emit_transform_output(
+        output_path,
+        MODULE.TransformOutput(
+            content="keep\n",
+            mode_reference_path=reference_path,
+            reused_compare_path=output_path,
+        ),
+    )
+
+    assert output_path.read_text(encoding="utf-8") == "keep\n"
+    assert output_path.stat().st_mtime_ns == original_mtime
+    assert output_path.stat().st_mode & 0o777 == reference_path.stat().st_mode & 0o777

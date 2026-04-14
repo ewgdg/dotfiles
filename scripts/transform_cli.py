@@ -7,10 +7,10 @@ from pathlib import Path
 
 from scripts.transform_engine import (
     SelectorAction,
-    SelectorSpec,
     TransformEngine,
     TransformMode,
     TransformRequest,
+    emit_transform_output,
 )
 
 
@@ -18,7 +18,7 @@ def parse_selectors(engine: TransformEngine, selectors: list[str]) -> dict[str, 
     selectors_by_type: dict[str, list[str]] = {spec.name: [] for spec in engine.selector_specs()}
     prefix_to_spec = {f"{spec.prefix}:": spec for spec in engine.selector_specs()}
     default_spec = next((spec for spec in engine.selector_specs() if spec.is_default), None)
-    
+
     for selector in selectors:
         matched = False
         for prefix, spec in prefix_to_spec.items():
@@ -28,10 +28,13 @@ def parse_selectors(engine: TransformEngine, selectors: list[str]) -> dict[str, 
                 break
         if not matched:
             if default_spec is None:
-                raise ValueError(f"Engine {engine.name} has no default selector spec, but no prefix was matched for: {selector}")
+                raise ValueError(
+                    f"Engine {engine.name} has no default selector spec, but no prefix was matched for: {selector}"
+                )
             selectors_by_type[default_spec.name].append(selector)
-            
+
     return {name: tuple(values) for name, values in selectors_by_type.items()}
+
 
 
 def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
@@ -86,6 +89,7 @@ def build_parser(engine: TransformEngine) -> argparse.ArgumentParser:
     return parser
 
 
+
 def build_request(
     parser: argparse.ArgumentParser,
     engine: TransformEngine,
@@ -100,7 +104,9 @@ def build_request(
         base_path=parsed_args.base_path,
         output_path=parsed_args.output_path,
         mode=TransformMode(parsed_args.mode),
-        selector_action=SelectorAction(getattr(parsed_args, "selector_type", SelectorAction.RETAIN.value)),
+        selector_action=SelectorAction(
+            getattr(parsed_args, "selector_type", SelectorAction.RETAIN.value)
+        ),
         selectors_by_type=selectors_by_type,
         overlay_path=parsed_args.overlay_path,
         engine_options=engine.build_engine_options(parsed_args),
@@ -114,9 +120,15 @@ def build_request(
     return request
 
 
+
 def run_engine_cli(engine: TransformEngine, argv: list[str] | None = None) -> int:
     parser = build_parser(engine)
     parsed_args = parser.parse_args(argv)
     request = build_request(parser, engine, parsed_args)
-    engine.transform(request)
+    output = engine.transform(request)
+    emit_transform_output(
+        request.output_path,
+        output,
+        stdout=bool(request.engine_option("stdout", False)),
+    )
     return 0
