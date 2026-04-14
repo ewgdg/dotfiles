@@ -672,7 +672,7 @@
     },
     "wallpaper": {
         "automationEnabled": false,
-        "directory": "/home/xian/Pictures/Wallpapers",
+        "directory": "~/Pictures/Wallpapers",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
         "favorites": [

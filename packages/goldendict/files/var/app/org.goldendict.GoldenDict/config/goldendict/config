@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <config>
   <paths>
-    <path recursive="1">/home/xian/Documents/Dictionaries</path>
+    <path recursive="1">{{ vars.goldendict.dictionary_dir }}</path>
   </paths>
   <sounddirs/>
   <dictionaryOrder id="0" name="">

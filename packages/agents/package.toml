@@ -9,12 +9,12 @@ depends = [
 source = "files/agents"
 path = "~/.agents"
 push_ignore = [
-  "skills/agent-web-context/references/openapi_cache/",
+  "skills/agent-web-context/references/",
   "__pycache__/",
   "node_modules/",
 ]
 pull_ignore = [
-  "skills/agent-web-context/references/openapi_cache/",
+  "skills/agent-web-context/references/",
   "__pycache__/",
   "node_modules/",
 ]

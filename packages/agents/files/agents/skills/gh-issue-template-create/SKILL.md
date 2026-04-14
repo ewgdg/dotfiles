@@ -25,10 +25,12 @@ Use this skill when a repository already has an issue template and the issue mus
 
 ## Preferred Command Pattern
 
+Run this from the skill directory so the bundled editor path stays portable:
+
 ```bash
 GH_ISSUE_TITLE='[Prefix] Final title' \
 GH_ISSUE_BODY_FILE=/tmp/issue-body.md \
-GH_EDITOR=/home/xian/.agents/skills/gh-issue-template-create/scripts/gh_template_editor.sh \
+GH_EDITOR=./scripts/gh_template_editor.sh \
 gh issue create -R <owner>/<repo> -T "<template>" --editor
 ```
 

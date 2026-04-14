@@ -14,7 +14,7 @@ Usage:
 switch-desktop kde
 switch-desktop niri
 switch-desktop status
-switch-desktop --user xian kde
+switch-desktop --user <user> kde
 ssh -t host sudo switch-desktop niri
 ```
 

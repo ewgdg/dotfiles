@@ -1,6 +1,11 @@
 id = "arch-system"
 description = "Arch Linux package manager and base system configuration"
 
+[vars.arch_system]
+# Keep version repo-managed so stale repo config can still trigger yay's own
+# migration path; only buildDir is machine-local state.
+yay_config_selector_args = "'buildDir'"
+
 [targets.f_etc_pacman_conf]
 source = "files/etc/pacman.conf"
 path = "/etc/pacman.conf"
@@ -21,9 +26,11 @@ path = "/etc/fonts/local.conf"
 source = "files/config/paru"
 path = "~/.config/paru"
 
-[targets.d_config_yay]
-source = "files/config/yay"
-path = "~/.config/yay"
+[targets.f_config_yay_config_json]
+source = "files/config/yay/config.json"
+path = "~/.config/yay/config.json"
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.arch_system.yay_config_selector_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.arch_system.yay_config_selector_args }}'
 
 [hooks]
 post_push = [

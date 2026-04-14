@@ -22,7 +22,7 @@ Examples:
   $SCRIPT_NAME kde
   $SCRIPT_NAME niri
   $SCRIPT_NAME status
-  $SCRIPT_NAME --user xian kde
+  $SCRIPT_NAME --user <user> kde
 EOF
 }
 

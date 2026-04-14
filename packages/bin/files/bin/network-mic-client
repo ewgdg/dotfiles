@@ -17,7 +17,7 @@ Environment overrides:
 
 Examples:
   network-mic-client 192.168.1.9
-  network-mic-client xian-linux-server.local 55041
+  network-mic-client example-host 55041
   NMC_AUDIO_DEVICE=":2" network-mic-client 192.168.1.9
 EOF
 }

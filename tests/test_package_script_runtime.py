@@ -18,6 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "scripts/xml_transform.py",
         "scripts/toml_transform.py",
         "scripts/plist_transform.py",
+        "scripts/json_transform.py",
     ],
 )
 def test_script_runs_via_uv_project_from_outside_repo(

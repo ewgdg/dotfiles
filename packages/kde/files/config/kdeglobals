@@ -101,7 +101,7 @@ TerminalService=Alacritty.desktop
 Theme=Papirus-Dark
 
 [KDE]
-LookAndFeelPackage=Xian Curated
+LookAndFeelPackage=Custom-Sweet-Mars
 contrast=4
 frameContrast=0.2
 

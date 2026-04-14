@@ -74,17 +74,13 @@ claude() {
       return 1
   fi
 
-  # _merge_agent_instructions "$HOME/.claude/CLAUDE.md" "$HOME/.claude/AGENTS.claude.md" || return 1
   command claude --dangerously-skip-permissions "$@"
 }
 
 claudecode() {
   # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
   # ANTHROPIC_AUTH_TOKEN="litellm" \
-  # ANTHROPIC_SMALL_FAST_MODEL="gpt-mini" \
-  # ANTHROPIC_BASE_URL="http://0.0.0.0:8787" \
-  ANTHROPIC_SMALL_FAST_MODEL="gpt-5-nano" \
-  ANTHROPIC_BASE_URL="https://claude-router.service.xianzzz.com" \
+  # ANTHROPIC_SMALL_FAST_MODEL="gpt-5-nano" \
   claude "$@"
 }
 
