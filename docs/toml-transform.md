@@ -67,7 +67,7 @@ but changed managed regions may still be serialized fresh.
 ## Example
 
 ```sh
-uv run --project . scripts/toml_transform.py live.toml output.toml \
+uv run scripts/toml_transform.py live.toml output.toml \
   --mode merge \
   --overlay-file repo.toml \
   --selector-type retain \

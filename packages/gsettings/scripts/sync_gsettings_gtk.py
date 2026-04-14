@@ -22,13 +22,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Keep the shared parser helper in one place while allowing this script to live
-# under the package that owns it.
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from scripts.configparser_utils import CaseSensitiveRawConfigParser
+from packages.gsettings.scripts.configparser_utils import CaseSensitiveRawConfigParser
 
 
 # Maps org.gnome.desktop.interface key → gtk settings.ini key.

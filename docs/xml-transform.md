@@ -70,7 +70,7 @@ churn even when the effective content is unchanged.
 ## Example
 
 ```sh
-python scripts/xml_transform.py live.xml output.xml \
+uv run scripts/xml_transform.py live.xml output.xml \
   --mode merge \
   --overlay-file repo.xml \
   --sort-children 'config/mutedDictionaries' \

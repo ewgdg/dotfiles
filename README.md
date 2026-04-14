@@ -113,6 +113,9 @@ hostname = "workstation"
   `packages/shell/files/env.core.sh`.
 - Transform helpers in `scripts/` are still part of the active repo and are used
   by package target commands.
+- Repo Python helpers are expected to run through `uv run ...` (or
+  `uv run --project "$DOTMAN_REPO_ROOT" ...` inside dotman hooks). Do not rely
+  on direct `python path/to/script.py` execution.
 
 ## Related Docs
 

@@ -23,13 +23,8 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
-from scripts.configparser_utils import CaseSensitiveRawConfigParser
 
-# Keep the shared parser helper in one place while allowing this script to live
-# under the package that owns it.
-REPO_ROOT = Path(__file__).resolve().parents[3]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+from packages.gsettings.scripts.configparser_utils import CaseSensitiveRawConfigParser
 
 
 def gsettings_get(schema: str, key: str) -> str | None:

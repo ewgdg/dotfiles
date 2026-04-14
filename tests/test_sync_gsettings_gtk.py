@@ -3,14 +3,11 @@ from __future__ import annotations
 import configparser
 from pathlib import Path
 
-from scripts.configparser_utils import CaseSensitiveRawConfigParser
 from packages.gsettings.scripts import sync_gsettings_gtk as module
 
 
 def read_settings(path: Path) -> configparser.RawConfigParser:
-    parser = CaseSensitiveRawConfigParser()
-    parser.read(path, encoding="utf-8")
-    return parser
+    return module.read_settings_ini(path)
 
 
 def test_patch_and_write_sets_gtk_xft_dpi_from_non_default_text_scaling_factor(

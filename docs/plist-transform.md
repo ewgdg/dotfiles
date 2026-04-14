@@ -62,7 +62,7 @@ requested format.
 ## Example
 
 ```sh
-python3 scripts/plist_transform.py live.plist output.plist \
+uv run scripts/plist_transform.py live.plist output.plist \
   --mode merge \
   --overlay-file repo.plist \
   --output-format binary \

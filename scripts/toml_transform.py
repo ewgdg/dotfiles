@@ -12,13 +12,8 @@ import tomlkit
 from tomlkit.items import Null, Table
 from tomlkit.toml_document import TOMLDocument
 
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from scripts.transform_cli import run_engine_cli  # noqa: E402
-from scripts.transform_engine import (  # noqa: E402
+from scripts.transform_cli import run_engine_cli
+from scripts.transform_engine import (
     BaseTransformEngine,
     SelectorAction,
     SelectorSpec,

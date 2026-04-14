@@ -9,6 +9,12 @@ The Python-side engine contract lives in
 [transform-engine-interface.md](transform-engine-interface.md).
 For format-specific selector syntax, see the individual format docs.
 
+## Invocation
+
+Run repo Python helpers through `uv run ...` when invoking them
+manually from this checkout. Dotman hooks should use
+`uv run --project "$DOTMAN_REPO_ROOT" ...` for the same reason.
+
 ## Standard CLI Shape
 
 ```sh
