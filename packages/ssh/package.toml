@@ -19,4 +19,4 @@ pull_ignore = [
 [targets.f_ssh_config]
 source = "files/ssh/config"
 path = "~/.ssh/config"
-preset = "jinja-editor"
+preset = "jinja-patch-editor"

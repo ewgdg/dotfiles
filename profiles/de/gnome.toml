@@ -1,2 +1,2 @@
-[vars]
-desktop = "gnome"
+[vars.desktop]
+session = "gnome"

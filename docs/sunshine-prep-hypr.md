@@ -4,22 +4,22 @@
 
 - Purpose: prepare Hyprland outputs for Sunshine streaming using a headless
   output, then restore and clean up.
-- File: `packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py`
+- File: `packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py`
 - Requirements: Hyprland (`hyprctl`) in PATH; optional `ydotool` for a quick
   wake; `systemd-inhibit` for idle prevention.
 
 ## Usage
 
 - Create a headless output at a specific mode:
-  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py do --width 1920 --height 1080 --fps 60`
+  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py do --width 1920 --height 1080 --fps 60`
 - Optional: customize name (default `Sunshine-HEADLESS`) and go solo:
-  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py do --width 2560 --height 1440 --fps 120 --name Sunshine --solo`
+  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py do --width 2560 --height 1440 --fps 120 --name Sunshine --solo`
 - Or rely on Sunshine env vars:
-  - `SUNSHINE_CLIENT_WIDTH=1920 SUNSHINE_CLIENT_HEIGHT=1080 SUNSHINE_CLIENT_FPS=60 uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py do`
+  - `SUNSHINE_CLIENT_WIDTH=1920 SUNSHINE_CLIENT_HEIGHT=1080 SUNSHINE_CLIENT_FPS=60 uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py do`
 - Restore and cleanup:
-  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py undo`
+  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py undo`
 - If you used a custom name:
-  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py undo --name Sunshine`
+  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py undo --name Sunshine`
 
 ## Behavior
 
@@ -46,7 +46,7 @@
   it goes idle for a short grace window.
 - Disable the guard with `--no-guard`.
 - Manual cleanup is always available:
-  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hypr.py undo`
+  - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py undo`
 
 ## Systemd integration
 

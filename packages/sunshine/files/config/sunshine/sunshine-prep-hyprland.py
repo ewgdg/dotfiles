@@ -5,8 +5,8 @@ Prepare Hyprland outputs for Sunshine streaming using a headless (virtual) outpu
 when possible, then restore/cleanup.
 
 Usage:
-  sunshine-prep-hypr.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo] [--mode MODE]
-  sunshine-prep-hypr.py undo
+  sunshine-prep-hyprland.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo] [--mode MODE]
+  sunshine-prep-hyprland.py undo
 
 Modes:
 - detected (default): Uses existing monitor that supports the requested resolution/fps
@@ -51,27 +51,29 @@ def debug_write(message: str) -> None:
                 f.write(message)
         except Exception:
             pass  # Silently ignore logging errors
-    
+
     if ENABLE_CONSOLE_LOGGING:
         print(message.rstrip())  # Remove trailing newlines for console
 
 
 def ensure_hyprland_signature() -> bool:
     """Ensure HYPRLAND_INSTANCE_SIGNATURE is set by detecting it from socket directory."""
-    
+
     if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
-        debug_write(f"DEBUG: HYPRLAND_INSTANCE_SIGNATURE already set: {os.environ.get('HYPRLAND_INSTANCE_SIGNATURE')}\n")
+        debug_write(
+            f"DEBUG: HYPRLAND_INSTANCE_SIGNATURE already set: {os.environ.get('HYPRLAND_INSTANCE_SIGNATURE')}\n"
+        )
         return True
-    
+
     try:
         user_id = os.getuid()
         hypr_dir = f"/run/user/{user_id}/hypr"
         debug_write(f"DEBUG: Looking for signature in: {hypr_dir}\n")
-        
+
         if not os.path.exists(hypr_dir):
             debug_write(f"DEBUG: Hypr directory does not exist: {hypr_dir}\n")
             return False
-        
+
         # Get the signature directory (should be the only subdirectory)
         entries = os.listdir(hypr_dir)
         debug_write(f"DEBUG: Found entries in hypr dir: {entries}\n")
@@ -81,7 +83,7 @@ def ensure_hyprland_signature() -> bool:
                 os.environ["HYPRLAND_INSTANCE_SIGNATURE"] = entry
                 debug_write(f"DEBUG: Set HYPRLAND_INSTANCE_SIGNATURE to: {entry}\n")
                 return True
-        
+
         debug_write(f"DEBUG: No valid signature directory found\n")
         return False
     except (OSError, PermissionError) as e:
@@ -199,7 +201,9 @@ def clients_on_monitor_id(monitor_id: int) -> int:
             # Note: c.get("monitor") might return name or ID depending on Hyprland version
             client_monitor = c.get("monitor")
             mapped = c.get("mapped", False)
-            if mapped and (client_monitor == monitor_id or client_monitor == str(monitor_id)):
+            if mapped and (
+                client_monitor == monitor_id or client_monitor == str(monitor_id)
+            ):
                 cnt += 1
         except Exception:
             continue
@@ -323,9 +327,11 @@ def do_action(
     if not which("hyprctl"):
         debug_write("ERROR: hyprctl not found. Are you running Hyprland?\n")
         sys.exit(1)
-    
+
     if not ensure_hyprland_signature():
-        debug_write("ERROR: HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)\n")
+        debug_write(
+            "ERROR: HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)\n"
+        )
         sys.exit(1)
 
     # tiny wake so remote cursor shows up quickly (optional)
@@ -344,17 +350,23 @@ def do_action(
             set_monitor_keyword(spec)
             if solo:
                 disable_other_monitors(created_name)
-            debug_write(f"INFO: Using headless output: {created_name} at {width}x{height}@{fps}\n")
+            debug_write(
+                f"INFO: Using headless output: {created_name} at {width}x{height}@{fps}\n"
+            )
             enable_runtime_inhibit()
             return get_monitor_id(created_name)
         else:
             # Fallback to detected mode if headless creation fails
-            debug_write("DEBUG: Headless output creation failed; falling back to detected mode.\n")
+            debug_write(
+                "DEBUG: Headless output creation failed; falling back to detected mode.\n"
+            )
             mode = "detected"
 
     if mode == "detected":
         # Default mode: detected - find existing monitor that supports requested mode
-        debug_write(f"DEBUG: Looking for monitor supporting {width}x{height}@{fps}...\n")
+        debug_write(
+            f"DEBUG: Looking for monitor supporting {width}x{height}@{fps}...\n"
+        )
         mons = [
             m
             for m in (get_monitors(include_disabled=True) or [])
@@ -362,11 +374,11 @@ def do_action(
         ]
         # Prioritize DP monitors
         mons.sort(
-            key=lambda m: 0
-            if str(m.get("name", "")).startswith(("DP-", "eDP-", "DP"))
-            else 1
+            key=lambda m: (
+                0 if str(m.get("name", "")).startswith(("DP-", "eDP-", "DP")) else 1
+            )
         )
-        
+
         selected: Optional[str] = None
         for m in mons:
             mname = m.get("name")
@@ -376,19 +388,19 @@ def do_action(
             if try_set_monitor_mode(mname, width, height, fps):
                 selected = mname
                 break
-        
+
         if not selected:
             debug_write(f"ERROR: No monitor supports {width}x{height}@{fps}.\n")
             sys.exit(1)
-        
+
         # Apply scale to selected monitor
         scale = compute_scale(scale_arg, width, height)
         set_monitor_keyword(f"{selected},{width}x{height}@{fps},auto,{scale}")
         debug_write(f"INFO: Using monitor: {selected} at {width}x{height}@{fps}\n")
-        
+
         if solo:
             disable_other_monitors(selected)
-        
+
         enable_runtime_inhibit()
         return get_monitor_id(selected)
 
@@ -400,9 +412,9 @@ def _kill_guard_processes() -> None:
     the 'guard' subcommand to avoid unrelated processes.
     """
     try:
-        script_name = os.path.basename(sys.argv[0]) or "sunshine-prep-hypr.py"
+        script_name = os.path.basename(sys.argv[0]) or "sunshine-prep-hyprland.py"
         # Best-effort; ignore errors if none are running
-        run_command(f"pkill -f \"{script_name} guard\"", returncode_ok=True)
+        run_command(f'pkill -f "{script_name} guard"', returncode_ok=True)
     except Exception:
         pass
 
@@ -411,17 +423,21 @@ def restore_action(
     monitor_to_disable: Optional[str] = None, *, from_guard: bool = False
 ) -> None:
     debug_write("DEBUG: Starting restore action\n")
-    
+
     # Check if Hyprland is running
     if not ensure_hyprland_signature():
-        debug_write("DEBUG: HYPRLAND_INSTANCE_SIGNATURE not set, skipping monitor restore\n")
-        debug_write("WARNING: Hyprland not running or signature not found. Skipping monitor restore.\n")
+        debug_write(
+            "DEBUG: HYPRLAND_INSTANCE_SIGNATURE not set, skipping monitor restore\n"
+        )
+        debug_write(
+            "WARNING: Hyprland not running or signature not found. Skipping monitor restore.\n"
+        )
         # Still try to kill processes
         if not from_guard:
             _kill_guard_processes()
         kill_runtime_inhibit()
         return
-    
+
     # If undo() is called manually, proactively stop any background guards
     if not from_guard:
         debug_write("DEBUG: Killing background guard processes\n")
@@ -455,9 +471,11 @@ def guard_action(
     """Background guard: watches either a process or headless activity and restores when done."""
     # Initial delay to allow monitor connection to stabilize
     if initial_delay > 0:
-        debug_write(f"DEBUG: Guard waiting {initial_delay}s for monitor stabilization...\n")
+        debug_write(
+            f"DEBUG: Guard waiting {initial_delay}s for monitor stabilization...\n"
+        )
         time.sleep(initial_delay)
-    
+
     start = time.time()
     misses = 0
 
@@ -541,7 +559,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     )
     p_do.add_argument(
         "--guard",
-        action="store_true", 
+        action="store_true",
         help="Enable background guard for auto-cleanup (disabled by default)",
     )
     p_do.add_argument(
@@ -627,10 +645,15 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         "--monitor", type=str, help="Monitor name to watch in activity mode"
     )
     p_guard.add_argument(
-        "--monitor-id", type=int, help="Monitor ID to watch in activity mode (preferred over --monitor)"
+        "--monitor-id",
+        type=int,
+        help="Monitor ID to watch in activity mode (preferred over --monitor)",
     )
     p_guard.add_argument(
-        "--initial-delay", type=int, default=0, help="Initial delay before starting guard"
+        "--initial-delay",
+        type=int,
+        default=0,
+        help="Initial delay before starting guard",
     )
     return parser.parse_args(argv)
 
@@ -645,7 +668,9 @@ def main(argv: List[str]) -> None:
         width = args.width or int(os.environ.get("SUNSHINE_CLIENT_WIDTH", "0") or 0)
         height = args.height or int(os.environ.get("SUNSHINE_CLIENT_HEIGHT", "0") or 0)
         fps = args.fps or int(os.environ.get("SUNSHINE_CLIENT_FPS", "0") or 0)
-        debug_write(f"DEBUG: Resolved values - width: {width}, height: {height}, fps: {fps}\n")
+        debug_write(
+            f"DEBUG: Resolved values - width: {width}, height: {height}, fps: {fps}\n"
+        )
         if not (width and height and fps):
             debug_write("DEBUG: Missing width/height/fps - exiting with code 1\n")
             debug_write(
@@ -655,7 +680,9 @@ def main(argv: List[str]) -> None:
         selected_monitor_id = None
         # Try to create headless and configure
         try:
-            selected_monitor_id = do_action(width, height, fps, args.name, args.solo, args.scale, args.mode)
+            selected_monitor_id = do_action(
+                width, height, fps, args.name, args.solo, args.scale, args.mode
+            )
         except SystemExit:
             raise
         except Exception as e:
@@ -664,7 +691,7 @@ def main(argv: List[str]) -> None:
         if args.guard:
             # Pass delay to guard process instead of blocking main process
             guard_delay = max(0, args.guard_delay)
-            
+
             # Use the requested guard mode - activity mode works for both headless and physical monitors
             guard_mode = args.guard_mode
             cmd = [
@@ -692,7 +719,7 @@ def main(argv: List[str]) -> None:
                 cmd += ["--monitor", args.guard_monitor]
             if args.guard_timeout:
                 cmd += ["--timeout", str(args.guard_timeout)]
-            
+
             try:
                 subprocess.Popen(
                     cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
@@ -730,13 +757,14 @@ if __name__ == "__main__":
         ENABLE_FILE_LOGGING = True
     if "--no-log-console" in sys.argv:
         ENABLE_CONSOLE_LOGGING = False
-    
+
     # Initial debug logging only if enabled
     if ENABLE_FILE_LOGGING:
         import datetime
+
         is_main_do_command = len(sys.argv) > 1 and sys.argv[1] == "do"
         mode = "w" if is_main_do_command else "a"
-        
+
         try:
             with open(DEBUG_LOG, mode) as f:
                 f.write(f"\n=== {datetime.datetime.now()} - ENTRY POINT ===\n")
@@ -746,5 +774,5 @@ if __name__ == "__main__":
                 f.flush()
         except Exception:
             pass  # Silently ignore logging errors
-    
+
     main(sys.argv[1:])

@@ -16,11 +16,11 @@ pull_ignore = [
   "sunshine.conf",
   "credentials/",
   "sunshine.log",
-  "*state.json",
+  "*_state.json",
 ]
 
 [targets.f_config_sunshine_sunshine_conf]
-source = "files/config/sunshine/sunshine-{{ desktop }}.conf"
+source = "files/config/sunshine/sunshine-{{ vars.desktop.session }}.conf"
 path = "~/.config/sunshine/sunshine.conf"
 
 [targets.d_config_systemd_user_sunshine_service_d]

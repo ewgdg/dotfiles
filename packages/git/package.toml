@@ -1,11 +1,16 @@
 id = "git"
 description = "Git and Lazygit workflow configuration"
 
+[vars.git.user]
+name = "Xian Zhang"
+email = "xianzzz@outlook.com"
+signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFV3YS3s5RPAeSJV+JW7gGF/oKmHXJAsCK9B+H+CUlJw"
+
 [targets.f_gitconfig]
 source = "files/gitconfig"
 path = "~/.gitconfig"
 chmod = "600"
-preset = "jinja-editor"
+preset = "jinja-patch-editor"
 
 [targets.f_config_lazygit_config_yml]
 source = "files/config/lazygit/config.yml"

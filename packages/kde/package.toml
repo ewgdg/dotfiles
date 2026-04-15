@@ -38,6 +38,7 @@ path = "~/.config/systemd/user/drkonqi-coredump-launcher.socket.d/override.conf"
 [targets.f_etc_plasmalogin_conf]
 source = "files/etc/plasmalogin.conf"
 path = "/etc/plasmalogin.conf"
+preset = "jinja-patch-editor"
 
 [hooks]
 # KDE config and shortcuts reference these core Plasma apps and Dolphin integrations.

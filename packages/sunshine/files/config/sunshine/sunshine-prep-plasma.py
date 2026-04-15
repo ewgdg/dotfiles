@@ -3,8 +3,8 @@
 """
 This script configures a monitor for Sunshine streaming and prevents system idle
 Usage:
-  sunshine-prep-kde.py do --width WIDTH --height HEIGHT --fps FPS
-  sunshine-prep-kde.py undo
+  sunshine-prep-plasma.py do --width WIDTH --height HEIGHT --fps FPS
+  sunshine-prep-plasma.py undo
 """
 
 import os

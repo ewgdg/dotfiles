@@ -27,7 +27,7 @@ path = "~/.config/fd"
 [targets.f_profile]
 source = "files/profile"
 path = "~/.profile"
-preset = "jinja-editor"
+preset = "jinja-patch-editor"
 
 [targets.f_zprofile]
 source = "files/zprofile"

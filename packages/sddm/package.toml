@@ -4,6 +4,7 @@ description = "SDDM configuration"
 [targets.f_etc_sddm_conf]
 source = "files/etc/sddm.conf"
 path = "/etc/sddm.conf"
+preset = "jinja-patch-editor"
 
 [targets.d_etc_sddm_conf_d]
 source = "files/etc/sddm.conf.d"

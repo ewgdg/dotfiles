@@ -6,9 +6,9 @@
 	process = git-lfs filter-process
 	required = true
 [user]
-	name = Xian Zhang
-	email = xianzzz@outlook.com
-	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFV3YS3s5RPAeSJV+JW7gGF/oKmHXJAsCK9B+H+CUlJw
+	name = {{ vars.git.user.name }}
+	email = {{ vars.git.user.email }}
+	signingkey = {{ vars.git.user.signingkey }}
 # [url "ssh://git@github.com"]
 #     insteadOf = "https://github.com"
 [gpg]

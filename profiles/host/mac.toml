@@ -1,3 +1,3 @@
-includes = ["os/mac"]
+includes = ["os/mac", "host/base"]
 
 [vars]
