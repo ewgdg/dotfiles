@@ -1,6 +1,6 @@
 # Dotfiles
 
-This repo manages user and system configuration with the new [`dotman`](https://github.com/ewgdg/dotman) repo layout.
+This repo manages user and system configuration with the [`dotman`](https://github.com/ewgdg/dotman) repo layout.
 
 ## Repo Layout
 
@@ -15,21 +15,17 @@ Active repo content lives under:
 
 ## First Bootstrap
 
-Use `init.sh` on a new machine:
+Use `init.sh` to install bootstrap dependencies:
 
 ```sh
-./init.sh -p host/linux
-# or
-./init.sh main:host/linux@host/linux
+./init.sh
 ```
 
 What `init.sh` does:
 
 - installs `uv` if needed
-- installs `dotman` with `uv tool install`
 - sources `packages/shell/files/env.core.sh`
-- creates a temporary single-repo dotman manager config for this checkout
-- runs `dotman track` and `dotman push` by default
+- installs `dotman` with `uv tool install`
 
 By default `init.sh` installs dotman from:
 
@@ -40,13 +36,7 @@ git+https://github.com/ewgdg/dotman.git
 Override it with `DOTMAN_TOOL_SPEC` only if you need a different source:
 
 ```sh
-DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh -p host/linux
-```
-
-Bootstrap only, without tracking or pushing:
-
-```sh
-./init.sh --no-install
+DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 ```
 
 ## Normal Workflow
