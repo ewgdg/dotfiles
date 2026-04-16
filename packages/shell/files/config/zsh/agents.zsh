@@ -92,12 +92,12 @@ pi(){
   _merge_agent_instructions "$HOME/.pi/agent/AGENTS.md" "$HOME/.pi/agent/AGENTS.pi.md" || return 1
   _load_api_key openai-api anthropic-api openrouter-api brave-api exa-api || return 1
 
-  OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
-    ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]} \
-    OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
-    BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
-    EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
-    command pi "$@"
+  # OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
+  # ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]} \
+  # OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
+  BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
+  EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
+  command pi "$@"
 }
 
 codex() {
