@@ -89,7 +89,6 @@ pi(){
     return 1
   fi
 
-  _merge_agent_instructions "$HOME/.pi/agent/AGENTS.md" "$HOME/.pi/agent/AGENTS.pi.md" || return 1
   _load_api_key openai-api anthropic-api openrouter-api brave-api exa-api || return 1
 
   # OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
@@ -105,7 +104,16 @@ codex() {
     return 1
   fi
 
-  _disable_legacy_agent_override "$HOME/.codex/AGENTS.override.md" || return 1
-  _merge_agent_instructions "$HOME/.codex/AGENTS.md" "$HOME/.codex/AGENTS.codex.md" || return 1
+  local helper="$HOME/.config/zsh/agents-file-expand.py"
+  if [[ ! -x "$helper" ]]; then
+    print -u2 -- "Missing helper: $helper"
+    return 1
+  fi
+
+  if ! command uv run "$helper"; then
+    print -u2 -- "Failed to expand Codex AGENTS file"
+    return 1
+  fi
+
   command codex "$@"
 }

@@ -11,9 +11,9 @@ chmod = "600"
 render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.codex.config_selector_args }}'
 capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.codex.config_selector_args }}'
 
-[targets.f_codex_agents_codex_md]
-source = "files/codex/AGENTS.codex.md"
-path = "~/.codex/AGENTS.codex.md"
+[targets.f_codex_agents_md]
+source = "files/codex/AGENTS.md"
+path = "~/.codex/AGENTS.md"
 
 [targets.d_codex_rules]
 source = "files/codex/rules"
@@ -22,3 +22,7 @@ path = "~/.codex/rules"
 [targets.d_codex_agents]
 source = "files/codex/agents"
 path = "~/.codex/agents"
+
+[targets.f_codex_hooks_json]
+source = "files/codex/hooks.json"
+path = "~/.codex/hooks.json"

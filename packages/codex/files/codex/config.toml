@@ -62,6 +62,7 @@ hide_rate_limit_model_nudge = true
 multi_agent = true
 search_tool = true
 guardian_approval = true
+codex_hooks = true
 
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens"]

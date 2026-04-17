@@ -1,0 +1,31 @@
+id = "claude"
+
+[targets.f_claude_claude_md]
+source = "files/claude/CLAUDE.md"
+path = "~/.claude/CLAUDE.md"
+
+[targets.f_claude_settings_json]
+source = "files/claude/settings.json"
+path = "~/.claude/settings.json"
+chmod = "600"
+
+[targets.f_claude_statusline_sh]
+source = "files/claude/statusline.sh"
+path = "~/.claude/statusline.sh"
+chmod = "755"
+
+[targets.d_claude_hooks]
+source = "files/claude/hooks"
+path = "~/.claude/hooks"
+
+[targets.d_claude_agents]
+source = "files/claude/agents"
+path = "~/.claude/agents"
+
+[targets.d_claude_commands]
+source = "files/claude/commands"
+path = "~/.claude/commands"
+
+[targets.d_claude_skills]
+source = "files/claude/skills"
+path = "~/.claude/skills"

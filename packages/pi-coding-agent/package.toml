@@ -1,0 +1,9 @@
+id = "pi-coding-agent"
+
+[targets.f_pi_agent_agents_md]
+source = "files/pi/agent/AGENTS.md"
+path = "~/.pi/agent/AGENTS.md"
+
+[targets.d_pi_agent_extensions]
+source = "files/pi/agent/extensions"
+path = "~/.pi/agent/extensions"
