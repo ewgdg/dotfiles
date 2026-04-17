@@ -2,8 +2,10 @@
 pull = [
     "*.dotdropbak",
     "*.bak",
+    "__pycache__/",
 ]
 push = [
     "*.archived",
     "*.bak",
+    "__pycache__/",
 ]

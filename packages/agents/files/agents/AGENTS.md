@@ -1,11 +1,9 @@
-# User-Level Agent Configuration
-
 ## Communication
 
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
-- Apply caveman skill by default.
+- Default communication mode is caveman full.
 
 ## File Operations
 
@@ -19,7 +17,7 @@
 - document for features or techniques of a project, that worth mention or review
 - do not put machine specific paths into docs
 - if you need to write doc, persist docs in `./docs/` directory
-- a plan requested by user should be persisted in `./plans/` dir by default except current dir is not a project repo or the plan is very short
+- when writing complex features or significant refactors, create an ExecPlan in `./plans/`.
 
 ## Privileged Commands
 
@@ -70,7 +68,7 @@
 
 ## Git
 
-- prefer semantic commit messages
+- use semantic commit messages
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
 
 ## Github CLI
