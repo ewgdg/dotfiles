@@ -85,17 +85,6 @@ Examples of smaller selectors:
 Groups choose what to manage.
 Profiles provide the variable context used to resolve those selections.
 
-## Local Overrides
-
-Use `local.toml` for machine-local values that should not be committed.
-
-Example:
-
-```toml
-[vars]
-hostname = "workstation"
-```
-
 ## Notes
 
 - Shared shell bootstrap behavior now comes from
