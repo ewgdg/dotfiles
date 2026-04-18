@@ -17,7 +17,7 @@
 - document for features or techniques of a project, that worth mention or review
 - do not put machine specific paths into docs
 - if you need to write doc, persist docs in `./docs/` directory
-- when writing complex features or significant refactors, create an ExecPlan in `./plans/`.
+- when writing complex features or significant refactors, use an ExecPlan (as described in `~/.agents/PLANS.md`)
 
 ## Privileged Commands
 
