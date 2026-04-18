@@ -23,8 +23,8 @@ Use `init.sh` to install bootstrap dependencies:
 `./activate.sh` is recommended before `./init.sh` and before first
 `dotman push`.
 
-`activate.sh` loads repo core env into the current shell, including XDG dirs,
-Bun install vars, and PATH entries such as `~/.local/bin`.
+`activate.sh` loads repo core env (`packages/shell/files/env.core.sh`) into the current shell, including XDG dirs, and PATH entries such as `~/.local/bin`.
+This is to align current shell with the repo's profile env (XDG paths, PATH). Skip if already running a login shell started after the profile was pushed.
 
 ```sh
 . ./activate.sh
@@ -35,9 +35,6 @@ What `init.sh` does:
 
 - installs `uv` if needed
 - installs `dotman` with `uv tool install`
-
-`init.sh` does not modify the current shell environment. Source
-`./activate.sh` yourself when you want the current shell to use repo core env.
 
 By default `init.sh` installs dotman from:
 
@@ -55,17 +52,13 @@ DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 
 After bootstrap, use dotman as the primary interface.
 
-Before first `dotman push`, if your shell profile has not been pushed yet or you
-have not started a new login shell since pushing it, source `./activate.sh`.
-This keeps package hooks, installers, and first-run tools on same repo core env
-for XDG-based paths, Bun install dirs, and PATH lookup.
-
 ```sh
 . ./activate.sh
+dotman track <package>
 dotman push
 ```
 
-After shell package is pushed and you start a new login shell, the managed
+After `shell` package is pushed and you start a new login shell, the managed
 profile loads the same core env automatically, so manual `./activate.sh` is no
 longer needed.
 
@@ -114,9 +107,7 @@ Profiles provide the variable context used to resolve those selections.
 
 ## Notes
 
-- Shared shell bootstrap behavior now comes from
-  `packages/shell/files/env.core.sh`.
-- Transform helpers in `scripts/` are still part of the active repo and are used
+- Helpers in `scripts/` are still part of the active repo and are used
   by package target commands.
 - Repo Python helpers are expected to run through `uv run ...` (or
   `uv run --project "$DOTMAN_REPO_ROOT" ...` inside dotman hooks). Do not rely
@@ -124,5 +115,4 @@ Profiles provide the variable context used to resolve those selections.
 
 ## Related Docs
 
-- `docs/transform-cli-interface.md`
-- `docs/transform-engine-interface.md`
+check `docs/` directory.
