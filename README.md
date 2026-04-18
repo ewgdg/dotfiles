@@ -24,7 +24,7 @@ Use `init.sh` to install bootstrap dependencies:
 `dotman push`.
 
 `activate.sh` loads repo core env (`packages/shell/files/env.core.sh`) into the current shell, including XDG dirs, and PATH entries such as `~/.local/bin`.
-This is to align current shell with the repo's profile env (XDG paths, PATH). Skip if already running a login shell started after the profile was pushed.
+This is to align current shell with the repo's profile env. Skip if already running a login shell started after the shell profile was pushed.
 
 ```sh
 . ./activate.sh
