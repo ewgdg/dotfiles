@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sync_gsettings_gtk.py - Dotdrop trans_update for gtk settings.ini files.
+sync_gsettings_gtk.py - transform script for gtk settings.ini files.
 
 Reads the tracked repo settings.ini via --template-file when available,
 patches the managed keys with current gsettings values, and writes the result
@@ -316,7 +316,7 @@ def patch_and_write(
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="Dotdrop trans_update: patch gtk settings.ini with gsettings values."
+        description="Patch gtk settings.ini with current gsettings values."
     )
     p.add_argument("base_path", type=Path, help="System settings.ini ({0}).")
     p.add_argument("output_path", type=Path, nargs="?", default=None, help="Repo output settings.ini ({1}).")

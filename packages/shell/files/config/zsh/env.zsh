@@ -8,12 +8,6 @@ ZIM_CONFIG_FILE=${ZIM_CONFIG_FILE:-$ZSH_CONFIG_DIR/.zimrc}
 export EDITOR=nvim
 export SYSTEMD_EDITOR=nvim
 
-if [ -f "$HOME/dotfiles/config.yaml" ]; then
-    export DOTDROP_CONFIG="$HOME/dotfiles/config.yaml"
-elif [ -f "$HOME/projects/dotfiles/config.yaml" ]; then
-    export DOTDROP_CONFIG="$HOME/projects/dotfiles/config.yaml"
-fi
-
 # custom env
 export PROJECTS_PATH=~/projects
 
