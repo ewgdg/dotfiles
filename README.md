@@ -11,7 +11,6 @@ Active repo content lives under:
 - `profiles/` — variable-only profile definitions
 - `scripts/` — shared helper scripts used by package hooks and target commands
 - `repo.toml` — repo-wide defaults such as ignore rules
-- `local.toml` — machine-local overrides that should not be committed
 
 ## First Bootstrap
 
