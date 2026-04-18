@@ -98,6 +98,5 @@ Profiles provide the variable context used to resolve those selections.
 ## Related Docs
 
 - `docs/bootstrap.md`
-- `docs/json-transform.md`
 - `docs/transform-cli-interface.md`
 - `docs/transform-engine-interface.md`
