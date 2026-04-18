@@ -52,12 +52,6 @@ DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 
 After bootstrap, use dotman as the primary interface.
 
-```sh
-. ./activate.sh
-dotman track <package>
-dotman push
-```
-
 After `shell` package is pushed and you start a new login shell, the managed
 profile loads the same core env automatically, so manual `./activate.sh` is no
 longer needed.
