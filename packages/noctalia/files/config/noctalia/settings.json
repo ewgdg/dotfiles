@@ -209,7 +209,7 @@
                     "colorizeSystemIcon": "none",
                     "customIconPath": "",
                     "enableColorization": false,
-                    "icon": "noctalia",
+                    "icon": "settings-2",
                     "id": "ControlCenter",
                     "useDistroLogo": false
                 },

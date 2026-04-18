@@ -18,7 +18,7 @@ disabled = true
 
 [hooks]
 pre_push = [
-  "{{ INSTALL }} xsettingsd",
+  #"{{ INSTALL }} xsettingsd",
 ]
 post_push = [
   #'{{ ENSURE_SYSTEMD }} user xsettingsd-session.target',
