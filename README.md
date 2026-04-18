@@ -20,11 +20,24 @@ Use `init.sh` to install bootstrap dependencies:
 ./init.sh
 ```
 
+`./activate.sh` is recommended before `./init.sh` and before first
+`dotman push`.
+
+`activate.sh` loads repo core env into the current shell, including XDG dirs,
+Bun install vars, and PATH entries such as `~/.local/bin`.
+
+```sh
+. ./activate.sh
+./init.sh
+```
+
 What `init.sh` does:
 
 - installs `uv` if needed
-- sources `packages/shell/files/env.core.sh`
 - installs `dotman` with `uv tool install`
+
+`init.sh` does not modify the current shell environment. Source
+`./activate.sh` yourself when you want the current shell to use repo core env.
 
 By default `init.sh` installs dotman from:
 
@@ -41,6 +54,20 @@ DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 ## Normal Workflow
 
 After bootstrap, use dotman as the primary interface.
+
+Before first `dotman push`, if your shell profile has not been pushed yet or you
+have not started a new login shell since pushing it, source `./activate.sh`.
+This keeps package hooks, installers, and first-run tools on same repo core env
+for XDG-based paths, Bun install dirs, and PATH lookup.
+
+```sh
+. ./activate.sh
+dotman push
+```
+
+After shell package is pushed and you start a new login shell, the managed
+profile loads the same core env automatically, so manual `./activate.sh` is no
+longer needed.
 
 Typical flow:
 
@@ -97,6 +124,5 @@ Profiles provide the variable context used to resolve those selections.
 
 ## Related Docs
 
-- `docs/bootstrap.md`
 - `docs/transform-cli-interface.md`
 - `docs/transform-engine-interface.md`

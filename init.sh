@@ -15,16 +15,9 @@ script_dir="$(
   pwd -P
 )"
 repo_root="${script_dir}"
-repo_core_env_path="${repo_root}/packages/shell/files/env.core.sh"
 default_uv_bin_dir="${HOME}/.local/bin"
 dotman_tool_spec_default='git+https://github.com/ewgdg/dotman.git'
 dotman_tool_spec="${DOTMAN_TOOL_SPEC:-$dotman_tool_spec_default}"
-
-if [ -r "${repo_core_env_path}" ]; then
-  # Keep bootstrap-time PATH/XDG behavior aligned with the managed shell profile.
-  # shellcheck source=/dev/null
-  . "${repo_core_env_path}"
-fi
 
 if [ "$#" -gt 0 ]; then
   die "init.sh only installs dependencies; it takes no arguments"
