@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
-set -eu
 
 if ! (return 0 2>/dev/null); then
   printf '%s\n' "activate.sh must be sourced: . ./activate.sh" >&2
   exit 1
 fi
+
+# Must not change caller shell options. This file is sourced into interactive
+# shells, so `set -e`/`set -u` here would leak into user session and can make
+# Ctrl-C in later commands exit the whole shell.
 
 script_dir="$(
   cd -- "$(dirname -- "$0")" >/dev/null 2>&1

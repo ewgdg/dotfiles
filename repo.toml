@@ -9,3 +9,8 @@ push = [
     "*.bak",
     "__pycache__/",
 ]
+
+[hooks]
+guard_push = [
+    'sh "$DOTMAN_REPO_ROOT/scripts/check_core_env.sh"',
+]
