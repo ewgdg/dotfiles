@@ -1,1 +1,2 @@
-prefix=${HOME}/.local/share/npm
+prefix=${HOME}/.npm
+cache=${HOME}/.npm/cache
