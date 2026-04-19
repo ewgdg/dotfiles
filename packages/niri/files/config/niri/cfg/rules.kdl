@@ -55,6 +55,26 @@ window-rule {
     open-focused true
 }
 
+// Games
+window-rule {
+    match app-id=r#"^steam_app_"#
+    match app-id=r#"\.exe$"#
+    open-floating true
+}
+
+window-rule {
+  match title=r#"(?i)^Battle.net$"#
+  open-on-workspace "games"
+  open-floating false
+}
+
+window-rule {
+  // wine legacy tray icon
+  match app-id=r#"^explorer.exe$"#
+  open-on-workspace "stash"
+  open-floating false
+}
+
 window-rule {
     match at-startup=true title=r#"(?i)^Google AI Studio\b"#
     open-focused false
@@ -145,19 +165,6 @@ window-rule {
     tab-indicator {
         active-color "#f38ba8"
         inactive-color "#7d0d2d"
-    }
-}
-
-// Games
-window-rule {
-    match app-id=r#"^steam_app_"#
-    match app-id=r#"\.exe$"#
-    open-floating true
-    focus-ring {
-        off
-    }
-    border {
-        off 
     }
 }
 

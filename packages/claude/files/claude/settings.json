@@ -3,7 +3,6 @@
     "allow": [],
     "deny": []
   },
-  "model": "opus",
   "hooks": {
     "PreToolUse": []
   },
@@ -12,6 +11,6 @@
     "command": "~/.claude/statusline.sh"
   },
   "alwaysThinkingEnabled": true,
-  "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "xhigh"
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true
 }
