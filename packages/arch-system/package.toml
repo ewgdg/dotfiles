@@ -34,5 +34,5 @@ capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.arch_sy
 
 [hooks]
 post_push = [
-  'if [ "$(id -u)" -eq 0 ]; then locale-gen; else sudo -A locale-gen; fi',
+  'if [ "$(id -u)" -eq 0 ]; then locale-gen; else sudo locale-gen; fi',
 ]
