@@ -58,9 +58,28 @@ def select_json_data(
 
 
 
-def overlay_json_data(base_data: JsonDict, overlay_data: JsonDict) -> JsonDict:
-    merged_data = dict(base_data)
-    merged_data.update(overlay_data)
+def overlay_json_data(
+    original_base_data: JsonDict,
+    preserved_base_data: JsonDict,
+    overlay_data: JsonDict,
+) -> JsonDict:
+    merged_data: JsonDict = {}
+
+    # Keep surviving keys in live order so repo-managed value changes do not also
+    # produce noisy key-movement diffs.
+    for key in original_base_data:
+        if key in overlay_data:
+            merged_data[key] = overlay_data[key]
+            continue
+        if key in preserved_base_data:
+            merged_data[key] = preserved_base_data[key]
+
+    for source_data in (overlay_data, preserved_base_data):
+        for key, value in source_data.items():
+            if key in merged_data:
+                continue
+            merged_data[key] = value
+
     return merged_data
 
 
@@ -169,7 +188,7 @@ class JsonTransformEngine(BaseTransformEngine):
         if request.mode == TransformMode.MERGE:
             assert request.overlay_path is not None
             overlay_data = load_json(request.overlay_path)
-            transformed_data = overlay_json_data(transformed_data, overlay_data)
+            transformed_data = overlay_json_data(base_data, transformed_data, overlay_data)
 
         return build_json_output(
             transformed_data,

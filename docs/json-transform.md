@@ -32,6 +32,8 @@ The JSON engine follows the shared contract:
 - merge preserves the selected or complementary top-level keys from the base
   object, depending on `--selector-type`
 - the overlay JSON object is then applied on top
+- for keys that survive from live or repo input, merge keeps live top-level key
+  order where possible and appends repo-only keys in repo order
 
 Because selectors work at top-level key granularity, nested deletions are
 reflected by replacing the entire selected key from the overlay object.

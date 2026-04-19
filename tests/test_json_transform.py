@@ -137,6 +137,68 @@ def test_merge_retain_key_preserves_selected_live_keys_and_reapplies_repo_conten
     }
 
 
+def test_merge_retain_key_preserves_live_order_and_drops_deleted_repo_keys(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps(
+            {
+                "aururl": "https://aur.archlinux.org",
+                "aurrpcurl": "https://aur.archlinux.org/rpc?",
+                "buildDir": "/home/test/.cache/yay",
+                "editor": "nano",
+                "useask": False,
+            },
+            indent="\t",
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps(
+            {
+                "aururl": "https://aur.archlinux.org",
+                "aurrpcurl": "https://aur.archlinux.org/rpc?",
+                "editor": "",
+                "useask": True,
+            },
+            indent="\t",
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            "buildDir",
+        ]
+    )
+
+    assert exit_code == 0
+    merged_data = load_json(output_path)
+    assert list(merged_data) == ["aururl", "aurrpcurl", "buildDir", "editor", "useask"]
+    assert merged_data == {
+        "aururl": "https://aur.archlinux.org",
+        "aurrpcurl": "https://aur.archlinux.org/rpc?",
+        "buildDir": "/home/test/.cache/yay",
+        "editor": "",
+        "useask": True,
+    }
+
+
 def test_merge_remove_key_preserves_unselected_live_keys(tmp_path: Path) -> None:
     live_path = tmp_path / "live.json"
     repo_path = tmp_path / "repo.json"
