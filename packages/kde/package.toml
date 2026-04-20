@@ -42,7 +42,7 @@ preset = "jinja-patch-editor"
 
 [hooks]
 # KDE config and shortcuts reference these core Plasma apps and Dolphin integrations.
-# okular is very heavy
+# okular is very heavy, maybe use flatpak version for it
 pre_push = [
   "{{ INSTALL }} dolphin dolphin-plugins spectacle ark gwenview filelight okular kate kcalc kwalletmanager kio-extras ffmpegthumbs",
 ]
