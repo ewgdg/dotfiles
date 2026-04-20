@@ -1,3 +1,5 @@
-execution plans should be created in `./plans/` dir.
-record progress, blockers, decisions, scope changes in corresponding sections.
-during implementation, update progress, but only for real checkpoints.
+- Execution plans live under `./plans/<status>/`.
+- Use folder status as source of truth; do not use frontmatter for status or title.
+- Use filename for plan identity.
+- record progress, blockers, decisions, scope changes in corresponding sections.
+- during implementation, update progress, but only for real checkpoints.

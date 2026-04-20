@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <config>
   <paths>
     <path recursive="1">{{ vars.goldendict.dictionary_dir }}</path>
@@ -23,7 +23,7 @@
     <dictionary name="dict.org">6eb6f7a1df225e1cfdcd4cf8e9e4771b</dictionary>
     <mutedDictionaries/>
   </inactiveDictionaries>
-  <groups nextId="1"/>
+  <groups/>
   <hunspell dictionariesPath=""/>
   <transliteration>
     <enableRussianTransliteration>0</enableRussianTransliteration>
@@ -78,8 +78,7 @@
     <website enabled="0" icon="" id="379a0ce02a34747d642cb0d7de1b2882" name="Merriam-Webster (En)" script="" url="https://www.merriam-webster.com/dictionary/%GDWORD%"/>
   </websites>
   <dictservers>
-    <server databases="wn" enabled="0" icon="" id="6eb6f7a1df225e1cfdcd4cf8e9e4771b" name="dict.org"
-      strategies="" url="dict://dict.org" />
+    <server databases="wn" enabled="0" icon="" id="6eb6f7a1df225e1cfdcd4cf8e9e4771b" name="dict.org" strategies="" url="dict://dict.org"/>
   </dictservers>
   <programs>
     <program commandLine="festival --tts" enabled="0" icon="" id="428b4c2b905ef568a43d9a16f59559b0" name="Festival" type="0"/>
@@ -165,6 +164,7 @@
     <enableApplicationLog>0</enableApplicationLog>
     <openWebsiteInNewTab>0</openWebsiteInNewTab>
     <suppressWebDialogs>0</suppressWebDialogs>
+    <enableJavaScriptClipboardAccess>0</enableJavaScriptClipboardAccess>
     <maxStringsInHistory>500</maxStringsInHistory>
     <storeHistory>1</storeHistory>
     <alwaysExpandOptionalParts>0</alwaysExpandOptionalParts>
