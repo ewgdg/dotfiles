@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -eu
+
+clipboard_text() {
+  if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] && command -v wl-paste >/dev/null 2>&1; then
+    wl-paste --no-newline
+    return
+  fi
+
+  if command -v xclip >/dev/null 2>&1; then
+    xclip -o -selection clipboard
+    return
+  fi
+
+  if command -v wl-paste >/dev/null 2>&1; then
+    wl-paste --no-newline
+    return
+  fi
+
+  # Desktop Exec field escaping gets messy fast. Keep clipboard logic here instead.
+  printf '%s\n' 'goldendict-search: need wl-paste or xclip in PATH' >&2
+  exit 1
+}
+
+validate_clipboard_text() {
+  case "$1" in
+    "")
+      printf '%s\n' 'goldendict-search: clipboard empty' >&2
+      exit 1
+      ;;
+    *[![:print:]]*)
+      printf '%s\n' 'goldendict-search: clipboard must be single-line printable text' >&2
+      exit 1
+      ;;
+    *[[:alnum:]]*)
+      ;;
+    *)
+      printf '%s\n' 'goldendict-search: clipboard must contain word characters' >&2
+      exit 1
+      ;;
+  esac
+
+  if [ "${#1}" -gt 200 ]; then
+    printf '%s\n' 'goldendict-search: clipboard text too long' >&2
+    exit 1
+  fi
+}
+
+text=$(clipboard_text)
+validate_clipboard_text "$text"
+
+# Popup mode is fragile on Wayland because focus/positioning behavior depends on
+# compositor and XWayland interaction. Main window is more reliable across setups.
+exec goldendict --main-window -- "$text"

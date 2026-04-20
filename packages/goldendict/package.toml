@@ -26,6 +26,11 @@ source = "files/local/share/applications/goldendict-search.desktop"
 path = "~/.local/share/applications/goldendict-search.desktop"
 chmod = "600"
 
+[targets.f_local_share_applications_bin_goldendict_search]
+source = "files/local/bin/goldendict-search"
+path = "~/.local/bin/goldendict-search"
+chmod = "755"
+
 [targets.f_local_share_flatpak_overrides_io_github_xiaoyifang_goldendict_ng]
 source = "files/local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng"
 path = "~/.local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng"
