@@ -1,0 +1,11 @@
+id = "linux/fonts"
+description = "Linux font configuration"
+
+[targets.f_etc_fonts_local_conf]
+source = "files/etc/fonts/local.conf"
+path = "/etc/fonts/local.conf"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-cascadia-code-nerd",
+]

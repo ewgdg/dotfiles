@@ -1,0 +1,11 @@
+id = "mac/fonts"
+description = "macOS font package"
+
+[targets.f_local_state_dotman_installed_mac_fonts]
+source = "files/local/state/dotman/installed/fonts"
+path = "~/.local/state/dotman/installed/fonts"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} font-caskaydia-cove-nerd-font",
+]

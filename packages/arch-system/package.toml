@@ -18,9 +18,10 @@ path = "/etc/makepkg.conf"
 source = "files/etc/locale.gen"
 path = "/etc/locale.gen"
 
-[targets.f_etc_fonts_local_conf]
-source = "files/etc/fonts/local.conf"
-path = "/etc/fonts/local.conf"
+[targets.f_etc_locale_gen.hooks]
+post_push = [
+  'sudo locale-gen',
+]
 
 [targets.d_config_paru]
 source = "files/config/paru"
@@ -31,8 +32,3 @@ source = "files/config/yay/config.json"
 path = "~/.config/yay/config.json"
 render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.arch_system.yay_config_selector_args }}'
 capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.arch_system.yay_config_selector_args }}'
-
-[hooks]
-post_push = [
-  'if [ "$(id -u)" -eq 0 ]; then locale-gen; else sudo locale-gen; fi',
-]
