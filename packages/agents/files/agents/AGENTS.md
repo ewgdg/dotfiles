@@ -3,7 +3,7 @@
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
-- CAVEMAN mode active.
+- CAVEMAN lite mode active.
 
 ## File Operations
 

@@ -7,12 +7,6 @@ dictionary_dir = "${XDG_DOCUMENTS_DIR:-$HOME/Documents}/Dictionaries"
 config_selector_args = "'config/*WindowGeometry*' 'config/*WindowState*' 'config/*Geometry*' 'config/*SplitterState*' 'config/*GroupId' 'config/*Release*'"
 unordered_child_selector_args = "'config/mutedDictionaries' 'config/popupMutedDictionaries'"
 
-[targets.f_var_app_io_github_xiaoyifang_goldendict_ng_config_goldendict_config]
-source = "files/config/goldendict/config"
-path = "~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config"
-chmod = "644"
-render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_goldendict_config.py" render "$DOTMAN_LIVE_PATH" "$DOTMAN_REPO_PATH" --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selectors {{ vars.goldendict.config_selector_args }}'
-capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_goldendict_config.py" capture "$DOTMAN_LIVE_PATH" --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selectors {{ vars.goldendict.config_selector_args }}'
 
 [targets.f_config_goldendict_config]
 source = "files/config/goldendict/config"
@@ -31,10 +25,19 @@ source = "files/local/bin/goldendict-search"
 path = "~/.local/bin/goldendict-search"
 chmod = "755"
 
+[targets.f_var_app_io_github_xiaoyifang_goldendict_ng_config_goldendict_config]
+source = "files/config/goldendict/config"
+path = "~/.var/app/io.github.xiaoyifang.goldendict_ng/config/goldendict/config"
+chmod = "644"
+render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_goldendict_config.py" render "$DOTMAN_LIVE_PATH" "$DOTMAN_REPO_PATH" --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selectors {{ vars.goldendict.config_selector_args }}'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_goldendict_config.py" capture "$DOTMAN_LIVE_PATH" --sort-children {{ vars.goldendict.unordered_child_selector_args }} --selectors {{ vars.goldendict.config_selector_args }}'
+disabled = true
+
 [targets.f_local_share_flatpak_overrides_io_github_xiaoyifang_goldendict_ng]
 source = "files/local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng"
 path = "~/.local/share/flatpak/overrides/io.github.xiaoyifang.goldendict_ng"
 chmod = "644"
+disabled = true
 
 [targets.f_var_app_org_goldendict_goldendict_config_goldendict_config]
 source = "files/var/app/org.goldendict.GoldenDict/config/goldendict/config"

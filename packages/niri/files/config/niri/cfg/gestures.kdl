@@ -1,0 +1,11 @@
+// https://github.com/niri-wm/niri/wiki/Configuration:-Gestures
+
+gestures {
+    hot-corners {
+        off
+        // top-left
+        // top-right
+        // bottom-left
+        // bottom-right
+    }
+}

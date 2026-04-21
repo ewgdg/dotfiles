@@ -1,5 +1,5 @@
 id = "linux/lutris"
-description = "Lutris install marker and XEmbed SNI proxy service"
+description = "A linux gaming platform install"
 
 [targets.f_local_state_dotman_installed_linux_lutris]
 source = "files/local/state/dotman/installed/lutris"

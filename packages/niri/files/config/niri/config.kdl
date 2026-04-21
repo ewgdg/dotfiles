@@ -14,6 +14,7 @@ include "cfg/misc.kdl"
 include "cfg/workspaces.kdl"
 include "cfg/switch-events.kdl"
 include "cfg/recent-windows.kdl"
+include "cfg/gestures.kdl"
 include "cfg/debug.kdl"
 
 
