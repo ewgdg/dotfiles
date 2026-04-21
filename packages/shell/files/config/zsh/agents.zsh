@@ -105,11 +105,16 @@ codex() {
   fi
 
   local helper="$HOME/.config/zsh/agents-file-expand.py"
-  if [[ ! -x "$helper" ]]; then
+  if [[ ! -f "$helper" ]]; then
     print -u2 -- "Missing helper: $helper"
     return 1
   fi
+  if [[ ! -r "$helper" ]]; then
+    print -u2 -- "Unreadable helper: $helper"
+    return 1
+  fi
 
+  # `uv run` executes Python script directly; helper does not need executable bit.
   if ! command uv run "$helper"; then
     print -u2 -- "Failed to expand Codex AGENTS file"
     return 1
