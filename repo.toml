@@ -3,11 +3,13 @@ pull = [
     "*.dotdropbak",
     "*.bak",
     "__pycache__/",
+    ".DS_Store",
 ]
 push = [
     "*.archived",
     "*.bak",
     "__pycache__/",
+    ".DS_Store",
 ]
 
 [hooks]
