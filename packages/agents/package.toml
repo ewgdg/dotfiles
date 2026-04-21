@@ -26,5 +26,5 @@ path = "~/.local/state/skills/.skill-lock.json"
 [hooks]
 pre_push = [
   'mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.pi/agent"',
-  "bun install -g @mariozechner/pi-coding-agent",
+  "{{ NPM_INSTALL }} @mariozechner/pi-coding-agent",
 ]

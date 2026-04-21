@@ -1,5 +1,6 @@
 [vars]
 UV_RUN = "uv run --project \"$DOTMAN_REPO_ROOT\""
+NPM_INSTALL = "npm install --prefer-offline --no-audit --no-fund --loglevel=error -g"
 XML_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/xml_transform.py\""
 TOML_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/toml_transform.py\""
 PLIST_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/plist_transform.py\""
