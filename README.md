@@ -23,9 +23,9 @@ Use `init.sh` to install bootstrap dependencies:
 `./activate.sh` is recommended before `./init.sh` and before first
 `dotman push`.
 
-`activate.sh` loads repo core env (`packages/shell/files/env.core.sh`) into the current shell, including XDG dirs, and PATH entries such as `~/.local/bin`.
-This is to align current shell with the repo's profile env. Skip if already running a login shell started after the shell profile was pushed.
-`dotman push` is guarded by a shell env sentinel. If current shell has not loaded repo core env yet, the guard stops with a fix message instead of prompting.
+`activate.sh` loads repo core env (`packages/shell/files/env.core.sh`) into the current shell, including XDG dirs and PATH entries such as `~/.local/bin`, then exports a hash token for stale-shell detection.
+This is to align current shell with the repo's profile env. Skip if already running a login shell started after the shell package was pushed.
+`dotman push` is guarded by that shell env token. If current shell does not carry current repo core env token yet, the guard stops with a fix message instead of prompting.
 
 ```sh
 . ./activate.sh
@@ -54,8 +54,8 @@ DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 After bootstrap, use dotman as the primary interface.
 
 If the `shell` package is pushed and you start a new login shell, the managed
-profile loads the same core env automatically, so manual `./activate.sh` is no
-longer needed.
+profile sources the deployed `~/.config/shell/env.core.sh` automatically, so manual
+`./activate.sh` is no longer needed.
 
 Typical flow:
 

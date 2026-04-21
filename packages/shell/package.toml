@@ -24,6 +24,13 @@ pull_ignore = [
 source = "files/config/fd"
 path = "~/.config/fd"
 
+[targets.f_config_sh_env_core]
+source = "files/env.core.sh"
+path = "~/.config/shell/env.core.sh"
+chmod = "644"
+render = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/core_env_token.sh" render "$DOTMAN_REPO_PATH"'
+capture = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/core_env_token.sh" capture "$DOTMAN_LIVE_PATH"'
+
 [targets.f_profile]
 source = "files/profile"
 path = "~/.profile"

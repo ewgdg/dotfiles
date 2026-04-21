@@ -1,6 +1,13 @@
 # Ensure PATH/path arrays remain unique across all zsh invocations
 typeset -U PATH path
 
+dotfiles_core_env_path="$HOME/.config/shell/env.core.sh"
+if [ -r "$dotfiles_core_env_path" ]; then
+  # Load deployed core env for login and non-login zsh so fresh shells pick up env changes.
+  # shellcheck source=/dev/null
+  . "$dotfiles_core_env_path"
+fi
+
 # uv
 # moved to .zprofile to avoid being included twice
 # export PATH="$HOME/.local/bin:$PATH"

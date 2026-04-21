@@ -1,6 +1,14 @@
 # os: {{ os }}
 
-{% include 'env.core.sh' %}
+# zsh sources ~/.zshenv before ~/.zprofile, and ~/.zprofile sources ~/.profile.
+# Skip core env here under zsh so login zsh does not load the same file twice.
+if [ -z "${ZSH_VERSION:-}" ]; then
+  dotfiles_core_env_path="$HOME/.config/shell/env.core.sh"
+  if [ -r "$dotfiles_core_env_path" ]; then
+    # shellcheck source=/dev/null
+    . "$dotfiles_core_env_path"
+  fi
+fi
 {% if os == "darwin" %}
 if [ -x /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
