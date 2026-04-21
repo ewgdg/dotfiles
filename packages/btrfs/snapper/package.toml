@@ -5,9 +5,17 @@ description = "Snapper snapshot configuration and timers"
 source = "files/etc/conf.d/snapper"
 path = "/etc/conf.d/snapper"
 
-[targets.d_etc_snapper_configs]
-source = "files/etc/snapper/configs"
-path = "/etc/snapper/configs"
+# Snapper may leave these configs at 0640 root:root when created from live state.
+# Keep them world-readable: they contain policy only, no secrets, and user tools may inspect them.
+[targets.f_etc_snapper_configs_root]
+source = "files/etc/snapper/configs/root"
+path = "/etc/snapper/configs/root"
+chmod = "644"
+
+[targets.f_etc_snapper_configs_home]
+source = "files/etc/snapper/configs/home"
+path = "/etc/snapper/configs/home"
+chmod = "644"
 
 [hooks]
 pre_push = [
