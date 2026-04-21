@@ -1,1 +1,1 @@
-members = ["unix/base", "unix/utils", "docker", "keyd", "linux/desktop", "linux/fonts"]
+members = ["unix/base", "unix/utils", "docker", "keyd", "linux/desktop", "linux/fonts", "btrfs/snapper"]

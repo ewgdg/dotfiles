@@ -1,0 +1,20 @@
+id = "btrfs/snapper"
+description = "Snapper snapshot configuration and timers"
+
+[targets.f_etc_conf_d_snapper]
+source = "files/etc/conf.d/snapper"
+path = "/etc/conf.d/snapper"
+
+[targets.d_etc_snapper_configs]
+source = "files/etc/snapper/configs"
+path = "/etc/snapper/configs"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} snapper btrfs-assistant",
+]
+post_push = [
+  # Current snapshot policy relies on timeline + cleanup timers. boot timer stays unmanaged/off.
+  '{{ ENSURE_SYSTEMD }} system snapper-timeline.timer',
+  '{{ ENSURE_SYSTEMD }} system snapper-cleanup.timer',
+]
