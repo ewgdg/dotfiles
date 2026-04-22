@@ -18,6 +18,10 @@ path = "/etc/snapper/configs/home"
 chmod = "644"
 
 [hooks]
+guard_push = [
+  # Managed configs assume btrfs subvolumes mounted from /root and /home. Soft-skip whole package when layout differs.
+  'sh "$DOTMAN_PACKAGE_ROOT/scripts/has_supported_btrfs_layout.sh" || exit 100',
+]
 pre_push = [
   "{{ INSTALL }} snapper btrfs-assistant",
 ]
