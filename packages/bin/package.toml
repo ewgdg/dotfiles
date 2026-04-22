@@ -5,7 +5,8 @@ description = "Personal command-line scripts"
 source = "files/bin"
 path = "~/bin"
 
+# askpass-gui only runs on Linux; avoid pulling zenity and GTK stack onto macOS.
 [hooks]
 pre_push = [
-  "{{ INSTALL }} zenity",
+  'if [ "{{ os }}" = "linux" ]; then {{ INSTALL }} zenity; fi',
 ]
