@@ -8,7 +8,7 @@ JSON_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/json_transform.py\""
 
 XML_RENDER = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 TOML_RENDER = "{{ TOML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
-PLIST_RENDER = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\""
+PLIST_RENDER = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 JSON_RENDER = "{{ JSON_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 
 XML_CAPTURE = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
