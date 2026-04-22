@@ -1,1 +1,1 @@
-members = ["kde", "sddm"]
+members = ["kde", "greetd"]

@@ -1,0 +1,17 @@
+id = "greetd"
+description = "greetd display manager and tuigreet configuration"
+
+[targets.f_etc_greetd_config_toml]
+source = "files/etc/greetd/config.toml"
+path = "/etc/greetd/config.toml"
+render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/render_greetd_config.py" "$DOTMAN_REPO_PATH" --session "{{ vars.desktop.session }}" --host-user "{{ vars.host.user }}" --placeholder-prefix "__PLACEHOLDER_"'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/capture_greetd_config.py" "$DOTMAN_LIVE_PATH" --template-file "$DOTMAN_REPO_PATH" --placeholder-prefix "__PLACEHOLDER_"'
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} greetd greetd-tuigreet-fork-bin",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} system greetd.service',
+  '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/disable_other_display_managers.py" --keep-unit greetd.service',
+]
