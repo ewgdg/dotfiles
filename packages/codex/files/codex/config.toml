@@ -67,3 +67,6 @@ codex_hooks = true
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens"]
 
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
