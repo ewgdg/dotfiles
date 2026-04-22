@@ -20,8 +20,7 @@ Use `init.sh` to install bootstrap dependencies:
 ./init.sh
 ```
 
-`./activate.sh` is recommended before `./init.sh` and before first
-`dotman push`.
+Source `./activate.sh` before `./init.sh` and before first `dotman push`; do not run it directly.
 
 `activate.sh` loads repo core env (`packages/shell/files/env.core.sh`) into the current shell, including XDG dirs and PATH entries such as `~/.local/bin`, then exports a hash token for stale-shell detection.
 This is to align current shell with the repo's profile env. Skip if already running a login shell started after the shell package was pushed.
