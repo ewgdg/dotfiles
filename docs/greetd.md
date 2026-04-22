@@ -34,9 +34,10 @@ Search order:
 `greetd` package hooks:
 
 - install `greetd` and `greetd-tuigreet-fork-bin`
-- enable `greetd.service`
-- disable any other enabled display-manager unit that advertises
-  `Alias=display-manager.service`
+- call shared `{{ ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT }}` helper for
+  `greetd.service`
 
-This stays generic across login managers such as SDDM or Plasma Login and avoids
-hard-coding a single competing service name.
+That shared helper enables requested display-manager unit, then disables any
+other enabled display-manager unit that advertises
+`Alias=display-manager.service`. This stays generic across login managers such
+as SDDM or Plasma Login and is reusable by other display-manager packages.

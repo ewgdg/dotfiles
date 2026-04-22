@@ -10,9 +10,6 @@ scope="$1"
 unit_name="$2"
 
 sudo_command=(sudo)
-if [[ ! -t 0 || ! -t 1 || ! -t 2 ]]; then
-  sudo_command=(sudo -A)
-fi
 
 systemctl_query_command=()
 systemctl_enable_command=()

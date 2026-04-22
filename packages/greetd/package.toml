@@ -12,6 +12,5 @@ pre_push = [
   "{{ INSTALL }} greetd greetd-tuigreet-fork-bin",
 ]
 post_push = [
-  '{{ ENSURE_SYSTEMD }} system greetd.service',
-  '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/disable_other_display_managers.py" --keep-unit greetd.service',
+  '{{ ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT }} greetd.service',
 ]

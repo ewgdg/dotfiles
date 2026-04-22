@@ -84,37 +84,84 @@ def select_units_to_disable(
     )
 
 
-def sudo_prefix() -> list[str]:
-    if sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
-        return ["sudo"]
-    return ["sudo", "-A"]
+def should_enable_unit(unit_name: str, *, is_enabled: Callable[[str], bool]) -> bool:
+    return not is_enabled(unit_name)
 
 
-def disable_units(unit_names: Sequence[str], *, dry_run: bool) -> int:
-    if not unit_names:
-        return 0
+def systemctl_unit_available(unit_name: str) -> bool:
+    completed = subprocess.run(
+        ["systemctl", "show", "--property=FragmentPath", "--value", unit_name],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return completed.returncode == 0 and bool(completed.stdout.strip())
 
-    if dry_run:
-        sys.stdout.write("\n".join(unit_names) + "\n")
-        return 0
 
-    command = ["systemctl", "disable", "--now", *unit_names]
+def run_systemctl_mutation(args: Sequence[str]) -> int:
+    command = ["systemctl", *args]
     if os.geteuid() != 0:
-        command = [*sudo_prefix(), *command]
-
+        # Intentionally use plain sudo. Repo policy does not assume askpass is configured.
+        command = ["sudo", *command]
     completed = subprocess.run(command, check=False)
     return completed.returncode
 
 
+def daemon_reload() -> bool:
+    return run_systemctl_mutation(["daemon-reload"]) == 0
+
+
+def print_dry_run_plan(*, target_unit: str, enable_target: bool, units_to_disable: Sequence[str]) -> int:
+    if enable_target:
+        print(f"enable {target_unit}")
+    for unit_name in units_to_disable:
+        print(f"disable --now {unit_name}")
+    return 0
+
+
+def enable_display_manager_unit(
+    *,
+    target_unit: str,
+    unit_dirs: Sequence[Path],
+    dry_run: bool,
+) -> int:
+    if not daemon_reload():
+        print(f"Skipping {target_unit}: systemd is not reachable.", file=sys.stderr)
+        return 0
+
+    if not systemctl_unit_available(target_unit):
+        print(f"Skipping {target_unit}: the system unit is not available.", file=sys.stderr)
+        return 0
+
+    display_manager_units = find_display_manager_units(unit_dirs)
+    enable_target = should_enable_unit(target_unit, is_enabled=systemctl_is_enabled)
+    units_to_disable = select_units_to_disable(
+        display_manager_units=display_manager_units,
+        keep_unit=target_unit,
+        is_enabled=systemctl_is_enabled,
+    )
+
+    if dry_run:
+        return print_dry_run_plan(
+            target_unit=target_unit,
+            enable_target=enable_target,
+            units_to_disable=units_to_disable,
+        )
+
+    if enable_target and run_systemctl_mutation(["enable", target_unit]) != 0:
+        return 1
+
+    if units_to_disable and run_systemctl_mutation(["disable", "--now", *units_to_disable]) != 0:
+        return 1
+
+    return 0
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Disable enabled display-manager services other than the one to keep."
+        description="Enable one display-manager unit and disable other enabled display managers."
     )
-    parser.add_argument(
-        "--keep-unit",
-        default="greetd.service",
-        help="Display-manager unit to keep enabled. Default: greetd.service",
-    )
+    parser.add_argument("unit_name", help="Display-manager unit to keep enabled.")
     parser.add_argument(
         "--unit-dir",
         action="append",
@@ -125,7 +172,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print units that would be disabled and exit.",
+        help="Print actions that would be taken and exit.",
     )
     return parser.parse_args(argv)
 
@@ -135,17 +182,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     unit_dirs = tuple(args.unit_dirs or _DEFAULT_UNIT_DIRS)
 
     try:
-        display_manager_units = find_display_manager_units(unit_dirs)
-        units_to_disable = select_units_to_disable(
-            display_manager_units=display_manager_units,
-            keep_unit=args.keep_unit,
-            is_enabled=systemctl_is_enabled,
+        return enable_display_manager_unit(
+            target_unit=args.unit_name,
+            unit_dirs=unit_dirs,
+            dry_run=args.dry_run,
         )
     except Exception as exc:
-        print(f"disable_other_display_managers: {exc}", file=sys.stderr)
+        print(f"enable_display_manager_systemd_unit: {exc}", file=sys.stderr)
         return 1
-
-    return disable_units(units_to_disable, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

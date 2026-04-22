@@ -5,8 +5,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = REPO_ROOT / "packages/greetd/scripts/disable_other_display_managers.py"
-MODULE_SPEC = spec_from_file_location("disable_other_display_managers", MODULE_PATH)
+MODULE_PATH = REPO_ROOT / "scripts/enable_display_manager_systemd_unit.py"
+MODULE_SPEC = spec_from_file_location("enable_display_manager_systemd_unit", MODULE_PATH)
 assert MODULE_SPEC is not None
 assert MODULE_SPEC.loader is not None
 MODULE = module_from_spec(MODULE_SPEC)
@@ -76,3 +76,18 @@ def test_select_units_to_disable_skips_keep_unit_and_non_enabled_units() -> None
         keep_unit="greetd.service",
         is_enabled=lambda unit_name: unit_name != "sddm.service",
     ) == ("plasmalogin.service",)
+
+
+def test_print_dry_run_plan_lists_enable_and_disable_actions(capsys) -> None:
+    exit_code = MODULE.print_dry_run_plan(
+        target_unit="greetd.service",
+        enable_target=True,
+        units_to_disable=("sddm.service",),
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out.splitlines() == [
+        "enable greetd.service",
+        "disable --now sddm.service",
+    ]
