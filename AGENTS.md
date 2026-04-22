@@ -1,26 +1,31 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+## Source of Truth
 
-This repository manages user and system configuration with `dotman`. Managed files are stored under `packages/<id>/files/...`, mirroring destination paths. Shared cross-package helper scripts live in `scripts/`. Package-specific helpers should live under that package, for example `packages/<id>/scripts/`, and be referenced via `DOTMAN_PACKAGE_ROOT` so the package stays self-contained. Use `docs/` for contributor-facing notes about workflows or non-obvious behavior.
+- This repo is built around [`dotman`](https://github.com/ewgdg/dotman).
+- If unsure about repo layout, selectors, tracking, hooks, actions, or transforms: read `README.md` first, then check upstream `dotman` docs.
 
-## Develop Guidelines
+## Repo Layout
 
-When adding a new config file, also add an appropriate post/pre action for it if necessary, for example, installing the corresponding app for the config.
-Actions must be idempotent.
-Use `install-if 'pkg' 'predicate'` to conditionally install a package (e.g. `- install-if 'foo' 'command -v foo'`). Arg order is package first, predicate second.
-Action arguments use `{0}`, `{1}`, etc. as positional placeholders. When calling an action with multiple packages, always quote them as a single argument: `- install 'pkg1 pkg2'`. Unquoted extra tokens are silently dropped.
-If an action is only used in one place, prefer inlining the command at that call site instead of creating a single-use named action.
-Transform scripts must write the output path passed by dotman and preserve the source file mode on that output.
-Performance is a concern for long running services.
-Do not edit files with a `.archived` suffix unless the user explicitly asks.
+- `packages/` — package definitions and managed files under `packages/<id>/files/...`
+- `groups/` — reusable selector composition
+- `profiles/` — variable-only profile definitions
+- `scripts/` — shared helper scripts
+- `repo.toml` — repo-wide defaults
+- `docs/` — repo-specific notes
 
-## Build, Test, and Development Commands
+## Working Rules
 
-There is no application build step. The core workflow is syncing and validating managed files.
+- Use `dotman` for sync workflows.
+- `dotman push` = repo → live system.
+- `dotman pull` = live system → repo.
+- Run Python helpers with `uv run ...`.
+- Keep hooks/actions idempotent.
+- Prefer package-local helpers over shared `scripts/` when scope is package-specific.
+- Do not edit `*.archived` files unless explicitly asked.
+- Do not commit secrets, generated state, or local-only overrides.
 
-Use `dotman` for agent workflows in this repo. `dotman pull` previews or applies drift between the repo and live targets, and `dotman push` syncs live files back into the repo. If you need the user-facing workflow details, refer to `README.md`.
+## Agent Behavior
 
-## Security & Configuration Tips
-
-Do not commit credentials, generated state, or local-only overrides that are already excluded by `cmpignore`/`upignore`.
+- When confused, stop and read docs before changing files.
+- Prefer existing repo patterns over inventing new structure.
