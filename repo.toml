@@ -4,16 +4,15 @@ pull = [
     "*.bak",
     "__pycache__/",
     ".DS_Store",
+    ".codex",
 ]
 push = [
     "*.archived",
     "*.bak",
     "__pycache__/",
     ".DS_Store",
+    ".codex",
 ]
-
-[vars]
-ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/enable_display_manager_systemd_unit.py"'
 
 [hooks]
 guard_push = [

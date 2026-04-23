@@ -2,3 +2,4 @@ includes = ["runtime/core"]
 
 [vars]
 ENSURE_SYSTEMD     = "sh \"$DOTMAN_REPO_ROOT/scripts/ensure_systemd_service_enabled.sh\""
+ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/enable_display_manager_systemd_unit.py"'
