@@ -19,11 +19,6 @@
 - if you need to write doc, persist docs in `./docs/` directory
 - when writing complex features or significant refactors, use an ExecPlan (as described in `~/.agents/PLANS.md`)
 
-## Privileged Commands
-
-- When the agent executes a privileged command through an environment without input, prefer `sudo -A`.
-- Do not apply this rule to repository scripts or command examples meant for normal interactive user use.
-
 ## Problem Solving
 
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
