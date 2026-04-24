@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+set -eu
+
+if [ "$#" -eq 0 ]; then
+    printf '%s\n' "usage: agent-sudo COMMAND [ARG...]" >&2
+    exit 2
+fi
+
+# Force sudo away from terminal prompting. If auth is needed and no askpass is
+# configured, sudo exits instead of blocking on an unreachable TUI/agent prompt.
+exec sudo -A "$@"
