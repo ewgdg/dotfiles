@@ -3,7 +3,7 @@ description = "Bundled Codex CLI configuration, agents, and rules"
 
 [vars.codex]
 # Ignore vendor-bundled marketplace state during capture; keep plugin enablement tracked for now.
-config_selector_args = "'model' 'model_reasoning_effort' 're:^projects\\.' 're:^mcp_servers\\.playwright\\.env$' 're:^marketplaces\\.openai-bundled$'"
+config_selector_args = "'model' 'model_reasoning_effort' 're:^projects\\.' 're:^mcp_servers\\.playwright\\.env$' 're:^marketplaces\\.openai-bundled$' 'tui.model_availability_nux'"
 
 [targets.f_codex_config_toml]
 source = "files/codex/config.toml"
