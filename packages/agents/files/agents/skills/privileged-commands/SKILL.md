@@ -5,17 +5,18 @@ description: >
   Decide which fallback approach is appropriate.
 ---
 
-Use this skill only for edge cases where normal `sudo` may not work.
+Use this skill only when normal `sudo` prompting may be unreachable, such as
+inside an agent/TUI harness.
 
-`agent-sudo COMMAND [ARG...]` runs the real command with `sudo -A`, forcing
-askpass instead of terminal prompting. Use it when sudo may prompt somewhere the
-password owner cannot answer, such as inside an agent/TUI harness.
+Prefer plain `sudo` when interactive prompting works. Otherwise run the
+skill-local helper:
 
-## Rule
+```sh
+{baseDir}/scripts/agent-sudo COMMAND [ARG...]
+```
 
-- Use plain `sudo` when normal interactive prompting works.
-- Use `agent-sudo` when the prompt may be unreachable.
+`{baseDir}` is the directory containing this `SKILL.md`. Resolve it to an
+absolute path; do not assume `agent-sudo` is on `$PATH`.
 
-## Notes
-
-- Let sudo decide policy for the actual command; avoid preflight checks.
+The helper runs the command with `sudo -A`, forcing askpass instead of terminal
+prompting. Let sudo decide policy for the actual command; avoid preflight checks.
