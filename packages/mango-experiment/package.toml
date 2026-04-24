@@ -1,0 +1,16 @@
+id = "mango-experiment"
+description = "MangoWM experiment configuration snapshot"
+
+[targets.d_config_mango]
+source = "files/config/mango"
+path = "~/.config/mango"
+
+[targets.f_config_xdg_desktop_portal_mango_portals_conf]
+source = "files/config/xdg-desktop-portal/mango-portals.conf"
+path = "~/.config/xdg-desktop-portal/mango-portals.conf"
+
+[hooks]
+# Mango config keybinds and startup commands expect these apps/services.
+pre_push = [
+  "{{ INSTALL }} mangowm-git xdg-desktop-portal-wlr xdg-desktop-portal-gtk",
+]
