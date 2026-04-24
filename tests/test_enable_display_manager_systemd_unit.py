@@ -91,3 +91,16 @@ def test_print_dry_run_plan_lists_enable_and_disable_actions(capsys) -> None:
         "enable greetd.service",
         "disable --now sddm.service",
     ]
+
+
+def test_main_handles_keyboard_interrupt_without_traceback(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        MODULE,
+        "enable_display_manager_unit",
+        lambda **_kwargs: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+
+    assert MODULE.main(["greetd.service"]) == 130
+
+    captured = capsys.readouterr()
+    assert captured.err == "\ninterrupted\n"

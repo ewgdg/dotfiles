@@ -11,6 +11,8 @@ capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/capture_greetd_config.py" 
 pre_push = [
   "{{ INSTALL }} greetd greetd-tuigreet-fork-bin",
 ]
-post_push = [
-  '{{ ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT }} greetd.service',
+
+[hooks.post_push]
+commands = [
+  { run = '{{ ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT }} greetd.service', io = "tty" },
 ]

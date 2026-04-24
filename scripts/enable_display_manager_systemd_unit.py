@@ -187,6 +187,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             unit_dirs=unit_dirs,
             dry_run=args.dry_run,
         )
+    except KeyboardInterrupt:
+        print("\ninterrupted", file=sys.stderr)
+        return 130
     except Exception as exc:
         print(f"enable_display_manager_systemd_unit: {exc}", file=sys.stderr)
         return 1
