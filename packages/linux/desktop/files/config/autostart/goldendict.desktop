@@ -1,12 +1,12 @@
 [Desktop Entry]
 Categories=Office;Dictionary;Education;Qt;
 Comment=A feature-rich dictionary lookup program
-Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=goldendict --file-forwarding io.github.xiaoyifang.goldendict_ng @@u %u @@
+Exec=goldendict
 GenericName=Multiformat Dictionary
-Icon=io.github.xiaoyifang.goldendict_ng
+Icon=goldendict
 MimeType=x-scheme-handler/goldendict;x-scheme-handler/dict;
 Name=GoldenDict-ng
+StartupWMClass=GoldenDict-ng
 Terminal=false
 Type=Application
 X-Desktop-File-Install-Version=0.27
-X-Flatpak=io.github.xiaoyifang.goldendict_ng
