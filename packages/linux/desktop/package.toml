@@ -1,5 +1,5 @@
 id = "linux/desktop"
-description = "Linux desktop session and portal configuration"
+description = "Linux desktop session configuration"
 
 [targets.d_config_autostart]
 source = "files/config/autostart"
@@ -16,10 +16,6 @@ path = "~/.config/user-dirs.dirs"
 [targets.f_config_mimeapps_list]
 source = "files/config/mimeapps.list"
 path = "~/.config/mimeapps.list"
-
-[targets.d_config_xdg_desktop_portal]
-source = "files/config/xdg-desktop-portal"
-path = "~/.config/xdg-desktop-portal"
 
 [targets.f_config_systemd_user_network_virtual_mic_service]
 source = "files/config/systemd/user/network-virtual-mic.service"

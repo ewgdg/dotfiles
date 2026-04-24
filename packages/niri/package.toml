@@ -27,6 +27,10 @@ path = "~/.config/systemd/user/niri-session-setup.service"
 source = "files/config/systemd/user/niri-wait-for-tray-host.service"
 path = "~/.config/systemd/user/niri-wait-for-tray-host.service"
 
+[targets.f_config_xdg_desktop_portal_niri_portals_conf]
+source = "files/config/xdg-desktop-portal/niri-portals.conf"
+path = "~/.config/xdg-desktop-portal/niri-portals.conf"
+
 # This NVIDIA override only matters for the Niri session in this repo, so keep ownership here.
 [targets.f_etc_nvidia_nvidia_application_profiles_rc_d_50_limit_free_buffer_pool_in_wayland_compositors_json]
 source = "files/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"

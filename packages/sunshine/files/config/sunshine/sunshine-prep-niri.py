@@ -710,6 +710,9 @@ def restore_action() -> None:
         return
 
     kill_runtime_inhibit()
+    # Keep restore stateless for Niri. We intentionally do not persist or replay
+    # an output snapshot here; `undo` simply re-enables outputs that should be
+    # on according to current config/runtime discovery.
     # if not try_reload_niri_config():
     #     raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
     reenable_disabled_outputs()
