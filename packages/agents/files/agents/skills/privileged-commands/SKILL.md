@@ -12,11 +12,10 @@ Prefer plain `sudo` when interactive prompting works. Otherwise run the
 skill-local helper:
 
 ```sh
-{baseDir}/scripts/agent-sudo COMMAND [ARG...]
+./scripts/agent-sudo COMMAND [ARG...]
 ```
 
-`{baseDir}` is the directory containing this `SKILL.md`. Resolve it to an
-absolute path; do not assume `agent-sudo` is on `$PATH`.
+Path is relative to the skill root; run it from there or resolve it first. Do not assume `agent-sudo` is on `$PATH`.
 
 The helper runs the command with `sudo -A`, forcing askpass instead of terminal
 prompting. Let sudo decide policy for the actual command; avoid preflight checks.

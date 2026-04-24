@@ -25,7 +25,7 @@ Use this skill when a repository already has an issue template and the issue mus
 
 ## Preferred Command Pattern
 
-Run this from the skill directory so the bundled editor path stays portable:
+The script path is relative; you may need to run from the skill root:
 
 ```bash
 GH_ISSUE_TITLE='[Prefix] Final title' \
@@ -36,7 +36,7 @@ gh issue create -R <owner>/<repo> -T "<template>" --editor
 
 ## Script Contract
 
-The bundled editor script expects:
+`scripts/gh_template_editor.sh` expects:
 
 - `GH_ISSUE_TITLE`
   The exact final title line to write into the draft.
