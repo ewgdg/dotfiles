@@ -111,6 +111,21 @@ placement_column_index=""
 column_repositioned=0
 anchor_window_id=""
 
+column_index_after_placement() {
+    # move-column-to-index inserts after removing the moved column first. If the
+    # moved column starts left of the placement anchor on the same workspace, the
+    # anchor shifts left by one, so placement+1 would overshoot by one column.
+    if [ -n "$target_workspace_id" ] \
+        && [ "$target_window_workspace_id" = "$target_workspace_id" ] \
+        && [ -n "$target_window_column_index" ] \
+        && [ "$target_window_column_index" -lt "$placement_column_index" ]; then
+        printf '%s\n' "$placement_column_index"
+        return
+    fi
+
+    printf '%s\n' $((placement_column_index + 1))
+}
+
 if [ "$place_near_focused_window" = "true" ] && [ -n "$focused_window_id" ] && [ "$focused_window_id" != "$target_window_id" ]; then
     # Re-focus the original anchor just before the final summon focus so Niri
     # keeps the viewport anchored around the caller, not around the moved window.
@@ -169,14 +184,7 @@ elif [ "$target_is_floating" != "true" ] \
     fi
 
     if [ -n "$placement_column_index" ] && [ -n "$target_window_column_index" ]; then
-        # move-column-to-index inserts before the destination index. Adjust the
-        # target slot so the summoned column ends up just to the right of anchor.
-        target_column_destination_index=$((placement_column_index + 1))
-
-        if [ "$target_window_column_index" -lt "$placement_column_index" ]; then
-            target_column_destination_index=$placement_column_index
-        fi
-
+        target_column_destination_index="$(column_index_after_placement)"
         niri msg action move-column-to-index "$target_column_destination_index"
         column_repositioned=1
     fi
@@ -186,7 +194,8 @@ fi
 
 if [ "$column_repositioned" -eq 0 ] && [ -n "$placement_column_index" ] && [ "$target_is_floating" != "true" ]; then
     niri msg action focus-window --id "$target_window_id"
-    niri msg action move-column-to-index $((placement_column_index + 1))
+    target_column_destination_index="$(column_index_after_placement)"
+    niri msg action move-column-to-index "$target_column_destination_index"
 fi
 
 if [ "$float_window" = "true" ] && [ "$target_is_floating" != "true" ]; then
