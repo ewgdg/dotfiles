@@ -1,3 +1,5 @@
+default_command_elevation = "intercept"
+
 [ignore]
 pull = [
     "*.dotdropbak",

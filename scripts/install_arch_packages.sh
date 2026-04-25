@@ -12,4 +12,4 @@ done
 
 [ -n "$missing_packages" ] || exit 0
 
-printf '%s\n' "$missing_packages" | xargs -r yay -S --needed --answerdiff=None --answeredit=None
+printf '%s\n' "$missing_packages" | xargs -r yay -S --needed --noconfirm --useask --answerdiff=None --answeredit=None
