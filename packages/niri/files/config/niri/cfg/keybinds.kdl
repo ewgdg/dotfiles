@@ -113,7 +113,7 @@ binds {
     // Mod+Shift+Ctrl+Left  { move-workspace-to-monitor-left; }
     // ...
 
-    // Workspace Switching
+    // Workspace switching follows positional Vim: U is J/down/next, I is K/up/previous.
     Mod+U              { focus-workspace-down; }
     Mod+I              { focus-workspace-up; }
     Mod+Shift+U        { move-workspace-down; }

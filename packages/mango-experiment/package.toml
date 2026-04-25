@@ -1,6 +1,10 @@
 id = "mango-experiment"
 description = "MangoWM experiment configuration snapshot"
 
+depends = [
+  "noctalia",
+]
+
 [targets.d_config_mango]
 source = "files/config/mango"
 path = "~/.config/mango"
