@@ -3,13 +3,13 @@ Description=keyd application mapper
 PartOf=graphical-session.target
 After=graphical-session.target
 Requisite=graphical-session.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 ExecStart=keyd-application-mapper
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=300
-StartLimitBurst=3
 
 [Install]
 WantedBy=graphical-session.target
