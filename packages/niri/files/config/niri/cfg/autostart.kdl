@@ -6,7 +6,7 @@
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
 // Start it once per session.
 // spawn-at-startup "dms" "run"
-// Managed by the user systemd unit `noctalia-shell.service` so crashes restart cleanly
+// Managed by the user systemd unit `niri-shell.service` so crashes restart cleanly
 // and tray-dependent autostarts wait until the host is registered.
 // KDE Secret Service bridge for KWallet in a plain niri session.
 // spawn-sh-at-startup "~/.config/niri/bin/start-swayidle.sh"

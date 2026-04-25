@@ -15,17 +15,13 @@ pull_ignore = [
   "__pycache__/",
 ]
 
+[targets.f_config_systemd_user_niri_shell_service]
+source = "files/config/systemd/user/niri-shell.service"
+path = "~/.config/systemd/user/niri-shell.service"
+
 [targets.f_config_systemd_user_niri_event_stream_rules_service]
 source = "files/config/systemd/user/niri-event-stream-rules.service"
 path = "~/.config/systemd/user/niri-event-stream-rules.service"
-
-[targets.f_config_systemd_user_niri_session_setup_service]
-source = "files/config/systemd/user/niri-session-setup.service"
-path = "~/.config/systemd/user/niri-session-setup.service"
-
-[targets.f_config_systemd_user_niri_wait_for_tray_host_service]
-source = "files/config/systemd/user/niri-wait-for-tray-host.service"
-path = "~/.config/systemd/user/niri-wait-for-tray-host.service"
 
 [targets.f_config_xdg_desktop_portal_niri_portals_conf]
 source = "files/config/xdg-desktop-portal/niri-portals.conf"
@@ -46,7 +42,6 @@ pre_push = [
   "{{ INSTALL }} ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd",
 ]
 post_push = [
+  '{{ ENSURE_SYSTEMD }} user niri-shell.service',
   '{{ ENSURE_SYSTEMD }} user niri-event-stream-rules.service',
-  '{{ ENSURE_SYSTEMD }} user niri-session-setup.service',
-  '{{ ENSURE_SYSTEMD }} user niri-wait-for-tray-host.service',
 ]

@@ -1,5 +1,5 @@
 id = "noctalia"
-description = "Noctalia shell configuration and user service"
+description = "Noctalia shell configuration"
 
 [targets.d_config_noctalia]
 source = "files/config/noctalia"
@@ -15,14 +15,7 @@ pull_ignore = [
   "!plugins/pinned-window/",
 ]
 
-[targets.f_config_systemd_user_noctalia_shell_service]
-source = "files/config/systemd/user/noctalia-shell.service"
-path = "~/.config/systemd/user/noctalia-shell.service"
-
 [hooks]
 pre_push = [
   "{{ INSTALL }} noctalia-qs noctalia-shell",
-]
-post_push = [
-  '{{ ENSURE_SYSTEMD }} user noctalia-shell.service',
 ]

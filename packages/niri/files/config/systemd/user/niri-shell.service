@@ -1,18 +1,22 @@
 [Unit]
-Description=Noctalia Quick Shell for Niri
+Description=Noctalia shell for Niri
 After=niri.service
 BindsTo=niri.service
 PartOf=niri.service
 Before=xdg-desktop-autostart.target
 Before=graphical-session.target
+StartLimitIntervalSec=5min
+StartLimitBurst=3
 
 [Service]
 Type=exec
 TimeoutStartSec=20
+ExecStartPre=%h/.config/niri/bin/import-session-environment.sh
 ExecStart=/usr/bin/qs -c noctalia-shell
 ExecStartPost=%h/bin/wait-for-tray-host
 Restart=on-failure
-RestartSec=2
+RestartSec=0
 
 [Install]
 WantedBy=niri.service
+
