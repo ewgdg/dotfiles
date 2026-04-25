@@ -64,6 +64,25 @@ def read_desktop_entry_exec(desktop_entry_path: Path) -> str:
 
     return exec_command
 
+
+def resolve_session_command(
+    session_name: str,
+    *,
+    session_command: str | None,
+    wayland_session_dirs: Sequence[Path],
+    xsession_dirs: Sequence[Path],
+) -> str:
+    if session_command is not None and session_command.strip():
+        return session_command.strip()
+
+    desktop_entry_path = resolve_session_desktop_path(
+        session_name,
+        wayland_session_dirs=wayland_session_dirs,
+        xsession_dirs=xsession_dirs,
+    )
+    return read_desktop_entry_exec(desktop_entry_path)
+
+
 def collect_placeholder_paths(
     value: Any,
     replacements: dict[str, str],
@@ -140,6 +159,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("template_path", type=Path, help="Path to greetd config template.")
     parser.add_argument("--session", required=True, help="Session desktop entry stem, without .desktop.")
+    parser.add_argument(
+        "--session-command",
+        help="Explicit command for [initial_session].command. When set, skips .desktop Exec lookup.",
+    )
     parser.add_argument("--host-user", required=True, help="User for [initial_session].user.")
     parser.add_argument(
         "--placeholder-prefix",
@@ -171,13 +194,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         template_text = args.template_path.read_text(encoding="utf-8")
-        desktop_entry_path = resolve_session_desktop_path(
+        session_command = resolve_session_command(
             args.session,
+            session_command=args.session_command,
             wayland_session_dirs=wayland_session_dirs,
             xsession_dirs=xsession_dirs,
         )
         replacements = {
-            _AUTOLOGIN_PLACEHOLDER: read_desktop_entry_exec(desktop_entry_path),
+            _AUTOLOGIN_PLACEHOLDER: session_command,
             _HOST_USER_PLACEHOLDER: args.host_user,
         }
         rendered_text = render_greetd_config(

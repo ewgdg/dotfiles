@@ -4,11 +4,19 @@
 
 ## Autologin source of truth
 
-The greetd template does **not** hard-code the autologin command.
-Instead, `packages/greetd/scripts/render_greetd_config.py` resolves
+The greetd template does **not** hard-code the autologin command. By default,
+`packages/greetd/scripts/render_greetd_config.py` resolves
 `{{ vars.desktop.session }}.desktop` from standard session directories and copies
-its `Exec=` line into `[initial_session].command`. The same render step also
-fills other greetd-specific placeholders such as the autologin user.
+its `Exec=` line into `[initial_session].command`.
+
+Profiles can override that lookup with `vars.desktop.session_command`. When this
+value exists, `packages/greetd` passes it as `--session-command`, and the render
+script writes it directly to `[initial_session].command` without requiring a
+matching `.desktop` file. This is useful for compositor-specific wrappers such as
+Sway startup flags or session environment setup.
+
+The same render step also fills other greetd-specific placeholders such as the
+autologin user.
 
 Pull is paired with `packages/greetd/scripts/capture_greetd_config.py`, which
 restores any tracked string value that uses the `__PLACEHOLDER_` prefix. This
