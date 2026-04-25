@@ -39,5 +39,6 @@ Search order:
 
 That shared helper enables requested display-manager unit, then disables any
 other enabled display-manager unit that advertises
-`Alias=display-manager.service`. This stays generic across login managers such
-as SDDM or Plasma Login and is reusable by other display-manager packages.
+`Alias=display-manager.service` without stopping the currently running display
+manager session. This stays generic across login managers such as SDDM or
+Plasma Login and is reusable by other display-manager packages.

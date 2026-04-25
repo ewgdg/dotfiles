@@ -70,6 +70,22 @@ Alias=display-manager.service
     assert MODULE.find_display_manager_units((etc_dir, usr_dir)) == ("greetd.service",)
 
 
+def test_find_display_manager_units_skips_display_manager_alias_symlink(tmp_path: Path) -> None:
+    unit_dir = tmp_path / "systemd"
+    unit_dir.mkdir()
+    real_unit = unit_dir / "sddm.service"
+    real_unit.write_text(
+        """
+[Install]
+Alias=display-manager.service
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (unit_dir / "display-manager.service").symlink_to(real_unit)
+
+    assert MODULE.find_display_manager_units((unit_dir,)) == ("sddm.service",)
+
+
 def test_select_units_to_disable_skips_keep_unit_and_non_enabled_units() -> None:
     assert MODULE.select_units_to_disable(
         display_manager_units=("greetd.service", "plasmalogin.service", "sddm.service"),
@@ -89,8 +105,36 @@ def test_print_dry_run_plan_lists_enable_and_disable_actions(capsys) -> None:
     assert exit_code == 0
     assert captured.out.splitlines() == [
         "enable greetd.service",
-        "disable --now sddm.service",
+        "disable sddm.service",
     ]
+
+
+def test_enable_display_manager_unit_disables_without_stopping(monkeypatch) -> None:
+    mutation_calls: list[list[str]] = []
+
+    monkeypatch.setattr(MODULE, "daemon_reload", lambda: True)
+    monkeypatch.setattr(MODULE, "systemctl_unit_available", lambda _unit_name: True)
+    monkeypatch.setattr(
+        MODULE,
+        "find_display_manager_units",
+        lambda _unit_dirs: ("greetd.service", "sddm.service"),
+    )
+    monkeypatch.setattr(MODULE, "systemctl_is_enabled", lambda _unit_name: True)
+    monkeypatch.setattr(
+        MODULE,
+        "run_systemctl_mutation",
+        lambda args: mutation_calls.append(args) or 0,
+    )
+
+    assert (
+        MODULE.enable_display_manager_unit(
+            target_unit="greetd.service",
+            unit_dirs=(),
+            dry_run=False,
+        )
+        == 0
+    )
+    assert mutation_calls == [["disable", "sddm.service"]]
 
 
 def test_main_handles_keyboard_interrupt_without_traceback(monkeypatch, capsys) -> None:

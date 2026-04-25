@@ -40,6 +40,9 @@ def iter_effective_service_units(unit_dirs: Sequence[Path]) -> Iterable[Path]:
         if not unit_dir.is_dir():
             continue
         for unit_path in sorted(unit_dir.glob("*.service")):
+            # display-manager.service is a systemd Alias= symlink, not a real unit to disable.
+            if unit_path.name == _DISPLAY_MANAGER_ALIAS:
+                continue
             if unit_path.name in seen_names:
                 continue
             seen_names.add(unit_path.name)
@@ -115,7 +118,7 @@ def print_dry_run_plan(*, target_unit: str, enable_target: bool, units_to_disabl
     if enable_target:
         print(f"enable {target_unit}")
     for unit_name in units_to_disable:
-        print(f"disable --now {unit_name}")
+        print(f"disable {unit_name}")
     return 0
 
 
@@ -151,7 +154,7 @@ def enable_display_manager_unit(
     if enable_target and run_systemctl_mutation(["enable", target_unit]) != 0:
         return 1
 
-    if units_to_disable and run_systemctl_mutation(["disable", "--now", *units_to_disable]) != 0:
+    if units_to_disable and run_systemctl_mutation(["disable", *units_to_disable]) != 0:
         return 1
 
     return 0
