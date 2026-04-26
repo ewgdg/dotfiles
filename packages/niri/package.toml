@@ -19,6 +19,10 @@ pull_ignore = [
 source = "files/config/systemd/user/niri-shell.service"
 path = "~/.config/systemd/user/niri-shell.service"
 
+[targets.f_config_systemd_user_niri_service_d_override_conf]
+source = "files/config/systemd/user/niri.service.d/override.conf"
+path = "~/.config/systemd/user/niri.service.d/override.conf"
+
 [targets.f_config_systemd_user_niri_event_stream_rules_service]
 source = "files/config/systemd/user/niri-event-stream-rules.service"
 path = "~/.config/systemd/user/niri-event-stream-rules.service"

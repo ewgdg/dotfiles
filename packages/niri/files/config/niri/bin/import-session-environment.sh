@@ -5,8 +5,8 @@ set -eu
 env_file="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/niri/session.env}"
 
 if [ ! -f "$env_file" ]; then
-    printf 'import-session-environment: env file not found: %s\n' "$env_file" >&2
-    exit 1
+    printf 'import-session-environment: env file not found, skipping: %s\n' "$env_file" >&2
+    exit 0
 fi
 
 variables="$(

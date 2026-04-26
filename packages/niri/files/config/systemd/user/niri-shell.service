@@ -11,7 +11,6 @@ StartLimitBurst=3
 [Service]
 Type=exec
 TimeoutStartSec=20
-ExecStartPre=%h/.config/niri/bin/import-session-environment.sh
 ExecStart=/usr/bin/qs -c noctalia-shell
 ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
 Restart=on-failure
