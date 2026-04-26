@@ -13,7 +13,7 @@ Type=exec
 TimeoutStartSec=20
 ExecStartPre=%h/.config/niri/bin/import-session-environment.sh
 ExecStart=/usr/bin/qs -c noctalia-shell
-ExecStartPost=%h/bin/wait-for-tray-host
+ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
 Restart=on-failure
 
 [Install]

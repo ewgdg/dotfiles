@@ -1,6 +1,10 @@
 id = "noctalia"
 description = "Noctalia shell configuration"
 
+depends = [
+  "linux/status-notifier",
+]
+
 [targets.d_config_noctalia]
 source = "files/config/noctalia"
 path = "~/.config/noctalia"

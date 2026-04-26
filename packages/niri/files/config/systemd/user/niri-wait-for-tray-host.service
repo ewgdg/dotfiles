@@ -9,7 +9,7 @@ Before=graphical-session.target
 [Service]
 Type=oneshot
 TimeoutStartSec=20
-ExecStart=%h/bin/wait-for-tray-host
+ExecStart=/usr/local/bin/wait-for-status-notifier-host
 RemainAfterExit=yes
 
 [Install]
