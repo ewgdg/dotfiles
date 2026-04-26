@@ -112,15 +112,6 @@ bindsym $mod+Ctrl+Shift+Delete exec swaynag -t warning -m 'Exit Sway?' -B 'Yes, 
 
 # Noctalia actions.
 bindsym $mod+Ctrl+Shift+l exec qs -c noctalia-shell ipc call lockScreen lock
-bindsym --locked XF86AudioPlay exec qs -c noctalia-shell ipc call media playPause
-bindsym --locked XF86AudioPrev exec qs -c noctalia-shell ipc call media previous
-bindsym --locked XF86AudioNext exec qs -c noctalia-shell ipc call media next
-bindsym --locked XF86AudioRaiseVolume exec qs -c noctalia-shell ipc call volume increase
-bindsym --locked XF86AudioLowerVolume exec qs -c noctalia-shell ipc call volume decrease
-bindsym --locked XF86AudioMute exec qs -c noctalia-shell ipc call volume muteOutput
-bindsym --locked XF86AudioMicMute exec qs -c noctalia-shell ipc call volume muteInput
-bindsym --locked XF86MonBrightnessUp exec qs -c noctalia-shell ipc call brightness increase
-bindsym --locked XF86MonBrightnessDown exec qs -c noctalia-shell ipc call brightness decrease
 
 # Focus.
 bindsym $mod+Left focus left
