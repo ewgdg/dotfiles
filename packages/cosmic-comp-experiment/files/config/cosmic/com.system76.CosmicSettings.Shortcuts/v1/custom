@@ -1,0 +1,97 @@
+{
+    // App launchers; overrides COSMIC defaults where they collide with Niri/Mango muscle memory.
+    (modifiers: [Super], key: "Return"): Spawn("alacritty"),
+    (modifiers: [Super], key: "space"): System(Launcher),
+    (modifiers: [Super, Shift], key: "space"): System(WindowSwitcher),
+    (modifiers: [Super], key: "b"): Spawn("google-chrome-stable"),
+    (modifiers: [Super], key: "d"): Spawn("goldendict"),
+    (modifiers: [Super, Ctrl], key: "d"): Spawn("goldendict-search"),
+    (modifiers: [Super], key: "e"): Spawn("nautilus --new-window"),
+    (modifiers: [Super, Ctrl, Shift], key: "space"): Spawn("1password --quick-access"),
+
+    (modifiers: [Super], key: "q"): Close,
+    (modifiers: [Super, Ctrl, Shift], key: "Delete"): Terminate,
+
+    // Official COSMIC system actions. Audio media keys intentionally not overridden.
+    (modifiers: [Super, Ctrl, Shift], key: "l"): System(LockScreen),
+    (modifiers: [], key: "XF86MonBrightnessUp"): System(BrightnessUp),
+    (modifiers: [], key: "XF86MonBrightnessDown"): System(BrightnessDown),
+
+    // Focus.
+    (modifiers: [Super], key: "Left"): Focus(Left),
+    (modifiers: [Super], key: "Down"): Focus(Down),
+    (modifiers: [Super], key: "Up"): Focus(Up),
+    (modifiers: [Super], key: "Right"): Focus(Right),
+    (modifiers: [Super], key: "h"): Focus(Left),
+    (modifiers: [Super], key: "j"): Focus(Down),
+    (modifiers: [Super], key: "k"): Focus(Up),
+    (modifiers: [Super], key: "l"): Focus(Right),
+    (modifiers: [Super], key: "comma"): Focus(Out),
+    (modifiers: [Super], key: "period"): Focus(In),
+
+    // Move windows. COSMIC defaults use Super+Shift; this package keeps repo habit: Super+Ctrl.
+    (modifiers: [Super, Ctrl], key: "Left"): Move(Left),
+    (modifiers: [Super, Ctrl], key: "Down"): Move(Down),
+    (modifiers: [Super, Ctrl], key: "Up"): Move(Up),
+    (modifiers: [Super, Ctrl], key: "Right"): Move(Right),
+    (modifiers: [Super, Ctrl], key: "h"): Move(Left),
+    (modifiers: [Super, Ctrl], key: "j"): Move(Down),
+    (modifiers: [Super, Ctrl], key: "k"): Move(Up),
+    (modifiers: [Super, Ctrl], key: "l"): Move(Right),
+
+    // Outputs / workspaces.
+    (modifiers: [Super, Shift], key: "Left"): SwitchOutput(Left),
+    (modifiers: [Super, Shift], key: "Down"): SwitchOutput(Down),
+    (modifiers: [Super, Shift], key: "Up"): SwitchOutput(Up),
+    (modifiers: [Super, Shift], key: "Right"): SwitchOutput(Right),
+    (modifiers: [Super, Ctrl, Shift], key: "Left"): MoveToOutput(Left),
+    (modifiers: [Super, Ctrl, Shift], key: "Down"): MoveToOutput(Down),
+    (modifiers: [Super, Ctrl, Shift], key: "Up"): MoveToOutput(Up),
+    (modifiers: [Super, Ctrl, Shift], key: "Right"): MoveToOutput(Right),
+
+    (modifiers: [Super], key: "u"): NextWorkspace,
+    (modifiers: [Super], key: "i"): PreviousWorkspace,
+    (modifiers: [Super, Shift], key: "u"): MoveToNextWorkspace,
+    (modifiers: [Super, Shift], key: "i"): MoveToPreviousWorkspace,
+    (modifiers: [Super, Ctrl], key: "u"): MoveToNextWorkspace,
+    (modifiers: [Super, Ctrl], key: "i"): MoveToPreviousWorkspace,
+    (modifiers: [Super], key: "s"): Workspace(2),
+    (modifiers: [Super, Ctrl], key: "s"): MoveToWorkspace(2),
+    (modifiers: [Super], key: "n"): Workspace(3),
+    (modifiers: [Super, Ctrl], key: "n"): MoveToWorkspace(3),
+    (modifiers: [Super], key: "a"): Workspace(4),
+    (modifiers: [Super, Ctrl], key: "a"): MoveToWorkspace(4),
+
+    (modifiers: [Super], key: "1"): Workspace(1),
+    (modifiers: [Super], key: "2"): Workspace(2),
+    (modifiers: [Super], key: "3"): Workspace(3),
+    (modifiers: [Super], key: "4"): Workspace(4),
+    (modifiers: [Super], key: "5"): Workspace(5),
+    (modifiers: [Super], key: "6"): Workspace(6),
+    (modifiers: [Super], key: "7"): Workspace(7),
+    (modifiers: [Super], key: "8"): Workspace(8),
+    (modifiers: [Super], key: "9"): Workspace(9),
+
+    (modifiers: [Super, Ctrl], key: "1"): MoveToWorkspace(1),
+    (modifiers: [Super, Ctrl], key: "2"): MoveToWorkspace(2),
+    (modifiers: [Super, Ctrl], key: "3"): MoveToWorkspace(3),
+    (modifiers: [Super, Ctrl], key: "4"): MoveToWorkspace(4),
+    (modifiers: [Super, Ctrl], key: "5"): MoveToWorkspace(5),
+    (modifiers: [Super, Ctrl], key: "6"): MoveToWorkspace(6),
+    (modifiers: [Super, Ctrl], key: "7"): MoveToWorkspace(7),
+    (modifiers: [Super, Ctrl], key: "8"): MoveToWorkspace(8),
+    (modifiers: [Super, Ctrl], key: "9"): MoveToWorkspace(9),
+
+    // Native approximation for Niri pin/unpin: COSMIC sticky window.
+    (modifiers: [Super], key: "p"): ToggleSticky,
+    (modifiers: [Super, Shift], key: "p"): ToggleSticky,
+
+    // Layout.
+    (modifiers: [Super], key: "f"): Maximize,
+    (modifiers: [Super, Shift], key: "f"): Fullscreen,
+    (modifiers: [Super], key: "m"): Maximize,
+    (modifiers: [Super], key: "z"): ToggleWindowFloating,
+    (modifiers: [Super], key: "w"): ToggleStacking,
+    (modifiers: [Super], key: "r"): Resizing(Outwards),
+    (modifiers: [Super, Shift], key: "r"): Resizing(Inwards),
+}

@@ -1,0 +1,5 @@
+[
+    // Keep transient auth/search dialogs floating-ish by excluding them from autotile.
+    (appid: "^1password(-quickaccess)?$", title: ".*", enabled: true),
+    (appid: "(?i)goldendict", title: ".*", enabled: true),
+]

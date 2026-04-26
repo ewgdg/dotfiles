@@ -1,0 +1,6 @@
+(
+    workspace_mode: Global,
+    workspace_layout: Horizontal,
+    action_on_typing: None,
+    workspace_wraparound: true,
+)
