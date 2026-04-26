@@ -1,0 +1,59 @@
+#!/bin/sh
+set -eu
+
+session_targets="graphical-session.target"
+cleanup_session_targets_enabled=0
+
+cleanup_session_targets() {
+    if [ "$cleanup_session_targets_enabled" != "1" ]; then
+        return 0
+    fi
+
+    systemctl --user stop $session_targets >/dev/null 2>&1 || true
+}
+
+trap cleanup_session_targets EXIT
+
+env_file="${XDG_CONFIG_HOME:-$HOME/.config}/sway/session.env"
+
+if [ ! -f "$env_file" ]; then
+    printf 'start-sway: env file not found: %s\n' "$env_file" >&2
+    exit 1
+fi
+
+variables="$(
+    awk -F= '
+        /^[[:space:]]*#/ || /^[[:space:]]*$/ {
+            next;
+        }
+        /^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=/ {
+            name = $1;
+            sub(/^[[:space:]]+/, "", name);
+            sub(/[[:space:]]+$/, "", name);
+            printf "%s ", name;
+        }
+    ' "$env_file"
+)"
+
+if [ -z "$variables" ]; then
+    printf 'start-sway: no environment variables found in %s\n' "$env_file" >&2
+    exit 1
+fi
+
+set -a
+. "$env_file"
+set +a
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd $variables
+else
+    systemctl --user import-environment $variables
+fi
+
+set +e
+cleanup_session_targets_enabled=1
+sway --unsupported-gpu "$@"
+sway_status=$?
+set -e
+
+exit "$sway_status"

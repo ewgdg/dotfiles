@@ -1,0 +1,3 @@
+[vars.desktop]
+session = "sway"
+session_command = "/usr/local/bin/start-sway"

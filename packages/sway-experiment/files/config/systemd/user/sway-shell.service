@@ -1,0 +1,17 @@
+[Unit]
+Description=Sway shell and autostart gate
+Wants=graphical-session.target
+Wants=xdg-desktop-autostart.target
+PartOf=graphical-session.target
+Before=graphical-session.target
+Before=xdg-desktop-autostart.target
+StartLimitIntervalSec=5min
+StartLimitBurst=3
+
+[Service]
+Type=exec
+TimeoutStartSec=20
+ExecStart=/usr/bin/qs -c noctalia-shell
+ExecStartPost=%h/bin/wait-for-tray-host
+Restart=on-failure
+RestartSec=2

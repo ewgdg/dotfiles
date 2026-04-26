@@ -1,0 +1,32 @@
+id = "sway-experiment"
+description = "Sway experiment configuration snapshot"
+
+depends = [
+  "noctalia",
+]
+
+[targets.d_config_sway]
+source = "files/config/sway"
+path = "~/.config/sway"
+
+[targets.f_usr_local_bin_start_sway]
+source = "files/usr/local/bin/start-sway"
+path = "/usr/local/bin/start-sway"
+chmod = "755"
+
+[targets.f_config_xdg_desktop_portal_sway_portals_conf]
+source = "files/config/xdg-desktop-portal/sway-portals.conf"
+path = "~/.config/xdg-desktop-portal/sway-portals.conf"
+
+[targets.f_config_systemd_user_sway_shell_service]
+source = "files/config/systemd/user/sway-shell.service"
+path = "~/.config/systemd/user/sway-shell.service"
+
+[hooks]
+# Sway config keybinds and startup commands expect these apps/services.
+pre_push = [
+  "{{ INSTALL }} sway wlr-randr xdg-desktop-portal-wlr xdg-desktop-portal-gtk",
+]
+post_push = [
+  "sh -c 'systemctl --user daemon-reload >/dev/null 2>&1 || true'",
+]
