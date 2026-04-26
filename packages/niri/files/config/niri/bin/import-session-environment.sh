@@ -2,7 +2,8 @@
 
 set -eu
 
-env_file="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/niri/session.env}"
+# systemd user services do not reliably inherit shell profile variables.
+env_file="${1:-${HOME:?HOME is not set}/.config/niri/session.env}"
 
 if [ ! -f "$env_file" ]; then
     printf 'import-session-environment: env file not found, skipping: %s\n' "$env_file" >&2
