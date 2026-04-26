@@ -9,7 +9,7 @@ The greetd template does **not** hard-code the autologin command. By default,
 command using `{{ vars.desktop.session }}`:
 
 ```toml
-command = "/usr/local/bin/greetd-start-session <session>"
+command = "env AUTOLOGIN_SESSION=1 /usr/local/bin/greetd-start-session <session>"
 ```
 
 `packages/greetd/files/usr/local/bin/greetd-start-session` resolves
@@ -27,6 +27,10 @@ value exists, `packages/greetd` passes it as `--session-command`, and the render
 script writes it directly to `[initial_session].command` without using the
 runtime helper. This is useful for compositor-specific wrappers such as Sway
 startup flags or session environment setup.
+
+Every rendered initial session is prefixed with `AUTOLOGIN_SESSION=1` so desktop
+sessions can distinguish greetd autologin from a user-selected greeter session.
+Niri uses this marker to lock immediately after autologin.
 
 The same render step also fills other greetd-specific placeholders such as the
 autologin user.

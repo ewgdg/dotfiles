@@ -14,6 +14,13 @@ import tomlkit
 _AUTOLOGIN_PLACEHOLDER = "__PLACEHOLDER_GREETD_AUTOLOGIN_COMMAND__"
 _HOST_USER_PLACEHOLDER = "__PLACEHOLDER_GREETD_HOST_USER__"
 _DEFAULT_SESSION_LAUNCHER = "/usr/local/bin/greetd-start-session"
+_AUTOLOGIN_SESSION_ENV = "AUTOLOGIN_SESSION=1"
+
+
+def mark_autologin_session(command: str) -> str:
+    # greetd initial_session logind metadata still reports the service as greetd,
+    # so sessions need an explicit generic marker for autologin-only behavior.
+    return f"env {_AUTOLOGIN_SESSION_ENV} {command}"
 
 
 def resolve_session_command(
@@ -23,11 +30,11 @@ def resolve_session_command(
     session_launcher: str,
 ) -> str:
     if session_command is not None and session_command.strip():
-        return session_command.strip()
+        return mark_autologin_session(session_command.strip())
 
     # Keep render repo-pure. Desktop entries may be installed by pre_push hooks in
     # the same dotman run, so resolve their Exec= line at greetd login time.
-    return f"{session_launcher} {shlex.quote(session_name)}"
+    return mark_autologin_session(f"{session_launcher} {shlex.quote(session_name)}")
 
 
 def collect_placeholder_paths(
