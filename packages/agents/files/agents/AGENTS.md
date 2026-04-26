@@ -38,6 +38,7 @@
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
 - No hard-coded values
 - No Slop, reuse or extend existing code if possible
+- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script.
 
 ## Testing
 
