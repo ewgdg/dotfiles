@@ -15,7 +15,6 @@ ExecStartPre=%h/.config/niri/bin/import-session-environment.sh
 ExecStart=/usr/bin/qs -c noctalia-shell
 ExecStartPost=%h/bin/wait-for-tray-host
 Restart=on-failure
-RestartSec=0
 
 [Install]
 WantedBy=niri.service

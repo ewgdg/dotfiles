@@ -1,5 +1,5 @@
 [Unit]
-Description=Sway shell and autostart gate
+Description=Mango shell and autostart gate
 Wants=graphical-session.target
 Wants=xdg-desktop-autostart.target
 PartOf=graphical-session.target

@@ -13,8 +13,15 @@ path = "~/.config/mango"
 source = "files/config/xdg-desktop-portal/mango-portals.conf"
 path = "~/.config/xdg-desktop-portal/mango-portals.conf"
 
+[targets.f_config_systemd_user_mango_shell_service]
+source = "files/config/systemd/user/mango-shell.service"
+path = "~/.config/systemd/user/mango-shell.service"
+
 [hooks]
 # Mango config keybinds and startup commands expect these apps/services.
 pre_push = [
-  "{{ INSTALL }} mangowm-git xdg-desktop-portal-wlr xdg-desktop-portal-gtk",
+  "{{ INSTALL }} mangowm-git wlr-randr xdg-desktop-portal-wlr xdg-desktop-portal-gtk",
+]
+post_push = [
+  "sh -c 'systemctl --user daemon-reload >/dev/null 2>&1 || true'",
 ]

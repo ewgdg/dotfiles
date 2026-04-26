@@ -1,0 +1,6 @@
+id = "host/linux-mango-meta"
+description = "Linux Mango host entrypoint meta package"
+
+depends = [
+  "host/linux-mango",
+]

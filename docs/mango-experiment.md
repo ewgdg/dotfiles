@@ -6,6 +6,7 @@ Minimal MangoWM trial config drafted to mimic core Niri habits without reimpleme
 
 - `~/.config/mango/config.conf`
 - `~/.config/xdg-desktop-portal/mango-portals.conf`
+- `~/.config/systemd/user/mango-shell.service`
 
 Source package:
 
@@ -16,7 +17,10 @@ Source package:
 - Mango numeric tags replace Niri named workspaces.
 - Mango `toggleglobal` replaces Niri pin/unpin as closest native behavior.
 - Mango `scroller` layout is used on all tags as closest native layout to Niri columns.
-- Session environment stays in Mango config via `env=` lines, one `exec-once` call to `dbus-update-activation-environment`, and one `exec-once` shell chain that starts `qs -c noctalia-shell`, waits for the tray host, then starts `graphical-session.target` / `xdg-desktop-autostart.target` so user services like Sunshine actually launch.
+- Mango starts through the stock `mango` session command; no wrapper is installed.
+- Mango handles `WAYLAND_DISPLAY`, `DISPLAY`, `XDG_CURRENT_DESKTOP`, and cursor dbus/systemd environment import itself.
+- Mango config keeps session variables in native `env=` lines, imports only repo-specific variables via `exec-once`, then starts `mango-shell.service`.
+- `mango-shell.service` requests `graphical-session.target` / `xdg-desktop-autostart.target` as dependencies, starts Noctalia, then waits for the tray host through `ExecStartPost` before those targets continue.
 - Noctalia app launcher is kept via the same `qs -c noctalia-shell ipc call launcher toggle` action used in Niri.
 - Portal override keeps Mango's stock `wlr` screencast/screenshot setup and prefers KWallet for `org.freedesktop.impl.portal.Secret`.
 
@@ -29,6 +33,16 @@ Source package:
 - `5` logs
 - `6` games
 - `7-9` spare
+
+## Related profile/group
+
+Use the Mango-specific host binding when you want Mango plus matching Sunshine config:
+
+- `main:host/linux-mango-meta@host/linux-mango`
+
+This meta package depends on `host/linux-mango`, matching the existing `host/linux-meta` and `host/linux-sway-meta` patterns.
+
+For a narrower push, track `main:mango-experiment@host/linux-mango` and `main:sunshine@host/linux-mango`.
 
 ## Xwayland and scaling observations
 
@@ -45,7 +59,6 @@ Source package:
 
 ## Known TODOs left in config
 
-- ctrl:nocaps equivalent, if Mango documents xkb options support
 - summon pinned window / move beside pinned
 - maximize-on-open window rules
 - fcitx / Steam toast special-case rules
