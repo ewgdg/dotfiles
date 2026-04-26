@@ -35,6 +35,7 @@ path = "~/.config/xdg-desktop-portal/niri-portals.conf"
 [targets.f_etc_nvidia_nvidia_application_profiles_rc_d_50_limit_free_buffer_pool_in_wayland_compositors_json]
 source = "files/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
 path = "/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
+sync_policy = "push-only-delete"
 
 [hooks]
 # Niri session expects these desktop apps/themes via keybinds, mime defaults, and GTK/icon settings.
