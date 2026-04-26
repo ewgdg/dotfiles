@@ -67,7 +67,7 @@ Example commands below assume the repo is registered as `main` in your dotman
 config:
 
 ```sh
-dotman track main:host/linux@host/linux
+dotman track main:host/linux-niri@host/linux-niri
 dotman push
 dotman pull
 
@@ -78,7 +78,7 @@ dotman info tracked git
 For narrower work, you can track or inspect smaller selectors directly:
 
 ```sh
-dotman track main:git@host/linux
+dotman track main:git@host/linux-niri
 dotman push git
 dotman pull git
 ```
@@ -87,14 +87,14 @@ dotman pull git
 
 Common host entrypoints:
 
-- `main:host/linux@host/linux`
+- `main:host/linux-niri@host/linux-niri`
 - `main:host/mac@host/mac`
 
 Examples of smaller selectors:
 
-- `main:git@host/linux`
-- `main:nvim@host/linux`
-- `main:shell@host/linux`
+- `main:git@host/linux-niri`
+- `main:nvim@host/linux-niri`
+- `main:shell@host/linux-niri`
 
 Groups choose what to manage.
 Profiles provide the variable context used to resolve those selections.

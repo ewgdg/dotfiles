@@ -40,7 +40,7 @@ Use the Mango-specific host binding when you want Mango plus matching Sunshine c
 
 - `main:host/linux-mango-meta@host/linux-mango`
 
-This meta package depends on `host/linux-mango`, matching the existing `host/linux-meta` and `host/linux-sway-meta` patterns.
+This meta package depends on `host/linux-mango`, matching the existing `host/linux-niri-meta` and `host/linux-sway-meta` patterns.
 
 For a narrower push, track `main:mango-experiment@host/linux-mango` and `main:sunshine@host/linux-mango`.
 

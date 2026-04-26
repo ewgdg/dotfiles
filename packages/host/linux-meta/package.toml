@@ -1,6 +1,0 @@
-id = "host/linux-meta"
-description = "Linux host entrypoint meta package"
-
-depends = [
-  "host/linux",
-]
