@@ -25,6 +25,9 @@ Implementation note:
 - After the initial snapshot it keeps tracking Niri IPC updates from
   `event-stream`, including `WindowsChanged`, `WindowOpenedOrChanged`, and
   `WindowClosed`.
+- Outside a Niri session, or when `$NIRI_SOCKET` is missing, the widget stays
+  hidden and does not start `niri msg` processes. If the environment variable is
+  stale and no socket exists at that path, the guarded process exits quietly.
 
 Related files:
 

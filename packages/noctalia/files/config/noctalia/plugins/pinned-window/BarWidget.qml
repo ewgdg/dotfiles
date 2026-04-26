@@ -27,6 +27,14 @@ Item {
   readonly property var widgetMetadata: BarWidgetRegistry.widgetMetadata[widgetId] || {}
   readonly property string screenName: screen ? screen.name : ""
   readonly property string runtimeDir: Quickshell.env("XDG_RUNTIME_DIR") || "/tmp"
+  readonly property string niriSocketPath: Quickshell.env("NIRI_SOCKET") || ""
+  readonly property bool hasNiriSocket: niriSocketPath !== ""
+  // Distinct code lets us hide the Niri-only widget without treating normal `niri msg` exits as socket absence.
+  readonly property int missingNiriSocketExitCode: 66
+  readonly property var niriProcessEnvironment: ({
+                                                   "MISSING_NIRI_SOCKET_EXIT_CODE": String(missingNiriSocketExitCode)
+                                                 })
+  property bool niriBackendEnabled: hasNiriSocket
   readonly property string stateFilePath: runtimeDir + "/niri-pinned-window.json"
   readonly property var widgetSettings: {
     if (section && sectionWidgetIndex >= 0 && screenName) {
@@ -60,6 +68,8 @@ Item {
   readonly property int pinGlyphRotation: 0
   readonly property int verticalSize: Style.toOdd(capsuleHeight * 0.85)
   readonly property bool hasPinnedWindow: pinnedWindow.pinned === true
+  readonly property bool shouldDisplayWidget: niriBackendEnabled && (hideMode !== "hidden" || hasPinnedWindow)
+  readonly property bool shouldRenderWidget: niriBackendEnabled && ((hideMode !== "hidden" || hasPinnedWindow) || opacity > 0)
   readonly property string pinnedTitle: {
     if (!hasPinnedWindow)
       return "";
@@ -70,11 +80,11 @@ Item {
     return appId !== "" ? appId : "Pinned Window";
   }
 
-  implicitHeight: isVerticalBar ? (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : verticalSize) : barHeight
-  implicitWidth: isVerticalBar ? (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : verticalSize) : (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : dynamicWidth)
+  implicitHeight: niriBackendEnabled ? (isVerticalBar ? (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : verticalSize) : barHeight) : 0
+  implicitWidth: niriBackendEnabled ? (isVerticalBar ? (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : verticalSize) : (((!hasPinnedWindow) && hideMode === "hidden") ? 0 : dynamicWidth)) : 0
 
-  visible: (hideMode !== "hidden" || hasPinnedWindow) || opacity > 0
-  opacity: ((hideMode !== "hidden" || hasPinnedWindow) && (hideMode !== "transparent" || hasPinnedWindow)) ? 1.0 : 0.0
+  visible: shouldRenderWidget
+  opacity: (shouldDisplayWidget && (hideMode !== "transparent" || hasPinnedWindow)) ? 1.0 : 0.0
 
   Behavior on opacity {
     NumberAnimation {
@@ -98,10 +108,16 @@ Item {
   }
 
   function launchPinnedWindow() {
+    if (!niriBackendEnabled) {
+      return;
+    }
     Quickshell.execDetached([Quickshell.env("HOME") + "/.config/niri/bin/pinned-window.sh", "summon"]);
   }
 
   function clearPinnedWindow() {
+    if (!niriBackendEnabled) {
+      return;
+    }
     Quickshell.execDetached([Quickshell.env("HOME") + "/.config/niri/bin/pinned-window.sh", "clear"]);
   }
 
@@ -110,6 +126,9 @@ Item {
   }
 
   function refreshNiriSnapshots() {
+    if (!niriBackendEnabled) {
+      return;
+    }
     if (!windowsSnapshotProcess.running) {
       windowsSnapshotProcess.running = true;
     }
@@ -194,6 +213,13 @@ Item {
   }
 
   function syncPinnedWindow() {
+    if (!niriBackendEnabled) {
+      root.pinnedWindow = ({
+                             "pinned": false
+                           });
+      return;
+    }
+
     if (!stateAdapter.pinned || !stateAdapter.id) {
       root.pinnedWindow = ({
                              "pinned": false
@@ -220,6 +246,13 @@ Item {
                            "workspace_name": workspaceData.name || "",
                            "workspace_id": windowData.workspace_id !== undefined ? windowData.workspace_id : null
                          });
+  }
+
+  function handleProcessExit(exitCode) {
+    if (exitCode === missingNiriSocketExitCode) {
+      niriBackendEnabled = false;
+      root.syncPinnedWindow();
+    }
   }
 
   function handleEventLine(line) {
@@ -334,7 +367,9 @@ Item {
 
   Process {
     id: windowsSnapshotProcess
-    command: ["niri", "msg", "-j", "windows"]
+    // Niri-only widget: a stale/missing IPC socket should exit quietly instead of logging `niri msg` errors.
+    command: ["sh", "-c", 'test -S "$NIRI_SOCKET" || exit "$MISSING_NIRI_SOCKET_EXIT_CODE"; exec niri msg -j windows']
+    environment: root.niriProcessEnvironment
     running: false
     stdout: SplitParser {
       onRead: line => root.handleWindowsSnapshotLine(line)
@@ -342,11 +377,14 @@ Item {
     stderr: SplitParser {
       onRead: line => Logger.w("PinnedWindow", "windows snapshot:", line)
     }
+    onExited: (exitCode, exitStatus) => root.handleProcessExit(exitCode)
   }
 
   Process {
     id: workspacesSnapshotProcess
-    command: ["niri", "msg", "-j", "workspaces"]
+    // Niri-only widget: a stale/missing IPC socket should exit quietly instead of logging `niri msg` errors.
+    command: ["sh", "-c", 'test -S "$NIRI_SOCKET" || exit "$MISSING_NIRI_SOCKET_EXIT_CODE"; exec niri msg -j workspaces']
+    environment: root.niriProcessEnvironment
     running: false
     stdout: SplitParser {
       onRead: line => root.handleWorkspacesSnapshotLine(line)
@@ -354,24 +392,22 @@ Item {
     stderr: SplitParser {
       onRead: line => Logger.w("PinnedWindow", "workspaces snapshot:", line)
     }
+    onExited: (exitCode, exitStatus) => root.handleProcessExit(exitCode)
   }
 
   Process {
     id: eventStreamProcess
-    command: ["niri", "msg", "-j", "event-stream"]
-    running: true
+    // Niri-only widget: a stale/missing IPC socket should exit quietly instead of logging `niri msg` errors.
+    command: ["sh", "-c", 'test -S "$NIRI_SOCKET" || exit "$MISSING_NIRI_SOCKET_EXIT_CODE"; exec niri msg -j event-stream']
+    environment: root.niriProcessEnvironment
+    running: root.niriBackendEnabled
     stdout: SplitParser {
       onRead: line => root.handleEventLine(line)
     }
     stderr: SplitParser {
       onRead: line => Logger.w("PinnedWindow", line)
     }
-
-    onRunningChanged: {
-      if (!running) {
-        running = true;
-      }
-    }
+    onExited: (exitCode, exitStatus) => root.handleProcessExit(exitCode)
   }
 
   Component.onCompleted: root.refreshNiriSnapshots()
