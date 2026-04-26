@@ -1,0 +1,122 @@
+#!/bin/sh
+
+set -eu
+
+default_session_dirs='/usr/local/share/wayland-sessions:/usr/share/wayland-sessions:/usr/local/share/xsessions:/usr/share/xsessions'
+session_dirs=${GREETD_START_SESSION_DIRS:-$default_session_dirs}
+mode=exec
+tab=$(printf '\t')
+
+die() {
+  printf '%s\n' "greetd-start-session: $*" >&2
+  exit 1
+}
+
+usage() {
+  die "usage: greetd-start-session [--print-argv] SESSION"
+}
+
+if [ "${1:-}" = "--print-argv" ]; then
+  mode=print_argv
+  shift
+fi
+
+[ "$#" -eq 1 ] || usage
+session=$1
+
+desktop_file=
+old_ifs=$IFS
+IFS=:
+for dir in $session_dirs; do
+  [ -n "$dir" ] || continue
+  candidate=$dir/$session.desktop
+  if [ -f "$candidate" ]; then
+    desktop_file=$candidate
+    break
+  fi
+done
+IFS=$old_ifs
+
+[ -n "$desktop_file" ] || die "unable to find $session.desktop"
+
+exec_line=$(awk '
+  /^[[:space:]]*\[Desktop Entry\][[:space:]]*$/ { in_desktop = 1; next }
+  /^[[:space:]]*\[/ { in_desktop = 0; next }
+  in_desktop && /^[[:space:]]*Exec[[:space:]]*=/ {
+    sub(/^[[:space:]]*Exec[[:space:]]*=[[:space:]]*/, "")
+    print
+    found = 1
+    exit
+  }
+  END { if (!found) exit 1 }
+' "$desktop_file") || die "missing Exec= in $desktop_file"
+
+[ -n "$exec_line" ] || die "empty Exec= in $desktop_file"
+
+parse_exec_line() {
+  input=$1
+  set --
+  arg=
+  have_arg=0
+  in_quote=0
+
+  while [ -n "$input" ]; do
+    char=${input%"${input#?}"}
+    input=${input#?}
+
+    case "$char" in
+      ' ' | "$tab")
+        if [ "$in_quote" -eq 0 ]; then
+          if [ "$have_arg" -eq 1 ]; then
+            set -- "$@" "$arg"
+            arg=
+            have_arg=0
+          fi
+          continue
+        fi
+        ;;
+      '"')
+        if [ "$in_quote" -eq 0 ]; then
+          in_quote=1
+        else
+          in_quote=0
+        fi
+        have_arg=1
+        continue
+        ;;
+      '\\')
+        if [ -n "$input" ]; then
+          char=${input%"${input#?}"}
+          input=${input#?}
+        fi
+        ;;
+      '%')
+        if [ "${input%"${input#?}"}" = '%' ]; then
+          input=${input#?}
+        else
+          die "unsupported field code in Exec= for $desktop_file"
+        fi
+        ;;
+    esac
+
+    arg=$arg$char
+    have_arg=1
+  done
+
+  [ "$in_quote" -eq 0 ] || die "unterminated quote in Exec= for $desktop_file"
+  if [ "$have_arg" -eq 1 ]; then
+    set -- "$@" "$arg"
+  fi
+  [ "$#" -gt 0 ] || die "empty parsed Exec= in $desktop_file"
+
+  if [ "$mode" = print_argv ]; then
+    for item do
+      printf '%s\n' "$item"
+    done
+    exit 0
+  fi
+
+  exec "$@"
+}
+
+parse_exec_line "$exec_line"

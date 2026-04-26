@@ -15,8 +15,8 @@ def run_render(
     session_name: str,
     *,
     host_user: str = "xian",
-    wayland_sessions_dir: Path | None = None,
-    xsessions_dir: Path | None = None,
+    session_command: str | None = None,
+    session_launcher: str = "/usr/local/bin/greetd-start-session",
 ) -> subprocess.CompletedProcess[str]:
     command = [
         "uv",
@@ -27,17 +27,16 @@ def run_render(
         str(template_path),
         "--session",
         session_name,
+        "--session-launcher",
+        session_launcher,
         "--host-user",
         host_user,
         "--placeholder-prefix",
         "__PLACEHOLDER_",
     ]
 
-    if wayland_sessions_dir is not None:
-        command.extend(["--wayland-sessions-dir", str(wayland_sessions_dir)])
-
-    if xsessions_dir is not None:
-        command.extend(["--xsession-dir", str(xsessions_dir)])
+    if session_command is not None:
+        command.extend(["--session-command", session_command])
 
     return subprocess.run(
         command,
@@ -66,35 +65,22 @@ user = "greeter"
         encoding="utf-8",
     )
 
-    wayland_sessions_dir = tmp_path / "wayland-sessions"
-    wayland_sessions_dir.mkdir()
-    (wayland_sessions_dir / "niri.desktop").write_text(
-        """
-[Desktop Entry]
-Name=Niri
-Exec=/usr/bin/env FOO="bar baz" niri-session --flag
-Type=Application
-""".lstrip(),
-        encoding="utf-8",
-    )
-
     completed = run_render(
         tmp_path,
         template_path,
         "niri",
         host_user="xian",
-        wayland_sessions_dir=wayland_sessions_dir,
     )
 
     assert completed.returncode == 0, completed.stderr
 
     rendered = tomllib.loads(completed.stdout)
-    assert rendered["initial_session"]["command"] == '/usr/bin/env FOO="bar baz" niri-session --flag'
+    assert rendered["initial_session"]["command"] == "/usr/local/bin/greetd-start-session niri"
     assert rendered["initial_session"]["user"] == "xian"
     assert rendered["default_session"]["command"] == "tuigreet"
 
 
-def test_render_greetd_config_falls_back_to_xsessions(tmp_path: Path) -> None:
+def test_render_greetd_config_uses_explicit_session_command(tmp_path: Path) -> None:
     template_path = tmp_path / "config.toml"
     template_path.write_text(
         """
@@ -105,28 +91,16 @@ user = "__PLACEHOLDER_GREETD_HOST_USER__"
         encoding="utf-8",
     )
 
-    xsessions_dir = tmp_path / "xsessions"
-    xsessions_dir.mkdir()
-    (xsessions_dir / "plasmax11.desktop").write_text(
-        """
-[Desktop Entry]
-Name=Plasma (X11)
-Exec=/usr/bin/startplasma-x11
-Type=Application
-""".lstrip(),
-        encoding="utf-8",
-    )
-
     completed = run_render(
         tmp_path,
         template_path,
-        "plasmax11",
-        xsessions_dir=xsessions_dir,
+        "sway",
+        session_command="/usr/local/bin/start-sway",
     )
 
     assert completed.returncode == 0, completed.stderr
     rendered = tomllib.loads(completed.stdout)
-    assert rendered["initial_session"]["command"] == "/usr/bin/startplasma-x11"
+    assert rendered["initial_session"]["command"] == "/usr/local/bin/start-sway"
     assert rendered["initial_session"]["user"] == "xian"
 
 
@@ -142,30 +116,13 @@ extra = "__PLACEHOLDER_MISSING__"
         encoding="utf-8",
     )
 
-    wayland_sessions_dir = tmp_path / "wayland-sessions"
-    wayland_sessions_dir.mkdir()
-    (wayland_sessions_dir / "niri.desktop").write_text(
-        """
-[Desktop Entry]
-Name=Niri
-Exec=niri-session
-Type=Application
-""".lstrip(),
-        encoding="utf-8",
-    )
-
-    completed = run_render(
-        tmp_path,
-        template_path,
-        "niri",
-        wayland_sessions_dir=wayland_sessions_dir,
-    )
+    completed = run_render(tmp_path, template_path, "niri")
 
     assert completed.returncode == 1
     assert "__PLACEHOLDER_MISSING__" in completed.stderr
 
 
-def test_render_greetd_config_errors_when_session_desktop_is_missing(tmp_path: Path) -> None:
+def test_render_greetd_config_does_not_require_session_desktop_at_render_time(tmp_path: Path) -> None:
     template_path = tmp_path / "config.toml"
     template_path.write_text(
         """
@@ -178,5 +135,6 @@ user = "__PLACEHOLDER_GREETD_HOST_USER__"
 
     completed = run_render(tmp_path, template_path, "missing-session")
 
-    assert completed.returncode == 1
-    assert "missing-session.desktop" in completed.stderr
+    assert completed.returncode == 0, completed.stderr
+    rendered = tomllib.loads(completed.stdout)
+    assert rendered["initial_session"]["command"] == "/usr/local/bin/greetd-start-session missing-session"

@@ -5,15 +5,28 @@
 ## Autologin source of truth
 
 The greetd template does **not** hard-code the autologin command. By default,
-`packages/greetd/scripts/render_greetd_config.py` resolves
-`{{ vars.desktop.session }}.desktop` from standard session directories and copies
-its `Exec=` line into `[initial_session].command`.
+`packages/greetd/scripts/render_greetd_config.py` writes a runtime launcher
+command using `{{ vars.desktop.session }}`:
+
+```toml
+command = "/usr/local/bin/greetd-start-session <session>"
+```
+
+`packages/greetd/files/usr/local/bin/greetd-start-session` resolves
+`<session>.desktop` at login time from standard session directories, extracts
+the `[Desktop Entry]` `Exec=` value, parses the supported session-launcher
+subset, and `exec`s it.
+
+This keeps dotman render repo-pure. Desktop entries such as
+`/usr/share/wayland-sessions/cosmic.desktop` may be created by another package's
+`pre_push` hook in the same `dotman push`, so render must not require them to
+already exist.
 
 Profiles can override that lookup with `vars.desktop.session_command`. When this
 value exists, `packages/greetd` passes it as `--session-command`, and the render
-script writes it directly to `[initial_session].command` without requiring a
-matching `.desktop` file. This is useful for compositor-specific wrappers such as
-Sway startup flags or session environment setup.
+script writes it directly to `[initial_session].command` without using the
+runtime helper. This is useful for compositor-specific wrappers such as Sway
+startup flags or session environment setup.
 
 The same render step also fills other greetd-specific placeholders such as the
 autologin user.
@@ -29,6 +42,8 @@ Why this exists:
   desktop entry files
 - follows upstream session wrapper changes automatically, such as Plasma's
   wrapper helpers
+- avoids bootstrap ordering failures when session packages are installed by
+  dotman hooks during the same push
 
 Search order:
 
@@ -36,6 +51,12 @@ Search order:
 2. `/usr/share/wayland-sessions`
 3. `/usr/local/share/xsessions`
 4. `/usr/share/xsessions`
+
+The shell helper is intentionally limited to trusted session `.desktop` files,
+not arbitrary application launchers. It rejects desktop field codes such as `%f`
+instead of trying to emulate the full Freedesktop `Exec=` grammar. The package
+`guard_push` hook validates the helper against the selected session with a
+Python parser before writing the greetd config.
 
 ## Service behavior
 

@@ -15,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "packages/goldendict/scripts/sync_goldendict_config.py",
         "packages/greetd/scripts/capture_greetd_config.py",
         "packages/greetd/scripts/render_greetd_config.py",
+        "packages/greetd/scripts/validate_greetd_start_session.py",
         "packages/gsettings/scripts/gsettings_sync.py",
         "packages/gsettings/scripts/sync_gsettings_gtk.py",
         "scripts/enable_display_manager_systemd_unit.py",

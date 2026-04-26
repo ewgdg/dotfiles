@@ -7,7 +7,15 @@ path = "/etc/greetd/config.toml"
 render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/render_greetd_config.py" "$DOTMAN_REPO_PATH" --session "{{ vars.desktop.session }}" {% if vars.desktop.session_command %}--session-command "{{ vars.desktop.session_command }}" {% endif %}--host-user "{{ vars.host.user }}" --placeholder-prefix "__PLACEHOLDER_"'
 capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/capture_greetd_config.py" "$DOTMAN_LIVE_PATH" --template-file "$DOTMAN_REPO_PATH" --placeholder-prefix "__PLACEHOLDER_"'
 
+[targets.f_usr_local_bin_greetd_start_session]
+source = "files/usr/local/bin/greetd-start-session"
+path = "/usr/local/bin/greetd-start-session"
+chmod = "755"
+
 [hooks]
+guard_push = [
+  '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/validate_greetd_start_session.py" --session "{{ vars.desktop.session }}" {% if vars.desktop.session_command %}--session-command "{{ vars.desktop.session_command }}" {% endif %}--helper "$DOTMAN_PACKAGE_ROOT/files/usr/local/bin/greetd-start-session"',
+]
 pre_push = [
   "{{ INSTALL }} greetd greetd-tuigreet-fork-bin",
 ]

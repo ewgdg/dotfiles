@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import argparse
-import configparser
 from pathlib import Path
+import shlex
 import sys
 import tomllib
 from typing import Any, Iterable, Sequence
@@ -13,74 +13,21 @@ import tomlkit
 
 _AUTOLOGIN_PLACEHOLDER = "__PLACEHOLDER_GREETD_AUTOLOGIN_COMMAND__"
 _HOST_USER_PLACEHOLDER = "__PLACEHOLDER_GREETD_HOST_USER__"
-_DEFAULT_WAYLAND_SESSION_DIRS = (
-    Path("/usr/local/share/wayland-sessions"),
-    Path("/usr/share/wayland-sessions"),
-)
-_DEFAULT_XSESSION_DIRS = (
-    Path("/usr/local/share/xsessions"),
-    Path("/usr/share/xsessions"),
-)
-
-
-def resolve_session_desktop_path(
-    session_name: str,
-    *,
-    wayland_session_dirs: Sequence[Path],
-    xsession_dirs: Sequence[Path],
-) -> Path:
-    candidate_paths = [
-        *(session_dir / f"{session_name}.desktop" for session_dir in wayland_session_dirs),
-        *(session_dir / f"{session_name}.desktop" for session_dir in xsession_dirs),
-    ]
-
-    for candidate_path in candidate_paths:
-        if candidate_path.is_file():
-            return candidate_path
-
-    searched_paths = "\n  - ".join(str(path) for path in candidate_paths)
-    raise FileNotFoundError(
-        f"unable to find {session_name}.desktop in session directories:\n  - {searched_paths}"
-    )
-
-
-def read_desktop_entry_exec(desktop_entry_path: Path) -> str:
-    desktop_entry = configparser.RawConfigParser(interpolation=None, strict=False)
-    desktop_entry.optionxform = str
-
-    with desktop_entry_path.open("r", encoding="utf-8") as handle:
-        desktop_entry.read_file(handle)
-
-    section_name = "Desktop Entry"
-    option_name = "Exec"
-    if not desktop_entry.has_section(section_name):
-        raise ValueError(f"desktop entry missing [{section_name}] section: {desktop_entry_path}")
-    if not desktop_entry.has_option(section_name, option_name):
-        raise ValueError(f"desktop entry missing {option_name}= line: {desktop_entry_path}")
-
-    exec_command = desktop_entry.get(section_name, option_name, raw=True).strip()
-    if not exec_command:
-        raise ValueError(f"desktop entry has empty {option_name}= line: {desktop_entry_path}")
-
-    return exec_command
+_DEFAULT_SESSION_LAUNCHER = "/usr/local/bin/greetd-start-session"
 
 
 def resolve_session_command(
     session_name: str,
     *,
     session_command: str | None,
-    wayland_session_dirs: Sequence[Path],
-    xsession_dirs: Sequence[Path],
+    session_launcher: str,
 ) -> str:
     if session_command is not None and session_command.strip():
         return session_command.strip()
 
-    desktop_entry_path = resolve_session_desktop_path(
-        session_name,
-        wayland_session_dirs=wayland_session_dirs,
-        xsession_dirs=xsession_dirs,
-    )
-    return read_desktop_entry_exec(desktop_entry_path)
+    # Keep render repo-pure. Desktop entries may be installed by pre_push hooks in
+    # the same dotman run, so resolve their Exec= line at greetd login time.
+    return f"{session_launcher} {shlex.quote(session_name)}"
 
 
 def collect_placeholder_paths(
@@ -161,7 +108,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--session", required=True, help="Session desktop entry stem, without .desktop.")
     parser.add_argument(
         "--session-command",
-        help="Explicit command for [initial_session].command. When set, skips .desktop Exec lookup.",
+        help="Explicit command for [initial_session].command. When set, skips runtime .desktop Exec lookup.",
+    )
+    parser.add_argument(
+        "--session-launcher",
+        default=_DEFAULT_SESSION_LAUNCHER,
+        help="Runtime helper used to resolve session .desktop Exec lines when --session-command is unset.",
     )
     parser.add_argument("--host-user", required=True, help="User for [initial_session].user.")
     parser.add_argument(
@@ -169,36 +121,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="__PLACEHOLDER_",
         help="Prefix used to detect unresolved placeholder values.",
     )
-    parser.add_argument(
-        "--wayland-sessions-dir",
-        action="append",
-        dest="wayland_session_dirs",
-        type=Path,
-        help="Additional Wayland session directory to search. Can be passed more than once.",
-    )
-    parser.add_argument(
-        "--xsession-dir",
-        action="append",
-        dest="xsession_dirs",
-        type=Path,
-        help="Additional X11 session directory to search. Can be passed more than once.",
-    )
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
 
-    wayland_session_dirs = tuple(args.wayland_session_dirs or _DEFAULT_WAYLAND_SESSION_DIRS)
-    xsession_dirs = tuple(args.xsession_dirs or _DEFAULT_XSESSION_DIRS)
-
     try:
         template_text = args.template_path.read_text(encoding="utf-8")
         session_command = resolve_session_command(
             args.session,
             session_command=args.session_command,
-            wayland_session_dirs=wayland_session_dirs,
-            xsession_dirs=xsession_dirs,
+            session_launcher=args.session_launcher,
         )
         replacements = {
             _AUTOLOGIN_PLACEHOLDER: session_command,
