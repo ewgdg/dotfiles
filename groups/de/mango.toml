@@ -1,1 +1,1 @@
-members = ["gsettings", "xsettings", "mango-experiment", "greetd"]
+members = ["gsettings", "xsettings", "secret-service", "mango-experiment", "greetd"]

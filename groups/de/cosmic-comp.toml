@@ -1,1 +1,1 @@
-members = ["gsettings", "xsettings", "cosmic-comp-experiment", "greetd"]
+members = ["gsettings", "xsettings", "secret-service", "cosmic-comp-experiment", "greetd"]

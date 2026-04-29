@@ -1,0 +1,14 @@
+id = "secret-service"
+description = "Freedesktop Secret Service backend and client tooling"
+
+[targets.f_local_state_dotman_installed_secret_service]
+source = "files/local/state/dotman/installed/secret-service"
+path = "~/.local/state/dotman/installed/secret-service"
+
+[targets.f_local_state_dotman_installed_secret_service.hooks]
+# gnome-keyring provides the Secret Service backend; libsecret provides common
+# client libraries/tooling used by Electron apps and `secret-tool` diagnostics.
+pre_push = [
+  "{{ INSTALL }} gnome-keyring libsecret seahorse",
+]
+
