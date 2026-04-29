@@ -1,0 +1,26 @@
+{
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "high",
+  "packages": [
+    {
+      "source": "npm:@howaboua/pi-codex-conversion",
+      "extensions": [
+        "+src/index.ts"
+      ]
+    },
+    "npm:pi-vim",
+    {
+      "source": "npm:@victor-software-house/pi-multicodex",
+      "extensions": [
+        "-index.ts"
+      ]
+    },
+    "git:github.com/jorgeavaldez/pi-multicodex@push-zrtmyxytrrxn"
+  ],
+  "enabledModels": [
+    "openai-codex/gpt-5.4-mini",
+    "openai-codex/gpt-5.5"
+  ],
+  "hideThinkingBlock": false
+}

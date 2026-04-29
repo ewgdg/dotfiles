@@ -1,8 +1,19 @@
 id = "pi-coding-agent"
 
+[vars.pi_coding_agent]
+# Runtime changelog marker controls startup changelog/telemetry behavior. Keep it
+# live-local so repo pushes do not make pi re-run old changelog/update handling.
+settings_selector_args = "'lastChangelogVersion'"
+
 [targets.f_pi_agent_agents_md]
 source = "files/pi/agent/AGENTS.md"
 path = "~/.pi/agent/AGENTS.md"
+
+[targets.f_pi_agent_settings_json]
+source = "files/pi/agent/settings.json"
+path = "~/.pi/agent/settings.json"
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.pi_coding_agent.settings_selector_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.pi_coding_agent.settings_selector_args }}'
 
 [targets.d_pi_agent_extensions]
 source = "files/pi/agent/extensions"

@@ -54,6 +54,16 @@
       "skillFolderHash": "079a8cb038b9166f6570a1db1f8b576efbb30b24",
       "installedAt": "2026-04-12T17:12:42.183Z",
       "updatedAt": "2026-04-12T17:12:42.183Z"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "skillFolderHash": "2a1ad17028306ebe45f0e49703fa28b9b2e7f499",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-04-29T07:01:28.678Z",
+      "updatedAt": "2026-04-29T07:01:28.678Z"
     }
   },
   "dismissed": {
@@ -66,6 +76,7 @@
     "codex",
     "cursor",
     "deepagents",
+    "dexto",
     "firebender",
     "gemini-cli",
     "github-copilot",
