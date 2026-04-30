@@ -8,8 +8,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+import re
 import sys
-from typing import Any, ClassVar, Protocol, runtime_checkable
+from typing import Any, ClassVar, Iterable, Protocol, runtime_checkable
 
 
 class TransformMode(StrEnum):
@@ -20,6 +21,21 @@ class TransformMode(StrEnum):
 class SelectorAction(StrEnum):
     REMOVE = "remove"
     RETAIN = "retain"
+
+
+def compile_selector_regexes(
+    raw_regexes: Iterable[str],
+    selector_description: str,
+) -> tuple[re.Pattern[str], ...]:
+    compiled_regexes: list[re.Pattern[str]] = []
+    for raw_regex in raw_regexes:
+        try:
+            compiled_regexes.append(re.compile(raw_regex))
+        except re.error as error:
+            raise ValueError(
+                f"invalid {selector_description} regex {raw_regex!r}: {error}"
+            ) from error
+    return tuple(compiled_regexes)
 
 
 @dataclass(frozen=True)

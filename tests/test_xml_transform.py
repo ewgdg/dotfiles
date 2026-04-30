@@ -33,6 +33,7 @@ def test_xml_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.XmlTransformEngine.selector_specs()}
 
     assert selector_specs["node_matcher"].prefix == "exact"
+    assert selector_specs["node_regex"].prefix == "re"
 
 
 def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
@@ -77,6 +78,50 @@ def test_main_accepts_typed_selector_flags(tmp_path: Path) -> None:
     assert root.findtext("keep") == "repo"
     assert root.find("WindowGeometry") is not None
     assert root.find("WindowGeometry").attrib == {"x": "100", "y": "200"}
+
+
+def test_main_accepts_regex_node_selector_flags(tmp_path: Path) -> None:
+    repo_path = tmp_path / "repo.xml"
+    live_path = tmp_path / "live.xml"
+    output_path = tmp_path / "output.xml"
+
+    repo_path.write_text(
+        """<config>
+  <keep>repo</keep>
+</config>
+""",
+        encoding="utf-8",
+    )
+    live_path.write_text(
+        """<config>
+  <keep>live</keep>
+  <WindowGeometry y="200" x="100" />
+  <WindowState fullscreen="true" />
+</config>
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            r"re:^config/Window",
+        ]
+    )
+
+    assert exit_code == 0
+    root = parse_xml(output_path)
+    assert root.findtext("keep") == "repo"
+    assert root.find("WindowGeometry") is not None
+    assert root.find("WindowState") is not None
 
 
 def test_main_accepts_sort_children_flags(tmp_path: Path) -> None:

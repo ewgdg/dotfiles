@@ -19,6 +19,7 @@ from scripts.transform_engine import (
     TransformMode,
     TransformOutput,
     TransformRequest,
+    compile_selector_regexes,
     emit_transform_output,
 )
 
@@ -217,7 +218,7 @@ def parse_key_paths(raw_key_paths: Iterable[str]) -> list[tuple[str, ...]]:
 
 
 def compile_table_regexes(raw_table_regexes: Iterable[str]) -> list[re.Pattern[str]]:
-    return [re.compile(raw_regex) for raw_regex in raw_table_regexes]
+    return list(compile_selector_regexes(raw_table_regexes, "TOML table selector"))
 
 
 def normalize_blank_lines(content: str) -> str:

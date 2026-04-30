@@ -35,6 +35,11 @@ def test_selector_spec_records_prefix_and_default_status() -> None:
     assert spec.is_default is False
 
 
+def test_compile_selector_regexes_reports_invalid_pattern() -> None:
+    with pytest.raises(ValueError, match="invalid test selector regex"):
+        MODULE.compile_selector_regexes(["["], "test selector")
+
+
 def test_transform_request_requires_overlay_in_merge_mode(tmp_path: Path) -> None:
     request = MODULE.TransformRequest(
         base_path=tmp_path / "base",

@@ -14,6 +14,7 @@ def test_json_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.JsonTransformEngine.selector_specs()}
 
     assert selector_specs["key"].prefix == "exact"
+    assert selector_specs["key_regex"].prefix == "re"
 
 
 def test_compare_file_preserves_existing_text(tmp_path: Path) -> None:
@@ -78,6 +79,40 @@ def test_cleanup_remove_key_strips_selected_top_level_keys(tmp_path: Path) -> No
     }
 
 
+def test_cleanup_remove_key_regex_strips_matching_top_level_keys(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps(
+            {
+                "WindowGeometry": "noise",
+                "WindowState": "noise",
+                "keep": True,
+            },
+            indent="\t",
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "remove",
+            "--selectors",
+            r"re:^Window",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"keep": True}
+
+
 def test_merge_retain_key_preserves_selected_live_keys_and_reapplies_repo_content(
     tmp_path: Path,
 ) -> None:
@@ -134,6 +169,53 @@ def test_merge_retain_key_preserves_selected_live_keys_and_reapplies_repo_conten
         "version": "12.5.7",
         "bottomup": True,
         "rpc": True,
+    }
+
+
+def test_merge_retain_key_regex_preserves_matching_live_keys_and_reapplies_repo_content(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps(
+            {
+                "WindowGeometry": "live-geometry",
+                "WindowState": "live-state",
+                "managed": "stale",
+            },
+            indent="\t",
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps({"managed": "repo"}, indent="\t") + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            r"re:^Window",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {
+        "WindowGeometry": "live-geometry",
+        "WindowState": "live-state",
+        "managed": "repo",
     }
 
 

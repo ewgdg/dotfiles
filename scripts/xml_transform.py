@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import fnmatch
 from pathlib import Path
+import re
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 
@@ -15,12 +16,26 @@ from scripts.transform_engine import (
     SelectorSpec,
     TransformOutput,
     TransformRequest,
+    compile_selector_regexes,
     emit_transform_output,
 )
 
 
-def matches_node_path(node_path: str, node_matchers: list[str]) -> bool:
-    return any(fnmatch.fnmatch(node_path, node_matcher) for node_matcher in node_matchers)
+NodeRegex = re.Pattern[str]
+
+
+def compile_node_regexes(raw_node_regexes: tuple[str, ...]) -> tuple[NodeRegex, ...]:
+    return compile_selector_regexes(raw_node_regexes, "XML node selector")
+
+
+def matches_node_path(
+    node_path: str,
+    node_matchers: list[str],
+    node_regexes: tuple[NodeRegex, ...] = (),
+) -> bool:
+    return any(fnmatch.fnmatch(node_path, node_matcher) for node_matcher in node_matchers) or any(
+        node_regex.search(node_path) for node_regex in node_regexes
+    )
 
 
 def element_identity_key(element: ET.Element) -> tuple[tuple[str, str], ...] | None:
@@ -100,6 +115,7 @@ def overlay_retained_nodes(
     base_root: ET.Element,
     overlay_root: ET.Element,
     node_matchers: list[str] | None = None,
+    node_regexes: tuple[NodeRegex, ...] = (),
 ) -> None:
     if node_matchers is None:
         base_root.attrib.clear()
@@ -152,8 +168,12 @@ def overlay_retained_nodes(
             child_path = f"{cur_path}/{overlay_child.tag}"
             match = find_matching_child(overlay_child)
             should_overlay = False
-            if node_matchers:
-                should_overlay = matches_node_path(child_path, node_matchers)
+            if node_matchers or node_regexes:
+                should_overlay = matches_node_path(
+                    child_path,
+                    node_matchers or [],
+                    node_regexes,
+                )
             else:
                 should_overlay = len(overlay_child) == 0 or match is None
 
@@ -186,9 +206,10 @@ def overlay_retained_nodes(
 def build_tree_with_retained_nodes(
     source_root: ET.Element,
     node_matchers: list[str],
+    node_regexes: tuple[NodeRegex, ...] = (),
 ) -> ET.Element:
     def build_retained_subtree(current: ET.Element, cur_path: str) -> ET.Element | None:
-        if matches_node_path(cur_path, node_matchers):
+        if matches_node_path(cur_path, node_matchers, node_regexes):
             return copy.deepcopy(current)
 
         retained_children: list[ET.Element] = []
@@ -212,20 +233,23 @@ def build_tree_with_retained_nodes(
     return retained_root
 
 
-def strip_nodes(root: ET.Element, node_matchers: list[str]) -> None:
+def strip_nodes(
+    root: ET.Element,
+    node_matchers: list[str],
+    node_regexes: tuple[NodeRegex, ...] = (),
+) -> None:
     def strip_nodes_recursion(
         current: ET.Element,
         parent: ET.Element | None,
         cur_path: str,
         node_matchers: list[str],
     ) -> None:
-        for node_matcher in node_matchers:
-            if fnmatch.fnmatch(cur_path, node_matcher):
-                if parent is not None:
-                    parent.remove(current)
-                else:
-                    current.clear()
-                return
+        if matches_node_path(cur_path, node_matchers, node_regexes):
+            if parent is not None:
+                parent.remove(current)
+            else:
+                current.clear()
+            return
 
         for child in list(current):
             child_path = f"{cur_path}/{child.tag}"
@@ -237,9 +261,10 @@ def strip_nodes(root: ET.Element, node_matchers: list[str]) -> None:
 def build_tree_with_stripped_nodes(
     source_root: ET.Element,
     node_matchers: list[str],
+    node_regexes: tuple[NodeRegex, ...] = (),
 ) -> ET.Element:
     stripped_root = copy.deepcopy(source_root)
-    strip_nodes(stripped_root, node_matchers)
+    strip_nodes(stripped_root, node_matchers, node_regexes)
     return stripped_root
 
 
@@ -247,12 +272,13 @@ def build_tree_with_selector_action(
     source_root: ET.Element,
     node_matchers: list[str],
     selector_action: SelectorAction,
+    node_regexes: tuple[NodeRegex, ...] = (),
 ) -> ET.Element:
-    if not node_matchers:
+    if not node_matchers and not node_regexes:
         return copy.deepcopy(source_root)
     if selector_action == SelectorAction.RETAIN:
-        return build_tree_with_retained_nodes(source_root, node_matchers)
-    return build_tree_with_stripped_nodes(source_root, node_matchers)
+        return build_tree_with_retained_nodes(source_root, node_matchers, node_regexes)
+    return build_tree_with_stripped_nodes(source_root, node_matchers, node_regexes)
 
 
 def parse_node_matchers(raw_node_matchers: tuple[str, ...] | list[str]) -> list[str]:
@@ -348,6 +374,7 @@ def build_pretty_xml_text(root: ET.Element) -> str:
 def render_xml_output(
     base_path: str | Path,
     node_matchers: list[str] | None = None,
+    node_regexes: tuple[NodeRegex, ...] = (),
     sort_attributes: bool = False,
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
@@ -384,6 +411,7 @@ def render_xml_output(
             base_root,
             parsed_node_matchers,
             effective_selector_action,
+            node_regexes,
         )
 
     if overlay_root is not None:
@@ -422,6 +450,7 @@ def transform_xml(
     base_path: str | Path,
     output_path: str | Path | None,
     node_matchers: list[str] | None = None,
+    node_regexes: tuple[NodeRegex, ...] = (),
     sort_attributes: bool = False,
     overlay_path: str | Path | None = None,
     selector_action: SelectorAction | None = None,
@@ -434,6 +463,7 @@ def transform_xml(
         render_xml_output(
             base_path,
             node_matchers=node_matchers,
+            node_regexes=node_regexes,
             sort_attributes=sort_attributes,
             overlay_path=overlay_path,
             selector_action=selector_action,
@@ -453,6 +483,12 @@ class XmlTransformEngine(BaseTransformEngine):
             is_default=True,
             description="fnmatch-style XML node path matcher",
             examples=("config/WindowGeometry", "config/*WindowState"),
+        ),
+        SelectorSpec(
+            name="node_regex",
+            prefix="re",
+            description="regex matching XML node paths",
+            examples=(r"^config/Window", r"/(Geometry|State)$"),
         ),
     )
 
@@ -489,7 +525,11 @@ class XmlTransformEngine(BaseTransformEngine):
 
     def validate_request(self, request: TransformRequest) -> None:
         super().validate_request(request)
-        if not parse_node_matchers(request.selector_values("node_matcher")):
+        compile_node_regexes(request.selector_values("node_regex"))
+        if (
+            not parse_node_matchers(request.selector_values("node_matcher"))
+            and not request.selector_values("node_regex")
+        ):
             raise ValueError("node matchers must not be empty")
 
     def transform(self, request: TransformRequest) -> TransformOutput:
@@ -497,6 +537,7 @@ class XmlTransformEngine(BaseTransformEngine):
         return render_xml_output(
             request.base_path,
             node_matchers=parse_node_matchers(request.selector_values("node_matcher")),
+            node_regexes=compile_node_regexes(request.selector_values("node_regex")),
             sort_attributes=bool(request.engine_option("sort_attributes", False)),
             overlay_path=request.overlay_path,
             selector_action=request.selector_action,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from scripts.transform_cli import run_engine_cli
@@ -14,11 +15,13 @@ from scripts.transform_engine import (
     TransformMode,
     TransformOutput,
     TransformRequest,
+    compile_selector_regexes,
     emit_transform_output,
 )
 
 
 JsonDict = dict[str, Any]
+KeyRegex = re.Pattern[str]
 
 
 def load_json(path: Path) -> JsonDict:
@@ -32,18 +35,42 @@ def load_json(path: Path) -> JsonDict:
 
 
 
-def filter_retained_keys(data: JsonDict, retained_keys: tuple[str, ...]) -> JsonDict:
-    if not retained_keys:
+def compile_key_regexes(raw_key_regexes: tuple[str, ...]) -> tuple[KeyRegex, ...]:
+    return compile_selector_regexes(raw_key_regexes, "JSON key selector")
+
+
+
+def filter_retained_keys(
+    data: JsonDict,
+    retained_keys: tuple[str, ...],
+    retained_key_regexes: tuple[KeyRegex, ...] = (),
+) -> JsonDict:
+    if not retained_keys and not retained_key_regexes:
         return dict(data)
-    return {key: data[key] for key in retained_keys if key in data}
+    retained_key_set = set(retained_keys)
+    return {
+        key: value
+        for key, value in data.items()
+        if key in retained_key_set
+        or any(key_regex.search(key) for key_regex in retained_key_regexes)
+    }
 
 
 
-def filter_stripped_keys(data: JsonDict, stripped_keys: tuple[str, ...]) -> JsonDict:
-    if not stripped_keys:
+def filter_stripped_keys(
+    data: JsonDict,
+    stripped_keys: tuple[str, ...],
+    stripped_key_regexes: tuple[KeyRegex, ...] = (),
+) -> JsonDict:
+    if not stripped_keys and not stripped_key_regexes:
         return dict(data)
     stripped_key_set = set(stripped_keys)
-    return {key: value for key, value in data.items() if key not in stripped_key_set}
+    return {
+        key: value
+        for key, value in data.items()
+        if key not in stripped_key_set
+        and not any(key_regex.search(key) for key_regex in stripped_key_regexes)
+    }
 
 
 
@@ -51,10 +78,11 @@ def select_json_data(
     data: JsonDict,
     selector_action: SelectorAction,
     selected_keys: tuple[str, ...],
+    selected_key_regexes: tuple[KeyRegex, ...] = (),
 ) -> JsonDict:
     if selector_action == SelectorAction.REMOVE:
-        return filter_stripped_keys(data, selected_keys)
-    return filter_retained_keys(data, selected_keys)
+        return filter_stripped_keys(data, selected_keys, selected_key_regexes)
+    return filter_retained_keys(data, selected_keys, selected_key_regexes)
 
 
 
@@ -156,6 +184,12 @@ class JsonTransformEngine(BaseTransformEngine):
             description="exact top-level JSON object key",
             examples=("buildDir", "version"),
         ),
+        SelectorSpec(
+            name="key_regex",
+            prefix="re",
+            description="regex matching top-level JSON object keys",
+            examples=(r"^build", r"Dir$"),
+        ),
     )
 
     def requires_selectors(self) -> bool:
@@ -174,15 +208,21 @@ class JsonTransformEngine(BaseTransformEngine):
             "stdout": parsed_args.stdout,
         }
 
+    def validate_request(self, request: TransformRequest) -> None:
+        super().validate_request(request)
+        compile_key_regexes(request.selector_values("key_regex"))
+
     def transform(self, request: TransformRequest) -> TransformOutput:
         self.validate_request(request)
         selected_keys = request.selector_values("key")
+        selected_key_regexes = compile_key_regexes(request.selector_values("key_regex"))
 
         base_data = load_json(request.base_path)
         transformed_data = select_json_data(
             base_data,
             request.selector_action,
             selected_keys,
+            selected_key_regexes,
         )
 
         if request.mode == TransformMode.MERGE:

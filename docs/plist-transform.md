@@ -8,18 +8,21 @@ Shared CLI semantics live in
 
 ## Selector Types
 
-The plist engine exposes one selector type:
+The plist engine exposes these selector types:
 
 - default `exact:` selector: exact top-level plist dictionary key
+- `re:` selector: regex matching top-level plist dictionary keys
 
 Examples:
 
 - `NSUserKeyEquivalents`
 - `bypassEventsFromOtherApplications`
+- `re:^NSWindow`
 
 Plist-specific notes:
 
 - selectors operate on top-level dictionary keys only
+- regex selectors match key names with Python `re.search`
 - selectorless operation is allowed
 - with no selectors, cleanup is identity and merge starts from the whole base
   plist before applying the overlay plist

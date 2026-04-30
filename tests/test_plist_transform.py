@@ -20,6 +20,7 @@ def test_plist_engine_declares_typed_selectors() -> None:
     selector_specs = {spec.name: spec for spec in MODULE.PlistTransformEngine.selector_specs()}
 
     assert selector_specs["key"].prefix == "exact"
+    assert selector_specs["key_regex"].prefix == "re"
 
 
 def test_compare_file_preserves_existing_bytes(tmp_path: Path) -> None:
@@ -128,6 +129,36 @@ def test_strip_mode_retain_key_keeps_only_selected_keys(tmp_path: Path) -> None:
     assert load_plist(output_path) == {"bypassEventsFromOtherApplications": True}
 
 
+def test_strip_mode_remove_key_regex_strips_matching_keys(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(
+        input_path,
+        {
+            "NSWindow Frame Main": "noise",
+            "SULastCheckTime": "noise",
+            "KeepLocal": True,
+        },
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "remove",
+            "--selectors",
+            r"re:^(NSWindow|SU)",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {"KeepLocal": True}
+
+
 def test_merge_mode_retain_key_merges_selected_overlay_keys(tmp_path: Path) -> None:
     live_path = tmp_path / "live.plist"
     repo_path = tmp_path / "repo.plist"
@@ -166,6 +197,44 @@ def test_merge_mode_retain_key_merges_selected_overlay_keys(tmp_path: Path) -> N
         "KeepRepo": "repo",
         "WindowGeometry": "noise",
         "SULastCheckTime": "noise",
+    }
+
+
+def test_merge_mode_retain_key_regex_preserves_matching_live_keys(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.plist"
+    repo_path = tmp_path / "repo.plist"
+    output_path = tmp_path / "output.plist"
+
+    write_plist(
+        live_path,
+        {
+            "WindowGeometry": "live-geometry",
+            "WindowState": "live-state",
+            "ManagedKey": "stale",
+        },
+    )
+    write_plist(repo_path, {"ManagedKey": "repo"})
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            r"re:^Window",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_plist(output_path) == {
+        "ManagedKey": "repo",
+        "WindowGeometry": "live-geometry",
+        "WindowState": "live-state",
     }
 
 

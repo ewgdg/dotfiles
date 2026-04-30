@@ -8,14 +8,16 @@ Shared CLI semantics live in
 
 ## Selector Types
 
-The XML engine exposes one selector type:
+The XML engine exposes these selector types:
 
 - default `exact:` selector: `fnmatch`-style XML node path matcher
+- `re:` selector: regex matching XML node paths
 
 Examples:
 
 - `config/WindowGeometry`
 - `config/*WindowState`
+- `re:^config/Window`
 
 XML-specific notes:
 
@@ -45,7 +47,8 @@ This gives the intended round-trip behavior:
   available
 - the current XML identity hints are `id`, `name`, `key`, `uuid`, and
   non-empty text content
-- path matching uses `fnmatch`-style globs
+- path matching uses `fnmatch`-style globs for default/exact selectors
+- regex selectors match paths with Python `re.search`
 - nested deletions inside a managed subtree are reflected when the repo subtree
   replaces the discarded base subtree
 

@@ -8,18 +8,21 @@ Shared CLI semantics live in
 
 ## Selector Types
 
-The JSON engine exposes one selector type:
+The JSON engine exposes these selector types:
 
 - default `exact:` selector: exact top-level JSON object key
+- `re:` selector: regex matching top-level JSON object keys
 
 Examples:
 
 - `buildDir`
 - `version`
+- `re:^Window`
 
 JSON-specific notes:
 
 - selectors operate on top-level object keys only
+- regex selectors match key names with Python `re.search`
 - selectorless operation is allowed
 - with no selectors, cleanup is identity and merge starts from the whole base
   JSON object before applying the overlay object
