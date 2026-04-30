@@ -11,8 +11,6 @@ const QUOTED_REFERENCE_LINE_PATTERN = /^\s*@(["'])(.*)\1\s*$/;
 const MESSAGE_TYPE = "agents-expanded";
 const MESSAGE_TITLE = "Expanded context";
 
-let cachedExpandedPrompt: string | undefined;
-
 type ParsedReference = {
   reference: string;
 };
@@ -30,6 +28,14 @@ type LoadedFileState = {
 type ExpandedFilesMessageDetails = {
   files: string[];
   issues: string[];
+};
+
+type ExpansionResult = ExpandedFilesMessageDetails & {
+  expandedPrompt: string;
+};
+
+type ExpansionCacheEntry = ExpansionResult & {
+  prompt: string;
 };
 
 type ContextFile = {
@@ -254,11 +260,12 @@ function replaceContextBlocksInPrompt(
 function buildExpandedPromptAndFiles(
   prompt: string,
   cwd: string,
-): { expandedPrompt: string; files: string[]; issues: string[] } {
+  providedContextFiles?: ContextFile[],
+): ExpansionResult {
   const memo = new Map<string, string>();
   const issues = new Set<ExpansionIssue>();
   const loadedFiles: LoadedFileState = { entries: [], seen: new Set<string>() };
-  const contextFiles = loadProjectContextFiles({ cwd, agentDir: getAgentDir() });
+  const contextFiles = providedContextFiles ?? loadProjectContextFiles({ cwd, agentDir: getAgentDir() });
 
   const expandedPrompt = replaceContextBlocksInPrompt(prompt, contextFiles, memo, issues, loadedFiles);
 
@@ -269,14 +276,29 @@ function buildExpandedPromptAndFiles(
   };
 }
 
+function formatExpansionNotification(result: { files: string[]; issues: string[] }, theme?: any): string {
+  const color = (name: string, text: string) => (theme ? theme.fg(name, text) : text);
+  const lines = [color("mdHeading", `[${MESSAGE_TITLE}]`)];
+
+  for (const file of result.files) {
+    lines.push(`${color("success", "[+]")} ${color("dim", file)}`);
+  }
+
+  for (const issue of result.issues) {
+    lines.push(`${color("warning", "[!]")} ${color("dim", issue)}`);
+  }
+
+  return lines.join("\n");
+}
+
 function createExpandedMessageBox(details: ExpandedFilesMessageDetails, theme: any): Box {
   const box = new Box(1, 1, (t) => theme.bg("customMessageBg", t));
-  box.addChild(new Text(theme.bold(MESSAGE_TITLE), 0, 0));
+  box.addChild(new Text(theme.fg("mdHeading", `[${MESSAGE_TITLE}]`), 0, 0));
   box.addChild(new Spacer(1));
 
   if (details.files.length > 0) {
     for (const file of details.files) {
-      box.addChild(new Text(theme.fg("customMessageLabel", "[+]") + theme.fg("dim", ` ${file}`), 0, 0));
+      box.addChild(new Text(theme.fg("success", "[+]") + theme.fg("dim", ` ${file}`), 0, 0));
     }
   }
 
@@ -290,26 +312,38 @@ function createExpandedMessageBox(details: ExpandedFilesMessageDetails, theme: a
 }
 
 export default function agentsFileExpander(pi: ExtensionAPI) {
+  let expansionCache: ExpansionCacheEntry | undefined;
+
+  const expandPromptWithCache = (prompt: string, cwd: string, contextFiles?: ContextFile[]): ExpansionResult => {
+    const resolvedContextFiles = contextFiles ?? loadProjectContextFiles({ cwd, agentDir: getAgentDir() });
+
+    if (expansionCache?.prompt === prompt) {
+      return expansionCache;
+    }
+
+    const result = buildExpandedPromptAndFiles(prompt, cwd, resolvedContextFiles);
+
+    // Intentionally do not watch/stat @file dependencies here. This extension treats expanded
+    // system prompt as session startup state; context/@file edits must be picked up via /reload.
+    expansionCache = { ...result, prompt };
+
+    return result;
+  };
+
   pi.registerMessageRenderer<ExpandedFilesMessageDetails>(MESSAGE_TYPE, (message, _options, theme) => {
-    return createExpandedMessageBox(message.details ?? { files: [] }, theme);
+    return createExpandedMessageBox(message.details ?? { files: [], issues: [] }, theme);
   });
 
   pi.on("session_start", async (_event, ctx) => {
-    // Build once per session. before_agent_start fires every turn, so cache static expanded prompt here.
+    // Session_start now also fires for replacement flows (new/resume/fork). Keep this UI-only:
+    // pi.sendMessage() would persist a custom_message and add "Expanded context" to LLM context.
+    expansionCache = undefined;
+
     const prompt = ctx.getSystemPrompt();
-    const result = buildExpandedPromptAndFiles(prompt, ctx.cwd);
-    cachedExpandedPrompt = result.expandedPrompt;
+    const result = expandPromptWithCache(prompt, ctx.cwd);
 
     if (ctx.hasUI && (result.files.length > 0 || result.issues.length > 0)) {
-      pi.sendMessage(
-        {
-          customType: MESSAGE_TYPE,
-          content: MESSAGE_TITLE,
-          display: true,
-          details: { files: result.files, issues: result.issues },
-        },
-        { triggerTurn: false },
-      );
+      ctx.ui.notify(formatExpansionNotification(result, ctx.ui.theme), result.issues.length > 0 ? "warning" : "info");
     } else if (result.issues.length > 0) {
       const firstIssue = result.issues[0];
       const message =
@@ -320,17 +354,17 @@ export default function agentsFileExpander(pi: ExtensionAPI) {
     }
   });
 
-  pi.on("session_shutdown", () => {
-    cachedExpandedPrompt = undefined;
-  });
+  pi.on("before_agent_start", async (event, ctx) => {
+    // Cache only by Pi's assembled per-turn prompt. Context-file and @file edits
+    // are treated as startup state and must be picked up via /reload.
+    const result = expandPromptWithCache(event.systemPrompt, ctx.cwd, event.systemPromptOptions.contextFiles);
 
-  pi.on("before_agent_start", async () => {
-    if (cachedExpandedPrompt === undefined) {
+    if (result.expandedPrompt === event.systemPrompt) {
       return undefined;
     }
 
     return {
-      systemPrompt: cachedExpandedPrompt,
+      systemPrompt: result.expandedPrompt,
     };
   });
 }

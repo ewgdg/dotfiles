@@ -104,7 +104,7 @@ codex() {
     return 1
   fi
 
-  local helper="$HOME/.config/zsh/agents-file-expand.py"
+  local helper="$ZSH_CONFIG_DIR/helpers/agents-file-expand.py"
   if [[ ! -f "$helper" ]]; then
     print -u2 -- "Missing helper: $helper"
     return 1

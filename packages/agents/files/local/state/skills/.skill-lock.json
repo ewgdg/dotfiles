@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/upstash/context7.git",
       "skillPath": "skills/find-docs/SKILL.md",
-      "skillFolderHash": "ccd99a8580519fa9e65dcea938e92cb1c3a2f7a4",
+      "skillFolderHash": "f97910e9c43c6fe378ca52aa8dba0cbcf28bb420",
       "installedAt": "2026-04-12T07:27:03.518Z",
-      "updatedAt": "2026-04-12T07:27:03.518Z"
+      "updatedAt": "2026-04-30T03:16:25.203Z"
     },
     "brave-search": {
       "source": "badlogic/pi-skills",
