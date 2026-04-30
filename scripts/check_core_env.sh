@@ -76,7 +76,7 @@ if is_affirmative "${DOTFILES_SKIP_CORE_ENV_GUARD:-}"; then
 fi
 
 printf '%s\n' 'repo core env not loaded or stale in current shell.' >&2
-printf '%s\n' 'Run `. ./activate.sh` then retry.' >&2
+printf '%s\n' "Run \`. \"${repo_root}/activate.sh\"\` then retry." >&2
 printf '%s\n' 'Or set `DOTFILES_SKIP_CORE_ENV_GUARD=1` to bypass this guard intentionally.' >&2
 exit 100
 

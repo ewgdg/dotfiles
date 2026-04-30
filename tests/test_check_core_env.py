@@ -48,7 +48,7 @@ def test_check_core_env_rejects_stale_core_env_token() -> None:
 
     assert completed.returncode == 100
     assert "repo core env not loaded or stale in current shell." in completed.stderr
-    assert "Run `. ./activate.sh` then retry." in completed.stderr
+    assert f'Run `. "{REPO_ROOT}/activate.sh"` then retry.' in completed.stderr
     assert "Or set `DOTFILES_SKIP_CORE_ENV_GUARD=1` to bypass this guard intentionally." in completed.stderr
 
 
