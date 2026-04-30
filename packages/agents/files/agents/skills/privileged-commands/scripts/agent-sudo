@@ -2,11 +2,63 @@
 
 set -eu
 
+usage() {
+    cat >&2 <<'EOF'
+usage: agent-sudo --reason REASON [--] COMMAND [ARG...]
+
+Runs COMMAND with sudo askpass and shows REASON in the password popup.
+EOF
+}
+
+escape_sudo_prompt() {
+    # sudo treats % as prompt escapes; user-supplied reason must be literal.
+    printf '%s' "$1" | sed 's/%/%%/g'
+}
+
+reason=
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --reason|--intention|-r)
+            if [ "$#" -lt 2 ]; then
+                printf '%s\n' "agent-sudo: $1 requires an argument" >&2
+                usage
+                exit 2
+            fi
+            reason=$2
+            shift 2
+            ;;
+        --reason=*|--intention=*)
+            reason=${1#*=}
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 if [ "$#" -eq 0 ]; then
-    printf '%s\n' "usage: agent-sudo COMMAND [ARG...]" >&2
+    usage
     exit 2
 fi
 
+if [ -z "$reason" ]; then
+    printf '%s\n' "agent-sudo: --reason is required" >&2
+    usage
+    exit 2
+fi
+
+prompt=$(printf 'Agent needs elevated privileges.\nReason: %s\nPassword for %%p: ' "$(escape_sudo_prompt "$reason")")
+
 # Force sudo away from terminal prompting. If auth is needed and no askpass is
 # configured, sudo exits instead of blocking on an unreachable TUI/agent prompt.
-exec sudo -A "$@"
+exec sudo -A -p "$prompt" "$@"
