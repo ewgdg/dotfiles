@@ -16,11 +16,6 @@ source = "files/config/kscreenlockerrc"
 path = "~/.config/kscreenlockerrc"
 chmod = "600"
 
-[targets.f_config_kwalletrc]
-source = "files/config/kwalletrc"
-path = "~/.config/kwalletrc"
-chmod = "600"
-
 [targets.f_config_kwinrulesrc]
 source = "files/config/kwinrulesrc"
 path = "~/.config/kwinrulesrc"
@@ -44,5 +39,5 @@ preset = "jinja-patch-editor"
 # KDE config and shortcuts reference these core Plasma apps and Dolphin integrations.
 # okular is very heavy, maybe use flatpak version for it
 pre_push = [
-  "{{ INSTALL }} dolphin dolphin-plugins spectacle ark gwenview filelight okular kate kcalc kwalletmanager kio-extras ffmpegthumbs",
+  "{{ INSTALL }} dolphin dolphin-plugins spectacle ark gwenview filelight okular kate kcalc kio-extras ffmpegthumbs",
 ]

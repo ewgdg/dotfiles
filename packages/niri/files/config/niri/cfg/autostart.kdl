@@ -1,7 +1,7 @@
 // ────────────── Startup Applications ──────────────
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
-// dont need to start ksecretd if we config the portal interface to use kwallet?
+// ksecretd is D-Bus activated by the KWallet Secret portal / Secret Service override.
 // spawn-at-startup "ksecretd"
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
 // Start it once per session.
