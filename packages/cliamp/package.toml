@@ -1,0 +1,19 @@
+id = "cliamp"
+description = "Terminal music player configuration"
+
+[vars.cliamp]
+# Google OAuth client credentials are live-local secrets. Keep them in the live
+# config or inject them with CLIAMP_CONFIG__YTMUSIC__CLIENT_* env vars.
+config_secret_selector_args = "'ytmusic.client_id' 'ytmusic.client_secret'"
+
+[targets.f_config_cliamp_config_toml]
+source = "files/config/cliamp/config.toml"
+path = "~/.config/cliamp/config.toml"
+chmod = "600"
+render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.cliamp.config_secret_selector_args }}'
+capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.cliamp.config_secret_selector_args }}'
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} cliamp-bin",
+]

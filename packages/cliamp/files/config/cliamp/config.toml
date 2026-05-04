@@ -1,0 +1,9 @@
+eq_preset = "Flat"
+
+eq = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+theme = ""
+
+provider = "ytmusic"
+
+[ytmusic]
+cookies_from = "chrome"

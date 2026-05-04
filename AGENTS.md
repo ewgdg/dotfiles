@@ -21,6 +21,7 @@
 - `dotman pull` = live system → repo.
 - Run Python helpers with `uv run ...`.
 - Keep hooks/actions idempotent.
+- Do not manually install packages that are already dependencies of installed packages.
 - Prefer package-local helpers over shared `scripts/` when scope is package-specific.
 - Do not edit `*.archived` files unless explicitly asked.
 - Do not commit secrets, generated state, or local-only overrides.
