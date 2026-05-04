@@ -67,10 +67,6 @@
 - use semantic commit messages
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
 
-## Github CLI
-
-- When creating GitHub issues, if a matching repository issue template exists, it must be used.
-
 ## CLI Tools
 
 - `gh` for github

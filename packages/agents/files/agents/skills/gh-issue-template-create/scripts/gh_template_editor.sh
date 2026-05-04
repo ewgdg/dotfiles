@@ -4,6 +4,7 @@ set -euo pipefail
 draft_file="${1:?draft file path is required}"
 title="${GH_ISSUE_TITLE:-}"
 body_file="${GH_ISSUE_BODY_FILE:-}"
+inline_body="${GH_ISSUE_BODY:-}"
 
 if [[ -z "${title}" ]]; then
   echo "GH_ISSUE_TITLE is required" >&2
@@ -23,6 +24,8 @@ if [[ -n "${body_file}" ]]; then
     exit 2
   fi
   body_content="$(cat "${body_file}")"
+elif [[ -n "${inline_body}" ]]; then
+  body_content="${inline_body}"
 else
   if [[ -n "${scissors_block}" ]]; then
     body_content="$(sed -n "2,/^${scissors_marker}$/p" "${draft_file}" | sed '$d')"
