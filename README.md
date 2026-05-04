@@ -34,6 +34,9 @@ This is to align current shell with the repo's profile env. Skip if already runn
 What `init.sh` does:
 
 - installs `uv` if needed
+- registers this checkout in `$XDG_CONFIG_HOME/dotman/config.toml` (or
+  `~/.config/dotman/config.toml`) as `repos.main`, preserving unrelated TOML
+  config with the repo TOML transform helper
 - installs `dotman` with `uv tool install`
 
 By default `init.sh` installs dotman from:
@@ -48,6 +51,13 @@ Override it with `DOTMAN_TOOL_SPEC` only if you need a different source:
 DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
 ```
 
+The manager repo entry defaults to name `main`, order `10`, and `state_key = "main"`.
+Override only for unusual multi-repo bootstraps:
+
+```sh
+DOTFILES_DOTMAN_MANAGER_REPO_NAME=work ./init.sh
+```
+
 ## Normal Workflow
 
 After bootstrap, use dotman as the primary interface.
@@ -58,7 +68,7 @@ profile sources the deployed `~/.config/shell/env.core.sh` automatically, so man
 
 Typical flow:
 
-1. Register this repo in your dotman manager config.
+1. Run `./init.sh` to register this repo in your dotman manager config.
 2. Track the binding you want.
 3. Use `dotman push` for repo-to-live changes.
 4. Use `dotman pull` for live-to-repo changes.

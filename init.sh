@@ -18,6 +18,20 @@ repo_root="${script_dir}"
 default_uv_bin_dir="${HOME}/.local/bin"
 dotman_tool_spec_default='git+https://github.com/ewgdg/dotman.git'
 dotman_tool_spec="${DOTMAN_TOOL_SPEC:-$dotman_tool_spec_default}"
+dotman_manager_repo_name="${DOTFILES_DOTMAN_MANAGER_REPO_NAME:-main}"
+dotman_config_overlay_path=""
+uv_installer_script_path=""
+
+cleanup() {
+  if [ -n "${uv_installer_script_path}" ]; then
+    rm -f "${uv_installer_script_path}"
+  fi
+  if [ -n "${dotman_config_overlay_path}" ]; then
+    rm -f "${dotman_config_overlay_path}"
+  fi
+}
+
+trap cleanup EXIT HUP INT TERM
 
 if [ "$#" -gt 0 ]; then
   die "init.sh only installs dependencies; it takes no arguments"
@@ -37,11 +51,72 @@ prepend_path() {
 }
 
 run_installer_script() {
-  installer_script_path="$(mktemp "${TMPDIR:-/tmp}/uv-install.XXXXXX.sh")"
-  trap 'rm -f "${installer_script_path}"' EXIT
+  uv_installer_script_path="$(mktemp "${TMPDIR:-/tmp}/uv-install.XXXXXX.sh")"
 
-  curl --proto '=https' -LsSf https://astral.sh/uv/install.sh -o "${installer_script_path}"
-  env UV_UNMANAGED_INSTALL="${default_uv_bin_dir}" UV_NO_MODIFY_PATH=1 sh "${installer_script_path}"
+  curl --proto '=https' -LsSf https://astral.sh/uv/install.sh -o "${uv_installer_script_path}"
+  env UV_UNMANAGED_INSTALL="${default_uv_bin_dir}" UV_NO_MODIFY_PATH=1 sh "${uv_installer_script_path}"
+}
+
+dotman_config_path() {
+  if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+    printf '%s/dotman/config.toml\n' "${XDG_CONFIG_HOME}"
+    return 0
+  fi
+
+  printf '%s/.config/dotman/config.toml\n' "${HOME}"
+}
+
+generate_dotman_config_overlay() {
+  DOTFILES_DOTMAN_REPO_ROOT="${repo_root}" \
+  DOTFILES_DOTMAN_MANAGER_REPO_NAME="${dotman_manager_repo_name}" \
+    uv run --no-project --with tomlkit python - "$1" <<'PY'
+from pathlib import Path
+import os
+import sys
+
+import tomlkit
+
+
+repo_name = os.environ["DOTFILES_DOTMAN_MANAGER_REPO_NAME"]
+repo_root = os.environ["DOTFILES_DOTMAN_REPO_ROOT"]
+overlay_path = Path(sys.argv[1])
+
+repo_config = tomlkit.table()
+repo_config.add("path", repo_root)
+repo_config.add("order", 10)
+repo_config.add("state_key", repo_name)
+
+repos_config = tomlkit.table()
+repos_config.add(repo_name, repo_config)
+
+doc = tomlkit.document()
+doc.add("repos", repos_config)
+
+overlay_path.write_text(doc.as_string(), encoding="utf-8")
+PY
+}
+
+install_dotman_manager_config() {
+  dotman_manager_config_path="$(dotman_config_path)"
+  dotman_config_overlay_path="$(mktemp "${TMPDIR:-/tmp}/dotman-config-overlay.XXXXXX.toml")"
+
+  log "installing dotman manager config at ${dotman_manager_config_path}"
+  mkdir -p "$(dirname -- "${dotman_manager_config_path}")"
+  generate_dotman_config_overlay "${dotman_config_overlay_path}"
+
+  # Use the repo TOML transform so init preserves unrelated manager config while
+  # replacing only this repo registration. Do not hand-roll TOML merge in shell.
+  (
+    cd -- "${repo_root}"
+    uv run --no-project --with tomlkit python scripts/toml_transform.py \
+      "${dotman_manager_config_path}" \
+      "${dotman_manager_config_path}" \
+      --mode merge \
+      --overlay-file "${dotman_config_overlay_path}" \
+      --selector-type remove \
+      --selectors "repos.${dotman_manager_repo_name}" \
+      --compare-file "${dotman_manager_config_path}"
+  )
 }
 
 install_uv() {
@@ -106,6 +181,7 @@ prepend_path "${default_uv_bin_dir}"
 
 export PATH
 
+install_dotman_manager_config
 install_dotman
 
 log "bootstrap complete"
