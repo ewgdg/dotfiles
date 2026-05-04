@@ -63,6 +63,9 @@ multi_agent = true
 search_tool = true
 guardian_approval = true
 codex_hooks = true
+terminal_resize_reflow = true
+memories = true
+external_migration = true
 
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens"]
