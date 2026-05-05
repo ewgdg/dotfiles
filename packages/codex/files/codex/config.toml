@@ -54,10 +54,6 @@ args = ["-y", "@upstash/context7-mcp"]
 # [mcp_servers.playwright.env]
 # PLAYWRIGHT_MCP_EXTENSION_TOKEN = "I9S5fXuyi_lkPuqJ1WYFzeEXDOeevg578KwN1WD6rr8"
 
-[notice]
-hide_full_access_warning = true
-hide_rate_limit_model_nudge = true
-
 [features]
 multi_agent = true
 search_tool = true
@@ -66,6 +62,7 @@ codex_hooks = true
 terminal_resize_reflow = true
 memories = true
 external_migration = true
+goals = true
 
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens"]

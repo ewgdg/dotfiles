@@ -15,6 +15,6 @@ path = "~/.local/state/dotman/installed/secret-service"
 # libsecret provides common client libraries/tooling used by Electron apps and
 # `secret-tool` diagnostics. kwalletmanager is the matching GUI editor.
 pre_push = [
-  "{{ INSTALL }} kwallet kwalletmanager libsecret",
+  "{{ INSTALL }} kwallet libsecret kwalletmanager seahorse",
 ]
 
