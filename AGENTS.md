@@ -16,7 +16,8 @@
 
 ## Working Rules
 
-- Use `dotman` for sync workflows.
+- Use `dotman` for sync workflows when user requested.
+- Let user do the push or pull command.
 - `dotman push` = repo → live system.
 - `dotman pull` = live system → repo.
 - Run Python helpers with `uv run ...`.

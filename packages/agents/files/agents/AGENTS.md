@@ -27,35 +27,31 @@
 
 ## Coding
 
-- Prefer modern and latest libraries and frameworks, reference docs with `context7` or `find-docs` skill.
-- Use descriptive, intention-revealing names; prioritize readability over brevity.
-- Prefer DRY code.
-- Add concise comments when they clarify non-obvious or confusing logic, or make review easier.
-- Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context.
-- In those cases, comment the reason, constraint, or symptom being handled, not just what the code does.
-- Declarative over imperative. Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional.
-- Prefer modular source structure. Avoid growing a single large monolith `src` file; split code by responsibility into focused modules before it becomes hard to navigate.
-- Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues.
+- Prefer modern and latest libraries and frameworks, reference docs with `context7` or `find-docs` skill
+- Use descriptive, intention-revealing names; prioritize readability over brevity
+- Prefer DRY code
+- Add concise comments when they clarify non-obvious or confusing logic, or make review easier
+- Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context
+- In those cases, comment the reason, constraint, or symptom being handled, not just what the code does
+- Declarative over imperative. Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional
+- Prefer modular source structure. Avoid growing a single large monolith `src` file; split code by responsibility into focused modules before it becomes hard to navigate
+- Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues
 - No hard-coded values
-- No Slop, reuse or extend existing code if possible
-- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script.
+- No Slop; reuse or extend existing code if possible
+- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script
 
 ## Testing
 
 - Do not blindly create tests for every trivial details.
 - Test cases need to be robust, flexible and generic and concise, so that they will not easily break for tiny changes
 - Write test cases first before bug fixes
-- if the goals are changed or the code is refactored, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code.
+- if the goals are changed or the code is refactored, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code
 
 ## Context Efficiency
 
-- Save tokens where possible without reducing accuracy or skipping necessary verification.
-- Prefer targeted inspection over full-file reads, especially for large or fast-changing files such as logs, generated artifacts, and lockfiles.
-- When examining logs, start with focused tools such as `rg` (or other grep-like text-search tools), `tail`, `head`, `sed -n`, `wc -l`, and `ls -lh` to narrow the relevant window before reading more.
-- Prefer structure-aware or search-first workflows over full-file reads when they can answer the question with less context.
-- When the source is large and the task is retrieval-style, where the answer depends on finding a few relevant sections among many candidates, prefer `context-mode` indexing and search workflows over repeated full-file reads.
-- For structural code questions, prefer `cgc` before generic text-search workflows. Structural questions include callers, callees, call chains, inheritance, overrides, symbol ownership, module dependencies, dead-code triage, and complexity hotspots. Use direct text search first for simple literal-text lookups, exact strings, small unambiguous matches, or when `cgc` is unavailable.
-- When a large body of text needs triage or summarization, prefer delegating a bounded extraction or summarization task to a lightweight sub-agent if that reduces main-context usage without blocking critical reasoning.
+- Save tokens without reducing accuracy or skipping needed verification.
+- Prefer targeted inspection over full-file reads
+- Use `context-efficient-navigation` skill for large repos, logs, generated files, structural code questions, or broad retrieval tasks
 
 ## Python Related
 
@@ -70,9 +66,8 @@
 ## CLI Tools
 
 - `gh` for github
-- `op` for 1password
 
 ## Skills
 
-- Use the `find-skills` skill to discover relevant skills when possible.
-- Use `npx skills` to manage skills when possible.
+- Use the `find-skills` skill to discover relevant skills when possible
+- Use `npx skills` to manage skills when possible
