@@ -33,7 +33,8 @@ interface OpenAINativeWebSearchConfig {
 }
 
 const WEB_SEARCH_TOOL_NAME = "web_search";
-const STATUS_KEY = "pi-openai-native-web-search";
+// Pi sorts footer statuses by key; prefix keeps web-search visible before noisier extension statuses.
+const STATUS_KEY = "00-web-search";
 const CONFIG_FILE_NAME = "pi-openai-native-web-search.json";
 const WEB_SEARCH_MODE_OPTIONS = ["live", "cached", "disabled"] as const satisfies readonly WebSearchMode[];
 
