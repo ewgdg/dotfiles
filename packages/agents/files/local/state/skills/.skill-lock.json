@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
       "skillPath": "caveman/SKILL.md",
-      "skillFolderHash": "825e13085d1515fe67881b2123f3bf9b34c26154",
+      "skillFolderHash": "f524c391d466fe35e0bdbe9707854fcb2be52b26",
       "installedAt": "2026-04-11T07:47:07.117Z",
-      "updatedAt": "2026-04-12T05:47:03.099Z"
+      "updatedAt": "2026-05-06T04:39:18.764Z"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -33,18 +33,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/using-git-worktrees/SKILL.md",
-      "skillFolderHash": "a5b3f5965f321175a7f07dcadff0bb79adb9e9f7",
+      "skillFolderHash": "13a9643fb9e4b236173f7d4b56b15dac10394f1b",
       "installedAt": "2026-04-12T05:57:16.123Z",
-      "updatedAt": "2026-04-12T05:57:16.123Z"
+      "updatedAt": "2026-05-06T04:39:20.219Z"
     },
     "find-docs": {
       "source": "upstash/context7",
       "sourceType": "github",
       "sourceUrl": "https://github.com/upstash/context7.git",
       "skillPath": "skills/find-docs/SKILL.md",
-      "skillFolderHash": "f97910e9c43c6fe378ca52aa8dba0cbcf28bb420",
+      "skillFolderHash": "ccd99a8580519fa9e65dcea938e92cb1c3a2f7a4",
       "installedAt": "2026-04-12T07:27:03.518Z",
-      "updatedAt": "2026-04-30T03:16:25.203Z"
+      "updatedAt": "2026-05-06T04:39:22.183Z"
     },
     "brave-search": {
       "source": "badlogic/pi-skills",
@@ -64,6 +64,15 @@
       "pluginName": "mattpocock-skills",
       "installedAt": "2026-04-29T07:01:28.678Z",
       "updatedAt": "2026-04-29T07:01:28.678Z"
+    },
+    "compress": {
+      "source": "juliusbrussee/caveman",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
+      "skillPath": "skills/compress/SKILL.md",
+      "skillFolderHash": "d9f3edbb403bb351a6c6968fc7fcd7c861450c0d",
+      "installedAt": "2026-05-06T04:31:26.681Z",
+      "updatedAt": "2026-05-06T04:31:26.681Z"
     }
   },
   "dismissed": {

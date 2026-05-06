@@ -107,8 +107,8 @@ If structural answers look incomplete or wrong, mention these settings explicitl
 
 ## Known CLI Caveats
 
-- `cgc start` is deprecated. Use `cgc mcp start`.
-- `cgc watching` is for MCP mode and will not show foreground CLI `cgc watch` sessions.
+- `cgc start` is deprecated. Use `cgc mcp start` only when MCP server mode is explicitly needed.
+- `cgc watching` lists background watch state; it will not show foreground CLI `cgc watch` sessions.
 - `cgc analyze dead-code [PATH]` advertises a path argument, but the help text says that path-specific analysis is not yet implemented. Treat it as whole-database analysis.
 - `cgc config db --help` may show fewer backend options than `cgc config show` suggests. Do not assume cross-version consistency here.
 
@@ -131,9 +131,9 @@ If destructive or stateful maintenance is genuinely needed, explain why first an
 
 ## MCP, Bundles, and Admin Commands
 
-These are not the default path for answering code questions, but they matter when the user asks for environment setup or graph transport:
+These are not the default path for answering code questions, but they matter when the user asks for environment setup, AI-assistant integration, or portable graph snapshots:
 
-- `cgc mcp ...`: configure/start the MCP server and inspect available MCP tools
+- `cgc mcp ...`: configure/start the MCP server and list available MCP tools
 - `cgc bundle ...`: export or import portable `.cgc` graph snapshots
 - `cgc registry ...`: browse/download/request published bundles
 - `cgc config ...`: inspect or change persistent settings

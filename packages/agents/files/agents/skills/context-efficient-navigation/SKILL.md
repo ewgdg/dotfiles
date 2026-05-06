@@ -69,8 +69,6 @@ Use direct text search first for:
 When answer depends on finding a few relevant sections among many candidates:
 
 - prefer available indexing/search workflows
-- use `context-mode` only when its MCP tools are configured (`ctx_index`, `ctx_search`, `ctx_fetch_and_index`, etc.)
-- do not assume `context-mode` has standalone CLI search/index commands
 - avoid repeated broad reads
 - extract bounded candidate snippets first
 - then reason from those snippets
