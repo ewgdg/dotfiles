@@ -10,13 +10,7 @@
 			]
 		},
 		"npm:pi-vim",
-		{
-			"source": "npm:@victor-software-house/pi-multicodex",
-			"extensions": [
-				"-index.ts"
-			]
-		},
-		"git:github.com/jorgeavaldez/pi-multicodex@push-zrtmyxytrrxn"
+		"git:github.com/ewgdg/pi-multicodex@dev"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.4-mini",
