@@ -67,33 +67,11 @@ dotman_config_path() {
 }
 
 generate_dotman_config_overlay() {
-  DOTFILES_DOTMAN_REPO_ROOT="${repo_root}" \
-  DOTFILES_DOTMAN_MANAGER_REPO_NAME="${dotman_manager_repo_name}" \
-    uv run --no-project --with tomlkit python - "$1" <<'PY'
-from pathlib import Path
-import os
-import sys
-
-import tomlkit
-
-
-repo_name = os.environ["DOTFILES_DOTMAN_MANAGER_REPO_NAME"]
-repo_root = os.environ["DOTFILES_DOTMAN_REPO_ROOT"]
-overlay_path = Path(sys.argv[1])
-
-repo_config = tomlkit.table()
-repo_config.add("path", repo_root)
-repo_config.add("order", 10)
-repo_config.add("state_key", repo_name)
-
-repos_config = tomlkit.table()
-repos_config.add(repo_name, repo_config)
-
-doc = tomlkit.document()
-doc.add("repos", repos_config)
-
-overlay_path.write_text(doc.as_string(), encoding="utf-8")
-PY
+  uv run --no-project --with tomlkit python scripts/generate_dotman_manager_config_overlay.py \
+    --config-path "$2" \
+    --output-path "$1" \
+    --repo-name "${dotman_manager_repo_name}" \
+    --repo-root "${repo_root}"
 }
 
 install_dotman_manager_config() {
@@ -102,7 +80,7 @@ install_dotman_manager_config() {
 
   log "installing dotman manager config at ${dotman_manager_config_path}"
   mkdir -p "$(dirname -- "${dotman_manager_config_path}")"
-  generate_dotman_config_overlay "${dotman_config_overlay_path}"
+  generate_dotman_config_overlay "${dotman_config_overlay_path}" "${dotman_manager_config_path}"
 
   # Use the repo TOML transform so init preserves unrelated manager config while
   # replacing only this repo registration. Do not hand-roll TOML merge in shell.

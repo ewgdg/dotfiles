@@ -37,6 +37,9 @@ What `init.sh` does:
 - registers this checkout in `$XDG_CONFIG_HOME/dotman/config.toml` (or
   `~/.config/dotman/config.toml`) as `repos.main`, preserving unrelated TOML
   config with the repo TOML transform helper
+- seeds missing manager defaults from this repo owner's current config:
+  `ui.compact_path_tail_segments = 3`, `symlinks.file_symlink_mode = "prompt"`,
+  and `symlinks.dir_symlink_mode = "follow"`; existing values are kept
 - installs `dotman` with `uv tool install`
 
 By default `init.sh` installs dotman from:

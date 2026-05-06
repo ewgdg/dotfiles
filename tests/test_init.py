@@ -113,6 +113,7 @@ dir_symlink_mode = "follow"
         "order": 20,
         "state_key": "extra",
     }
+    assert config["ui"] == {"compact_path_tail_segments": 3}
     assert config["symlinks"] == {
         "file_symlink_mode": "prompt",
         "dir_symlink_mode": "follow",
@@ -121,3 +122,53 @@ dir_symlink_mode = "follow"
         encoding="utf-8"
     )
     assert f"installing dotman manager config at {config_path}" in completed.stderr
+
+
+def test_init_fills_only_missing_dotman_manager_defaults(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    xdg_config_home = tmp_path / "xdg-config"
+    fake_bin = tmp_path / "bin"
+    uv_log_path = tmp_path / "uv-tool.log"
+    fake_bin.mkdir()
+    home.mkdir()
+    write_fake_uv(fake_bin, uv_log_path)
+
+    config_path = xdg_config_home / "dotman" / "config.toml"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text(
+        """
+[ui]
+compact_path_tail_segments = 7
+
+[symlinks]
+file_symlink_mode = "relative"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "HOME": str(home),
+            "XDG_CONFIG_HOME": str(xdg_config_home),
+            "PATH": f"{fake_bin}:{env['PATH']}",
+            "TMPDIR": str(tmp_path),
+            "DOTMAN_TOOL_SPEC": "file:///tmp/fake-dotman",
+        }
+    )
+
+    subprocess.run(
+        ["sh", "init.sh"],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    assert config["ui"] == {"compact_path_tail_segments": 7}
+    assert config["symlinks"] == {
+        "file_symlink_mode": "relative",
+        "dir_symlink_mode": "follow",
+    }
