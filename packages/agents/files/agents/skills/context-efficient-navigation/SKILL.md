@@ -75,7 +75,7 @@ When answer depends on finding a few relevant sections among many candidates:
 
 ## Delegation
 
-When a large body of text needs triage or summarization, delegate a bounded extraction/summarization task to a lightweight sub-agent if it reduces main context and does not block critical reasoning.
+When a large body of text needs triage or summarization, delegate a bounded extraction/summarization task to a lightweight, low-cost sub-agent if it reduces main context and does not block critical reasoning. Prefer agents/models configured with low thinking effort for extraction-only work; reserve high-cost reasoning for synthesis or decisions.
 
 ## Response Discipline
 
