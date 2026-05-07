@@ -1,18 +1,20 @@
 ---
-name: oss-writing
-description: Use when writing Git/GitHub/GitLab pull requests, issues, comments, bug reports, feature requests, review summaries, and implementation notes. Always draft before posting.
+name: dev-writing
+description: Use when writing for developer/software repository work like Git/GitHub/GitLab pull requests, issues, comments, bug reports, feature requests, review summaries. Always draft before posting.
 ---
 
-# OSS Writing
+# Dev Writing
 
-Use this skill for OSS-facing PRs, issues, comments, bug reports, feature requests, review summaries, and repo-facing implementation notes.
+Use this skill for developer/software repository writing: PRs, issues, comments, bug reports, feature requests, review summaries, and repo-facing implementation notes.
 
 ## Hard Rules
 
 - Always generate a draft before posting or submitting anything.
-- Store draft at `/tmp/drafts/<slug>.md`.
+- Store draft files under `/tmp/drafts/<slug>/`.
 - Use a short readable `<slug>` for filesystem use: lowercase, spaces to `-`, remove unsafe chars. It does not need to match the issue/PR title.
-- Store real issue/PR title in YAML frontmatter as `title`.
+- Store internal metadata in `/tmp/drafts/<slug>/meta.yaml`.
+- Store publishable markdown body in `/tmp/drafts/<slug>/body.md`.
+- `body.md` must contain only text safe to post publicly. No internal YAML frontmatter, hidden metadata, planning notes, or agent instructions.
 - Do not post/create/update PRs or issues until user explicitly approves the draft.
 - Use `$caveman full` style: compressed, direct, no filler, technical substance preserved.
 - Use `$personal-writing-style` to mimic user tone.
@@ -24,14 +26,21 @@ Use this skill for OSS-facing PRs, issues, comments, bug reports, feature reques
 
 ## Draft Format
 
-```markdown
----
+Create two files:
+
+`/tmp/drafts/<slug>/meta.yaml`
+
+```yaml
 title: Real issue or PR title here
 type: issue | pr | comment | bug | feature | review | note
 repo: owner/name
----
+body_file: body.md
+```
 
-Main summary paragraph here. No header before this paragraph. This is the first non-frontmatter paragraph.
+`/tmp/drafts/<slug>/body.md`
+
+```markdown
+Main summary paragraph here. No header before this paragraph. This is the first paragraph.
 
 Optional extra details, only if needed. Keep short. Use bullets over sections when enough.
 
@@ -43,15 +52,15 @@ Hide noisy logs, long examples, investigation notes, or extra evidence here.
 </details>
 ```
 
-Keep draft concise. Do not add fixed sections like Context or Changes unless user/repo template needs them. Omit Testing and Risks/Follow-up unless they add real value. Hide noisy details in `<details>` blocks.
+Keep `body.md` concise and directly publishable. Do not add fixed sections like Context or Changes unless user/repo template needs them. Omit Testing and Risks/Follow-up unless they add real value. Hide noisy details in `<details>` blocks.
 
 ## Workflow
 
 1. Gather target: PR, issue, or comment, repo, title/thread context, intent, audience, and any template requirements.
-2. Write draft to `/tmp/drafts/<slug>.md` with title in frontmatter.
-3. Show draft path, frontmatter title, and concise preview.
+2. Write draft files to `/tmp/drafts/<slug>/meta.yaml` and `/tmp/drafts/<slug>/body.md`.
+3. Show draft paths, metadata title, and concise preview of `body.md`.
 4. Ask user for approval or edits.
-5. Only after approval, post/create/update using frontmatter `title` plus markdown body.
+5. Only after approval, post/create/update using `meta.yaml` for title/repo/type and `body.md` as the only body source.
 
 ## GitHub Notes
 

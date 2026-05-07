@@ -98,7 +98,7 @@ export default function (pi: ExtensionAPI) {
 				"Create an Obsidian journal entry with Highlight and Journal fields, set author automatically, and terminate the turn.",
 			promptSnippet: "Log meaningful future-review deltas to Obsidian",
 			promptGuidelines: [
-				"Use journal_write as the final action after agent work when there is meaningful delta with future review value, such as meaningful progress, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction.",
+				"journal_write is agent-triggered: decide after meaningful work. If criteria pass, write one journal entry automatically as the final action; do not wait for the user to ask. Criteria: meaningful progress, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction.",
 				"Do not use journal_write for trivial activity, routine updates, implementation noise, obvious facts, or low-signal thoughts.",
 				"Do not journal merely because journaling machinery was used; log skill/workflow changes only when the change itself has future review value.",
 				"journal_write Highlight must be a short concrete proposition: say what changed, not a vague topic like Update or Progress.",
