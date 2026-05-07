@@ -176,23 +176,21 @@ create_journal() {
   local author="$(detect_author "$explicit_author")"
   local journal_dir="$(resolve_journal_dir "$vault_path")"
   local before_path="$(latest_journal_path)"
-  local quickadd_output="$(mktemp -t obsidian-journal-quickadd.XXXXXX)"
+  local quickadd_output=""
 
-  if ! obsidian vault="$vault" quickadd:run \
+  if ! quickadd_output="$(obsidian vault="$vault" quickadd:run \
     choice="Journal" \
     value-Highlight="$highlight" \
-    value-Journal="$journal" >"$quickadd_output" 2>&1; then
-    cat "$quickadd_output" >&2
-    trash-put "$quickadd_output" 2>/dev/null || true
+    value-Journal="$journal" 2>&1)"; then
+    printf '%s\n' "$quickadd_output" >&2
     exit 1
   fi
 
   local after_path="$(latest_journal_path)"
 
   if [[ -z "$after_path" || "$after_path" == "$before_path" ]]; then
-    cat "$quickadd_output" >&2
+    printf '%s\n' "$quickadd_output" >&2
     printf 'Could not identify newly created journal path; author not set.\n' >&2
-    trash-put "$quickadd_output" 2>/dev/null || true
     exit 1
   fi
 
@@ -202,7 +200,6 @@ create_journal() {
     value="$author" \
     type=text >/dev/null
 
-  trash-put "$quickadd_output" 2>/dev/null || true
   format_created_filename "$vault_path" "$journal_dir" "$after_path"
 }
 
