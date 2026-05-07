@@ -1,7 +1,7 @@
 ---
 name: journal
 description: >
-  Create and search Obsidian journal entries. Use after agent work when there is meaningful delta with future review value, such as meaningful progress, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction. Create automatically when criteria pass.
+  Create and search Obsidian journal entries; use the journal directory as a searchable memory store when agents need prior context. Use after agent work when there is meaningful delta with future review value, such as meaningful progress, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction. Create automatically when criteria pass.
 ---
 
 # Journal
@@ -18,7 +18,7 @@ journal_dir="$(~/.agents/skills/journal/run.sh print-path)"
 
 `print-path` asks Obsidian CLI for the vault base path, then appends `JOURNAL_VAULT_RELATIVE_DIR` (default: `Streams/Journals`). If Obsidian path discovery fails, it falls back to `$HOME/projects/knowledgebase/<journal-relative-dir>`.
 
-For recall/search, use normal file tools such as `rg`/`read` against `journal_dir`. Do not create a new journal entry for recall.
+For memory recall/search, use normal file tools such as `rg`/`read` against `journal_dir`; do not create a new journal entry for recall.
 
 Example:
 
