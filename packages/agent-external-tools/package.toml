@@ -1,0 +1,16 @@
+id = "agent-external-tools"
+description = "External CLIs for AI agent workflows"
+
+depends = [
+  "go-lang",
+]
+
+[targets.f_local_state_dotman_installed_agent_external_tools]
+source = "files/local/state/dotman/installed/agent-external-tools"
+path = "~/.local/state/dotman/installed/agent-external-tools"
+
+# Keep external agent workflow tools separate from agent config and built-in tools.
+[hooks]
+pre_push = [
+  "go install github.com/tomasz-tomczyk/crit@latest",
+]

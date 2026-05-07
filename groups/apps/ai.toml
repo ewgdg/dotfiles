@@ -1,1 +1,1 @@
-members = ["agents", "codex", "claude", "pi-coding-agent"]
+members = ["agents", "agent-external-tools", "codex", "claude", "pi-coding-agent"]

@@ -1,0 +1,12 @@
+id = "go-lang"
+description = "Go language toolchain bootstrap"
+
+[targets.f_local_state_dotman_installed_go_lang]
+source = "files/local/state/dotman/installed/go-lang"
+path = "~/.local/state/dotman/installed/go-lang"
+
+# Marker exists so install-only toolchain package stays selectable/tracked by dotman.
+[hooks]
+pre_push = [
+  "{{ INSTALL }} go",
+]
