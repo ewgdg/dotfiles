@@ -28,7 +28,8 @@ strip_obsidian_eval_prefix() {
 discover_vault_path() {
   local discovered=""
   local code="const adapter = app.vault.adapter; const basePath = adapter.getBasePath?.() ?? adapter.basePath ?? ''; basePath;"
-  if discovered="$(obsidian vault="$vault" eval code="$code" 2>/dev/null | strip_obsidian_eval_prefix | tail -n 1)"; then
+  # Keep caller stdin for journal body; obsidian CLI may otherwise consume piped stdin before create_journal can read it.
+  if discovered="$(obsidian vault="$vault" eval code="$code" </dev/null 2>/dev/null | strip_obsidian_eval_prefix | tail -n 1)"; then
     if [[ -n "$discovered" && "$discovered" != "undefined" && "$discovered" != "null" ]]; then
       printf '%s\n' "$discovered"
       return
@@ -94,7 +95,7 @@ detect_author() {
 
 latest_journal_path() {
   obsidian vault="$vault" eval code="const journalDir = '$journal_vault_relative_dir'.replace(/\\/+$/, ''); const prefix = journalDir + '/'; const f = app.vault.getMarkdownFiles().filter(f => f.path.startsWith(prefix) && f.name !== 'Journals.md').sort((a, b) => b.stat.ctime - a.stat.ctime)[0]; f ? f.path : '';" \
-    | strip_obsidian_eval_prefix
+    </dev/null | strip_obsidian_eval_prefix
 }
 
 format_created_filename() {
