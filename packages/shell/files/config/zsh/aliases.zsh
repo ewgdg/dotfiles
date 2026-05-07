@@ -20,4 +20,17 @@ if [[ -o interactive ]]; then
     alias cd='z'
   fi
 
+  cliamp() {
+    _ensure_command op "cliamp YT Music secrets" || return
+    _ensure_command cliamp "cliamp YT Music secrets" || return
+
+    local client_id client_secret
+    client_id="$(op read 'op://dev/google-oauth-thirdparty-apps/client_id')" || return
+    client_secret="$(op read 'op://dev/google-oauth-thirdparty-apps/client_secret')" || return
+
+    YTMUSIC_CLIENT_ID="$client_id" \
+      YTMUSIC_CLIENT_SECRET="$client_secret" \
+      command cliamp "$@"
+  }
+
 fi

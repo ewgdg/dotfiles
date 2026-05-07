@@ -6,4 +6,6 @@ theme = ""
 provider = "ytmusic"
 
 [ytmusic]
+client_id = "${YTMUSIC_CLIENT_ID}"
+client_secret = "${YTMUSIC_CLIENT_SECRET}"
 cookies_from = "chrome"
