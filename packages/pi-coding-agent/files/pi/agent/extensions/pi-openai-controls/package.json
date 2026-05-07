@@ -1,0 +1,8 @@
+{
+  "name": "pi-openai-controls",
+  "private": true,
+  "description": "Personal pi extension for OpenAI provider controls.",
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}
