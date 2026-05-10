@@ -37,7 +37,7 @@ standard -> default
 prio -> priority
 ```
 
-Runtime command changes are session-only. Edit JSON config to persist defaults, then run `/openai-controls reload` or `/reload`.
+Runtime command changes are written to JSON config immediately, so they survive new sessions and pi restarts. Edit JSON manually only when you prefer direct file edits, then run `/openai-controls reload`.
 
 ## Config
 
@@ -68,7 +68,7 @@ Project config overrides global config. JSON uses snake_case.
 }
 ```
 
-All fields are optional.
+All fields are optional. `/openai-controls service-tier ...` and `/openai-controls web-search ...` update this JSON file while preserving other fields.
 
 ## Service-tier notes
 

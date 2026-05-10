@@ -3,6 +3,7 @@ import {
   getConfigSearchPaths,
   loadOpenAIControlsConfig,
   parseWebSearchMode,
+  saveOpenAIControlsStateToConfig,
 } from "./config";
 import {
   getSupportedProviderServiceTier,
@@ -176,7 +177,7 @@ export default function openAIControls(pi: ExtensionAPI) {
         config = loadOpenAIControlsConfig(ctx.cwd);
         resetStateFromConfig(state, config);
         syncActiveWebSearchTool(pi, ctx, state, config);
-        ctx.ui.notify(`OpenAI controls reloaded: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`, "info");
+        ctx.ui.notify(`OpenAI controls reloaded from JSON: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`, "info");
         return;
       }
 
@@ -188,9 +189,11 @@ export default function openAIControls(pi: ExtensionAPI) {
         }
 
         state.serviceTier = selectedServiceTier;
+        const configPath = saveOpenAIControlsStateToConfig(ctx.cwd, state);
+        config = loadOpenAIControlsConfig(ctx.cwd);
         syncActiveWebSearchTool(pi, ctx, state, config);
         const providerServiceTier = getSupportedProviderServiceTier(state.serviceTier, ctx.model) ?? "omitted";
-        ctx.ui.notify(`OpenAI service tier: ${state.serviceTier} (applied: ${providerServiceTier}; session only; edit JSON config to persist)`, "info");
+        ctx.ui.notify(`OpenAI service tier: ${state.serviceTier} (applied: ${providerServiceTier}; saved: ${configPath})`, "info");
         return;
       }
 
@@ -202,8 +205,10 @@ export default function openAIControls(pi: ExtensionAPI) {
         }
 
         state.webSearchMode = selectedMode;
+        const configPath = saveOpenAIControlsStateToConfig(ctx.cwd, state);
+        config = loadOpenAIControlsConfig(ctx.cwd);
         syncActiveWebSearchTool(pi, ctx, state, config);
-        ctx.ui.notify(`OpenAI native web search: ${state.webSearchMode} (session only; edit JSON config to persist)`, "info");
+        ctx.ui.notify(`OpenAI native web search: ${state.webSearchMode} (saved: ${configPath})`, "info");
       }
     },
   });

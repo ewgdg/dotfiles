@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseServiceTier } from "./service-tier";
 import type {
   OpenAIControlsConfig,
+  OpenAIControlsState,
   OpenAINativeWebSearchUserLocation,
   ServiceTier,
   WebSearchConfig,
@@ -45,6 +46,25 @@ export function getConfigSearchPaths(cwd: string): string[] {
   return [join(getAgentDir(), CONFIG_FILE_NAME), join(cwd, ".pi", CONFIG_FILE_NAME)];
 }
 
+export function getWritableConfigPath(cwd: string): string {
+  const projectConfigPath = join(cwd, ".pi", CONFIG_FILE_NAME);
+  return existsSync(projectConfigPath) ? projectConfigPath : join(getAgentDir(), CONFIG_FILE_NAME);
+}
+
+export function saveOpenAIControlsStateToConfig(cwd: string, state: OpenAIControlsState): string {
+  const configPath = getWritableConfigPath(cwd);
+  const raw = readJsonObjectFile(configPath);
+  const webSearch = isRecord(raw.web_search) ? raw.web_search : {};
+  const serviceTier = isRecord(raw.service_tier) ? raw.service_tier : {};
+
+  raw.web_search = { ...webSearch, mode: state.webSearchMode };
+  raw.service_tier = { ...serviceTier, default: state.serviceTier };
+
+  mkdirSync(dirname(configPath), { recursive: true });
+  writeFileSync(configPath, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
+  return configPath;
+}
+
 function getAgentDir(): string {
   const configuredAgentDir = process.env.PI_CODING_AGENT_DIR?.trim();
   return configuredAgentDir || join(homedir(), ".pi", "agent");
@@ -52,12 +72,17 @@ function getAgentDir(): string {
 
 function readConfigFile(path: string): PartialOpenAIControlsConfig {
   if (!existsSync(path)) return {};
+  return parseRawConfig(readJsonObjectFile(path), path);
+}
+
+function readJsonObjectFile(path: string): JsonRecord {
+  if (!existsSync(path)) return {};
 
   const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
   if (!isRecord(parsed)) {
     throw new Error(`Expected ${path} to contain a JSON object`);
   }
-  return parseRawConfig(parsed, path);
+  return parsed;
 }
 
 function parseRawConfig(raw: JsonRecord, path: string): PartialOpenAIControlsConfig {

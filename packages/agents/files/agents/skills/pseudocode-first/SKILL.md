@@ -1,17 +1,22 @@
 ---
 name: pseudocode-first
-description: Use before writing or modifying source code. Creates or updates a reviewable pseudocode artifact first, treats pseudocode as the source of truth, compiles it into implementation code, and verifies implementation matches the pseudocode.
+description: Opt-in pseudocode workflow for programming-language source changes. Activates only by explicit user request and remains active until explicitly stopped. Excludes config, docs, data, markup, styles, lockfiles, generated files, and other non-source artifacts unless explicitly included.
 ---
 
 # Pseudocode First
 
-Use this skill before any source-code `write` or `edit`.
-
 Pseudocode is the human-reviewable source of truth. Implementation code is the compiled artifact.
+
+## Activation and Scope
+
+- Activate only when the user explicitly asks for pseudocode-first mode, such as `use pseudocode-first`, `pseudo first`, or `/skill:pseudocode-first`.
+- Stay active until the user explicitly says to stop pseudocode-first mode.
+- Apply only to programming-language source files, such as `.ts`, `.tsx`, `.js`, `.py`, `.rs`, `.go`, `.java`, or `.cpp`.
+- Exclude config, docs, data, markup, stylesheets, lockfiles, generated files, and other non-source artifacts unless the user explicitly includes them.
 
 ## Core Rule
 
-Before modifying source code:
+Before modifying in-scope source code while this mode is active:
 
 1. Find the mapped pseudocode artifact for each affected source file.
 2. If mapped pseudocode exists, update it first.
