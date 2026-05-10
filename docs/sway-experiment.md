@@ -22,12 +22,12 @@ Source package:
 
 ## Workspace map
 
-- `1` main
-- `2` stash
-- `3` notes
-- `4` AI
+- `1` stash
+- `2` games
+- `3` AI
+- `4` notes
 - `5` logs
-- `6` games
+- `6` main
 - `7-9` spare
 
 ## Related profile/group

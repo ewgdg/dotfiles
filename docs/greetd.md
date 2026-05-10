@@ -58,9 +58,18 @@ Search order:
 
 The shell helper is intentionally limited to trusted session `.desktop` files,
 not arbitrary application launchers. It rejects desktop field codes such as `%f`
-instead of trying to emulate the full Freedesktop `Exec=` grammar. The package
-`guard_push` hook validates the helper against the selected session with a
-Python parser before writing the greetd config.
+instead of trying to emulate the full Freedesktop `Exec=` grammar.
+
+The package `guard_push` hook validates only local syntax by default: the helper
+shell script, the selected session name, and any explicit `session_command`.
+It does **not** require `<session>.desktop` to exist during `dotman push`, because
+session packages may be installed by hooks in the same push. The selected
+`.desktop` file is resolved at login time by `greetd-start-session`.
+
+For manual/tests-only checks of an already-installed session, run
+`validate_greetd_start_session.py --validate-installed-session`; that mode
+requires the `.desktop` file and compares helper parsing against the Python
+parser.
 
 ## Service behavior
 

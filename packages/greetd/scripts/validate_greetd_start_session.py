@@ -87,7 +87,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="append",
         dest="session_dirs",
         type=Path,
-        help="Session directory to search. Can be passed more than once. Defaults to system session dirs.",
+        help="Session directory to search when --validate-installed-session is set. Can be passed more than once. Defaults to system session dirs.",
+    )
+    parser.add_argument(
+        "--validate-installed-session",
+        action="store_true",
+        help="Also require the selected session .desktop file to exist and compare helper parsing against the Python parser.",
     )
     return parser.parse_args(argv)
 
@@ -97,13 +102,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     session_dirs = tuple(args.session_dirs or _DEFAULT_SESSION_DIRS)
 
     try:
-        if args.session_command is not None and args.session_command.strip():
-            shlex.split(args.session_command)
-            return 0
+        if not args.session.strip():
+            raise ValueError("session name must not be empty")
 
         syntax_check = subprocess.run(["sh", "-n", str(args.helper)], capture_output=True, text=True, check=False)
         if syntax_check.returncode != 0:
             raise ValueError(syntax_check.stderr.strip() or "helper shell syntax check failed")
+
+        if args.session_command is not None and args.session_command.strip():
+            shlex.split(args.session_command)
+            return 0
+
+        if not args.validate_installed_session:
+            # Session .desktop lookup is intentionally runtime-only. Desktop entries
+            # may be installed by another package hook in the same dotman push.
+            return 0
 
         desktop_entry_path = resolve_session_desktop_path(args.session, session_dirs=session_dirs)
         exec_command = read_desktop_entry_exec(desktop_entry_path)

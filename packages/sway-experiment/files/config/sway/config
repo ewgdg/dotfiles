@@ -17,8 +17,8 @@ set $term alacritty
 set $launcher qs -c noctalia-shell ipc call launcher toggle
 set $launcher_windows qs -c noctalia-shell ipc call launcher windows
 
-# Workspace map:
-# 1 main | 2 stash | 3 notes | 4 AI | 5 logs | 6 games | 7-9 spare
+# Workspace map mirrors Niri declaration order:
+# 1 stash | 2 games | 3 AI | 4 notes | 5 logs | 6 main | 7-9 spare
 set $ws1 1
 set $ws2 2
 set $ws3 3
@@ -80,14 +80,14 @@ input type:pointer {
 }
 
 ### App placement. Keep only simple native rules.
-assign [app_id="^steam$"] $ws6
-assign [app_id="^lutris$"] $ws6
-assign [title="^Battle\\.net$"] $ws6
-assign [app_id="^explorer\\.exe$"] $ws2
-assign [app_id="^obsidian$"] $ws3
-assign [title="^Memos$"] $ws3
-assign [title="^ChatGPT$"] $ws4
-assign [title="^Google AI Studio$"] $ws4
+assign [app_id="^steam$"] $ws2
+assign [app_id="^lutris$"] $ws2
+assign [title="^Battle\\.net$"] $ws2
+assign [app_id="^explorer\\.exe$"] $ws1
+assign [app_id="^obsidian$"] $ws4
+assign [title="^Memos$"] $ws4
+assign [title="^ChatGPT$"] $ws3
+assign [title="^Google AI Studio$"] $ws3
 assign [title="^logs-journalctl$"] $ws5
 
 for_window [app_id="^1password(-quickaccess)?$"] floating enable
@@ -152,12 +152,12 @@ bindsym $mod+Shift+u move container to workspace next_on_output
 bindsym $mod+Shift+i move container to workspace prev_on_output
 bindsym $mod+Ctrl+u move container to workspace next_on_output
 bindsym $mod+Ctrl+i move container to workspace prev_on_output
-bindsym $mod+s workspace $ws2
-bindsym $mod+Ctrl+s move container to workspace $ws2
-bindsym $mod+n workspace $ws3
-bindsym $mod+Ctrl+n move container to workspace $ws3
-bindsym $mod+a workspace $ws4
-bindsym $mod+Ctrl+a move container to workspace $ws4
+bindsym $mod+s workspace $ws1
+bindsym $mod+Ctrl+s move container to workspace $ws1
+bindsym $mod+n workspace $ws4
+bindsym $mod+Ctrl+n move container to workspace $ws4
+bindsym $mod+a workspace $ws3
+bindsym $mod+Ctrl+a move container to workspace $ws3
 
 bindsym $mod+1 workspace $ws1
 bindsym $mod+2 workspace $ws2
