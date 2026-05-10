@@ -2,8 +2,9 @@
 
 ## Overview
 
-- Purpose: prepare Hyprland outputs for Sunshine streaming using a headless
-  output, then restore and clean up.
+- Purpose: prepare Hyprland outputs for Sunshine streaming. Default mode uses
+  an existing detected output; headless output remains experimental for this
+  machine because KMS capture may not see it.
 - File: `packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py`
 - Requirements: Hyprland (`hyprctl`) in PATH; optional `ydotool` for a quick
   wake; `systemd-inhibit` for idle prevention.
@@ -23,9 +24,10 @@
 
 ## Behavior
 
-- Creates a virtual output via `hyprctl output create headless <name>` and sets `WxH@Fps`.
+- Default mode selects an existing monitor that supports the requested `WxH@Fps`.
+- Headless mode (`--mode headless`) creates a virtual output via `hyprctl output create headless <name>` and sets `WxH@Fps`.
 - `--solo` disables other outputs for the session.
-- If headless creation fails, falls back to selecting an existing monitor supporting the mode and disables others.
+- If headless creation fails, falls back to selecting an existing monitor supporting the mode and disables others. If headless creation succeeds but Sunshine cannot capture it, this script cannot detect that failure.
 - Starts `systemd-inhibit` (who: sunshine, what: idle) to keep the session awake.
 - `undo` stops the inhibitor, disables any headless outputs, and re-enables physical monitors at `preferred, auto, 1`.
 - `--scale` accepts a number or `auto`. In `auto` mode scale is height-based:
@@ -36,6 +38,7 @@
 ## Notes
 
 - Headless outputs require Hyprland with `hyprctl output create headless` support.
+- Sunshine `wlr` capture is not a reliable workaround here because modern Hyprland is no longer wlroots-based. Keep Hyprland Sunshine on `capture = kms` unless a new tested backend replaces it.
 - No layout snapshots are stored; restore is best-effort.
 - If a mode is not supported, the script verifies via `hyprctl -j monitors` and tries alternatives.
 - The script changes runtime state only; it does not modify Hyprland config files.

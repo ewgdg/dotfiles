@@ -1,0 +1,16 @@
+[Unit]
+Description=Hyprland shell and autostart gate
+Wants=graphical-session.target
+Wants=xdg-desktop-autostart.target
+PartOf=graphical-session.target
+Before=graphical-session.target
+Before=xdg-desktop-autostart.target
+StartLimitIntervalSec=5min
+StartLimitBurst=3
+
+[Service]
+Type=exec
+TimeoutStartSec=20
+ExecStart=/usr/bin/qs -c noctalia-shell
+ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
+Restart=on-failure

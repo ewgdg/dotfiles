@@ -1,0 +1,28 @@
+id = "hyprland-experiment"
+description = "Hyprland experiment configuration snapshot"
+
+depends = [
+  "noctalia",
+]
+
+[targets.d_config_hypr]
+source = "files/config/hypr"
+path = "~/.config/hypr"
+
+[targets.f_config_xdg_desktop_portal_hyprland_portals_conf]
+source = "files/config/xdg-desktop-portal/hyprland-portals.conf"
+path = "~/.config/xdg-desktop-portal/hyprland-portals.conf"
+
+[targets.f_config_systemd_user_hyprland_shell_service]
+source = "files/config/systemd/user/hyprland-shell.service"
+path = "~/.config/systemd/user/hyprland-shell.service"
+
+[hooks]
+# Hyprland config keybinds and portal setup expect these apps/services.
+# Arch stable is currently Hyprland 0.54.x; this package uses hyprland.conf syntax.
+pre_push = [
+  "{{ INSTALL }} hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk qt6-wayland",
+]
+post_push = [
+  "sh -c 'systemctl --user daemon-reload >/dev/null 2>&1 || true'",
+]

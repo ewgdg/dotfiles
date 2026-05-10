@@ -1,0 +1,6 @@
+id = "host/linux-hyprland-meta"
+description = "Linux Hyprland host entrypoint meta package"
+
+depends = [
+  "host/linux-hyprland",
+]
