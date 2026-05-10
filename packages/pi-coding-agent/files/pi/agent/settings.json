@@ -9,7 +9,7 @@
 			]
 		},
 		"npm:pi-vim",
-		"git:github.com/ewgdg/pi-multicodex@dev",
+		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-subagents"
 	],
 	"enabledModels": [
