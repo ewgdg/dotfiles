@@ -56,7 +56,29 @@ def test_greetd_start_session_rejects_desktop_field_codes(tmp_path: Path) -> Non
     assert "unsupported field code" in completed.stderr
 
 
-def test_validate_greetd_start_session_compares_helper_with_python_parser(tmp_path: Path) -> None:
+def test_validate_greetd_start_session_default_does_not_require_installed_desktop(tmp_path: Path) -> None:
+    completed = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--project",
+            str(REPO_ROOT),
+            str(VALIDATOR_PATH),
+            "--session",
+            "missing-session",
+            "--helper",
+            str(HELPER_PATH),
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_validate_greetd_start_session_compares_helper_with_python_parser_when_requested(tmp_path: Path) -> None:
     session_dir = tmp_path / "wayland-sessions"
     write_desktop_entry(session_dir, "cosmic", "/usr/bin/start-cosmic")
 
@@ -71,6 +93,7 @@ def test_validate_greetd_start_session_compares_helper_with_python_parser(tmp_pa
             "cosmic",
             "--helper",
             str(HELPER_PATH),
+            "--validate-installed-session",
             "--session-dir",
             str(session_dir),
         ],
