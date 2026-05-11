@@ -48,9 +48,10 @@ window-rule {
 }
 
 window-rule {
-    // Open Steam's main window on the dedicated game workspace.
+    // Open game launchers on the dedicated game workspace.
     match app-id="steam"
     match app-id="lutris"
+    match app-id="faugus-launcher"
     open-on-workspace "games"
 }
 

@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
     "script_relative_path",
     [
         "packages/goldendict/scripts/sync_goldendict_config.py",
+        "packages/linux/faugus-launcher/scripts/sync_faugus_config.py",
         "packages/greetd/scripts/capture_greetd_config.py",
         "packages/greetd/scripts/render_greetd_config.py",
         "packages/greetd/scripts/validate_greetd_start_session.py",

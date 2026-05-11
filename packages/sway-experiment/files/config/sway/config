@@ -81,7 +81,7 @@ input type:pointer {
 
 ### App placement. Keep only simple native rules.
 assign [app_id="^steam$"] $ws2
-assign [app_id="^lutris$"] $ws2
+assign [app_id="^(lutris|faugus-launcher)$"] $ws2
 assign [title="^Battle\\.net$"] $ws2
 assign [app_id="^explorer\\.exe$"] $ws1
 assign [app_id="^obsidian$"] $ws4
