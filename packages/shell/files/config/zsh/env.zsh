@@ -8,9 +8,6 @@ ZIM_CONFIG_FILE=${ZIM_CONFIG_FILE:-$ZSH_CONFIG_DIR/.zimrc}
 export EDITOR=nvim
 export SYSTEMD_EDITOR=nvim
 
-# custom env
-export PROJECTS_PATH=~/projects
-
 typeset -gA _ZSH_WARNED_COMMANDS
 _ensure_command() {
     local command_name=$1
