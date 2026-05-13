@@ -9,5 +9,6 @@ path = "~/.local/state/dotman/installed/rustup"
 [hooks]
 pre_push = [
   'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
+  # cargo-update provides `cargo install-update`; use `cargo install-update -a` to update cargo-installed CLI tools in ~/.cargo/bin.
   'if [ -x "$HOME/.cargo/bin/cargo" ]; then "$HOME/.cargo/bin/cargo" install cargo-update; elif command -v cargo >/dev/null 2>&1; then cargo install cargo-update; else echo "cargo not found after rustup bootstrap" >&2; exit 1; fi',
 ]

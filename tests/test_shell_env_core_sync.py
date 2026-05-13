@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 import subprocess
+import os
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -50,3 +51,25 @@ def test_capture_strips_managed_token_block(tmp_path: Path) -> None:
 
     assert completed.returncode == 0
     assert completed.stdout == CORE_ENV_TEXT
+
+
+def test_core_env_appends_cargo_bin_on_clean_login_path(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    cargo_bin = home / ".cargo/bin"
+    cargo_bin.mkdir(parents=True)
+    (home / ".local/bin").mkdir(parents=True)
+    (home / "bin").mkdir()
+    env = os.environ.copy()
+    env.update({"HOME": str(home), "PATH": "/usr/bin:/bin"})
+
+    completed = subprocess.run(
+        ["sh", "-c", f'. "{CORE_ENV_PATH}"; printf "%s\\n" "$PATH"'],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    path_entries = completed.stdout.strip().split(":")
+    assert path_entries.index("/usr/bin") < path_entries.index(str(cargo_bin))
+    assert path_entries.count(str(cargo_bin)) == 1

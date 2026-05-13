@@ -14,6 +14,22 @@ path_prepend() {
   fi
 }
 
+path_append() {
+  # Append a directory to PATH if it exists and is not already present.
+  if [ -d "$1" ]; then
+    case ":${PATH:-}:" in
+      *":$1:"*) ;;
+      *)
+        if [ -n "${PATH:-}" ]; then
+          PATH="$PATH:$1"
+        else
+          PATH="$1"
+        fi
+        ;;
+    esac
+  fi
+}
+
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -31,7 +47,10 @@ unset go_path
 
 path_prepend "$BUN_INSTALL/bin"
 path_prepend "$HOME/.npm/bin"
-path_prepend "$HOME/.cargo/bin"
+# Keep distro Rust (`/usr/bin/rustc`, `/usr/bin/cargo`) as default on clean login.
+# Cargo-installed tools remain available, while rustup shims in ~/.cargo/bin do
+# not shadow pacman when /usr/bin is earlier in the inherited PATH.
+path_append "$HOME/.cargo/bin"
 path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/bin"
 
