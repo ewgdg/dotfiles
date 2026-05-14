@@ -13,8 +13,7 @@ Notes:
 - Requires a running COSMIC session where `cosmic-randr list --kdl` can see outputs.
 - `undo` is intentionally stateless: it re-enables all currently disabled
   outputs instead of replaying a saved pre-stream layout.
-- Idle prevention uses a tracked `systemd-inhibit --what=idle sleep infinity`
-  process while streaming.
+- Idle prevention toggles Noctalia's idle inhibitor directly while streaming.
 """
 
 from __future__ import annotations
@@ -25,12 +24,9 @@ import math
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
-import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 
@@ -78,12 +74,6 @@ def which(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-def runtime_dir() -> Path:
-    return Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
-
-
-def inhibit_pidfile() -> Path:
-    return runtime_dir() / "sunshine-cosmic-systemd-inhibit.pid"
 
 
 def run_cmd(
@@ -102,52 +92,25 @@ def run_cmd(
     )
 
 
-def _kill_by_pidfile(pidfile: Path, *, timeout: float = 5.0) -> None:
-    try:
-        pid = int(pidfile.read_text().strip())
-        os.kill(pid, signal.SIGTERM)
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            try:
-                os.kill(pid, 0)
-            except ProcessLookupError:
-                break
-            time.sleep(0.05)
-        else:
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-    except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
-        pass
-    try:
-        pidfile.unlink()
-    except FileNotFoundError:
-        pass
-
-
-def kill_runtime_inhibit() -> None:
-    _kill_by_pidfile(inhibit_pidfile())
-
-
-def start_runtime_inhibit() -> None:
-    kill_runtime_inhibit()
-    if not which("systemd-inhibit"):
-        return
-    proc = subprocess.Popen(
-        [
-            "systemd-inhibit",
-            f"--who={INHIBIT_WHO}",
-            "--what=idle",
-            f"--why={INHIBIT_REASON}",
-            "--",
-            "sleep",
-            "infinity",
-        ],
+def call_noctalia_idle_inhibitor(action: str) -> bool:
+    if not which("qs"):
+        return False
+    result = subprocess.run(
+        ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    inhibit_pidfile().write_text(f"{proc.pid}\n", encoding="utf-8")
+    return result.returncode == 0
+
+
+def kill_runtime_inhibit() -> None:
+    call_noctalia_idle_inhibitor("disable")
+
+
+def start_runtime_inhibit() -> None:
+    # Keep this intentionally stateless: Sunshine enables on stream start and
+    # disables on stream end.
+    call_noctalia_idle_inhibitor("enable")
 
 
 def should_inhibit(inhibit_flag: bool) -> bool:
@@ -448,8 +411,6 @@ def do_action(
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-
-    kill_runtime_inhibit()
 
     outputs = parse_cosmic_randr_kdl(cosmic_randr_kdl())
     if not outputs:

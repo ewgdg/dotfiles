@@ -14,9 +14,8 @@ Notes:
 - `undo` is intentionally stateless: it re-enables all currently connected
   outputs instead of replaying a saved pre-stream layout.
 - Sway's native idle inhibition is surface-driven (idle-inhibit / window rules).
-  A Sunshine prep hook has no Sway surface of its own, so `--inhibit` uses
-  Noctalia's idle inhibitor directly and tracks ownership in $XDG_RUNTIME_DIR so
-  a later `do`/`undo` can recover from a crashed previous run.
+  A Sunshine prep hook has no Sway surface of its own, so `--inhibit` toggles
+  Noctalia's idle inhibitor directly.
 - Output restore stays intentionally simple and lossy: `undo` turns connected
   outputs back on, but does not restore prior mode/scale/position/transform.
 """
@@ -28,11 +27,8 @@ import json
 import math
 import os
 import shutil
-import signal
 import subprocess
 import sys
-import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -47,16 +43,6 @@ def which(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-def runtime_dir() -> Path:
-    return Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
-
-
-def noctalia_inhibit_pidfile() -> Path:
-    return runtime_dir() / "sunshine-sway-noctalia-inhibit.pid"
-
-
-def noctalia_inhibit_state_file() -> Path:
-    return runtime_dir() / "sunshine-sway-noctalia-inhibit.json"
 
 
 def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -68,29 +54,6 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
         stderr=subprocess.PIPE,
     )
 
-
-def _kill_by_pidfile(pidfile: Path, *, timeout: float = 5.0) -> None:
-    try:
-        pid = int(pidfile.read_text().strip())
-        os.kill(pid, signal.SIGTERM)
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            try:
-                os.kill(pid, 0)
-            except ProcessLookupError:
-                break
-            time.sleep(0.05)
-        else:
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-    except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
-        pass
-    try:
-        pidfile.unlink()
-    except FileNotFoundError:
-        pass
 
 
 def call_noctalia_idle_inhibitor(action: str) -> bool:
@@ -108,47 +71,14 @@ def call_noctalia_idle_inhibitor(action: str) -> bool:
         return False
 
 
-def write_noctalia_inhibit_state() -> None:
-    noctalia_inhibit_state_file().write_text(
-        json.dumps(
-            {
-                "backend": "noctalia",
-                "reason": INHIBIT_REASON,
-                "started_at": int(time.time()),
-                "pid": os.getpid(),
-            }
-        ),
-        encoding="utf-8",
-    )
-
-
-def has_noctalia_inhibit_state() -> bool:
-    return noctalia_inhibit_state_file().exists()
-
-
-def clear_noctalia_inhibit_state() -> None:
-    try:
-        noctalia_inhibit_state_file().unlink()
-    except FileNotFoundError:
-        pass
-
-
 def kill_runtime_inhibit() -> None:
-    if not has_noctalia_inhibit_state():
-        return
-    try:
-        call_noctalia_idle_inhibitor("disable")
-    finally:
-        clear_noctalia_inhibit_state()
+    call_noctalia_idle_inhibitor("disable")
 
 
 def start_runtime_inhibit() -> None:
-    # Sway's native idle inhibition is attached to visible client surfaces.
-    # Sunshine's prep hook runs without creating one, so use Noctalia's
-    # compositor-adjacent idle inhibitor and track ownership in runtime state.
-    kill_runtime_inhibit()
-    if call_noctalia_idle_inhibitor("enable"):
-        write_noctalia_inhibit_state()
+    # Keep this intentionally stateless: Sunshine enables on stream start and
+    # disables on stream end.
+    call_noctalia_idle_inhibitor("enable")
 
 
 def should_inhibit(inhibit_flag: bool) -> bool:
@@ -393,9 +323,6 @@ def do_action(
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-
-    # Clear stale inhibitor ownership from a previous crashed run.
-    kill_runtime_inhibit()
 
     outputs = wlr_randr_json()
 

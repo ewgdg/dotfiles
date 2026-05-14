@@ -13,8 +13,7 @@ Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
 - `undo` reloads Niri config, then explicitly re-enables any connected outputs
   that are still disabled.
-- Optionally inhibits idle via D-Bus org.freedesktop.ScreenSaver (niri-native)
-  with systemd-inhibit as fallback (pass `--inhibit`).
+- Optionally inhibits idle via Noctalia's idle inhibitor IPC (pass `--inhibit`).
 """
 
 from __future__ import annotations
@@ -51,10 +50,12 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
     )
 
 
-def _screensaver_inhibit_pidfile() -> Path:
-    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    return Path(runtime_dir) / "sunshine-screensaver-inhibit.pid"
+def runtime_dir() -> Path:
+    return Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
 
+
+def _screensaver_inhibit_pidfile() -> Path:
+    return runtime_dir() / "sunshine-screensaver-inhibit.pid"
 
 
 
@@ -85,15 +86,19 @@ def _kill_by_pidfile(pidfile: Path, *, timeout: float = 5.0) -> None:
         pass
 
 
-def kill_runtime_inhibit() -> None:
+def cleanup_legacy_inhibitors() -> None:
+    # Clean up stale inhibitors from the previous D-Bus/systemd implementation.
     _kill_by_pidfile(_screensaver_inhibit_pidfile())
-    # Kill systemd-inhibit and its children. pkill -f matches the unique
-    # --why= string and also catches stale processes from crashed sessions.
     subprocess.run(
         ["pkill", "-f", INHIBIT_REASON],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+
+def kill_runtime_inhibit() -> None:
+    set_noctalia_idle_inhibitor(False)
+    cleanup_legacy_inhibitors()
 
 
 _SCREENSAVER_INHIBIT_SCRIPT = """\
@@ -172,24 +177,23 @@ def start_systemd_inhibit() -> None:
         pass
 
 
-def set_noctalia_idle_inhibitor(enabled: bool) -> None:
+def set_noctalia_idle_inhibitor(enabled: bool) -> bool:
     if not which("qs"):
-        return
+        return False
     action = "enable" if enabled else "disable"
-    subprocess.run(
+    result = subprocess.run(
         ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    return result.returncode == 0
 
 
 def start_runtime_inhibit() -> None:
-    kill_runtime_inhibit()
-    start_screensaver_inhibit()
-    start_systemd_inhibit()
-    # Noctalia's own idle inhibitor via IPC. Not used because it's tied to the
-    # noctalia process — if noctalia crashes and restarts, the inhibitor is lost.
-    # set_noctalia_idle_inhibitor(True)
+    # Keep Niri path simple: Noctalia exposes a global idle-inhibitor toggle,
+    # so Sunshine turns it on at stream start and off at stream end.
+    cleanup_legacy_inhibitors()
+    set_noctalia_idle_inhibitor(True)
 
 
 def should_inhibit(inhibit_flag: bool) -> bool:
@@ -747,7 +751,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_do.add_argument(
         "--inhibit",
         action="store_true",
-        help="Inhibit idle via D-Bus ScreenSaver (niri) + systemd-inhibit (logind fallback)",
+        help="Inhibit idle via Noctalia idle inhibitor IPC",
     )
     p_do.add_argument(
         "--autodiscover-socket",
