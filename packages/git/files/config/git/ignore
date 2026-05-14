@@ -1,0 +1,15 @@
+# OS junk
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Editor temp files
+*~
+*.swp
+*.swo
+.*.sw?
+
+# Local AI/agent state
+**/.claude/settings.local.json

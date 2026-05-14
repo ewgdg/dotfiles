@@ -12,6 +12,10 @@ path = "~/.gitconfig"
 chmod = "600"
 preset = "jinja-patch-editor"
 
+[targets.f_config_git_ignore]
+source = "files/config/git/ignore"
+path = "~/.config/git/ignore"
+
 [targets.f_config_lazygit_config_yml]
 source = "files/config/lazygit/config.yml"
 path = "~/.config/lazygit/config.yml"
