@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 """
-This script configures a monitor for Sunshine streaming and prevents system idle
+This script configures a monitor for Sunshine streaming.
 Usage:
-  sunshine-prep-plasma.py do --width WIDTH --height HEIGHT --fps FPS
+  sunshine-prep-plasma.py do --width WIDTH --height HEIGHT --fps FPS [--solo] [--inhibit]
   sunshine-prep-plasma.py undo
 """
 
@@ -136,38 +136,9 @@ def find_suitable_monitor(monitor_data, width, height, fps) -> None | tuple[str,
         return None
 
 
-def enable_monitor(monitor_data, monitor, mode):
-    """Enable the selected monitor with specified settings and disable others"""
-    print(f"Enabling monitor {monitor} with mode {mode}...")
-
-    try:
-        command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{mode}"
-        # Disable all other monitors
-        for monitor_info in monitor_data:
-            monitor_name = monitor_info.get("name")
-            if not monitor_name or not monitor_info.get("connected", False):
-                continue
-
-            if monitor_name != monitor:
-                print(f"Disabling monitor {monitor_name}...")
-                command += f" output.{monitor_name}.disable"
-
-        # Enable the target monitor, set it as primary, and configure the resolution and refresh rate
-        # command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{width}x{height}@{fps}"
-        print(f"Executing command: {command}")
-        result = run_command(command)
-
-        if result is None:
-            print("Failed to enable monitor")
-            return False
-    except json.JSONDecodeError:
-        print("Error parsing JSON output from kscreen-doctor")
-        return False
-
-    # Start systemd-inhibit to prevent system from going idle
+def enable_runtime_inhibit():
+    """Start systemd-inhibit to prevent system idle."""
     print("Starting systemd-inhibit to prevent system idle...")
-
-    # Use Popen to start the process in the background
     inhibit_process = subprocess.Popen(
         [
             "systemd-inhibit",
@@ -181,11 +152,37 @@ def enable_monitor(monitor_data, monitor, mode):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-
-    # Save the PID
-    # with open(INHIBIT_PID_FILE, "w") as f:
-    #     f.write(str(inhibit_process.pid))
     print(f"systemd-inhibit process id: {inhibit_process.pid}")
+
+
+def enable_monitor(monitor_data, monitor, mode, solo=False, inhibit=False):
+    """Enable the selected monitor with specified settings."""
+    print(f"Enabling monitor {monitor} with mode {mode}...")
+
+    try:
+        command = f"kscreen-doctor output.{monitor}.enable output.{monitor}.primary output.{monitor}.mode.{mode}"
+        if solo:
+            for monitor_info in monitor_data:
+                monitor_name = monitor_info.get("name")
+                if not monitor_name or not monitor_info.get("connected", False):
+                    continue
+
+                if monitor_name != monitor:
+                    print(f"Disabling monitor {monitor_name}...")
+                    command += f" output.{monitor_name}.disable"
+
+        print(f"Executing command: {command}")
+        result = run_command(command)
+
+        if result is None:
+            print("Failed to enable monitor")
+            return False
+    except json.JSONDecodeError:
+        print("Error parsing JSON output from kscreen-doctor")
+        return False
+
+    if inhibit:
+        enable_runtime_inhibit()
 
     return True
 
@@ -273,6 +270,10 @@ def main():
     do_parser.add_argument("--width", type=int, help="Screen width in pixels")
     do_parser.add_argument("--height", type=int, help="Screen height in pixels")
     do_parser.add_argument("--fps", type=int, help="Screen refresh rate in Hz")
+    do_parser.add_argument("--solo", action="store_true", help="Disable all other connected outputs during stream")
+    # Plasma prep selects an existing KScreen mode; scale is not changed here.
+    do_parser.add_argument("--scale", type=str, help="Accepted for shared config parity; not applied by Plasma prep")
+    do_parser.add_argument("--inhibit", action="store_true", help="Inhibit idle with systemd-inhibit while streaming")
 
     # Parser for the 'undo' command
     undo_parser = subparsers.add_parser(
@@ -318,7 +319,7 @@ def main():
         if monitor_with_mode:
             monitor, mode = monitor_with_mode
             # Enable the monitor with specified settings
-            if not enable_monitor(monitor_data, monitor, mode):
+            if not enable_monitor(monitor_data, monitor, mode, solo=args.solo, inhibit=args.inhibit):
                 print("Failed to enable monitor. Exiting.")
                 sys.exit(1)
             # time.sleep(1)  # Give some time for the settings to take effect

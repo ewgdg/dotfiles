@@ -21,12 +21,14 @@ pull_ignore = [
   "sunshine.conf",
   "credentials/",
   "sunshine.log",
+  "portal_token",
   "*_state.json",
 ]
 
 [targets.f_config_sunshine_sunshine_conf]
-source = "files/config/sunshine/sunshine-{{ vars.desktop.session }}.conf"
+source = "files/sunshine.conf"
 path = "~/.config/sunshine/sunshine.conf"
+preset = "jinja-patch-editor"
 
 [targets.d_config_systemd_user_sunshine_service_d]
 source = "files/config/systemd/user/sunshine.service.d"

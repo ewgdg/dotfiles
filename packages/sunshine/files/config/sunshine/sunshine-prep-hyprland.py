@@ -5,7 +5,7 @@ Prepare Hyprland outputs for Sunshine streaming using a headless (virtual) outpu
 when possible, then restore/cleanup.
 
 Usage:
-  sunshine-prep-hyprland.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo] [--mode MODE]
+  sunshine-prep-hyprland.py do --width WIDTH --height HEIGHT --fps FPS [--name NAME] [--solo] [--inhibit] [--mode MODE]
   sunshine-prep-hyprland.py undo
 
 Modes:
@@ -19,7 +19,7 @@ Defaults:
 Notes:
 - Requires Hyprland (`hyprctl`). Headless outputs need Hyprland with `output create headless` support.
 - If headless creation fails, falls back to selecting an existing monitor that matches WxH@FPS.
-- Prevents idle using systemd-inhibit while active.
+- Pass `--inhibit` to prevent idle using systemd-inhibit while active.
 """
 
 import argparse
@@ -260,18 +260,22 @@ def compute_scale(scale_arg: Optional[str], width: int, height: int) -> float:
 
     Rules:
     - Numeric scale_arg -> clamp to [1.0, 3.0].
-    - 'auto' -> linear: scale = height / 1080.0, clamped to [1.0, 3.0], rounded to 2 decimals.
+    - 'auto' / 'heuristic' / 'client-auto' / 'dpi-auto' -> linear: scale = height / 1080.0, clamped to [1.0, 3.0], rounded to 2 decimals.
       Examples: 1080->1.0, 1440->1.33, 2160->2.0.
     - None -> 1.0.
     """
-    if scale_arg and scale_arg.lower() != "auto":
+    if not scale_arg:
+        return 1.0
+
+    scale_mode = scale_arg.lower()
+    if scale_mode not in {"auto", "heuristic", "client-auto", "dpi-auto"}:
         try:
             v = float(scale_arg)
             return max(1.0, min(v, 3.0))
         except Exception:
             return 1.0
 
-    if scale_arg and scale_arg.lower() == "auto":
+    if scale_mode in {"auto", "heuristic", "client-auto", "dpi-auto"}:
         s = height / 1080.0 if height else 1.0
         s = max(1.0, min(s, 3.0))
         return round(s, 2)
@@ -321,6 +325,7 @@ def do_action(
     fps: int,
     name: str,
     solo: bool,
+    inhibit: bool,
     scale_arg: Optional[str] = None,
     mode: str = "detected",
 ) -> Optional[int]:
@@ -353,7 +358,8 @@ def do_action(
             debug_write(
                 f"INFO: Using headless output: {created_name} at {width}x{height}@{fps}\n"
             )
-            enable_runtime_inhibit()
+            if inhibit:
+                enable_runtime_inhibit()
             return get_monitor_id(created_name)
         else:
             # Fallback to detected mode if headless creation fails
@@ -401,7 +407,8 @@ def do_action(
         if solo:
             disable_other_monitors(selected)
 
-        enable_runtime_inhibit()
+        if inhibit:
+            enable_runtime_inhibit()
         return get_monitor_id(selected)
 
 
@@ -550,12 +557,17 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p_do.add_argument(
         "--scale",
         type=str,
-        help="Hypr scale (e.g. 1, 1.25, 1.5) or 'auto' for heuristic",
+        help="Hypr scale (e.g. 1, 1.25, 1.5) or 'auto'/'heuristic'/'client-auto'/'dpi-auto' for heuristic",
     )
     p_do.add_argument(
         "--solo",
         action="store_true",
         help="Disable all non-headless outputs during session",
+    )
+    p_do.add_argument(
+        "--inhibit",
+        action="store_true",
+        help="Inhibit idle with systemd-inhibit while streaming.",
     )
     p_do.add_argument(
         "--guard",
@@ -681,7 +693,14 @@ def main(argv: List[str]) -> None:
         # Try to create headless and configure
         try:
             selected_monitor_id = do_action(
-                width, height, fps, args.name, args.solo, args.scale, args.mode
+                width,
+                height,
+                fps,
+                args.name,
+                args.solo,
+                args.inhibit,
+                args.scale,
+                args.mode,
             )
         except SystemExit:
             raise

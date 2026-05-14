@@ -75,14 +75,10 @@ For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `m
 
 ## Sunshine
 
-`packages/sunshine` maps `sunshine-{{ vars.desktop.session }}.conf` to `~/.config/sunshine/sunshine.conf`.
-Because this profile sets `vars.desktop.session = "hyprland"`, it selects:
+`packages/sunshine` renders one Jinja template at `packages/sunshine/files/sunshine.conf` to `~/.config/sunshine/sunshine.conf`.
+Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config uses shared `capture = portal` and shared prep args (`--solo --scale dpi-auto --inhibit`) with `sunshine-prep-hyprland.py`, leaving output mode at the script's detected-output default.
 
-- `packages/sunshine/files/config/sunshine/sunshine-hyprland.conf`
-
-That config uses `capture = kms` plus `sunshine-prep-hyprland.py` with `--solo` and `--scale auto`, leaving output mode at the script's detected-output default.
-
-Do not force `--mode headless` unless retesting proves Sunshine can capture Hyprland headless outputs on this machine; headless may create successfully but still fail KMS capture. Do not switch this to Sunshine `wlr` capture as a workaround: modern Hyprland is no longer wlroots-based.
+Do not force `--mode headless` unless retesting proves Sunshine can capture Hyprland headless outputs on this machine.
 
 ## Known TODOs left in config
 
