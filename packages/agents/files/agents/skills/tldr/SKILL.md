@@ -14,6 +14,15 @@ Default final block:
 TL;DR: <one short direct answer>
 ```
 
+For prompts with multiple distinct user queries, answer each query separately inside the same final block:
+
+```markdown
+---
+TL;DR:
+- <answer to question 1>
+- <answer to question 2>
+```
+
 No text after the TL;DR block.
 
 ## Rules
@@ -21,6 +30,7 @@ No text after the TL;DR block.
 - Put the TL;DR at the end, after the main answer.
 - Use exactly `---` as the separator line.
 - Keep TL;DR to one sentence when possible; two short sentences max when needed.
+- If the user made multiple distinct queries, use one bullet per query instead of merging them into one catch-all summary.
 - Make it a direct answer, not a meta-summary. Prefer `Yes—...`, `No—...`, `Use ...`, `Do ...`, `Pick ...`.
 - Do not introduce new facts in the TL;DR that were not supported in the main answer.
 - Preserve important caveats when omission would make the answer wrong or unsafe.
