@@ -1,10 +1,8 @@
 address=127.0.0.1
 port=5900
 
-enable_auth=true
-username=wayvnc
-# Public localhost-only compatibility password; SSH tunnel is access control.
-password=wayvnc
+# SSH tunnels are the access boundary; services bind only to localhost.
+enable_auth=false
 
 use_relative_paths=true
 private_key_file=tls_key.pem
@@ -12,5 +10,5 @@ certificate_file=tls_cert.pem
 rsa_private_key_file=rsa_key.pem
 
 # Needed for macOS Screen Sharing / legacy VNC compatibility.
-relax_encryption=true
-allow_broken_crypto=true
+#relax_encryption=true
+#allow_broken_crypto=true

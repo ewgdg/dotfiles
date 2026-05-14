@@ -1,0 +1,15 @@
+[Unit]
+Description=noVNC browser bridge for WayVNC
+After=wayvnc.service
+Requires=wayvnc.service
+PartOf=wayvnc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/novnc --listen 127.0.0.1:6080 --vnc 127.0.0.1:5900
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical-session.target
