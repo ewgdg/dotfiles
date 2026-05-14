@@ -1,0 +1,18 @@
+[Unit]
+Description=WayVNC server for Wayland sessions with wlroots remote-control protocols
+Documentation=man:wayvnc(1)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+# Only start on compositors that expose capture plus virtual pointer/keyboard.
+# This lets the same unit be enabled across desktops without restart spam.
+ExecCondition=/bin/sh -lc 'protocols="$$(wayland-info 2>/dev/null)" && [ "$$protocols" != "$${protocols#*zwlr_screencopy_manager_v1*}" ] && [ "$$protocols" != "$${protocols#*zwlr_virtual_pointer_manager_v1*}" ] && [ "$$protocols" != "$${protocols#*zwp_virtual_keyboard_manager_v1*}" ]'
+ExecStart=/usr/bin/wayvnc
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,6 +1,11 @@
 id = "sunshine"
 description = "Sunshine host streaming configuration"
 
+# WayVNC provides an out-of-band control path for approving Sunshine portal dialogs.
+depends = [
+  "wayvnc",
+]
+
 [targets.d_config_sunshine]
 source = "files/config/sunshine"
 path = "~/.config/sunshine"

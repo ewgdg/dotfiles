@@ -1,0 +1,19 @@
+id = "wayvnc"
+description = "WayVNC remote control for Wayland sessions"
+
+[targets.f_config_systemd_user_wayvnc_service]
+source = "files/config/systemd/user/wayvnc.service"
+path = "~/.config/systemd/user/wayvnc.service"
+
+[targets.f_config_wayvnc_config]
+source = "files/config/wayvnc/config"
+path = "~/.config/wayvnc/config"
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} wayvnc",
+]
+post_push = [
+  'sh "$DOTMAN_PACKAGE_ROOT/scripts/ensure_wayvnc_keys.sh"',
+  '{{ ENSURE_SYSTEMD }} user wayvnc.service',
+]
