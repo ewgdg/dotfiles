@@ -3,7 +3,7 @@
 - Purpose: create/select/configure the fixed Niri virtual output `sunshine` for
   Sunshine streaming (`WxH@FPS`), optionally turn off other outputs, then
   restore by re-enabling connected outputs except ones explicitly marked `off`
-  in `cfg/output.kdl` and disabling the virtual output.
+  in `cfg/output.kdl` while keeping the virtual output alive.
 - Files:
   - `packages/sunshine/files/config/sunshine/sunshine-prep-niri.py`
   - `packages/sunshine/files/sunshine.conf`
@@ -29,6 +29,11 @@ Run directly inside a running Niri session:
 - With `--headless`, the script creates `sunshine` via IPC if needed, then
   reuses and resizes it via `custom-mode`.
 - `undo` explicitly turns back on connected outputs, skipping only outputs
-  explicitly marked `off` in `cfg/output.kdl`, then disables `sunshine`.
-- `sunshine.conf` uses `capture = wlr` for Niri headless capture; non-Niri
-  rendered configs use `capture = kms`.
+  explicitly marked `off` in `cfg/output.kdl`, and intentionally keeps
+  `sunshine` alive to avoid hot-removing screens from shell/tray clients.
+- `sunshine.conf` uses `capture = wlr` and `output_name = sunshine` for Niri
+  headless capture; non-Niri rendered configs use `capture = kms`.
+- Niri prep keeps `--solo` but `undo` does not disable `sunshine`; this limits
+  output churn to physical-output disable/restore during stream start/stop.
+- Noctalia idle inhibition is toggled after `--solo` output changes on start and
+  after output restore on undo to avoid notification updates racing screen churn.
