@@ -1,7 +1,7 @@
 [Unit]
 Description=noVNC browser bridge for WayVNC
 After=wayvnc.service
-Requires=wayvnc.service
+BindsTo=wayvnc.service
 PartOf=wayvnc.service
 
 [Service]
