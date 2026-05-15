@@ -15,6 +15,7 @@
 - `wayvnc.service` uses `--render-cursor` so browser clients get an explicit captured cursor.
 - Native WayVNC websocket mode (`--websocket`) crashed with current Arch `wayvnc/neatvnc`; use the `novnc` bridge instead.
 - Start condition: service only starts when the compositor exposes wlroots screencopy plus virtual pointer/keyboard protocols.
+- Startup graph: `graphical-session.target` starts `wayvnc.service`; `wayvnc.service` owns the noVNC bridge. This avoids a target ordering cycle while keeping both services tied to the session.
 
 From client:
 

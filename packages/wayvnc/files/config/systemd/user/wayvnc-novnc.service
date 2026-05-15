@@ -12,4 +12,6 @@ RestartSec=3
 TimeoutStopSec=10
 
 [Install]
-WantedBy=graphical-session.target
+# Bridge is enabled under wayvnc.service, not graphical-session.target, to avoid
+# a start transaction cycle with wayvnc.service's After=graphical-session.target.
+WantedBy=wayvnc.service
