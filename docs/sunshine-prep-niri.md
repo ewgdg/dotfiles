@@ -1,12 +1,12 @@
 # Sunshine Prep (Niri)
 
-- Purpose: select/configure a Niri output for Sunshine streaming (`WxH@FPS`),
-  optionally turn off other outputs, then restore on cleanup by reloading Niri
-  config and re-enabling all connected outputs except ones explicitly marked
-  `off` in `cfg/output.kdl`.
+- Purpose: create/select/configure the fixed Niri virtual output `sunshine` for
+  Sunshine streaming (`WxH@FPS`), optionally turn off other outputs, then
+  restore by re-enabling connected outputs except ones explicitly marked `off`
+  in `cfg/output.kdl` and disabling the virtual output.
 - Files:
   - `packages/sunshine/files/config/sunshine/sunshine-prep-niri.py`
-  - `packages/sunshine/files/config/sunshine/sunshine-niri.conf`
+  - `packages/sunshine/files/sunshine.conf`
 
 ## Usage
 
@@ -14,6 +14,8 @@ Run directly inside a running Niri session:
 
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --solo --scale auto`
 - optional: prevent idle actions while streaming with `--inhibit` or `SUNSHINE_INHIBIT=1`
+- Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
+- optional local Niri build: set `vars.niri.bin` in dotman local vars; the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
 
 ## Notes
@@ -24,6 +26,9 @@ Run directly inside a running Niri session:
   - `niri msg output <output> mode <WxH@RRR.RRR>`
   - optional: `niri msg output <output> scale <scale>` (`--scale auto` uses Niri auto scaling)
   - optional: turns other outputs `off` when `--solo` is set
-- `undo` reloads Niri config (best-effort: tries a few IPC variants) and then
-  explicitly turns back on connected outputs, skipping only outputs explicitly
-  marked `off` in `cfg/output.kdl`.
+- With `--headless`, the script creates `sunshine` via IPC if needed, then
+  reuses and resizes it via `custom-mode`.
+- `undo` explicitly turns back on connected outputs, skipping only outputs
+  explicitly marked `off` in `cfg/output.kdl`, then disables `sunshine`.
+- `sunshine.conf` uses `capture = wlr` for Niri headless capture; non-Niri
+  rendered configs use `capture = kms`.

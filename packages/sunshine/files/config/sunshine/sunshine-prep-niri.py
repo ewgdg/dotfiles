@@ -6,19 +6,20 @@ Prepare Niri outputs for Sunshine streaming, then restore them on cleanup.
 This script is intended to be used via Sunshine's `global_prep_cmd`.
 
 Usage:
-  sunshine-prep-niri.py do --width WIDTH --height HEIGHT --fps FPS [--output OUTPUT] [--solo] [--scale SCALE] [--autodiscover-socket]
+  sunshine-prep-niri.py do --width WIDTH --height HEIGHT --fps FPS [--output OUTPUT] [--headless] [--solo] [--scale SCALE] [--autodiscover-socket]
   sunshine-prep-niri.py undo [--autodiscover-socket]
 
 Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
-- `undo` reloads Niri config, then explicitly re-enables any connected outputs
-  that are still disabled.
+- `undo` re-enables disabled outputs and disables the fixed Sunshine virtual
+  output created for the stream.
 - Optionally inhibits idle via Noctalia's idle inhibitor IPC (pass `--inhibit`).
 """
 
 from __future__ import annotations
 
 import argparse
+import functools
 import math
 import os
 import re
@@ -38,10 +39,45 @@ ENABLE_NIRI_SOCKET_AUTODISCOVERY = False
 TARGET_DPI = 82.0
 MIN_SCALE = 1.0
 MAX_SCALE = 3.0
+HEADLESS_OUTPUT_NAME = "sunshine"
+# Dotman can render vars.niri.bin into this env var so prep uses the same
+# local Niri build as niri.service instead of an older system PATH binary.
+NIRI_BIN_ENV_VAR_NAME = "NIRI_BIN"
 
 
 def which(cmd: str) -> bool:
     return shutil.which(cmd) is not None
+
+
+def expand_niri_bin(raw: str) -> str:
+    return os.path.expandvars(os.path.expanduser(raw.replace("%h", str(Path.home()))))
+
+
+@functools.cache
+def niri_bin() -> str:
+    configured = (os.environ.get(NIRI_BIN_ENV_VAR_NAME) or "").strip()
+    if configured:
+        return expand_niri_bin(configured)
+    return "niri"
+
+
+def command_exists(command: str) -> bool:
+    if os.sep in command:
+        return os.access(command, os.X_OK)
+    return which(command)
+
+
+def require_niri_bin() -> str:
+    command = niri_bin()
+    if command_exists(command):
+        return command
+    if os.environ.get(NIRI_BIN_ENV_VAR_NAME):
+        raise RuntimeError(f"{command} from ${NIRI_BIN_ENV_VAR_NAME} is not executable.")
+    raise RuntimeError("niri not found in PATH.")
+
+
+def has_niri_bin() -> bool:
+    return command_exists(niri_bin())
 
 
 def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -272,7 +308,7 @@ def niri_msg_json(*args: str) -> Any:
         raise RuntimeError(
             "NIRI_SOCKET is not set. Set it in the service environment, or pass --autodiscover-socket."
         )
-    res = run_cmd(["niri", "msg", "--json", *args], check=True)
+    res = run_cmd([require_niri_bin(), "msg", "--json", *args], check=True)
     return parse_niri_json(res.stdout.strip())
 
 
@@ -281,7 +317,7 @@ def niri_msg(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]
         raise RuntimeError(
             "NIRI_SOCKET is not set. Set it in the service environment, or pass --autodiscover-socket."
         )
-    return run_cmd(["niri", "msg", *args], check=check)
+    return run_cmd([require_niri_bin(), "msg", *args], check=check)
 
 
 def outputs_from_reply(reply: Any) -> List[Dict[str, Any]]:
@@ -521,6 +557,16 @@ def transform_to_config_string(val: Any) -> Optional[str]:
     return mapping.get(low) or mapping.get(v)  # try exact then lower
 
 
+def find_output_by_name(outputs: List[Dict[str, Any]], name: str) -> Optional[Dict[str, Any]]:
+    wanted = normalize_key(name)
+    for output in outputs:
+        connector = normalize_key(str(output.get("name") or ""))
+        stable = normalize_key(output_stable_name(output))
+        if wanted and (wanted == connector or wanted == stable):
+            return output
+    return None
+
+
 def find_best_mode(
     o: Dict[str, Any], width: int, height: int, fps: int
 ) -> Optional[Dict[str, Any]]:
@@ -604,6 +650,48 @@ def apply_output_mode(
     niri_msg("output", output_name, "mode", mode_str, check=True)
 
 
+def apply_output_custom_mode(output_name: str, *, width: int, height: int, fps: int) -> None:
+    mode_str = f"{width}x{height}@{int(fps)}"
+    niri_msg("output", output_name, "custom-mode", mode_str, check=True)
+
+
+def ensure_headless_output(*, name: str, width: int, height: int, fps: int) -> None:
+    outputs = outputs_from_reply(niri_msg_json("outputs"))
+    if find_output_by_name(outputs, name) is not None:
+        niri_msg("output", name, "on", check=True)
+        apply_output_custom_mode(name, width=width, height=height, fps=fps)
+        return
+
+    try:
+        niri_msg(
+            "create-virtual-output",
+            "--name",
+            name,
+            "--width",
+            str(width),
+            "--height",
+            str(height),
+            "--refresh-rate",
+            str(int(fps)),
+            check=True,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Failed to create Niri headless output. Install a Niri build with "
+            "`niri msg create-virtual-output` support."
+        ) from exc
+
+
+def disable_headless_output(name: str) -> None:
+    try:
+        outputs = outputs_from_reply(niri_msg_json("outputs"))
+    except Exception:
+        return
+    if find_output_by_name(outputs, name) is None:
+        return
+    niri_msg("output", name, "off", check=False)
+
+
 def apply_output_scale(output_name: str, scale: str) -> None:
     niri_msg("output", output_name, "scale", scale, check=True)
 
@@ -622,12 +710,12 @@ def do_action(
     height: int,
     fps: int,
     output_name: Optional[str],
+    headless: bool,
     solo: bool,
     scale_arg: Optional[str],
     inhibit: bool,
 ) -> None:
-    if not which("niri"):
-        raise RuntimeError("niri not found in PATH.")
+    require_niri_bin()
 
     # tiny wake so remote cursor shows up quickly (optional)
     if which("ydotool"):
@@ -637,11 +725,20 @@ def do_action(
             stderr=subprocess.DEVNULL,
         )
 
-    outputs = outputs_from_reply(niri_msg_json("outputs"))
-
-    selected_output, selected_mode = choose_output(
-        outputs, width=width, height=height, fps=fps, requested_output=output_name
-    )
+    if headless:
+        if output_name:
+            raise RuntimeError("Do not pass --output with --headless; the headless output name is fixed.")
+        ensure_headless_output(name=HEADLESS_OUTPUT_NAME, width=width, height=height, fps=fps)
+        outputs = outputs_from_reply(niri_msg_json("outputs"))
+        selected_output = find_output_by_name(outputs, HEADLESS_OUTPUT_NAME)
+        if selected_output is None:
+            raise RuntimeError(f"Created headless output '{HEADLESS_OUTPUT_NAME}' was not found in niri outputs.")
+        selected_mode = {"width": width, "height": height, "refresh_rate": int(fps) * 1000}
+    else:
+        outputs = outputs_from_reply(niri_msg_json("outputs"))
+        selected_output, selected_mode = choose_output(
+            outputs, width=width, height=height, fps=fps, requested_output=output_name
+        )
     connector = str(selected_output.get("name") or "").strip()
     if not connector:
         raise RuntimeError("Selected output has no name.")
@@ -650,8 +747,11 @@ def do_action(
     niri_msg("output", connector, "on", check=True)
 
     # Set mode.
-    rr = int(selected_mode["refresh_rate"])
-    apply_output_mode(connector, width=width, height=height, refresh_mhz=rr)
+    if headless:
+        apply_output_custom_mode(connector, width=width, height=height, fps=fps)
+    else:
+        rr = int(selected_mode["refresh_rate"])
+        apply_output_mode(connector, width=width, height=height, refresh_mhz=rr)
 
     # Set scale (optional).
     scale_to_set, scale_log = compute_scale(
@@ -708,7 +808,7 @@ def reenable_disabled_outputs() -> None:
 
 
 def restore_action() -> None:
-    if not which("niri"):
+    if not has_niri_bin():
         # Still try to cleanup inhibit even if we're not in a niri session.
         kill_runtime_inhibit()
         return
@@ -720,6 +820,7 @@ def restore_action() -> None:
     # if not try_reload_niri_config():
     #     raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
     reenable_disabled_outputs()
+    disable_headless_output(HEADLESS_OUTPUT_NAME)
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
@@ -735,6 +836,12 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         type=str,
         help="Output to use (connector like eDP-1, or 'MAKE MODEL SERIAL' from `niri msg outputs`)",
     )
+    p_do.add_argument(
+        "--headless",
+        action="store_true",
+        help="Create/use a fixed-name Niri headless output for this stream",
+    )
+
     p_do.add_argument(
         "--scale",
         type=str,
@@ -793,6 +900,7 @@ def main(argv: List[str]) -> None:
                 height=height,
                 fps=fps,
                 output_name=args.output,
+                headless=bool(getattr(args, "headless", False)),
                 solo=bool(args.solo),
                 scale_arg=args.scale,
                 inhibit=bool(getattr(args, "inhibit", False)),
