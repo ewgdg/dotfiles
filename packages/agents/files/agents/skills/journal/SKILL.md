@@ -1,7 +1,7 @@
 ---
 name: journal
 description: >
-  Create and search Obsidian journal entries; use the journal directory as a searchable memory store when agents need prior context. Use after agent work when there is meaningful delta with future review value, such as meaningful progress, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction. Create automatically when criteria pass.
+  Create and search Obsidian journal entries; use the journal directory as a searchable memory store when agents need prior context. Use after agent work when there is meaningful delta with future review value. Triggers include meaningful progress, a mistake made, a reusable lesson or insight, a corrected assumption, a consequential decision, a workflow improvement, a resolved blocker, a useful idea or reframe, or a surprise that changes understanding or direction. Create automatically when criteria pass.
 ---
 
 # Journal
