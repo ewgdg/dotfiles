@@ -137,81 +137,6 @@ def kill_runtime_inhibit() -> None:
     cleanup_legacy_inhibitors()
 
 
-_SCREENSAVER_INHIBIT_SCRIPT = """\
-import signal, sys, os
-from gi.repository import Gio, GLib
-
-bus = Gio.bus_get_sync(Gio.BusType.SESSION)
-SS_DEST = "org.freedesktop.ScreenSaver"
-SS_PATH = "/org/freedesktop/ScreenSaver"
-cookie = bus.call_sync(
-    SS_DEST, SS_PATH, SS_DEST, "Inhibit",
-    GLib.Variant("(ss)", (os.environ["_INHIBIT_WHO"], os.environ["_INHIBIT_REASON"])),
-    GLib.VariantType("(u)"), Gio.DBusCallFlags.NONE, -1, None,
-).unpack()[0]
-
-pidfile = os.environ["_INHIBIT_PIDFILE"]
-open(pidfile, "w").write(str(os.getpid()))
-
-def _cleanup(*_):
-    try:
-        bus.call_sync(
-            SS_DEST, SS_PATH, SS_DEST, "UnInhibit",
-            GLib.Variant("(u)", (cookie,)), None,
-            Gio.DBusCallFlags.NONE, -1, None,
-        )
-    except Exception: pass
-    try: os.unlink(pidfile)
-    except FileNotFoundError: pass
-    sys.exit(0)
-
-signal.signal(signal.SIGTERM, _cleanup)
-signal.signal(signal.SIGINT, _cleanup)
-print(f"screensaver-inhibit: active (pid={os.getpid()}, cookie={cookie})", file=sys.stderr, flush=True)
-GLib.MainLoop().run()
-"""
-
-
-def start_screensaver_inhibit() -> None:
-    """Spawn a subprocess that holds a D-Bus org.freedesktop.ScreenSaver inhibitor."""
-    pidfile = _screensaver_inhibit_pidfile()
-    _kill_by_pidfile(pidfile)
-    try:
-        subprocess.Popen(
-            [sys.executable, "-c", _SCREENSAVER_INHIBIT_SCRIPT],
-            env={
-                **os.environ,
-                "_INHIBIT_WHO": INHIBIT_WHO,
-                "_INHIBIT_REASON": INHIBIT_REASON,
-                "_INHIBIT_PIDFILE": str(pidfile),
-            },
-            start_new_session=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
-
-
-def start_systemd_inhibit() -> None:
-    """Fallback: logind inhibitor for non-Wayland idle consumers."""
-    try:
-        subprocess.Popen(
-            [
-                "systemd-inhibit",
-                f"--who={INHIBIT_WHO}",
-                "--what=idle:sleep",
-                f"--why={INHIBIT_REASON}",
-                "--",
-                "sleep",
-                "infinity",
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
-
 
 def set_noctalia_idle_inhibitor(enabled: bool) -> bool:
     if not which("qs"):
@@ -516,46 +441,6 @@ def compute_scale(
         )
 
 
-def transform_to_config_string(val: Any) -> Optional[str]:
-    if val is None:
-        return None
-    if isinstance(val, str):
-        v = val.strip()
-    else:
-        v = str(val).strip()
-    if not v:
-        return None
-
-    low = v.lower()
-    if low in {
-        "normal",
-        "90",
-        "180",
-        "270",
-        "flipped",
-        "flipped-90",
-        "flipped-180",
-        "flipped-270",
-    }:
-        return low
-
-    # Common serde enum representations from Rust.
-    mapping = {
-        "normal": "normal",
-        "normal()": "normal",
-        "_90": "90",
-        "_180": "180",
-        "_270": "270",
-        "flipped": "flipped",
-        "flipped90": "flipped-90",
-        "flipped180": "flipped-180",
-        "flipped270": "flipped-270",
-        "flipped_90": "flipped-90",
-        "flipped_180": "flipped-180",
-        "flipped_270": "flipped-270",
-    }
-    return mapping.get(low) or mapping.get(v)  # try exact then lower
-
 
 def find_output_by_name(outputs: List[Dict[str, Any]], name: str) -> Optional[Dict[str, Any]]:
     wanted = normalize_key(name)
@@ -682,26 +567,10 @@ def ensure_headless_output(*, name: str, width: int, height: int, fps: int) -> N
         ) from exc
 
 
-def disable_headless_output(name: str) -> None:
-    try:
-        outputs = outputs_from_reply(niri_msg_json("outputs"))
-    except Exception:
-        return
-    if find_output_by_name(outputs, name) is None:
-        return
-    niri_msg("output", name, "off", check=False)
-
 
 def apply_output_scale(output_name: str, scale: str) -> None:
     niri_msg("output", output_name, "scale", scale, check=True)
 
-
-def apply_output_transform(output_name: str, transform: str) -> None:
-    niri_msg("output", output_name, "transform", transform, check=True)
-
-
-def apply_output_position(output_name: str, *, x: int, y: int) -> None:
-    niri_msg("output", output_name, "position", "set", str(x), str(y), check=True)
 
 
 def do_action(
@@ -781,17 +650,17 @@ def do_action(
 
 
 def try_reload_niri_config() -> bool:
-    # Best-effort: Niri's IPC surface may change between versions.
-    candidates: List[List[str]] = [
-        ["action", "load-config-file"],
-    ]
-    for args in candidates:
-        try:
-            niri_msg(*args, check=True)
-            return True
-        except Exception:
-            continue
-    return False
+    # Prefer config reload for undo: it discards temporary `niri msg output`
+    # changes and reapplies configured mode/scale for the Sunshine output.
+    try:
+        niri_msg("action", "load-config-file", check=True)
+        return True
+    except Exception as exc:
+        print(
+            f"[sunshine-prep-niri] config reload failed, falling back to output re-enable: {exc}",
+            file=sys.stderr,
+        )
+        return False
 
 
 def reenable_disabled_outputs() -> None:
@@ -816,12 +685,11 @@ def restore_action() -> None:
         kill_runtime_inhibit()
         return
 
-    # Keep restore stateless for Niri. We intentionally do not persist or replay
-    # an output snapshot here; `undo` simply re-enables outputs that should be
-    # on according to current config/runtime discovery.
-    # if not try_reload_niri_config():
-    #     raise RuntimeError("Failed to reload Niri config (no stateless restore available).")
-    reenable_disabled_outputs()
+    # Keep restore stateless for Niri. Reloading config discards temporary
+    # `niri msg output` changes and restores configured mode/scale; fallback
+    # still recovers monitors if the config reload fails.
+    if not try_reload_niri_config():
+        reenable_disabled_outputs()
     # Noctalia may show/update an idle-inhibitor notification. Disable it after
     # output restore so notification updates do not race screen creation.
     kill_runtime_inhibit()

@@ -36,7 +36,7 @@ path = "~/.config/systemd/user/sunshine.service.d"
 
 [hooks]
 pre_push = [
-  "{{ INSTALL }} sunshine python-gobject",
+  "{{ INSTALL }} sunshine",
 ]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user sunshine.service',
