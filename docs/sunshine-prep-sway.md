@@ -11,7 +11,7 @@
 Run directly inside a running Sway session:
 
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-sway.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
-- optional: force or disable idle prevention with `SUNSHINE_INHIBIT=1` or `SUNSHINE_INHIBIT=0`
+- optional: prevent idle actions while streaming with `--inhibit`
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-sway.py undo`
 
 ## Notes
@@ -26,8 +26,6 @@ Run directly inside a running Sway session:
 - `undo` is stateless: it re-enables all currently connected outputs.
 - Sway idle inhibition is surface-based (`idle_inhibit` criteria), which does
   not fit a windowless Sunshine prep hook. This prep therefore uses Noctalia's
-  `idleInhibitor` directly and stores runtime ownership state in
-  `$XDG_RUNTIME_DIR`, so a later `do` or `undo` can clear a stale inhibitor left
-  behind by a crashed earlier run.
+  `idleInhibitor` directly when `--inhibit` is enabled.
 - This keeps the behavior simple but lossy: `undo` does **not** restore prior
   mode, scale, position, or transform.

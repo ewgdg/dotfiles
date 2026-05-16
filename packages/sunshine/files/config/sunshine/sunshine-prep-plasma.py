@@ -5,6 +5,9 @@ This script configures a monitor for Sunshine streaming.
 Usage:
   sunshine-prep-plasma.py do --width WIDTH --height HEIGHT --fps FPS [--solo] [--inhibit]
   sunshine-prep-plasma.py undo
+
+Notes:
+- Pass `--inhibit` to prevent idle using systemd-inhibit while active.
 """
 
 import os

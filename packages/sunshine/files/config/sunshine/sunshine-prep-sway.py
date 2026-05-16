@@ -81,15 +81,6 @@ def start_runtime_inhibit() -> None:
     call_noctalia_idle_inhibitor("enable")
 
 
-def should_inhibit(inhibit_flag: bool) -> bool:
-    v = (os.environ.get("SUNSHINE_INHIBIT") or "").strip().lower()
-    if v in {"1", "true", "yes", "on"}:
-        return True
-    if v in {"0", "false", "no", "off"}:
-        return False
-    return bool(inhibit_flag)
-
-
 def wlr_randr_json() -> List[Dict[str, Any]]:
     res = run_cmd(["wlr-randr", "--json"], check=True)
     data = json.loads(res.stdout or "[]")
@@ -358,7 +349,7 @@ def do_action(
         scale=float(scale_to_set) if scale_to_set is not None else None,
     )
 
-    if should_inhibit(inhibit):
+    if inhibit:
         start_runtime_inhibit()
 
     if solo:

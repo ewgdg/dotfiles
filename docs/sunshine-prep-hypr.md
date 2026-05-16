@@ -7,7 +7,7 @@
   machine because KMS capture may not see it.
 - File: `packages/sunshine/files/config/sunshine/sunshine-prep-hyprland.py`
 - Requirements: Hyprland (`hyprctl`) in PATH; optional `ydotool` for a quick
-  wake; `systemd-inhibit` for idle prevention.
+  wake; optional `systemd-inhibit` for idle prevention.
 
 ## Usage
 
@@ -28,8 +28,8 @@
 - Headless mode (`--mode headless`) creates a virtual output via `hyprctl output create headless <name>` and sets `WxH@Fps`.
 - `--solo` disables other outputs for the session.
 - If headless creation fails, falls back to selecting an existing monitor supporting the mode and disables others. If headless creation succeeds but Sunshine cannot capture it, this script cannot detect that failure.
-- Starts `systemd-inhibit` (who: sunshine, what: idle) to keep the session awake.
-- `undo` stops the inhibitor, disables any headless outputs, and re-enables physical monitors at `preferred, auto, 1`.
+- Starts `systemd-inhibit` (who: sunshine, what: idle) only when `--inhibit` is passed; the rendered Sunshine config passes it for KMS capture to avoid DPMS error spam when outputs idle mid-stream.
+- `undo` stops the Sunshine-owned inhibitor, disables any headless outputs, and re-enables physical monitors at `preferred, auto, 1`.
 - `--scale` accepts a number or `auto`. In `auto` mode scale is height-based:
   `height / 1080`, clamped to `[1.0, 3.0]` and rounded to 2 decimals.
 - If you used a custom headless name not starting with `HEADLESS`, pass it with

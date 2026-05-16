@@ -113,15 +113,6 @@ def start_runtime_inhibit() -> None:
     call_noctalia_idle_inhibitor("enable")
 
 
-def should_inhibit(inhibit_flag: bool) -> bool:
-    value = (os.environ.get("SUNSHINE_INHIBIT") or "").strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    return bool(inhibit_flag)
-
-
 def cosmic_randr_kdl() -> str:
     result = run_cmd(["cosmic-randr", "list", "--kdl"], check=True)
     return result.stdout or ""
@@ -435,7 +426,7 @@ def do_action(
 
     apply_output_mode(selected_output, selected_mode, scale_to_set)
 
-    if should_inhibit(inhibit):
+    if inhibit:
         start_runtime_inhibit()
 
     if solo:

@@ -12,7 +12,7 @@
 Run directly inside a running Mango session:
 
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-mango.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
-- optional: force or disable idle prevention with `SUNSHINE_INHIBIT=1` or `SUNSHINE_INHIBIT=0`
+- optional: prevent idle actions while streaming with `--inhibit`
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-mango.py undo`
 
 ## Notes

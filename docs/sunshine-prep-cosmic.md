@@ -11,7 +11,7 @@
 Run directly inside a running COSMIC session:
 
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-cosmic.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
-- optional: force or disable idle prevention with `SUNSHINE_INHIBIT=1` or `SUNSHINE_INHIBIT=0`
+- optional: prevent idle actions while streaming with `--inhibit`
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-cosmic.py undo`
 
 ## Notes
@@ -25,5 +25,4 @@ Run directly inside a running COSMIC session:
 - `undo` is stateless: it re-enables all currently disabled outputs.
 - This keeps cleanup simple but lossy: `undo` does **not** restore prior mode,
   scale, position, transform, mirroring, or XWayland primary state.
-- Idle prevention uses a tracked `systemd-inhibit --what=idle sleep infinity`
-  process and kills it during `undo`.
+- Idle prevention uses Noctalia's global idle inhibitor when `--inhibit` is enabled.

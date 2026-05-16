@@ -14,6 +14,8 @@ Notes:
 - `undo` re-enables disabled outputs but keeps the fixed Sunshine virtual
   output alive to avoid hot-removing screens from Qt/KDE/GTK clients.
 - Optionally inhibits idle via Noctalia's idle inhibitor IPC (pass `--inhibit`).
+  Rendered Niri config leaves this off because WLR/headless capture does not
+  need the KMS-only DPMS error-spam workaround.
 """
 
 from __future__ import annotations
@@ -155,16 +157,6 @@ def start_runtime_inhibit() -> None:
     # so Sunshine turns it on at stream start and off at stream end.
     cleanup_legacy_inhibitors()
     set_noctalia_idle_inhibitor(True)
-
-
-def should_inhibit(inhibit_flag: bool) -> bool:
-    # Opt-in by default. Allow env override for service setups.
-    v = (os.environ.get("SUNSHINE_INHIBIT") or "").strip().lower()
-    if v in {"1", "true", "yes", "on"}:
-        return True
-    if v in {"0", "false", "no", "off"}:
-        return False
-    return bool(inhibit_flag)
 
 
 def parse_niri_json(stdout: str) -> Any:
@@ -645,7 +637,7 @@ def do_action(
     # Noctalia may show/update an idle-inhibitor notification. Do this after
     # solo output changes so Qt/QML clients do not keep notification surfaces on
     # outputs that are about to be removed.
-    if should_inhibit(inhibit):
+    if inhibit:
         start_runtime_inhibit()
 
 

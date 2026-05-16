@@ -76,7 +76,7 @@ For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `m
 ## Sunshine
 
 `packages/sunshine` renders one Jinja template at `packages/sunshine/files/sunshine.conf` to `~/.config/sunshine/sunshine.conf`.
-Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config uses shared `capture = portal` and shared prep args (`--solo --scale dpi-auto --inhibit`) with `sunshine-prep-hyprland.py`, leaving output mode at the script's detected-output default.
+Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config uses `capture = kms` and shared KMS prep args (`--solo --scale dpi-auto --inhibit`) with `sunshine-prep-hyprland.py`, leaving output mode at the script's detected-output default. The inhibitor is only rendered for KMS capture to avoid DPMS error spam when outputs idle mid-stream.
 
 Do not force `--mode headless` unless retesting proves Sunshine can capture Hyprland headless outputs on this machine.
 
