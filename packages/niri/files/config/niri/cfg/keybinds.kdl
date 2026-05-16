@@ -192,11 +192,11 @@ binds {
     Mod+Ctrl+R { reset-window-height; }
     Mod+F repeat=false hotkey-overlay-title="Maximize Column or Window" { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
     Mod+Shift+F { fullscreen-window; }
-
     Mod+M { maximize-window-to-edges; }
+    MOD+CTRL+F { maximize-window-to-edges; }
+    // available width means any space or partially visible window
+    // MOD+CTRL+F { expand-column-to-available-width; }
 
-    // Expand the focused column to space not taken up by other fully visible columns.
-    MOD+CTRL+F { expand-column-to-available-width; }
     MOD+C { center-column; }
     // Center all fully visible columns on screen.
     MOD+CTRL+C { center-visible-columns; }

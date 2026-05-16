@@ -7,6 +7,10 @@ path = "~/.config/faugus-launcher/config.ini"
 render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_faugus_config.py" render "$DOTMAN_REPO_PATH" --live-path "$DOTMAN_LIVE_PATH"'
 capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_faugus_config.py" capture "$DOTMAN_LIVE_PATH"'
 
+[targets.f_config_faugus_launcher_envar_txt]
+source = "files/config/faugus-launcher/envar.txt"
+path = "~/.config/faugus-launcher/envar.txt"
+
 [hooks]
 pre_push = [
   "{{ INSTALL }} faugus-launcher",

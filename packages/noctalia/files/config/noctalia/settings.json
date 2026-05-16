@@ -521,7 +521,7 @@
         ],
         "normalUrgencyDuration": 8,
         "overlayLayer": true,
-        "respectExpireTimeout": true,
+        "respectExpireTimeout": false,
         "saveToHistory": {
             "critical": true,
             "low": true,
