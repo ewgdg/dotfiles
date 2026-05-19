@@ -19,9 +19,9 @@ def clear_niri_bin_cache() -> None:
     module.niri_bin.cache_clear()
 
 
-def test_niri_bin_expands_dotman_home_placeholder(monkeypatch) -> None:
+def test_niri_bin_expands_tilde(monkeypatch) -> None:
     monkeypatch.setenv("HOME", "/home/tester")
-    monkeypatch.setenv("NIRI_BIN", "%h/projects/niri/target/release/niri")
+    monkeypatch.setenv("NIRI_BIN", "~/projects/niri/target/release/niri")
 
     assert module.niri_bin() == "/home/tester/projects/niri/target/release/niri"
 

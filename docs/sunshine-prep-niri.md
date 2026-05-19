@@ -16,7 +16,7 @@ Run directly inside a running Niri session:
 - optional: prevent idle actions while streaming with `--inhibit`
 - rendered Niri Sunshine config does **not** pass `--inhibit` by default: Niri uses `capture = wlr` on the `sunshine` headless output, while the default inhibitor is only for KMS capture to avoid DPMS error spam when outputs idle mid-stream
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
-- optional local Niri build: set `vars.niri.bin` in dotman local vars; the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
+- optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
 - `uv run packages/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
 
 ## Notes

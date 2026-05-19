@@ -52,7 +52,7 @@ def which(cmd: str) -> bool:
 
 
 def expand_niri_bin(raw: str) -> str:
-    return os.path.expandvars(os.path.expanduser(raw.replace("%h", str(Path.home()))))
+    return os.path.expandvars(os.path.expanduser(raw))
 
 
 @functools.cache
