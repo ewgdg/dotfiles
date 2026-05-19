@@ -28,7 +28,7 @@ Comment[tr]=Steam üzerinden oyun oynama ve düzenleme uygulaması
 Comment[uk]=Програма для керування іграми та запуску ігор у Steam
 Comment[vi]=Ứng dụng để quản lý và chơi trò chơi trên Steam
 # Work around Steam's current Wayland IME/input gap.
-# See docs/steam-ime-workaround.md. Remove this override once Steam's native
+# See packages/steam/README.md. Remove this override once Steam's native
 # Wayland text input works reliably.
 Exec=env XMODIFIERS=@im=fcitx GTK_IM_MODULE=xim /usr/bin/steam %U
 Icon=steam
