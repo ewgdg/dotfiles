@@ -16,6 +16,7 @@
 
 ## Working Rules
 
+- Put package-specific docs in the package directory: use package `README.md` for overview/small docs, and package-local `docs/` for modular or multi-topic package docs; keep root `docs/` for repo-wide, cross-package, or workflow notes.
 - Use `dotman` for sync workflows when user requested.
 - Let user do the push or pull command.
 - `dotman push` = repo → live system.
