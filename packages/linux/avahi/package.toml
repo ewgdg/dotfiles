@@ -1,0 +1,16 @@
+id = "linux/avahi"
+description = "Avahi mDNS daemon constrained to physical LAN interfaces"
+
+[targets.f_etc_avahi_avahi_daemon_conf]
+source = "files/etc/avahi/avahi-daemon.conf"
+path = "/etc/avahi/avahi-daemon.conf"
+render = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/render_avahi_daemon_conf.py" render "$DOTMAN_REPO_PATH"'
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/render_avahi_daemon_conf.py" capture "$DOTMAN_LIVE_PATH"'
+
+[hooks]
+pre_push = [
+  "{{ INSTALL }} avahi",
+]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} system avahi-daemon.service',
+]

@@ -71,11 +71,11 @@ Use the Hyprland-specific host binding when you want Hyprland plus matching Suns
 
 - `main:host/linux-hyprland-meta@host/linux-hyprland`
 
-For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `main:sunshine@host/linux-hyprland`.
+For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `main:linux/sunshine@host/linux-hyprland`.
 
 ## Sunshine
 
-`packages/sunshine` renders one Jinja template at `packages/sunshine/files/sunshine.conf` to `~/.config/sunshine/sunshine.conf`.
+`packages/linux/sunshine` renders one Jinja template at `packages/linux/sunshine/files/sunshine.conf` to `~/.config/sunshine/sunshine.conf`.
 Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config uses `capture = kms` and shared KMS prep args (`--solo --scale dpi-auto --inhibit`) with `sunshine-prep-hyprland.py`, leaving output mode at the script's detected-output default. The inhibitor is only rendered for KMS capture to avoid DPMS error spam when outputs idle mid-stream.
 
 Do not force `--mode headless` unless retesting proves Sunshine can capture Hyprland headless outputs on this machine.

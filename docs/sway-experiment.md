@@ -38,7 +38,7 @@ Use the Sway-specific host binding when you want Sway plus matching Sunshine con
 
 This meta package depends on `host/linux-sway`, matching the existing `host/linux-niri-meta` pattern.
 
-For a narrower push, track `main:sway-experiment@host/linux-sway` and `main:sunshine@host/linux-sway`.
+For a narrower push, track `main:sway-experiment@host/linux-sway` and `main:linux/sunshine@host/linux-sway`.
 
 ## Known TODOs left in config
 

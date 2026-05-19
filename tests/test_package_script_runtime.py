@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "packages/greetd/scripts/render_greetd_config.py",
         "packages/greetd/scripts/validate_greetd_start_session.py",
         "packages/gsettings/scripts/gsettings_sync.py",
+        "packages/linux/avahi/scripts/render_avahi_daemon_conf.py",
         "packages/gsettings/scripts/sync_gsettings_gtk.py",
         "scripts/enable_display_manager_systemd_unit.py",
         "scripts/kv_transform.py",

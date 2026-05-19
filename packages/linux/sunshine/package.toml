@@ -1,9 +1,11 @@
-id = "sunshine"
+id = "linux/sunshine"
 description = "Sunshine host streaming configuration"
 
 # WayVNC provides an out-of-band control path for approving Sunshine portal dialogs.
+# Avahi provides mDNS advertisement on the physical LAN only.
 depends = [
   "wayvnc",
+  "linux/avahi",
 ]
 
 [targets.d_config_sunshine]

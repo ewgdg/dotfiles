@@ -3,16 +3,16 @@
 - Purpose: select/configure a Sway output for Sunshine streaming (`WxH@FPS`),
   optionally turn off other outputs, then restore connected outputs on cleanup.
 - Files:
-  - `packages/sunshine/files/config/sunshine/sunshine-prep-sway.py`
-  - `packages/sunshine/files/config/sunshine/sunshine-sway.conf`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-sway.py`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-sway.conf`
 
 ## Usage
 
 Run directly inside a running Sway session:
 
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-sway.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-sway.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
 - optional: prevent idle actions while streaming with `--inhibit`
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-sway.py undo`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-sway.py undo`
 
 ## Notes
 

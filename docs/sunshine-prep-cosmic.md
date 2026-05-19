@@ -3,16 +3,16 @@
 - Purpose: select/configure a COSMIC output for Sunshine streaming (`WxH@FPS`),
   optionally turn off other outputs, then restore connected outputs on cleanup.
 - Files:
-  - `packages/sunshine/files/config/sunshine/sunshine-prep-cosmic.py`
-  - `packages/sunshine/files/config/sunshine/sunshine-cosmic.conf`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-cosmic.py`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-cosmic.conf`
 
 ## Usage
 
 Run directly inside a running COSMIC session:
 
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-cosmic.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-cosmic.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
 - optional: prevent idle actions while streaming with `--inhibit`
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-cosmic.py undo`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-cosmic.py undo`
 
 ## Notes
 

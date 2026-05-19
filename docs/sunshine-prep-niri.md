@@ -5,19 +5,19 @@
   restore by re-enabling connected outputs except ones explicitly marked `off`
   in `cfg/output.kdl` while keeping the virtual output alive.
 - Files:
-  - `packages/sunshine/files/config/sunshine/sunshine-prep-niri.py`
-  - `packages/sunshine/files/sunshine.conf`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py`
+  - `packages/linux/sunshine/files/sunshine.conf`
 
 ## Usage
 
 Run directly inside a running Niri session:
 
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --solo --scale auto`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --solo --scale auto`
 - optional: prevent idle actions while streaming with `--inhibit`
 - rendered Niri Sunshine config does **not** pass `--inhibit` by default: Niri uses `capture = wlr` on the `sunshine` headless output, while the default inhibitor is only for KMS capture to avoid DPMS error spam when outputs idle mid-stream
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
 - optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
 
 ## Notes
 

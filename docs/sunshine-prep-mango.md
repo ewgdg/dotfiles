@@ -4,16 +4,16 @@
   optionally turn off other outputs, then restore the exact pre-stream output
   snapshot on cleanup.
 - Files:
-  - `packages/sunshine/files/config/sunshine/sunshine-prep-mango.py`
-  - `packages/sunshine/files/config/sunshine/sunshine-mango.conf`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-mango.py`
+  - `packages/linux/sunshine/files/config/sunshine/sunshine-mango.conf`
 
 ## Usage
 
 Run directly inside a running Mango session:
 
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-mango.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-mango.py do --width 1920 --height 1080 --fps 60 --solo --scale dpi-auto --inhibit`
 - optional: prevent idle actions while streaming with `--inhibit`
-- `uv run packages/sunshine/files/config/sunshine/sunshine-prep-mango.py undo`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-mango.py undo`
 
 ## Notes
 

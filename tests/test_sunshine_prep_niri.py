@@ -6,7 +6,7 @@ import pytest
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "packages/sunshine/files/config/sunshine/sunshine-prep-niri.py"
+    / "packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py"
 )
 MODULE_SPEC = importlib.util.spec_from_file_location("sunshine_prep_niri", MODULE_PATH)
 module = importlib.util.module_from_spec(MODULE_SPEC)
