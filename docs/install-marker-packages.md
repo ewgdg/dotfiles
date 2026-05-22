@@ -5,19 +5,21 @@ For those cases, keep a small tracked marker file so the package still has manag
 
 ## Convention
 
-Use marker files under:
+Use marker files under this repo-owned XDG state namespace:
 
 ```text
-~/.local/state/dotman/installed/
+${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/installed/
 ```
 
+Use `dotfiles`, not `dotman`: these markers belong to this repository, not to dotman internals.
+Marker content should list installed packages/tools, one per line.
 Mirror the package namespace when useful.
 
 Examples:
 
-- `rustup` -> `~/.local/state/dotman/installed/rustup`
-- `linux/lutris` -> `~/.local/state/dotman/installed/lutris`
-- if name collisions become possible, use nested paths such as `~/.local/state/dotman/installed/linux/lutris`
+- `rustup` -> `~/.local/state/dotfiles/installed/rustup`
+- `linux/lutris` -> `~/.local/state/dotfiles/installed/linux/lutris`
+- namespaced packages should usually keep their namespace, e.g. `mac/fonts` -> `~/.local/state/dotfiles/installed/mac/fonts`
 
 ## Package Pattern
 
@@ -27,11 +29,11 @@ Example install-only package:
 id = "rustup"
 description = "Rust toolchain bootstrap marker and install hooks"
 
-[targets.f_local_state_dotman_installed_rustup]
-source = "files/local/state/dotman/installed/rustup"
-path = "~/.local/state/dotman/installed/rustup"
+[targets.f_local_state_dotfiles_installed_rustup]
+source = "files/local/state/dotfiles/installed/rustup"
+path = "~/.local/state/dotfiles/installed/rustup"
 
-# Marker exists so install-only packages still have tracked state in dotman.
+# Marker exists so install-only packages still have a managed target.
 [hooks]
 pre_push = [
   'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',

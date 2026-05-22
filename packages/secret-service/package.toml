@@ -6,9 +6,9 @@ source = "files/config/kwalletrc"
 path = "~/.config/kwalletrc"
 chmod = "600"
 
-[targets.f_local_state_dotman_installed_secret_service]
-source = "files/local/state/dotman/installed/secret-service"
-path = "~/.local/state/dotman/installed/secret-service"
+[targets.f_local_state_dotfiles_installed_secret_service]
+source = "files/local/state/dotfiles/installed/secret-service"
+path = "~/.local/state/dotfiles/installed/secret-service"
 
 [hooks]
 # KWallet provides ksecretd for the Secret portal and Secret Service API;
