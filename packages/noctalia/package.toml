@@ -8,12 +8,9 @@ depends = [
 [targets.d_config_noctalia]
 source = "files/config/noctalia"
 path = "~/.config/noctalia"
-push_ignore = [
-  "plugins/",
-  "!plugins/*/settings.json",
-  "!plugins/pinned-window/",
-]
-pull_ignore = [
+
+[targets.d_config_noctalia.ignore]
+shared = [
   "plugins/",
   "!plugins/*/settings.json",
   "!plugins/pinned-window/",

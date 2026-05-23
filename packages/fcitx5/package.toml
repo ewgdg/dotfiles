@@ -5,11 +5,9 @@ description = "Fcitx5 configuration"
 source = "files/config/fcitx5"
 path = "~/.config/fcitx5"
 chmod = "700"
-push_ignore = [
-  "conf/cached_layouts",
-  "profile_*",
-]
-pull_ignore = [
+
+[targets.d_config_fcitx5.ignore]
+shared = [
   "conf/cached_layouts",
   "profile_*",
 ]

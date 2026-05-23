@@ -15,13 +15,9 @@ capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/gsettings_sync.py" "$DOTMA
 source = "files/config/gtk-3.0"
 path = "~/.config/gtk-3.0"
 chmod = "700"
-push_ignore = [
-  "assets/",
-  "bookmarks",
-  "*.backup.*",
-  "settings.ini",
-]
-pull_ignore = [
+
+[targets.d_config_gtk_3_0.ignore]
+shared = [
   "assets/",
   "bookmarks",
   "*.backup.*",
@@ -37,10 +33,9 @@ capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_gsettings_gtk.py" "$D
 source = "files/config/gtk-4.0"
 path = "~/.config/gtk-4.0"
 chmod = "700"
-push_ignore = [
-  "settings.ini",
-]
-pull_ignore = [
+
+[targets.d_config_gtk_4_0.ignore]
+shared = [
   "settings.ini",
 ]
 

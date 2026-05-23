@@ -13,10 +13,9 @@ path = "~/.config/oh-my-posh"
 [targets.d_config_tmux]
 source = "files/config/tmux"
 path = "~/.config/tmux"
-push_ignore = [
-  "plugins/",
-]
-pull_ignore = [
+
+[targets.d_config_tmux.ignore]
+shared = [
   "plugins/",
 ]
 

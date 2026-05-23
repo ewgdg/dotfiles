@@ -4,11 +4,9 @@ description = "Neovim configuration"
 [targets.d_config_nvim]
 source = "files/config/nvim"
 path = "~/.config/nvim"
-push_ignore = [
-  "*lock.json",
-  ".nvimlog",
-]
-pull_ignore = [
+
+[targets.d_config_nvim.ignore]
+shared = [
   "*lock.json",
   ".nvimlog",
 ]

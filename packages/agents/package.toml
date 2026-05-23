@@ -8,15 +8,10 @@ depends = [
 [targets.d_agents]
 source = "files/agents"
 path = "~/.agents"
-push_ignore = [
+
+[targets.d_agents.ignore]
+shared = [
   "skills/agent-web-context/references/",
-  "__pycache__/",
-  "node_modules/",
-]
-pull_ignore = [
-  "skills/agent-web-context/references/",
-  "__pycache__/",
-  "node_modules/",
 ]
 
 [targets.f_local_state_skills_skill_lock_json]

@@ -11,18 +11,9 @@ depends = [
 [targets.d_config_sunshine]
 source = "files/config/sunshine"
 path = "~/.config/sunshine"
-push_ignore = [
-  "__pycache__/",
-  "tests/",
-  "sunshine-*.conf",
-  "sunshine.conf",
-  "credentials/",
-  "sunshine.log",
-  "portal_token",
-  "*_state.json",
-]
-pull_ignore = [
-  "__pycache__/",
+
+[targets.d_config_sunshine.ignore]
+shared = [
   "tests/",
   "sunshine-*.conf",
   "sunshine.conf",

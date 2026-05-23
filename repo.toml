@@ -1,15 +1,7 @@
 default_command_elevation = "intercept"
 
 [ignore]
-pull = [
-    "*.dotdropbak",
-    "*.bak",
-    "__pycache__/",
-    ".DS_Store",
-    ".codex",
-    "node_modules/",
-]
-push = [
+shared = [
     "*.archived",
     "*.bak",
     "__pycache__/",
@@ -17,6 +9,10 @@ push = [
     ".codex",
     "node_modules/",
 ]
+pull = [
+    "*.dotdropbak",
+]
+push = []
 
 [hooks]
 guard_push = [

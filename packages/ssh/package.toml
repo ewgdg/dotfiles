@@ -5,12 +5,9 @@ description = "SSH identity and client configuration"
 source = "files/ssh"
 path = "~/.ssh"
 chmod = "700"
-push_ignore = [
-  "known_hosts*",
-  "config",
-  "agent",
-]
-pull_ignore = [
+
+[targets.d_ssh.ignore]
+shared = [
   "known_hosts*",
   "config",
   "agent",
