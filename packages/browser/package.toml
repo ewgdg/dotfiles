@@ -1,5 +1,5 @@
 id = "browser"
-description = "Chromium-family browser launch flags"
+description = "Chromium/Electron launch flags"
 
 [targets.f_config_chrome_flags_conf]
 source = "files/config/chrome-flags.conf"
@@ -8,3 +8,7 @@ path = "~/.config/chrome-flags.conf"
 [targets.f_config_chromium_flags_conf]
 source = "files/config/chromium-flags.conf"
 path = "~/.config/chromium-flags.conf"
+
+[targets.f_config_electron_flags_conf]
+source = "files/config/electron-flags.conf"
+path = "~/.config/electron-flags.conf"
