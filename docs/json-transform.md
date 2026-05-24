@@ -10,19 +10,26 @@ Shared CLI semantics live in
 
 The JSON engine exposes these selector types:
 
-- default `exact:` selector: exact top-level JSON object key
-- `re:` selector: regex matching top-level JSON object keys
+- default `exact:` selector: exact JSON object key path
+- `re:` selector: regex matching dotted JSON object key paths
 
 Examples:
 
 - `buildDir`
-- `version`
+- `settings.window.width`
+- `"settings.window".width`
 - `re:^Window`
+- `re:^settings\.window\.`
 
 JSON-specific notes:
 
-- selectors operate on top-level object keys only
-- regex selectors match key names with Python `re.search`
+- regex selectors operate on dot-joined JSON object key paths
+- exact key paths use dot-separated object keys
+- quote a key path part when the literal JSON key contains a dot, for example
+  `"settings.window".width`
+- exact key paths traverse JSON objects only; arrays are treated as normal
+  values, not as indexable path segments
+- regex selectors match key path text with Python `re.search`
 - selectorless operation is allowed
 - with no selectors, cleanup is identity and merge starts from the whole base
   JSON object before applying the overlay object
@@ -32,22 +39,23 @@ JSON-specific notes:
 The JSON engine follows the shared contract:
 
 - selectors always target the base JSON object
-- merge preserves the selected or complementary top-level keys from the base
-  object, depending on `--selector-type`
+- merge preserves the selected or complementary key paths from the base object,
+  depending on `--selector-type`
 - the overlay JSON object is then applied on top
-- for keys that survive from live or repo input, merge keeps live top-level key
+- for keys that survive from live or repo input, merge keeps live object key
   order where possible and appends repo-only keys in repo order
 
-Because selectors work at top-level key granularity, nested deletions are
-reflected by replacing the entire selected key from the overlay object.
+For top-level selectors, overlay values replace preserved base values at that
+key. For nested exact or regex selectors, overlay is applied recursively along
+the selected key path ancestors so unselected sibling keys can survive install.
 
 ## Structural Notes
 
-- top-level key identity is exact string equality
-- when a selected key exists in both operands, the overlay value replaces the
-  preserved base value for that key
-- when a selected key was removed from the repo, it stays removed after install
-  because that top-level key was already excluded from the preserved base
+- key path part identity is exact string equality
+- when a selected top-level key exists in both operands, the overlay value
+  replaces the preserved base value for that key
+- when a selected nested key was removed from the repo, it stays removed after
+  install because that key path was already excluded from the preserved base
   partition
 - JSON output is serialized with detected indentation from `--compare-file`,
   base file, or overlay file; if no indentation can be detected, it falls back
@@ -73,5 +81,5 @@ uv run scripts/json_transform.py live.json output.json \
   --mode merge \
   --overlay-file repo.json \
   --selector-type retain \
-  --selectors 'buildDir' 'version'
+  --selectors 'buildDir' 'settings.window.width'
 ```

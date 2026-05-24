@@ -121,6 +121,114 @@ def test_compare_file_preserves_existing_text(tmp_path: Path) -> None:
     assert output_path.read_text(encoding="utf-8") == compare_path.read_text(encoding="utf-8")
 
 
+def test_cleanup_retain_key_path_keeps_selected_nested_object_key(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps(
+            {
+                "settings": {
+                    "window": {"width": 1200, "height": 800},
+                    "theme": "dark",
+                },
+                "other": True,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "retain",
+            "--selectors",
+            "settings.window.width",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings": {"window": {"width": 1200}}}
+
+
+
+def test_cleanup_remove_key_path_strips_selected_nested_object_key(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps(
+            {
+                "settings": {
+                    "window": {"width": 1200, "height": 800},
+                    "theme": "dark",
+                },
+                "other": True,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "settings.window.width",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {
+        "settings": {
+            "window": {"height": 800},
+            "theme": "dark",
+        },
+        "other": True,
+    }
+
+
+
+def test_cleanup_key_path_accepts_quoted_dotted_key_parts(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps({"settings.window": {"width": 1200, "height": 800}}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "retain",
+            "--selectors",
+            '"settings.window".width',
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings.window": {"width": 1200}}
+
+
+
 def test_cleanup_remove_key_strips_selected_top_level_keys(tmp_path: Path) -> None:
     input_path = tmp_path / "input.json"
     output_path = tmp_path / "output.json"
@@ -158,6 +266,77 @@ def test_cleanup_remove_key_strips_selected_top_level_keys(tmp_path: Path) -> No
         "version": "12.5.7",
         "bottomup": True,
     }
+
+
+def test_cleanup_retain_key_regex_keeps_matching_nested_key_paths(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps(
+            {
+                "settings": {"managed": "keep", "local": "drop"},
+                "other": True,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "retain",
+            "--selectors",
+            r"re:^settings\.managed$",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings": {"managed": "keep"}}
+
+
+
+def test_cleanup_remove_key_regex_strips_matching_nested_key_paths(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text(
+        json.dumps(
+            {
+                "settings": {"managed": "drop", "local": "keep"},
+                "other": True,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--selector-type",
+            "remove",
+            "--selectors",
+            r"re:^settings\.managed$",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {
+        "settings": {"local": "keep"},
+        "other": True,
+    }
+
 
 
 def test_cleanup_remove_key_regex_strips_matching_top_level_keys(tmp_path: Path) -> None:
@@ -251,6 +430,48 @@ def test_merge_retain_key_preserves_selected_live_keys_and_reapplies_repo_conten
         "bottomup": True,
         "rpc": True,
     }
+
+
+def test_merge_remove_key_regex_preserves_unselected_nested_live_keys(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps(
+            {"settings": {"local": "keep", "managed": "old", "other": "keep"}},
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps({"settings": {"managed": "new"}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "remove",
+            "--selectors",
+            r"re:^settings\.managed$",
+        ]
+    )
+
+    assert exit_code == 0
+    merged_data = load_json(output_path)
+    assert list(merged_data["settings"]) == ["local", "managed", "other"]
+    assert merged_data == {
+        "settings": {"local": "keep", "managed": "new", "other": "keep"}
+    }
+
 
 
 def test_merge_retain_key_regex_preserves_matching_live_keys_and_reapplies_repo_content(
@@ -360,6 +581,156 @@ def test_merge_retain_key_preserves_live_order_and_drops_deleted_repo_keys(
         "editor": "",
         "useask": True,
     }
+
+
+def test_merge_remove_key_path_preserves_unselected_nested_live_keys(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps(
+            {
+                "settings": {
+                    "local": "keep",
+                    "managed": "old",
+                    "other": "keep",
+                }
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps({"settings": {"managed": "new"}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "settings.managed",
+        ]
+    )
+
+    assert exit_code == 0
+    merged_data = load_json(output_path)
+    assert list(merged_data["settings"]) == ["local", "managed", "other"]
+    assert merged_data == {
+        "settings": {"local": "keep", "managed": "new", "other": "keep"}
+    }
+
+
+
+def test_merge_remove_key_path_preserves_nested_repo_deletions(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps({"settings": {"local": "keep", "managed": "old"}}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text("{}\n", encoding="utf-8")
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "remove",
+            "--selectors",
+            "settings.managed",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings": {"local": "keep"}}
+
+
+
+def test_merge_retain_key_path_preserves_selected_nested_live_keys(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps({"settings": {"managed": "old", "noise": "keep"}}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps({"settings": {"managed": "new"}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            "settings.noise",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings": {"managed": "new", "noise": "keep"}}
+
+
+
+def test_merge_top_level_object_key_still_replaces_with_overlay_value(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    live_path.write_text(
+        json.dumps({"settings": {"local": "keep", "managed": "old"}}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        json.dumps({"settings": {"managed": "new"}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+            "--selector-type",
+            "retain",
+            "--selectors",
+            "settings",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_json(output_path) == {"settings": {"managed": "new"}}
+
 
 
 def test_merge_remove_key_preserves_unselected_live_keys(tmp_path: Path) -> None:
