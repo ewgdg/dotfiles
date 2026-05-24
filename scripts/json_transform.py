@@ -22,6 +22,8 @@ from scripts.transform_engine import (
 
 JsonDict = dict[str, Any]
 KeyRegex = re.Pattern[str]
+DEFAULT_JSON_INDENT = "  "
+_JSON_INDENT_RE = re.compile(r"^([ \t]+)\S")
 
 
 def load_json(path: Path) -> JsonDict:
@@ -112,8 +114,40 @@ def overlay_json_data(
 
 
 
-def json_text(data: JsonDict) -> str:
-    return json.dumps(data, indent="\t", ensure_ascii=False) + "\n"
+def detect_json_indent(text: str) -> str | None:
+    for line in text.splitlines():
+        match = _JSON_INDENT_RE.match(line)
+        if match:
+            return match.group(1)
+    return None
+
+
+
+def detect_json_indent_from_path(path: Path | None) -> str | None:
+    if path is None or not path.exists():
+        return None
+
+    text = path.read_text(encoding="utf-8")
+    try:
+        json.loads(text)
+    except Exception:
+        return None
+
+    return detect_json_indent(text)
+
+
+
+def select_json_indent(*reference_paths: Path | None) -> str:
+    for reference_path in reference_paths:
+        indent = detect_json_indent_from_path(reference_path)
+        if indent is not None:
+            return indent
+    return DEFAULT_JSON_INDENT
+
+
+
+def json_text(data: JsonDict, indent: str = DEFAULT_JSON_INDENT) -> str:
+    return json.dumps(data, indent=indent, ensure_ascii=False) + "\n"
 
 
 
@@ -139,6 +173,7 @@ def build_json_output(
     *,
     mode_reference_path: Path,
     compare_path: Path | None = None,
+    indent_reference_paths: tuple[Path | None, ...] = (),
 ) -> TransformOutput:
     if compare_path is not None:
         existing_text = get_existing_text_if_semantically_unchanged(compare_path, data)
@@ -149,8 +184,9 @@ def build_json_output(
                 reused_compare_path=compare_path,
             )
 
+    indent = select_json_indent(compare_path, *indent_reference_paths, mode_reference_path)
     return TransformOutput(
-        content=json_text(data),
+        content=json_text(data, indent=indent),
         mode_reference_path=mode_reference_path,
     )
 
@@ -169,6 +205,7 @@ def write_json_if_changed(
             data,
             mode_reference_path=mode_reference_path,
             compare_path=compare_path,
+            indent_reference_paths=(mode_reference_path,),
         ),
         stdout=stdout,
     )
@@ -234,6 +271,7 @@ class JsonTransformEngine(BaseTransformEngine):
             transformed_data,
             mode_reference_path=request.base_path,
             compare_path=request.engine_option("compare_path"),
+            indent_reference_paths=(request.base_path, request.overlay_path),
         )
 
 

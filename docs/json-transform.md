@@ -49,8 +49,9 @@ reflected by replacing the entire selected key from the overlay object.
 - when a selected key was removed from the repo, it stays removed after install
   because that top-level key was already excluded from the preserved base
   partition
-- JSON output is serialized with tab indentation unless `--compare-file` lets
-  the engine reuse existing semantically equivalent text
+- JSON output is serialized with detected indentation from `--compare-file`,
+  base file, or overlay file; if no indentation can be detected, it falls back
+  to two spaces
 
 ## Engine-Specific Flags
 
@@ -62,7 +63,8 @@ The JSON engine also supports:
 When provided, the engine reuses that file's existing text if its parsed JSON
 matches the transformed data, which avoids no-op rewrites caused by JSON
 serialization.
-Without `--compare-file`, the engine always serializes fresh output.
+Without `--compare-file`, the engine always serializes fresh output while
+reusing indentation from the base or overlay file when detectable.
 
 ## Example
 

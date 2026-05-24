@@ -17,6 +17,87 @@ def test_json_engine_declares_typed_selectors() -> None:
     assert selector_specs["key_regex"].prefix == "re"
 
 
+def test_serialized_json_uses_two_space_fallback_indent(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text('{"alpha":1,"beta":{"nested":true}}\n', encoding="utf-8")
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+        ]
+    )
+
+    assert exit_code == 0
+    assert output_path.read_text(encoding="utf-8") == (
+        '{\n'
+        '  "alpha": 1,\n'
+        '  "beta": {\n'
+        '    "nested": true\n'
+        '  }\n'
+        '}\n'
+    )
+
+
+def test_serialized_json_preserves_compare_file_indent(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.json"
+    compare_path = tmp_path / "compare.json"
+    output_path = tmp_path / "output.json"
+
+    input_path.write_text('{"alpha":1,"beta":true}\n', encoding="utf-8")
+    compare_path.write_text(
+        '{\n    "alpha": 1,\n    "beta": false\n}\n',
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(input_path),
+            str(output_path),
+            "--mode",
+            "cleanup",
+            "--compare-file",
+            str(compare_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert output_path.read_text(encoding="utf-8") == (
+        '{\n    "alpha": 1,\n    "beta": true\n}\n'
+    )
+
+
+def test_merge_with_missing_base_preserves_overlay_file_indent(tmp_path: Path) -> None:
+    live_path = tmp_path / "missing-live.json"
+    repo_path = tmp_path / "repo.json"
+    output_path = tmp_path / "output.json"
+
+    repo_path.write_text(
+        '{\n\t"alpha": 1,\n\t"beta": {\n\t\t"nested": true\n\t}\n}\n',
+        encoding="utf-8",
+    )
+
+    exit_code = MODULE.main(
+        [
+            str(live_path),
+            str(output_path),
+            "--mode",
+            "merge",
+            "--overlay-file",
+            str(repo_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert output_path.read_text(encoding="utf-8") == repo_path.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_compare_file_preserves_existing_text(tmp_path: Path) -> None:
     input_path = tmp_path / "input.json"
     compare_path = tmp_path / "compare.json"
