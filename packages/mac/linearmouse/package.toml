@@ -11,6 +11,11 @@ chmod = "600"
 render = '{{ PLIST_RENDER }} --output-format binary --selector-type retain --selectors {{ vars.linearmouse.config_selector_args }}'
 capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type remove --selectors {{ vars.linearmouse.config_selector_args }}'
 
+[targets.f_config_linearmouse_linearmouse_json]
+source = "files/config/linearmouse/linearmouse.json"
+path = "~/.config/linearmouse/linearmouse.json"
+capture = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/sync_linearmouse_config.py" capture "$DOTMAN_LIVE_PATH"'
+
 [hooks]
 pre_push = [
   "{{ INSTALL }} linearmouse",

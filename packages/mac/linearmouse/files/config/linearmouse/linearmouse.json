@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.linearmouse.app/0.11.1",
+  "schemes": [
+    {
+      "if": {
+        "device": {
+          "category": "mouse"
+        }
+      },
+      "buttons": {
+        "universalBackForward": true
+      },
+      "pointer": {
+        "acceleration": 1,
+        "disableAcceleration": true,
+        "speed": 0.06896551724137928
+      },
+      "scrolling": {
+        "acceleration": 1,
+        "distance": {
+          "horizontal": "auto",
+          "vertical": "36px"
+        },
+        "reverse": {
+          "vertical": true,
+          "horizontal": false
+        },
+        "speed": 0,
+        "modifiers": {
+          "vertical": {
+            "control": {
+              "type": "auto"
+            }
+          }
+        },
+        "smoothed": {
+          "vertical": {
+            "enabled": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "device": {
+          "category": "trackpad"
+        }
+      },
+      "scrolling": {
+        "acceleration": {
+          "vertical": 1
+        },
+        "distance": {
+          "vertical": "auto"
+        },
+        "speed": {
+          "vertical": 0
+        }
+      }
+    }
+  ]
+}
