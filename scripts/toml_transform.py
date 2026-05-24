@@ -38,7 +38,7 @@ class TopLevelBodyRegion:
 def load_document(path: Path) -> TOMLDocument:
     if not path.exists():
         return tomlkit.document()
-    return tomlkit.parse(path.read_text(encoding="utf-8"))
+    return detach_table_tail_trivia(tomlkit.parse(path.read_text(encoding="utf-8")))
 
 
 def get_existing_text_if_unchanged(compare_path: Path, doc: TOMLDocument) -> str | None:
@@ -181,6 +181,116 @@ def get_key_path_value(root: TomlContainer, key_path: tuple[str, ...]) -> Any | 
     return container[key_name]
 
 
+def container_storage(container: TomlContainer) -> Any:
+    if isinstance(container, TOMLDocument):
+        return container
+    return container.value
+
+
+def container_body_entries(container: TomlContainer) -> list[tuple[object, object]]:
+    return container_storage(container)._body
+
+
+def increment_container_map_indexes(container: TomlContainer, start_index: int, offset: int) -> None:
+    storage = container_storage(container)
+    for key, value in storage._map.items():
+        if isinstance(value, tuple):
+            storage._map[key] = tuple(
+                index + offset if index >= start_index else index for index in value
+            )
+            continue
+
+        if value >= start_index:
+            storage._map[key] = value + offset
+
+
+def item_text(item: object) -> str:
+    if hasattr(item, "as_string"):
+        return item.as_string()
+    return str(item)
+
+
+def is_comment_entry(entry: tuple[object, object]) -> bool:
+    key, item = entry
+    return key is None and item_text(item).lstrip().startswith("#")
+
+
+def is_blank_entry(entry: tuple[object, object]) -> bool:
+    key, item = entry
+    return key is None and "\n" in item_text(item) and not is_comment_entry(entry)
+
+
+def split_blank_separated_tail_trivia(
+    entries: list[tuple[object, object]],
+    *,
+    require_trailing_blank: bool = True,
+) -> tuple[list[tuple[object, object]], tuple[tuple[None, object], ...]]:
+    split_index = len(entries)
+
+    while split_index > 0 and entries[split_index - 1][0] is None:
+        split_index -= 1
+
+    tail_entries = entries[split_index:]
+    if not tail_entries:
+        return entries, ()
+    if not is_blank_entry(tail_entries[0]):
+        return entries, ()
+    if require_trailing_blank and not is_blank_entry(tail_entries[-1]):
+        return entries, ()
+    if not any(is_comment_entry(entry) for entry in tail_entries):
+        return entries, ()
+
+    retained_entries = entries[:split_index]
+    detached_entries = tuple((None, copy.deepcopy(item)) for _key, item in tail_entries)
+    return retained_entries, detached_entries
+
+
+def detach_table_tail_trivia(doc: TOMLDocument) -> TOMLDocument:
+    # tomlkit keeps blank-separated comments after a table inside that table.
+    # Bubble those tail blocks out so selector deletes do not own them.
+    detached_entries = detach_child_table_tail_trivia(doc)
+    if detached_entries:
+        container_body_entries(doc).extend(detached_entries)
+    return doc
+
+
+def detach_child_table_tail_trivia(container: TomlContainer) -> tuple[tuple[None, object], ...]:
+    body_entries = container_body_entries(container)
+    index = 0
+
+    while index < len(body_entries):
+        key, item = body_entries[index]
+        if key is not None and isinstance(item, Table):
+            detached_entries = detach_child_table_tail_trivia(item)
+            if detached_entries:
+                insert_trivia_at_body_index(container, index + 1, detached_entries)
+                body_entries = container_body_entries(container)
+                index += len(detached_entries)
+        index += 1
+
+    retained_entries, detached_entries = split_blank_separated_tail_trivia(
+        body_entries,
+        require_trailing_blank=False,
+    )
+    if detached_entries:
+        body_entries[:] = retained_entries
+    return detached_entries
+
+
+def insert_trivia_at_body_index(
+    container: TomlContainer,
+    index: int,
+    trivia_entries: tuple[tuple[None, object], ...],
+) -> None:
+    if not trivia_entries:
+        return
+
+    body_entries = container_body_entries(container)
+    increment_container_map_indexes(container, index, len(trivia_entries))
+    for offset, entry in enumerate(trivia_entries):
+        body_entries.insert(index + offset, entry)
+
+
 def delete_key_path(root: TomlContainer, key_path: tuple[str, ...]) -> None:
     table_path, key_name = split_key_path(key_path)
     container = get_container(root, table_path)
@@ -268,6 +378,45 @@ def collect_top_level_body_regions(
     return regions, tuple(pending_leading_entries)
 
 
+def entries_text(entries: tuple[tuple[None, object], ...]) -> str:
+    return "".join(item_text(item) for _key, item in entries)
+
+
+def trivia_identity_text(entries: tuple[tuple[None, object], ...]) -> str:
+    return "\n".join(line for line in entries_text(entries).splitlines() if line.strip())
+
+
+def split_independent_leading_trivia(
+    leading_entries: tuple[tuple[None, object], ...],
+) -> tuple[tuple[tuple[None, object], ...], tuple[tuple[None, object], ...]]:
+    retained_entries, independent_entries = split_blank_separated_tail_trivia(
+        list(leading_entries),
+        require_trailing_blank=True,
+    )
+    return tuple(retained_entries), independent_entries
+
+
+def collect_independent_leading_trivia_texts(
+    regions: dict[str, TopLevelBodyRegion],
+) -> set[str]:
+    independent_texts: set[str] = set()
+    for region in regions.values():
+        _attached_entries, independent_entries = split_independent_leading_trivia(
+            region.leading_entries
+        )
+        if independent_entries:
+            independent_texts.add(trivia_identity_text(independent_entries))
+    return independent_texts
+
+
+def add_trivia_entries(
+    target_doc: TOMLDocument,
+    entries: tuple[tuple[None, object], ...],
+) -> None:
+    for _unused_key, entry in entries:
+        target_doc.add(copy.deepcopy(entry))
+
+
 def restore_top_level_leading_trivia(
     merged_doc: TOMLDocument,
     overlay_doc: TOMLDocument,
@@ -280,6 +429,8 @@ def restore_top_level_leading_trivia(
     preserved_regions, _preserved_trailing_entries = collect_top_level_body_regions(preserved_base)
 
     rebuilt_doc = tomlkit.document()
+    overlay_independent_texts = collect_independent_leading_trivia_texts(overlay_regions)
+    emitted_independent_texts: set[str] = set()
 
     for merged_region in merged_regions.values():
         overlay_region = overlay_regions.get(merged_region.key_name)
@@ -288,12 +439,16 @@ def restore_top_level_leading_trivia(
 
         if overlay_region is not None:
             leading_entries = overlay_region.leading_entries
+            leading_source = "overlay"
         elif base_region is not None:
             leading_entries = base_region.leading_entries
+            leading_source = "base"
         elif preserved_region is not None:
             leading_entries = preserved_region.leading_entries
+            leading_source = "preserved"
         else:
             leading_entries = ()
+            leading_source = "merged"
 
         if (
             overlay_region is not None
@@ -309,16 +464,29 @@ def restore_top_level_leading_trivia(
         else:
             item_region = merged_region
 
-        # tomlkit stores standalone comments/blank lines outside keyed items.
-        # Reattach the source-side leading trivia block to the following top-level
-        # region so merge does not silently discard intentional commented config.
-        for _unused_key, entry in leading_entries:
-            rebuilt_doc.add(copy.deepcopy(entry))
-        rebuilt_doc.append(copy.deepcopy(item_region.key), copy.deepcopy(item_region.item))
+        attached_entries, independent_entries = split_independent_leading_trivia(
+            leading_entries
+        )
+        key_to_append = copy.deepcopy(item_region.key)
+        item_to_append = copy.deepcopy(item_region.item)
+        if attached_entries and isinstance(item_to_append, Table):
+            item_to_append.trivia.indent = entries_text(attached_entries) + item_to_append.trivia.indent
+        else:
+            add_trivia_entries(rebuilt_doc, attached_entries)
+
+        independent_identity = trivia_identity_text(independent_entries)
+        independent_seen = independent_identity in emitted_independent_texts
+        independent_claimed_by_overlay = (
+            leading_source != "overlay" and independent_identity in overlay_independent_texts
+        )
+        if independent_entries and not independent_seen and not independent_claimed_by_overlay:
+            add_trivia_entries(rebuilt_doc, independent_entries)
+            emitted_independent_texts.add(independent_identity)
+
+        rebuilt_doc.append(key_to_append, item_to_append)
 
     trailing_entries: tuple[tuple[None, object], ...] = overlay_trailing_entries or base_trailing_entries
-    for _unused_key, entry in trailing_entries:
-        rebuilt_doc.add(copy.deepcopy(entry))
+    add_trivia_entries(rebuilt_doc, trailing_entries)
 
     return rebuilt_doc
 

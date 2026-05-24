@@ -109,6 +109,105 @@ trust_level = "trusted"
     assert "mcp_servers" not in output
 
 
+def test_strip_table_preserves_following_commented_tables(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """[mcp_servers.context7]
+command = "npx"
+
+[mcp_servers.node_repl]
+command = "node_repl"
+
+[mcp_servers.node_repl.env]
+CODEX_HOME = "/tmp/codex"
+
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+# args = ["chrome-devtools-mcp@latest"]
+
+[features]
+hooks = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.strip_keys(
+        live_path,
+        output_path,
+        [("mcp_servers", "node_repl")],
+        [],
+    )
+
+    output = output_path.read_text(encoding="utf-8")
+    assert "[mcp_servers]\n" not in output
+    assert "[mcp_servers.node_repl]" not in output
+    assert "CODEX_HOME" not in output
+    assert "# [mcp_servers.chrome-devtools]" in output
+    assert '# args = ["chrome-devtools-mcp@latest"]' in output
+    assert "[features]" in output
+
+
+def test_strip_parent_table_preserves_blank_separated_tail_comments(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """[mcp_servers.node_repl]
+command = "node_repl"
+
+[mcp_servers.node_repl.env]
+CODEX_HOME = "/tmp/codex"
+
+# Keep this note even when the parent table is removed.
+
+[features]
+hooks = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.strip_keys(
+        live_path,
+        output_path,
+        [("mcp_servers",)],
+        [],
+    )
+
+    output = output_path.read_text(encoding="utf-8")
+    assert "[mcp_servers" not in output
+    assert "# Keep this note even when the parent table is removed." in output
+    assert "[features]" in output
+
+
+def test_strip_table_removes_attached_tail_comments_without_blank_separator(tmp_path: Path) -> None:
+    live_path = tmp_path / "live.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """[mcp_servers.node_repl]
+command = "node_repl"
+# Attached to node_repl.
+
+[features]
+hooks = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.strip_keys(
+        live_path,
+        output_path,
+        [("mcp_servers", "node_repl")],
+        [],
+    )
+
+    output = output_path.read_text(encoding="utf-8")
+    assert "Attached to node_repl" not in output
+    assert "[features]" in output
+
+
 def test_write_document_with_compare_file_skips_rewrite_for_matching_output(
     tmp_path: Path,
  ) -> None:
@@ -411,6 +510,160 @@ name = "OpenAI HTTP only"
     )
 
     assert output_path.read_text(encoding="utf-8") == live_text
+
+
+def test_merge_keeps_independent_comment_at_overlay_position_when_live_key_inserted(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """approval_policy = "on-request"
+
+# model_provider = "openai_http"
+
+notify = ["turn-ended"]
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+""",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        """approval_policy = "on-request"
+
+# model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys(
+        live_path,
+        output_path,
+        repo_path,
+        {("notify",)},
+        [],
+    )
+
+    assert output_path.read_text(encoding="utf-8") == """approval_policy = "on-request"
+notify = ["turn-ended"]
+
+# model_provider = "openai_http"
+
+[model_providers.openai_http]
+name = "OpenAI HTTP only"
+"""
+
+
+def test_merge_does_not_add_blank_after_attached_table_leading_comment(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """model = "live"
+
+[profiles.obsidian]
+model = "gpt-5.4-mini"
+
+# Extra settings that only apply when `sandbox = "workspace-write"`.
+[sandbox_workspace_write]
+network_access = true
+model = "live"
+""",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        """[profiles.obsidian]
+model = "gpt-5.4-mini"
+
+# Extra settings that only apply when `sandbox = "workspace-write"`.
+[sandbox_workspace_write]
+network_access = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys(
+        live_path,
+        output_path,
+        repo_path,
+        {("model",)},
+        [],
+    )
+
+    assert output_path.read_text(encoding="utf-8") == """model = "live"
+
+[profiles.obsidian]
+model = "gpt-5.4-mini"
+
+# Extra settings that only apply when `sandbox = "workspace-write"`.
+[sandbox_workspace_write]
+network_access = true
+"""
+
+
+def test_merge_dedupes_independent_comments_with_different_blank_padding(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """[mcp_servers.context7]
+command = "npx"
+
+[mcp_servers.node_repl]
+command = "node_repl"
+
+[mcp_servers.node_repl.env]
+CODEX_HOME = "/tmp/codex"
+
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+
+
+[notice]
+hide_full_access_warning = true
+""",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        """[mcp_servers.context7]
+command = "npx"
+
+# [mcp_servers.chrome-devtools]
+# command = "npx"
+
+[features]
+hooks = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys(
+        live_path,
+        output_path,
+        repo_path,
+        {
+            ("mcp_servers", "node_repl"),
+            ("notice",),
+        },
+        [],
+    )
+
+    output = output_path.read_text(encoding="utf-8")
+    assert output.count("# [mcp_servers.chrome-devtools]") == 1
+    assert output.index("# [mcp_servers.chrome-devtools]") < output.index("[features]")
+    assert output.index("[notice]") < output.index("# [mcp_servers.chrome-devtools]")
 
 
 def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:
