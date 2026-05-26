@@ -6,16 +6,18 @@ Prepare Niri outputs for Sunshine streaming, then restore them on cleanup.
 This script is intended to be used via Sunshine's `global_prep_cmd`.
 
 Usage:
-  sunshine-prep-niri.py do --width WIDTH --height HEIGHT --fps FPS [--output OUTPUT] [--headless] [--solo] [--scale SCALE] [--autodiscover-socket]
-  sunshine-prep-niri.py undo [--autodiscover-socket]
+  sunshine-prep-niri.py do --width WIDTH --height HEIGHT --fps FPS [--output OUTPUT] [--headless] [--solo] [--scale SCALE] [--suspend-niri-shell] [--autodiscover-socket]
+  sunshine-prep-niri.py undo [--suspend-niri-shell] [--autodiscover-socket]
 
 Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
-- `undo` re-enables disabled outputs but keeps the fixed Sunshine virtual
-  output alive to avoid hot-removing screens from Qt/KDE/GTK clients.
+- `undo` re-enables disabled outputs except configured-off outputs, then parks
+  the fixed Sunshine virtual output in a low-power dormant mode.
 - Optionally inhibits idle via Noctalia's idle inhibitor IPC (pass `--inhibit`).
   Rendered Niri config leaves this off because WLR/headless capture does not
   need the KMS-only DPMS error-spam workaround.
+- Optionally stops `niri-shell.service` around output changes and restarts it
+  before Sunshine connects / after undo (pass `--suspend-niri-shell`).
 """
 
 from __future__ import annotations
@@ -42,6 +44,12 @@ TARGET_DPI = 82.0
 MIN_SCALE = 1.0
 MAX_SCALE = 3.0
 HEADLESS_OUTPUT_NAME = "sunshine"
+DORMANT_OUTPUT_WIDTH = 640
+DORMANT_OUTPUT_HEIGHT = 480
+DORMANT_OUTPUT_FPS = 30
+DORMANT_OUTPUT_SCALE = "1"
+DEFAULT_NIRI_SHELL_SERVICE = "niri-shell.service"
+NIRI_SHELL_SERVICE_ENV_VAR_NAME = "NIRI_SHELL_SERVICE"
 # Dotman can render vars.niri.bin into this env var so prep uses the same
 # local Niri build as niri.service instead of an older system PATH binary.
 NIRI_BIN_ENV_VAR_NAME = "NIRI_BIN"
@@ -90,6 +98,92 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
 
 def runtime_dir() -> Path:
     return Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
+
+
+def niri_shell_service_name() -> str:
+    return (os.environ.get(NIRI_SHELL_SERVICE_ENV_VAR_NAME) or DEFAULT_NIRI_SHELL_SERVICE).strip()
+
+
+def _niri_shell_suspend_state_file() -> Path:
+    return runtime_dir() / "sunshine-niri-shell-suspended.service"
+
+
+def _systemctl_user(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["systemctl", "--user", *args],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def user_service_is_active(service: str) -> bool:
+    if not which("systemctl"):
+        return False
+    result = _systemctl_user("is-active", service)
+    return result.returncode == 0 and result.stdout.strip() in {"active", "activating", "reloading"}
+
+
+def suspend_niri_shell_if_active() -> bool:
+    """Stop Noctalia/niri-shell before output hotplug churn so it cannot process stale wl_output events."""
+    if not which("systemctl"):
+        return False
+
+    service = niri_shell_service_name()
+    state_file = _niri_shell_suspend_state_file()
+    if state_file.exists():
+        return True
+    if not user_service_is_active(service):
+        return False
+
+    result = _systemctl_user("stop", service)
+    if result.returncode != 0:
+        print(
+            f"[sunshine-prep-niri] warning: failed to stop {service}: {result.stderr.strip()}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+
+    state_file.write_text(service + "\n", encoding="utf-8")
+    print(f"[sunshine-prep-niri] stopped {service} during output reconfiguration", file=sys.stderr, flush=True)
+    return True
+
+
+def resume_suspended_niri_shell() -> bool:
+    state_file = _niri_shell_suspend_state_file()
+    try:
+        service = state_file.read_text(encoding="utf-8").strip() or DEFAULT_NIRI_SHELL_SERVICE
+    except OSError:
+        return False
+
+    if not which("systemctl"):
+        return False
+
+    reset_result = _systemctl_user("reset-failed", service)
+    if reset_result.returncode != 0:
+        print(
+            f"[sunshine-prep-niri] warning: failed to reset-failed {service}: {reset_result.stderr.strip()}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+
+    result = _systemctl_user("start", service)
+    if result.returncode != 0:
+        print(
+            f"[sunshine-prep-niri] warning: failed to start {service}: {result.stderr.strip()}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+
+    try:
+        state_file.unlink()
+    except FileNotFoundError:
+        pass
+    print(f"[sunshine-prep-niri] started {service} after output reconfiguration", file=sys.stderr, flush=True)
+    return True
 
 
 def _screensaver_inhibit_pidfile() -> Path:
@@ -266,6 +360,13 @@ def niri_output_config_path() -> Path:
     return config_home / "niri" / "cfg" / "output.kdl"
 
 
+def output_block_line_has_off_directive(line: str) -> bool:
+    # Lightweight KDL scan only: enough for repo output.kdl, not a full parser.
+    # Strip inline comments so commented `off` does not preserve outputs as off.
+    uncommented = line.split("//", 1)[0].strip()
+    return re.search(r"(?:^|[{\s;])off(?:\s+true)?\s*(?=$|[};])", uncommented) is not None
+
+
 def configured_off_output_names() -> Optional[set[str]]:
     path = niri_output_config_path()
     try:
@@ -285,18 +386,12 @@ def configured_off_output_names() -> Optional[set[str]]:
 
         if current_name is None:
             match = re.match(r'^output\s+"([^"]+)"\s*\{', line)
-            if match:
-                current_name = match.group(1).strip()
-                current_explicitly_off = False
-                depth = line.count("{") - line.count("}")
-                if depth <= 0:
-                    if current_explicitly_off:
-                        output_names.add(current_name)
-                    current_name = None
-                    depth = 0
-            continue
+            if not match:
+                continue
+            current_name = match.group(1).strip()
+            current_explicitly_off = False
 
-        if re.match(r"^off(?:\s+true)?(?:\s*//.*)?$", line):
+        if output_block_line_has_off_directive(line):
             current_explicitly_off = True
 
         depth += line.count("{") - line.count("}")
@@ -575,9 +670,41 @@ def do_action(
     solo: bool,
     scale_arg: Optional[str],
     inhibit: bool,
+    suspend_niri_shell: bool,
 ) -> None:
     require_niri_bin()
 
+    niri_shell_suspended = False
+    if suspend_niri_shell:
+        niri_shell_suspended = suspend_niri_shell_if_active()
+
+    try:
+        do_output_action(
+            width=width,
+            height=height,
+            fps=fps,
+            output_name=output_name,
+            headless=headless,
+            solo=solo,
+            scale_arg=scale_arg,
+            inhibit=inhibit,
+        )
+    finally:
+        if niri_shell_suspended:
+            resume_suspended_niri_shell()
+
+
+def do_output_action(
+    *,
+    width: int,
+    height: int,
+    fps: int,
+    output_name: Optional[str],
+    headless: bool,
+    solo: bool,
+    scale_arg: Optional[str],
+    inhibit: bool,
+) -> None:
     # tiny wake so remote cursor shows up quickly (optional)
     if which("ydotool"):
         subprocess.run(
@@ -641,18 +768,17 @@ def do_action(
         start_runtime_inhibit()
 
 
-def try_reload_niri_config() -> bool:
-    # Prefer config reload for undo: it discards temporary `niri msg output`
-    # changes and reapplies configured mode/scale for the Sunshine output.
-    try:
-        niri_msg("action", "load-config-file", check=True)
-        return True
-    except Exception as exc:
-        print(
-            f"[sunshine-prep-niri] config reload failed, falling back to output re-enable: {exc}",
-            file=sys.stderr,
-        )
-        return False
+def park_headless_output_dormant() -> None:
+    # Keep wl_output present. `niri msg output sunshine off` hot-removes it,
+    # which can crash clients that still hold output/screen state.
+    niri_msg("output", HEADLESS_OUTPUT_NAME, "on", check=False)
+    apply_output_custom_mode(
+        HEADLESS_OUTPUT_NAME,
+        width=DORMANT_OUTPUT_WIDTH,
+        height=DORMANT_OUTPUT_HEIGHT,
+        fps=DORMANT_OUTPUT_FPS,
+    )
+    apply_output_scale(HEADLESS_OUTPUT_NAME, DORMANT_OUTPUT_SCALE)
 
 
 def reenable_disabled_outputs() -> None:
@@ -661,6 +787,11 @@ def reenable_disabled_outputs() -> None:
     for output in outputs:
         connector = str(output.get("name") or "").strip()
         if not connector:
+            continue
+        # Niri config reload can preserve transient IPC state, so undo must
+        # explicitly skip and later disable the Sunshine virtual output instead
+        # of trusting `output "sunshine" { off }` in config to win.
+        if connector == HEADLESS_OUTPUT_NAME:
             continue
         if output.get("current_mode") is not None:
             continue
@@ -671,22 +802,25 @@ def reenable_disabled_outputs() -> None:
         niri_msg("output", connector, "on", check=True)
 
 
-def restore_action() -> None:
+def restore_action(*, suspend_niri_shell: bool) -> None:
     if not has_niri_bin():
-        # Still try to cleanup inhibit even if we're not in a niri session.
+        # Still try to cleanup inhibit/shell state even if we're not in a niri session.
         kill_runtime_inhibit()
+        resume_suspended_niri_shell()
         return
 
-    # Keep restore stateless for Niri. Reloading config discards temporary
-    # `niri msg output` changes and restores configured mode/scale; fallback
-    # still recovers monitors if the config reload fails.
-    if not try_reload_niri_config():
+    if suspend_niri_shell:
+        suspend_niri_shell_if_active()
+
+    try:
+        # Avoid config reload here. Niri may keep transient IPC output changes
+        # across `load-config-file` when disk `outputs` are unchanged, leaving
+        # the Sunshine virtual output on after stream teardown.
         reenable_disabled_outputs()
-    # Noctalia may show/update an idle-inhibitor notification. Disable it after
-    # output restore so notification updates do not race screen creation.
-    kill_runtime_inhibit()
-    # Keep the virtual Sunshine output alive. Hot-removing outputs during
-    # stream teardown can crash shell/tray clients that hold screen objects.
+        park_headless_output_dormant()
+    finally:
+        kill_runtime_inhibit()
+        resume_suspended_niri_shell()
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
@@ -727,12 +861,24 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         help="Inhibit idle via Noctalia idle inhibitor IPC",
     )
     p_do.add_argument(
+        "--suspend-niri-shell",
+        action="store_true",
+        help="Stop niri-shell.service during output changes and restart it before streaming/after undo",
+    )
+    p_do.add_argument(
         "--autodiscover-socket",
         action="store_true",
         help="If NIRI_SOCKET is missing, auto-discover the niri IPC socket in XDG_RUNTIME_DIR",
     )
 
-    p_undo = sub.add_parser("undo", help="Restore outputs by reloading Niri config")
+    p_undo = sub.add_parser(
+        "undo", help="Manually re-enable non-Sunshine outputs and park Sunshine dormant"
+    )
+    p_undo.add_argument(
+        "--suspend-niri-shell",
+        action="store_true",
+        help="Stop niri-shell.service during output changes and restart it after undo",
+    )
     p_undo.add_argument(
         "--autodiscover-socket",
         action="store_true",
@@ -770,6 +916,7 @@ def main(argv: List[str]) -> None:
                 solo=bool(args.solo),
                 scale_arg=args.scale,
                 inhibit=bool(getattr(args, "inhibit", False)),
+                suspend_niri_shell=bool(getattr(args, "suspend_niri_shell", False)),
             )
         except Exception as e:
             print(f"ERROR: {e}", file=sys.stderr)
@@ -777,7 +924,7 @@ def main(argv: List[str]) -> None:
 
     elif args.action == "undo":
         try:
-            restore_action()
+            restore_action(suspend_niri_shell=bool(getattr(args, "suspend_niri_shell", False)))
         except Exception as e:
             print(f"ERROR: {e}", file=sys.stderr)
             sys.exit(1)

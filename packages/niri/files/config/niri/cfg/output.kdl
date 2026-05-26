@@ -29,6 +29,11 @@
 
 output "sunshine" {
     create-virtual
+    // Keep virtual Sunshine display dormant between streams: persistent Niri
+    // virtual output is suspected to keep Niri/NVIDIA-GSP state hot, matching
+    // NVKMS GEM allocation spam during disconnection plus Sunshine NVENC
+    // out-of-memory failures while idle/disconnected.
+    off
     mode "3440x1440@144.000"
     scale 1.33
     variable-refresh-rate
