@@ -1,6 +1,6 @@
 ---
 name: tldr
-description: "Appends a short, direct final answer after a markdown separator. Use when the user asks for a TL;DR, bottom line, direct answer, or concise ending summary. Also use when invoked with /skill:tldr."
+description: "Appends a short, direct final answer after a markdown separator. Use when the user asks for tldr, TL;DR, bottom line, direct answer, concise ending summary, or says tldr active / keep tldr on. Also use when invoked with /skill:tldr."
 ---
 
 Append a TL;DR section at the very end of the response.
@@ -38,7 +38,7 @@ No text after the TL;DR block.
 
 ## Persistence
 
-Use for the current response by default. If the user says `keep TLDR on`, `always add TLDR`, or similar, keep appending the final block in later responses until the user says `stop TLDR`, `no TLDR`, or `normal mode`.
+Use for the current response by default. If the user says `tldr active`, `keep tldr on`, `always add tldr`, `keep TLDR on`, `always add TLDR`, or similar, keep appending the final block in later responses until the user says `stop tldr`, `stop TLDR`, `no tldr`, `no TLDR`, or `normal mode`.
 
 ## Example
 
