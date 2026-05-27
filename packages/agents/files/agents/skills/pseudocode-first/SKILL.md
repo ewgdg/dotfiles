@@ -9,7 +9,7 @@ Pseudocode is the human-reviewable source of truth. Implementation code is the c
 
 ## Activation and Scope
 
-- Activate only when the user explicitly asks for pseudocode-first mode, such as `use pseudocode-first`, `pseudo first`, or `/skill:pseudocode-first`.
+- Activate or adopt only on explicit user request, such as `use pseudocode-first`, `pseudo first`, `pseudocode adopt`, `pseudocode init`, or `pseudocode backfill`.
 - Stay active until the user explicitly says to stop pseudocode-first mode.
 - Apply only to programming-language source files, such as `.ts`, `.tsx`, `.js`, `.py`, `.rs`, `.go`, `.java`, or `.cpp`.
 - Exclude config, docs, data, markup, stylesheets, lockfiles, generated files, and other non-source artifacts unless the user explicitly includes them.
@@ -21,10 +21,31 @@ Before modifying in-scope source code while this mode is active:
 1. Find the mapped pseudocode artifact for each affected source file.
 2. If mapped pseudocode exists, update it first.
 3. If no mapped pseudocode exists, create a pseudocode change proposal first.
-4. Compile pseudocode into implementation code.
-5. Ensure implementation matches pseudocode.
+4. Compile pseudocode into matching implementation code.
 
 No behavior may be added, removed, or changed in source code unless the pseudocode reflects that behavior first.
+
+## Adopt Command
+
+When user asks for pseudocode adopt, init, or backfill:
+
+1. Find repository root.
+2. Discover in-scope source files.
+3. Create `pseudocode/` if missing.
+4. Create missing canonical mapped pseudocode files.
+5. Summarize existing behavior only; do not invent intent or change source code.
+6. Mark unclear behavior with `## Review Needed`.
+7. Report created, skipped, and review-needed files.
+
+Default discovery:
+
+- Prefer source roots such as `src/`, `lib/`, `app/`, `packages/*/src/`, and language-standard source dirs.
+- Skip generated, vendored, build, dependency, fixture, snapshot, minified, and declaration files.
+- Include tests only when user explicitly asks or when repo source root is clearly test-only.
+
+Adopt is idempotent: existing mapped pseudocode files are verified and skipped unless user asks for refresh/overwrite.
+
+For large repositories, adopt in batches and ask before generating many files at once. Prefer a dry-run inventory first when scope is unclear.
 
 ## Artifact Location
 
@@ -46,15 +67,13 @@ Mapped pseudocode is long-lived. Use it for stable module behavior and contracts
 
 ### Change proposals
 
-If no mapped pseudocode exists, create a change proposal:
+Use this path when canonical mapped pseudocode is missing:
 
 ```text
 pseudocode/changes/YYYY-MM-DD-<task-slug>.pseudo.md
 ```
 
-Change proposals are long-lived, human-reviewable source artifacts for code changes, similar to reviewing source changes in a pull request.
-
-Use them when canonical mapped pseudocode is missing. Do not also create mapped pseudocode unless requested or already present for the changed behavior.
+Change proposals are long-lived, human-reviewable source artifacts for code changes. Do not also create mapped pseudocode unless requested or already present for the changed behavior.
 
 ## Pseudocode Granularity
 
