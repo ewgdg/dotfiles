@@ -78,7 +78,13 @@ Change proposals are long-lived, human-reviewable source artifacts for code chan
 ## Pseudocode Granularity
 
 Default to behavior-level pseudocode, not line-by-line code shadowing.
-Use declarative, contract-like pseudocode where possible, but prefer clear `if`/`return` behavior over artificial wording.
+Use the lowest-detail level that still lets a reviewer catch behavior bugs.
+
+Detail levels:
+
+1. Contract pseudocode for simple modules, wrappers, data models, and stable APIs.
+2. Decision pseudocode as the default for workflows and state changes. Show observable branches, outcomes, errors, no-ops, and side effects with clear `if` / `return` / `reject` behavior.
+3. Rule/algorithm pseudocode only when exact ordering, precedence, ranking, merge, traversal, collision, pruning, transformation, or selection logic is the reviewed behavior.
 
 Primary goal: pseudocode must be clearer than implementation and useful for human review, not template completion.
 
@@ -101,25 +107,41 @@ Skip unless behavior depends on them:
 
 Document data shapes only at API boundaries, persistence boundaries, module boundaries, or when invariants matter.
 
-Good:
+Escalate from contract to decision pseudocode when:
 
-```pseudo
-get_current_user(token):
-  if token is missing:
-    return anonymous
-  if session is expired:
-    reject session
-  return session user
-```
+- behavior has multiple observable branches
+- error/no-op cases matter
+- side effects depend on conditions
+- tests would fail if a branch changed
 
-Too implementation-shaped:
+Escalate from decision to rule/algorithm pseudocode only when:
 
-```pseudo
-create sessions_by_id map
-loop through session_rows
-push each row into result array
-call parseDate on expires_at
-```
+- exact ordering or precedence decides output
+- ranked/tied candidates must be selected predictably
+- merge, inheritance, conflict, pruning, parser, diff/capture, permission, or sync-policy rules are the behavior under review
+
+Do not escalate detail for:
+
+- private helper layout
+- local variable names
+- loop mechanics that do not affect behavior
+- incidental data structures
+- exact library calls
+
+Prefer:
+
+- function or command name when it is a meaningful behavior boundary
+- explicit `if` / `return` / `reject` branches for user-visible or caller-visible outcomes
+- named domain concepts from the product model
+- error and no-op cases when callers/users can observe them
+
+Avoid:
+
+- broad English-only summaries for branch-heavy behavior
+- algorithmic detail when decision pseudocode would catch the same bug
+- artificial line-by-line translation of source code
+- helper-by-helper outlines when helpers are not part of the behavior contract
+- local variables, loops, and data structures that can change without changing behavior
 
 ## Artifact Format
 
