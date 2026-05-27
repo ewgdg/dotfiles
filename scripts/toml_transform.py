@@ -339,6 +339,44 @@ def normalize_document(doc: TOMLDocument) -> TOMLDocument:
     return tomlkit.parse(normalize_blank_lines(doc.as_string()))
 
 
+def table_has_leading_blank_separator(table: Table) -> bool:
+    return table.trivia.indent.startswith("\n")
+
+
+def remove_last_table_tail_blank_separator(table: Table) -> None:
+    body_entries = container_body_entries(table)
+    if body_entries and is_blank_entry(body_entries[-1]):
+        body_entries.pop()
+        return
+
+    for key, item in reversed(body_entries):
+        if key is not None and isinstance(item, Table):
+            remove_last_table_tail_blank_separator(item)
+            return
+
+
+def collapse_duplicate_table_separators(container: TomlContainer) -> None:
+    """Keep one blank separator when both adjacent tables carry separator trivia.
+
+    tomlkit may store a section separator as trailing blank whitespace on the
+    previous table, while the next table may also carry a leading blank indent.
+    Treat blank lines as separators: when both sides provide one, keep the next
+    table's leading separator and remove the previous table's tail separator.
+    """
+    body_entries = container_body_entries(container)
+    keyed_entries = [entry for entry in body_entries if entry[0] is not None]
+    adjacent_pairs = zip(keyed_entries, keyed_entries[1:])
+    for (_left_key, left_item), (_right_key, right_item) in adjacent_pairs:
+        if not isinstance(left_item, Table) or not isinstance(right_item, Table):
+            continue
+        if table_has_leading_blank_separator(right_item):
+            remove_last_table_tail_blank_separator(left_item)
+
+    for key, item in list(body_entries):
+        if key is not None and isinstance(item, Table):
+            collapse_duplicate_table_separators(item)
+
+
 def ensure_container(root: TomlContainer, table_path: tuple[str, ...]) -> TomlContainer:
     current: TomlContainer = root
     for part in table_path:
@@ -684,6 +722,7 @@ def build_merged_document_output(
     overlay_doc = load_document(overlay_path)
     merged_doc = normalize_document(overlay_with_base_slots(base_doc, preserved_base, overlay_doc))
     merged_doc = restore_top_level_leading_trivia(merged_doc, overlay_doc, base_doc, preserved_base)
+    collapse_duplicate_table_separators(merged_doc)
     return build_document_output(
         merged_doc,
         mode_reference_path=base_path,

@@ -666,6 +666,60 @@ hooks = true
     assert output.index("[notice]") < output.index("# [mcp_servers.chrome-devtools]")
 
 
+def test_merge_treats_blank_lines_as_single_section_separators(
+    tmp_path: Path,
+) -> None:
+    live_path = tmp_path / "live.toml"
+    repo_path = tmp_path / "repo.toml"
+    output_path = tmp_path / "output.toml"
+
+    live_path.write_text(
+        """[tui]
+status_line = ["current-dir"]
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+""",
+        encoding="utf-8",
+    )
+    repo_path.write_text(
+        """[tui]
+status_line = ["current-dir"]
+
+[plugins."browser@openai-bundled"]
+enabled = true
+""",
+        encoding="utf-8",
+    )
+
+    MODULE.merge_keys(
+        live_path,
+        output_path,
+        repo_path,
+        set(),
+        [
+            MODULE.re.compile(r"^projects\."),
+            MODULE.re.compile(r"^tui\.model_availability_nux$"),
+        ],
+    )
+
+    assert output_path.read_text(encoding="utf-8") == """[tui]
+status_line = ["current-dir"]
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[projects."/tmp/example"]
+trust_level = "trusted"
+
+[plugins."browser@openai-bundled"]
+enabled = true
+"""
+
+
 def test_merge_skips_missing_preserved_paths(tmp_path: Path) -> None:
     live_path = tmp_path / "live.toml"
     repo_path = tmp_path / "repo.toml"
