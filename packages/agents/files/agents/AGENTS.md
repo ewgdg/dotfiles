@@ -24,6 +24,7 @@
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
 - Use GAN style thinking frameworks
 - Use first principles thinking
+- Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
 
 ## Coding
 

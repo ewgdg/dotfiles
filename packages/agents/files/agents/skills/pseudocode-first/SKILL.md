@@ -1,6 +1,6 @@
 ---
 name: pseudocode-first
-description: Opt-in pseudocode workflow for programming-language source changes. Activates only by explicit user request and remains active until explicitly stopped. Excludes config, docs, data, markup, styles, lockfiles, generated files, and other non-source artifacts unless explicitly included.
+description: Opt-in mode where pseudocode is the human-reviewable source for programming-language behavior changes, and implementation code is compiled from it. Activates only by explicit user request and remains active until stopped. Excludes config, docs, data, markup, styles, lockfiles, generated files, and other non-source artifacts unless explicitly included.
 ---
 
 # Pseudocode First
@@ -22,7 +22,7 @@ Before modifying in-scope source code while this mode is active:
 2. If mapped pseudocode exists, update it first.
 3. If no mapped pseudocode exists, create a pseudocode change proposal first.
 4. Compile pseudocode into implementation code.
-5. Verify implementation matches pseudocode.
+5. Ensure implementation matches pseudocode.
 
 No behavior may be added, removed, or changed in source code unless the pseudocode reflects that behavior first.
 
@@ -52,33 +52,24 @@ If no mapped pseudocode exists, create a change proposal:
 pseudocode/changes/YYYY-MM-DD-<task-slug>.pseudo.md
 ```
 
-Use change proposals for unmapped work, cross-cutting changes, migrations, refactors, and draft behavior before deciding where canonical pseudocode belongs.
+Change proposals are long-lived, human-reviewable source artifacts for code changes, similar to reviewing source changes in a pull request.
 
-After compile, if the behavior is long-lived, create or update mapped pseudocode too.
-
-## Status Values
-
-Each pseudocode artifact should have one status:
-
-- `draft` — proposed, not reviewed
-- `approved` — user accepted it
-- `compiled` — implementation code was changed from it
-- `verified` — tests/checks passed and code matches it
-- `superseded` — replaced by newer pseudocode
+Use them when canonical mapped pseudocode is missing. Do not also create mapped pseudocode unless requested or already present for the changed behavior.
 
 ## Pseudocode Granularity
 
 Default to behavior-level pseudocode, not line-by-line code shadowing.
+Use declarative, contract-like pseudocode where possible, but prefer clear `if`/`return` behavior over artificial wording.
 
-Include:
+Primary goal: pseudocode must be clearer than implementation and useful for human review, not template completion.
+
+Include when useful:
 
 - user-visible or module-visible behavior
-- inputs and outputs at boundaries
-- state that affects behavior
+- state that changes behavior
 - important invariants
-- errors and failure modes
-- side effects
-- acceptance checks
+- errors and failure modes that affect behavior
+- side effects that matter to callers/users
 
 Skip unless behavior depends on them:
 
@@ -111,63 +102,43 @@ push each row into result array
 call parseDate on expires_at
 ```
 
-## Required Sections
+## Artifact Format
 
-Use this template for mapped pseudocode:
+Use the smallest artifact that explains the behavior clearly.
+
+Required:
+
+- title
+- intent, one short sentence or paragraph
+- behavior pseudocode
+- `affects` frontmatter in change proposals
+
+For multi-file change proposals, add `Applies to:` near behavior blocks only when needed to disambiguate source mapping.
+
+Add extra sections only when they add real information not already expressed by the behavior pseudocode.
+
+For change proposals, show changed behavior directly. Use `before:`/`after:` or a small `diff` block only when contrast helps review.
+
+Use this default template for mapped pseudocode:
 
 ````md
----
-status: draft
-owns:
-  - path/to/source-file.ext
-tests:
-  - path/to/test-file.ext
----
-
 # <Module or Behavior Name>
 
 ## Intent
 
-<One short paragraph explaining why this behavior exists.>
+<Why this behavior exists.>
 
 ## Behavior
 
 ```pseudo
-when <condition>:
-  do <observable action>
-  if <edge case>:
-    return <result>
+<behavior pseudocode>
 ```
-
-## Contracts
-
-- Inputs:
-- Outputs:
-- Errors:
-- Side effects:
-- Invariants:
-
-## Acceptance Checks
-
-- [ ] <important case>
-- [ ] <edge case>
-- [ ] existing behavior preserved
-
-## Compile Map
-
-- `<source-file>` implements `<behavior>`
-- `<test-file>` verifies `<acceptance check>`
-
-## Open Questions
-
-- None
 ````
 
-Use this template for change proposals:
+Use this default template for change proposals:
 
 ````md
 ---
-status: draft
 affects:
   - path/to/source-file.ext
 ---
@@ -176,88 +147,21 @@ affects:
 
 ## Intent
 
-<Why this change is needed.>
+<Why this change exists.>
 
-## Current Behavior
-
-```pseudo
-<current behavior, only if relevant>
-```
-
-## Desired Behavior
+## Behavior
 
 ```pseudo
-<new behavior>
+<new or changed behavior>
 ```
-
-## Contracts
-
-- Inputs:
-- Outputs:
-- Errors:
-- Side effects:
-- Invariants:
-
-## Acceptance Checks
-
-- [ ] <case proving new behavior>
-- [ ] <case proving edge behavior>
-- [ ] existing behavior preserved
-
-## Compile Plan
-
-- update `<source-file>`
-- update/add `<test-file>`
-
-## Open Questions
-
-- None
 ````
 
 ## Review Gate
 
-Pause for user review before code edits when any of these are true:
-
-- behavior is non-trivial
-- security, auth, money, data loss, concurrency, or migration involved
-- public API changes
-- multiple files/modules affected
-- user explicitly asks to review pseudocode first
-
-Ask:
-
-```text
-Pseudocode drafted at <path>. Say "compile" to implement.
-```
+Pause before code edits when pseudocode changes behavior in a non-trivial or risky way, or when the user asks to review first.
 
 For small mechanical fixes, you may continue after drafting pseudocode unless the user requested review.
 
 ## Compile Rules
 
-When compiling pseudocode into code:
-
-1. Keep implementation behavior aligned with pseudocode.
-2. If implementation needs to deviate, update pseudocode first.
-3. Prefer tests that check acceptance criteria, not private implementation details.
-4. Update pseudocode status after each phase:
-   - `draft` before review
-   - `approved` after user approval
-   - `compiled` after source edits
-   - `verified` after checks pass
-
-## Verification
-
-After implementation, run relevant checks such as tests, lint, typecheck, or targeted scripts.
-
-Then report:
-
-```text
-Pseudocode: <path>
-Compiled files:
-- <source-file>
-- <test-file>
-Status: verified | compiled-not-verified
-Checks: <commands run>
-```
-
-If checks fail, keep status `compiled`, report the failure, and do not claim verification.
+Implementation must match pseudocode. If implementation needs to differ, update pseudocode first. Prefer behavior tests derived from pseudocode.
