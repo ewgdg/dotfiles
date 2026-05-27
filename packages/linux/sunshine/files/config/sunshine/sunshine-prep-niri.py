@@ -7,12 +7,12 @@ This script is intended to be used via Sunshine's `global_prep_cmd`.
 
 Usage:
   sunshine-prep-niri.py do --width WIDTH --height HEIGHT --fps FPS [--output OUTPUT] [--headless] [--solo] [--scale SCALE] [--suspend-niri-shell] [--autodiscover-socket]
-  sunshine-prep-niri.py undo [--suspend-niri-shell] [--autodiscover-socket]
+  sunshine-prep-niri.py undo [--dormant-headless] [--suspend-niri-shell] [--autodiscover-socket]
 
 Notes:
 - Requires a running Niri session and `niri msg` working (typically via $NIRI_SOCKET).
-- `undo` re-enables disabled outputs except configured-off outputs, then parks
-  the fixed Sunshine virtual output in a low-power dormant mode.
+- `undo` re-enables disabled outputs except configured-off outputs, then turns
+  the fixed Sunshine virtual output off unless `--dormant-headless` is passed.
 - Optionally inhibits idle via Noctalia's idle inhibitor IPC (pass `--inhibit`).
   Rendered Niri config leaves this off because WLR/headless capture does not
   need the KMS-only DPMS error-spam workaround.
@@ -781,6 +781,10 @@ def park_headless_output_dormant() -> None:
     apply_output_scale(HEADLESS_OUTPUT_NAME, DORMANT_OUTPUT_SCALE)
 
 
+def disable_headless_output() -> None:
+    niri_msg("output", HEADLESS_OUTPUT_NAME, "off", check=False)
+
+
 def reenable_disabled_outputs() -> None:
     off_names = configured_off_output_names()
     outputs = outputs_from_reply(niri_msg_json("outputs"))
@@ -802,7 +806,7 @@ def reenable_disabled_outputs() -> None:
         niri_msg("output", connector, "on", check=True)
 
 
-def restore_action(*, suspend_niri_shell: bool) -> None:
+def restore_action(*, dormant_headless: bool, suspend_niri_shell: bool) -> None:
     if not has_niri_bin():
         # Still try to cleanup inhibit/shell state even if we're not in a niri session.
         kill_runtime_inhibit()
@@ -817,7 +821,10 @@ def restore_action(*, suspend_niri_shell: bool) -> None:
         # across `load-config-file` when disk `outputs` are unchanged, leaving
         # the Sunshine virtual output on after stream teardown.
         reenable_disabled_outputs()
-        park_headless_output_dormant()
+        if dormant_headless:
+            park_headless_output_dormant()
+        else:
+            disable_headless_output()
     finally:
         kill_runtime_inhibit()
         resume_suspended_niri_shell()
@@ -872,7 +879,12 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     )
 
     p_undo = sub.add_parser(
-        "undo", help="Manually re-enable non-Sunshine outputs and park Sunshine dormant"
+        "undo", help="Manually re-enable non-Sunshine outputs and disable Sunshine headless"
+    )
+    p_undo.add_argument(
+        "--dormant-headless",
+        action="store_true",
+        help="Park the Sunshine headless output in low-power dormant mode instead of turning it off",
     )
     p_undo.add_argument(
         "--suspend-niri-shell",
@@ -924,7 +936,10 @@ def main(argv: List[str]) -> None:
 
     elif args.action == "undo":
         try:
-            restore_action(suspend_niri_shell=bool(getattr(args, "suspend_niri_shell", False)))
+            restore_action(
+                dormant_headless=bool(getattr(args, "dormant_headless", False)),
+                suspend_niri_shell=bool(getattr(args, "suspend_niri_shell", False)),
+            )
         except Exception as e:
             print(f"ERROR: {e}", file=sys.stderr)
             sys.exit(1)

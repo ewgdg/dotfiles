@@ -9,6 +9,10 @@ depends = [
 source = "files/config/niri"
 path = "~/.config/niri"
 
+[[targets.d_config_niri.path_rules]]
+pattern = "cfg/debug.kdl"
+preset = "jinja-patch"
+
 [targets.f_config_systemd_user_niri_shell_service]
 source = "files/config/systemd/user/niri-shell.service"
 path = "~/.config/systemd/user/niri-shell.service"

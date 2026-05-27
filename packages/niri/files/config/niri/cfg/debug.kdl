@@ -1,6 +1,12 @@
 // https://niri-wm.github.io/niri/Configuration%3A-Debug-Options.html
 
 debug {
+{% if vars.niri is defined and vars.niri.render_drm_device %}
+  // Keep compositor rendering on a host-selected GPU when capture/encode paths
+  // need stable same-device dmabuf sharing.
+  render-drm-device "{{ vars.niri.render_drm_device }}"
+
+{% endif %}
   // Allows notification actions and window activation from Noctalia.
   // bc some of the apps does not implement the valid activation token correctly?
   honor-xdg-activation-with-invalid-serial
