@@ -3,6 +3,7 @@ description = "Shared agent skill repository"
 
 depends = [
   "nodejs",
+  "agent-external-tools",
 ]
 
 [targets.d_agents]
@@ -12,6 +13,9 @@ path = "~/.agents"
 [targets.d_agents.ignore]
 shared = [
   "skills/agent-web-context/references/",
+  # Crit owns these generated integration skills; install hook refreshes them in ~/.agents.
+  "skills/crit/",
+  "skills/crit-cli/",
 ]
 
 [targets.f_local_state_skills_skill_lock_json]
@@ -22,4 +26,8 @@ path = "~/.local/state/skills/.skill-lock.json"
 pre_push = [
   'mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.pi/agent"',
   "{{ NPM_INSTALL }} @earendil-works/pi-coding-agent",
+]
+post_push = [
+  # Use Codex/generic integration because it installs into ~/.agents/skills.
+  'cd "$HOME" && crit install codex',
 ]
