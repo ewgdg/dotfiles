@@ -8,6 +8,14 @@ if [ "$#" -ne 1 ]; then
 fi
 
 pkgbuild_dir=$1
+case "$pkgbuild_dir" in
+    /*) ;;
+    *)
+        if [ -n "${DOTMAN_REPO_ROOT:-}" ]; then
+            pkgbuild_dir=$DOTMAN_REPO_ROOT/$pkgbuild_dir
+        fi
+        ;;
+esac
 
 if ! command -v yay >/dev/null 2>&1; then
     printf 'error: yay is required to build/install local Arch PKGBUILD: %s\n' "$pkgbuild_dir" >&2
