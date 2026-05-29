@@ -69,9 +69,9 @@ window-rule {
 }
 
 window-rule {
-  // Wine/Proton tray helper. Route Wine's blank explorer desktop away from normal workspaces.
-  match app-id=r#"^explorer.exe$"#
-  match title=r#"^$"#
+  // Wine/Proton tray helper. Route only Wine's blank explorer desktop away from normal workspaces.
+  // Same match line is intentional: niri ORs separate match directives, ANDs fields within one directive.
+  match app-id=r#"^explorer\.exe$"# title=r#"^$"#
   open-on-workspace "stash"
   open-floating false
   open-focused false
