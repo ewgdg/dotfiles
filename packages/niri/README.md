@@ -7,7 +7,7 @@ This package uses a custom Git build of niri. `dotman push niri` builds and inst
 Manual install from the repo root:
 
 ```bash
-yay -Bi packages/niri/packaging/arch/niri-custom-git
+yay --keepsrc -Bi packages/niri/packaging/arch/niri-custom-git
 ```
 
 The package is named `niri-custom-git` and provides/conflicts with `niri`, so pacman tracks it separately from the official repo package.

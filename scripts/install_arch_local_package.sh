@@ -2,8 +2,16 @@
 
 set -eu
 
+keep_src=false
+case "${1:-}" in
+    --keepsrc)
+        keep_src=true
+        shift
+        ;;
+esac
+
 if [ "$#" -ne 1 ]; then
-    printf 'usage: %s <pkgbuild-dir>\n' "$0" >&2
+    printf 'usage: %s [--keepsrc] <pkgbuild-dir>\n' "$0" >&2
     exit 64
 fi
 
@@ -38,4 +46,15 @@ export SRCDEST="$cache_root/sources"
 export PKGDEST="$cache_root/packages"
 export BUILDDIR="$cache_root/build"
 
-exec yay -Bi --needed --noconfirm --useask --answerclean=None --answerdiff=None --answeredit=None --answerupgrade=None "$pkgbuild_dir"
+set -- -Bi --needed --noconfirm --useask \
+    --answerclean=None \
+    --answerdiff=None \
+    --answeredit=None \
+    --answerupgrade=None \
+    "$pkgbuild_dir"
+
+if [ "$keep_src" = true ]; then
+    set -- --keepsrc "$@"
+fi
+
+exec yay "$@"
