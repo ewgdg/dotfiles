@@ -2,7 +2,7 @@
 
 _pkgname=niri
 pkgname=niri-custom-git
-pkgver=26.04.r37.g4dba55e
+pkgver=26.04.r39.g1f0c8ee
 pkgrel=1
 pkgdesc="Scrollable-tiling Wayland compositor (custom Git build)"
 arch=(x86_64 aarch64)
@@ -55,7 +55,6 @@ pkgver() {
 prepare() {
   cd "${_pkgname}"
 
-  export CARGO_HOME="${srcdir}/${_pkgname}/.cargo"
   cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
 }
 
@@ -63,7 +62,6 @@ build() {
   cd "${_pkgname}"
 
   export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${srcdir}=/"
-  export CARGO_HOME="${srcdir}/${_pkgname}/.cargo"
   export CARGO_TARGET_DIR=target
 
   cargo build --frozen --release
