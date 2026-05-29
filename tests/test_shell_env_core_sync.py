@@ -53,7 +53,7 @@ def test_capture_strips_managed_token_block(tmp_path: Path) -> None:
     assert completed.stdout == CORE_ENV_TEXT
 
 
-def test_core_env_appends_cargo_bin_on_clean_login_path(tmp_path: Path) -> None:
+def test_core_env_prepends_cargo_bin_on_clean_login_path(tmp_path: Path) -> None:
     home = tmp_path / "home"
     cargo_bin = home / ".cargo/bin"
     cargo_bin.mkdir(parents=True)
@@ -71,5 +71,5 @@ def test_core_env_appends_cargo_bin_on_clean_login_path(tmp_path: Path) -> None:
     )
 
     path_entries = completed.stdout.strip().split(":")
-    assert path_entries.index("/usr/bin") < path_entries.index(str(cargo_bin))
+    assert path_entries.index(str(cargo_bin)) < path_entries.index("/usr/bin")
     assert path_entries.count(str(cargo_bin)) == 1

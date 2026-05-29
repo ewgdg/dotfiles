@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+required_rustup_components=(clippy rustfmt rust-src)
+
+pacman_available() {
+  command -v pacman >/dev/null 2>&1
+}
+
 rustup_command() {
   if command -v rustup >/dev/null 2>&1; then
     command -v rustup
@@ -13,6 +19,24 @@ rustup_command() {
   fi
 
   return 1
+}
+
+install_rustup_with_pacman() {
+  if pacman -Q -- rustup >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    pacman -S --needed --noconfirm rustup
+    return 0
+  fi
+
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "sudo is required to install rustup with pacman." >&2
+    exit 1
+  fi
+
+  sudo pacman -S --needed --noconfirm rustup
 }
 
 install_rustup_with_upstream_installer() {
@@ -42,9 +66,28 @@ ensure_default_toolchain() {
   "$rustup_path" default stable
 }
 
+ensure_required_components() {
+  rustup_path="$(rustup_command)"
+  "$rustup_path" component add "${required_rustup_components[@]}"
+}
+
+if pacman_available; then
+  install_rustup_with_pacman
+
+  if ! rustup_command >/dev/null 2>&1; then
+    echo "rustup not found after Arch package installation." >&2
+    exit 1
+  fi
+
+  ensure_default_toolchain
+  ensure_required_components
+  exit 0
+fi
+
 if rustup_path="$(rustup_command)"; then
   echo "rustup is already installed at ${rustup_path}; skipping installer."
   ensure_default_toolchain
+  ensure_required_components
   exit 0
 fi
 
@@ -56,3 +99,4 @@ if ! rustup_command >/dev/null 2>&1; then
 fi
 
 ensure_default_toolchain
+ensure_required_components

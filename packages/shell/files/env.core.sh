@@ -47,10 +47,7 @@ unset go_path
 
 path_prepend "$BUN_INSTALL/bin"
 path_prepend "$HOME/.npm/bin"
-# Keep distro Rust (`/usr/bin/rustc`, `/usr/bin/cargo`) as default on clean login.
-# Cargo-installed tools remain available, while rustup shims in ~/.cargo/bin do
-# not shadow pacman when /usr/bin is earlier in the inherited PATH.
-path_append "$HOME/.cargo/bin"
+path_prepend "$HOME/.cargo/bin"
 path_prepend "$HOME/.local/bin"
 path_prepend "$HOME/bin"
 
