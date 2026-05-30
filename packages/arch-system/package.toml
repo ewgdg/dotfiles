@@ -6,6 +6,11 @@ description = "Arch Linux package manager and base system configuration"
 # migration path; only buildDir is machine-local state.
 yay_config_selector_args = "'buildDir'"
 
+[hooks]
+pre_push = [
+  'sh "$DOTMAN_REPO_ROOT/scripts/install_paru.sh"',
+]
+
 [targets.f_etc_pacman_conf]
 source = "files/etc/pacman.conf"
 path = "/etc/pacman.conf"

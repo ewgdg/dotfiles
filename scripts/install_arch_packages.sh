@@ -13,6 +13,11 @@ done
 [ -n "$missing_packages" ] || exit 0
 
 if ! command -v paru >/dev/null 2>&1; then
+    script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    sh "$script_dir/install_paru.sh"
+fi
+
+if ! command -v paru >/dev/null 2>&1; then
     printf 'error: paru is required to install Arch packages: %s\n' "$missing_packages" >&2
     exit 127
 fi

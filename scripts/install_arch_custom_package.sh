@@ -26,6 +26,11 @@ case "$pkgbuild_dir" in
 esac
 
 if ! command -v paru >/dev/null 2>&1; then
+    script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    sh "$script_dir/install_paru.sh"
+fi
+
+if ! command -v paru >/dev/null 2>&1; then
     printf 'error: paru is required to build/install custom Arch PKGBUILD: %s\n' "$pkgbuild_dir" >&2
     exit 127
 fi
