@@ -69,6 +69,14 @@ window-rule {
 }
 
 window-rule {
+  // XEmbed tray proxy helper. xwayland-satellite exposes its mapped X11 container as a normal window.
+  match app-id=r#"^xembed-sni-proxy$"#
+  open-on-workspace "stash"
+  open-floating false
+  open-focused false
+}
+
+window-rule {
   // Wine/Proton tray helper. Route only Wine's blank explorer desktop away from normal workspaces.
   // Same match line is intentional: niri ORs separate match directives, ANDs fields within one directive.
   match app-id=r#"^explorer\.exe$"# title=r#"^$"#

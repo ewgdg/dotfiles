@@ -1,0 +1,16 @@
+[Unit]
+Description=XEmbed to SNI proxy for Wayland tray icons
+PartOf=graphical-session.target
+After=graphical-session.target
+# KDE Plasma ships its own plasma-xembedsniproxy.service; skip on KDE.
+Conflicts=plasma-xembedsniproxy.service
+ConditionEnvironment=!XDG_CURRENT_DESKTOP=KDE
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/xembed-sni-proxy
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

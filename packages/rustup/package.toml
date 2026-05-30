@@ -1,9 +1,6 @@
 id = "rustup"
 description = "Rust toolchain bootstrap marker and install hooks"
 
-[vars.rustup]
-cargo_install = 'cargo_bin="$(command -v cargo || printf "%s/.cargo/bin/cargo" "$HOME")"; if [ ! -x "$cargo_bin" ]; then echo "cargo not found" >&2; exit 1; fi; "$cargo_bin" install'
-
 [targets.f_local_state_dotfiles_installed_rustup]
 source = "files/local/state/dotfiles/installed/rustup"
 path = "~/.local/state/dotfiles/installed/rustup"
@@ -13,5 +10,5 @@ path = "~/.local/state/dotfiles/installed/rustup"
 pre_push = [
   'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
   # cargo-update provides `cargo install-update`; use `cargo install-update -a` to update cargo-installed CLI tools in ~/.cargo/bin.
-  '{{ vars.rustup.cargo_install }} cargo-update',
+  'cargo install cargo-update',
 ]

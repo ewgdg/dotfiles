@@ -1,6 +1,10 @@
 id = "linux/faugus-launcher"
 description = "Install and config for Faugus Launcher"
 
+depends = [
+  "linux/xembedsniproxy",
+]
+
 [targets.f_config_faugus_launcher_config_ini]
 source = "files/config/faugus-launcher/config.ini"
 path = "~/.config/faugus-launcher/config.ini"
