@@ -40,7 +40,7 @@ path = "/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-i
 # Niri session expects these desktop apps/themes via keybinds, mime defaults, and GTK/icon settings.
 pre_push = [
   # Build/install niri first because this package owns the session config that depends on it.
-  '{{ INSTALL_LOCAL_PACKAGE }} --keepsrc "packages/niri/packaging/arch/niri-custom-git"',
+  '{{ INSTALL_CUSTOM_PACKAGE }} --keepsrc "packages/niri/packaging/arch/niri-custom-git"',
   "{{ INSTALL }} xwayland-satellite xdg-desktop-portal-gnome jq",
   "{{ INSTALL }} nautilus imv loupe papers gnome-text-editor file-roller",
   "{{ INSTALL }} bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look",

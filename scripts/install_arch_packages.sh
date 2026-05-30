@@ -12,4 +12,9 @@ done
 
 [ -n "$missing_packages" ] || exit 0
 
-printf '%s\n' "$missing_packages" | xargs -r yay -S --needed --noconfirm --useask --answerdiff=None --answeredit=None
+if ! command -v paru >/dev/null 2>&1; then
+    printf 'error: paru is required to install Arch packages: %s\n' "$missing_packages" >&2
+    exit 127
+fi
+
+printf '%s\n' "$missing_packages" | xargs -r paru -S --needed --noconfirm --skipreview --useask
