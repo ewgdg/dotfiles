@@ -37,14 +37,16 @@ Run directly inside a running Niri session:
 - `undo` explicitly turns back on connected outputs, skipping outputs
   explicitly marked `off` in `cfg/output.kdl` and the `sunshine` virtual output,
   then turns `sunshine` off by default. With `--dormant-headless`, it parks
-  `sunshine` at `640x480@30` scale `1` instead.
+  `sunshine` at `1920x1080@30` scale `1` instead.
 - Reason to park `sunshine` dormant between streams: a persistent high-refresh
   Niri virtual output is suspected to keep Niri/wlroots/NVIDIA-GSP output state
   hot while idle/disconnected, matching observed NVKMS GEM allocation spam
   during the disconnection period plus Sunshine NVENC `InitializeEncoder
   failed: out of memory (10)` / kernel `NVRM NV_ERR_NO_MEMORY` failure. Parking
   keeps `wl_output` present for client stability while reducing render/VRAM
-  pressure.
+  pressure. The dormant mode stays 1080p-class instead of tiny because 640x480
+  can make Electron/VS Code clamp and persist sidebar/layout widths after
+  stream teardown or resume.
 - Reason to use manual IPC instead of config reload: `niri msg action
   load-config-file` can preserve transient IPC output state when disk `outputs`
   did not change, so config reload is not a reliable stream teardown primitive.

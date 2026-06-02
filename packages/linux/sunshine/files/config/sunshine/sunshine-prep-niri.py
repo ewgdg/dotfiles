@@ -44,8 +44,10 @@ TARGET_DPI = 82.0
 MIN_SCALE = 1.0
 MAX_SCALE = 3.0
 HEADLESS_OUTPUT_NAME = "sunshine"
-DORMANT_OUTPUT_WIDTH = 640
-DORMANT_OUTPUT_HEIGHT = 480
+# Keep dormant geometry large enough that Wayland/Electron clients do not
+# clamp and persist narrow layouts when Sunshine tears down a stream.
+DORMANT_OUTPUT_WIDTH = 1920
+DORMANT_OUTPUT_HEIGHT = 1080
 DORMANT_OUTPUT_FPS = 30
 DORMANT_OUTPUT_SCALE = "1"
 DEFAULT_NIRI_SHELL_SERVICE = "niri-shell.service"
