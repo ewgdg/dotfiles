@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.linearmouse.app/0.11.1",
+  "$schema": "https://schema.linearmouse.app/0.11.2",
   "schemes": [
     {
       "if": {
@@ -16,27 +16,35 @@
         "speed": 0.06896551724137928
       },
       "scrolling": {
-        "acceleration": 1,
+        "acceleration": {
+          "vertical": 1
+        },
         "distance": {
           "horizontal": "auto",
           "vertical": "36px"
         },
-        "reverse": {
-          "vertical": true,
-          "horizontal": false
-        },
-        "speed": 0,
         "modifiers": {
           "vertical": {
             "control": {
               "type": "auto"
+            },
+            "command": {
+              "scale": 10,
+              "type": "changeSpeed"
             }
           }
+        },
+        "reverse": {
+          "horizontal": false,
+          "vertical": true
         },
         "smoothed": {
           "vertical": {
             "enabled": false
           }
+        },
+        "speed": {
+          "vertical": 0
         }
       }
     },
