@@ -21,16 +21,16 @@
         },
         "distance": {
           "horizontal": "auto",
-          "vertical": "36px"
+          "vertical": "66.9px"
         },
         "modifiers": {
           "vertical": {
-            "control": {
-              "type": "auto"
-            },
             "command": {
               "scale": 10,
               "type": "changeSpeed"
+            },
+            "control": {
+              "type": "auto"
             }
           }
         },
