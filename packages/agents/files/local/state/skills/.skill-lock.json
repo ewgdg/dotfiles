@@ -83,6 +83,24 @@
       "pluginName": "mattpocock-skills",
       "installedAt": "2026-06-03T06:07:20.142Z",
       "updatedAt": "2026-06-03T06:07:20.142Z"
+    },
+    "crit": {
+      "source": "tomasz-tomczyk/crit",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/tomasz-tomczyk/crit.git",
+      "skillPath": "integrations/claude-code/skills/crit/SKILL.md",
+      "skillFolderHash": "2413d82e161071f4341a24ba0c99d5ef27cb7925",
+      "installedAt": "2026-06-03T08:06:07.134Z",
+      "updatedAt": "2026-06-03T08:06:26.812Z"
+    },
+    "crit-cli": {
+      "source": "tomasz-tomczyk/crit",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/tomasz-tomczyk/crit.git",
+      "skillPath": "integrations/claude-code/skills/crit-cli/SKILL.md",
+      "skillFolderHash": "6ed3a67683b8d4b09c78314354fb916510bcab29",
+      "installedAt": "2026-06-03T08:06:07.135Z",
+      "updatedAt": "2026-06-03T08:06:26.813Z"
     }
   },
   "dismissed": {
