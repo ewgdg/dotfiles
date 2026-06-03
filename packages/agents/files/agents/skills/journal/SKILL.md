@@ -42,6 +42,8 @@ Create:
 - `Highlight`: short concrete proposition; say what changed, no vague titles like "Update" or "Progress". QuickAdd stores this as the note's first alias.
 - `Journal`: concise, information-dense reflection capturing the event, what changed, and why it may matter.
 
+Journal entries must be atomic: each entry is a complete memory unit whose essential meaning is preserved inline. Include key result, numbers, decisions, and reusable lesson directly in the entry. Do not rely on temporary files, scratch directories, local-only paths, external session artifacts, or "see file X" references for essential meaning. References are allowed only to durable notes/files inside the vault, or when a path itself is the durable subject of the memory. Never use external paths as storage for unstated context.
+
 Use `$caveman` style compacted language. Optimize for future review. No padding. Prefer 1-4 tight sentences or compact bullets.
 
 ## Author

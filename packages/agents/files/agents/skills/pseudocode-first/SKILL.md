@@ -1,16 +1,14 @@
 ---
 name: pseudocode-first
-description: Pseudocode-first mode where pseudocode is the human-reviewable source for programming-language behavior changes, and implementation code is compiled from it. Auto-activates when a repository contains pseudocode artifacts, or activates by explicit user request. Excludes config, docs, data, markup, styles, lockfiles, generated files, and other non-source artifacts unless explicitly included.
+description: Pseudocode-first mode where pseudocode is the human-reviewable source for programming-language behavior changes, and implementation code is compiled from it. Auto-activates for a source file only when it has canonical mapped pseudocode, or activates by explicit user request. Excludes config, docs, data, markup, styles, lockfiles, generated files, and other non-source artifacts unless explicitly included.
 ---
 
 # Pseudocode First
 
 Pseudocode is the human-reviewable source of truth. Implementation code is the compiled artifact.
 
-## Activation and Scope
+## Scope
 
-- Treat this mode as active when loaded by artifact detection or explicit user request.
-- Otherwise, remain opt-in.
 - Stay active until the user explicitly says to stop pseudocode-first mode.
 - Apply only to programming-language source files.
 - Exclude config, docs, data, markup, stylesheets, lockfiles, generated files, and other non-source artifacts unless explicitly included.

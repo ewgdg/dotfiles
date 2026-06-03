@@ -1,15 +1,6 @@
 {
   "version": 3,
   "skills": {
-    "caveman": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
-      "skillPath": "caveman/SKILL.md",
-      "skillFolderHash": "f524c391d466fe35e0bdbe9707854fcb2be52b26",
-      "installedAt": "2026-04-11T07:47:07.117Z",
-      "updatedAt": "2026-05-06T04:39:18.764Z"
-    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
@@ -65,14 +56,33 @@
       "installedAt": "2026-04-29T07:01:28.678Z",
       "updatedAt": "2026-04-29T07:01:28.678Z"
     },
-    "compress": {
-      "source": "juliusbrussee/caveman",
+    "google-surf-mcp-search": {
+      "source": "aradotso/mcp-skills",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
-      "skillPath": "skills/compress/SKILL.md",
-      "skillFolderHash": "d9f3edbb403bb351a6c6968fc7fcd7c861450c0d",
-      "installedAt": "2026-05-06T04:31:26.681Z",
-      "updatedAt": "2026-05-06T04:31:26.681Z"
+      "sourceUrl": "https://github.com/aradotso/mcp-skills.git",
+      "skillPath": "skills/google-surf-mcp-search/SKILL.md",
+      "skillFolderHash": "120ddc7bef5765af04245e8dcd0649741da4c810",
+      "installedAt": "2026-06-01T06:32:15.719Z",
+      "updatedAt": "2026-06-01T06:32:15.719Z"
+    },
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "skillFolderHash": "c1470a475a0472fceda2401ea6763708a91680a8",
+      "installedAt": "2026-06-01T07:54:40.910Z",
+      "updatedAt": "2026-06-01T07:54:40.910Z"
+    },
+    "caveman": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/caveman/SKILL.md",
+      "skillFolderHash": "17972a1bdbf5909b9dbdc435ad348f0bf45f8664",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-03T06:07:20.142Z",
+      "updatedAt": "2026-06-03T06:07:20.142Z"
     }
   },
   "dismissed": {
@@ -81,16 +91,16 @@
   "lastSelectedAgents": [
     "amp",
     "antigravity",
+    "antigravity-cli",
     "cline",
     "codex",
     "cursor",
     "deepagents",
-    "dexto",
-    "firebender",
     "gemini-cli",
     "github-copilot",
-    "kimi-cli",
+    "kimi-code-cli",
     "opencode",
-    "warp"
+    "warp",
+    "zed"
   ]
 }
