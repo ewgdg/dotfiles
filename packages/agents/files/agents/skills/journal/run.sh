@@ -59,6 +59,10 @@ normalize_slug_part() {
   printf '%s' "$value"
 }
 
+quote_yaml_string_scalar() {
+  python3 -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' "$1"
+}
+
 detect_author() {
   local explicit_author="$1"
 
@@ -177,10 +181,12 @@ create_journal() {
   local journal_dir="$(resolve_journal_dir "$vault_path")"
   local before_path="$(latest_journal_path)"
   local quickadd_output=""
+  # Journal template writes Highlight into YAML aliases; quote before QuickAdd so ':' cannot corrupt frontmatter.
+  local highlight_yaml_scalar="$(quote_yaml_string_scalar "$highlight")"
 
   if ! quickadd_output="$(obsidian vault="$vault" quickadd:run \
     choice="Journal" \
-    value-Highlight="$highlight" \
+    value-Highlight="$highlight_yaml_scalar" \
     value-Journal="$journal" 2>&1)"; then
     printf '%s\n' "$quickadd_output" >&2
     exit 1
