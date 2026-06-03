@@ -3,6 +3,7 @@ description = "External CLIs for AI agent workflows"
 
 depends = [
   "go-lang",
+  "nodejs",
 ]
 
 [targets.f_local_state_dotfiles_installed_agent_external_tools]
@@ -13,4 +14,5 @@ path = "~/.local/state/dotfiles/installed/agent-external-tools"
 [hooks]
 pre_push = [
   "go install github.com/tomasz-tomczyk/crit@latest",
+  "{{ NPM_INSTALL }} surf-cli",
 ]

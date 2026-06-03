@@ -97,6 +97,14 @@ window-rule {
 }
 
 window-rule {
+    // Surf's dedicated agent window created by `surf window.new --unfocused`.
+    match app-id="google-chrome" title=r#"(?i)Surf Agent"#
+    open-on-workspace "stash"
+    open-focused false
+    open-maximized true
+}
+
+window-rule {
     // Keep note-taking apps on the dedicated notes workspace.
     match app-id=r#"(?i)^obsidian$"#
     match title=r#"(?i)\bmemos\b"#

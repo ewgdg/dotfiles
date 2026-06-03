@@ -3,7 +3,7 @@
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
-- `caveman` full mode active
+- `caveman` mode active
 
 ## File Operations
 
@@ -15,9 +15,10 @@
 ## Documentation
 
 - document for features or techniques of a project, that worth mention or review
+- State desired design directly. Do not list ghost fields, rejected names, or past mistakes in user-facing docs/specs unless needed for migration, compatibility, safety, or error diagnostics.
 - do not put machine specific paths into docs
 - if you need to write doc, persist docs in `./docs/` directory
-- when writing complex features or significant refactors, use an ExecPlan (as described in `~/.agents/PLANS.md`)
+- when writing complex features or significant refactors, use an ExecPlan (as described in `~/.agents/docs/plans.md`)
 
 ## Problem Solving
 
@@ -68,6 +69,13 @@
 ## CLI Tools
 
 - `gh` for github
+
+## Browser Policy
+
+- For browser automation/research, read `~/.agents/docs/browser-policy.md` first.
+- Trigger real browser use when built-in websearch is weak, Google's live ranking quality matters, or for advanced/JS-heavy/bot-heavy/social/login research where live profile access or human intervention may help.
+- Prefer undistracting workflows: unfocused/dedicated browser windows, scoped commands, close temporary windows when done.
+- Prefer subagents for research-heavy browsing tasks so the parent agent stays focused and receives concise findings.
 
 ## Skills
 
