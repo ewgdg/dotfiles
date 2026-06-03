@@ -103,7 +103,7 @@ def test_restore_manually_reenables_disabled_outputs_except_sunshine(monkeypatch
         (("output", "DP-1", "on"), True),
         (("output", "HDMI-A-1", "on"), True),
         (("output", "sunshine", "on"), False),
-        (("output", "sunshine", "custom-mode", "1920x1080@30"), True),
+        (("output", "sunshine", "custom-mode", "3440x1440@60.000"), True),
         (("output", "sunshine", "scale", "1"), True),
         (("kill-runtime-inhibit",), True),
     ]
@@ -130,7 +130,6 @@ def test_restore_preserves_configured_off_outputs(monkeypatch) -> None:
     assert calls == [
         (("output", "DP-1", "on"), True),
         (("output", "sunshine", "on"), False),
-        (("output", "sunshine", "custom-mode", "1920x1080@30"), True),
         (("output", "sunshine", "scale", "1"), True),
     ]
 
@@ -238,7 +237,7 @@ def test_restore_does_not_stop_niri_shell_without_flag(monkeypatch) -> None:
     assert calls == [
         ("niri-msg", ("output", "DP-1", "on"), True),
         ("niri-msg", ("output", "sunshine", "on"), False),
-        ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@30"), True),
+        ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@60.000"), True),
         ("niri-msg", ("output", "sunshine", "scale", "1"), True),
         "kill-runtime-inhibit",
         "start-shell",
@@ -266,7 +265,7 @@ def test_restore_stops_niri_shell_around_output_restore_when_flagged(monkeypatch
         "stop-shell",
         ("niri-msg", ("output", "DP-1", "on"), True),
         ("niri-msg", ("output", "sunshine", "on"), False),
-        ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@30"), True),
+        ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@60.000"), True),
         ("niri-msg", ("output", "sunshine", "scale", "1"), True),
         "kill-runtime-inhibit",
         "start-shell",

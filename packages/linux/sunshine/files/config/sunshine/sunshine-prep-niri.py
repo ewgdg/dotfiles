@@ -44,11 +44,7 @@ TARGET_DPI = 82.0
 MIN_SCALE = 1.0
 MAX_SCALE = 3.0
 HEADLESS_OUTPUT_NAME = "sunshine"
-# Keep dormant geometry large enough that Wayland/Electron clients do not
-# clamp and persist narrow layouts when Sunshine tears down a stream.
-DORMANT_OUTPUT_WIDTH = 1920
-DORMANT_OUTPUT_HEIGHT = 1080
-DORMANT_OUTPUT_FPS = 30
+DORMANT_OUTPUT_FPS = "60.000"
 DORMANT_OUTPUT_SCALE = "1"
 DEFAULT_NIRI_SHELL_SERVICE = "niri-shell.service"
 NIRI_SHELL_SERVICE_ENV_VAR_NAME = "NIRI_SHELL_SERVICE"
@@ -624,8 +620,8 @@ def apply_output_mode(
     niri_msg("output", output_name, "mode", mode_str, check=True)
 
 
-def apply_output_custom_mode(output_name: str, *, width: int, height: int, fps: int) -> None:
-    mode_str = f"{width}x{height}@{int(fps)}"
+def apply_output_custom_mode(output_name: str, *, width: int, height: int, fps: Any) -> None:
+    mode_str = f"{width}x{height}@{str(fps).strip()}"
     niri_msg("output", output_name, "custom-mode", mode_str, check=True)
 
 
@@ -659,6 +655,22 @@ def ensure_headless_output(*, name: str, width: int, height: int, fps: int) -> N
 
 def apply_output_scale(output_name: str, scale: str) -> None:
     niri_msg("output", output_name, "scale", scale, check=True)
+
+
+def current_mode_dimensions(output: Optional[Dict[str, Any]]) -> Optional[Tuple[int, int]]:
+    if not output:
+        return None
+    current_mode = output.get("current_mode")
+    if not isinstance(current_mode, dict):
+        return None
+    try:
+        width = int(current_mode["width"])
+        height = int(current_mode["height"])
+    except Exception:
+        return None
+    if width <= 0 or height <= 0:
+        return None
+    return width, height
 
 
 
@@ -774,12 +786,24 @@ def park_headless_output_dormant() -> None:
     # Keep wl_output present. `niri msg output sunshine off` hot-removes it,
     # which can crash clients that still hold output/screen state.
     niri_msg("output", HEADLESS_OUTPUT_NAME, "on", check=False)
-    apply_output_custom_mode(
-        HEADLESS_OUTPUT_NAME,
-        width=DORMANT_OUTPUT_WIDTH,
-        height=DORMANT_OUTPUT_HEIGHT,
-        fps=DORMANT_OUTPUT_FPS,
-    )
+
+    outputs = outputs_from_reply(niri_msg_json("outputs"))
+    dimensions = current_mode_dimensions(find_output_by_name(outputs, HEADLESS_OUTPUT_NAME))
+    if dimensions is not None:
+        width, height = dimensions
+        apply_output_custom_mode(
+            HEADLESS_OUTPUT_NAME,
+            width=width,
+            height=height,
+            fps=DORMANT_OUTPUT_FPS,
+        )
+    else:
+        print(
+            f"[sunshine-prep-niri] dormant fps skipped: {HEADLESS_OUTPUT_NAME} current resolution unknown",
+            file=sys.stderr,
+            flush=True,
+        )
+
     apply_output_scale(HEADLESS_OUTPUT_NAME, DORMANT_OUTPUT_SCALE)
 
 

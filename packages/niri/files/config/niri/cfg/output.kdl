@@ -29,9 +29,6 @@
 
 output "sunshine" {
     create-virtual
-    // Keep a stable wl_output before Sunshine resizes it for streaming.
-    // 1080p-class dormant geometry avoids tiny-output layout clamps in
-    // Electron/VS Code after stream teardown or resume.
-    mode "1920x1080@30.000"
+    // Default virtual output mode: 1920x1080@60.
     scale 1
 }
