@@ -84,6 +84,15 @@
       "installedAt": "2026-06-03T06:07:20.142Z",
       "updatedAt": "2026-06-03T06:07:20.142Z"
     },
+    "surf": {
+      "source": "nicobailon/surf-cli",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/nicobailon/surf-cli.git",
+      "skillPath": "skills/surf/SKILL.md",
+      "skillFolderHash": "d1ae9a031c8f47f0360ccfaea2010af5899a604e",
+      "installedAt": "2026-06-03T07:34:54.948Z",
+      "updatedAt": "2026-06-03T07:34:54.948Z"
+    },
     "crit": {
       "source": "tomasz-tomczyk/crit",
       "sourceType": "github",
