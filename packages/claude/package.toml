@@ -29,3 +29,4 @@ path = "~/.claude/commands"
 [targets.d_claude_skills]
 source = "files/claude/skills"
 path = "~/.claude/skills"
+disabled = true
