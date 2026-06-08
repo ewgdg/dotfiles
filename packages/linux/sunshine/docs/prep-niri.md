@@ -3,9 +3,9 @@
 - Purpose: create/select/configure the fixed Niri virtual output `sunshine` for
   Sunshine streaming (`WxH@FPS`), optionally turn off other outputs, then
   restore by manually re-enabling connected physical outputs except ones
-  explicitly marked `off` in `cfg/output.kdl`, then either turning off the
-  `sunshine` virtual output or parking it in low-power dormant mode when
-  `--dormant-headless` is passed.
+  explicitly marked `off` in `cfg/output.kdl`, then turning off the
+  `sunshine` virtual output by default. `--dormant-headless` remains an
+  opt-in manual undo mode.
 - Files:
   - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py`
   - `packages/linux/sunshine/files/sunshine.conf`
@@ -21,7 +21,8 @@ Run directly inside a running Niri session:
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
 - optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
 - optional host GPU pin: set `vars.niri.render_drm_device` to a stable DRM render-node path when Sunshine WLR capture and the chosen hardware encoder must stay on the same GPU
-- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo --dormant-headless`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
+- optional manual dormant teardown: append `--dormant-headless`
 
 ## Notes
 
@@ -56,8 +57,8 @@ Run directly inside a running Niri session:
   headless capture; non-Niri rendered configs use `capture = kms`.
 - Niri prep keeps `--solo`; `undo` limits restore churn by only re-enabling
   non-Sunshine outputs and explicitly cleaning up the virtual Sunshine output.
-  The rendered Niri config passes `--dormant-headless` because Chromium/Electron
-  clients can crash when `wl_output` disappears during stream teardown.
+  Rendered Niri config does not pass `--dormant-headless`; dormant teardown is
+  manual opt-in only.
 - `--suspend-niri-shell` exists but rendered Niri config currently leaves it
   disabled. If enabled for testing, prep stops `niri-shell.service` during stream
   start/undo and runs `systemctl --user reset-failed niri-shell.service`
