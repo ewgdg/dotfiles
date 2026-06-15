@@ -2,7 +2,7 @@
 
 ## Custom Arch package
 
-This package uses a custom Git build of niri. `dotman push niri` builds and installs it automatically.
+This package uses a custom Git build of niri. `dotman push niri` probes the installed `niri-custom-git` package and builds/installs only when it is missing or upstream `HEAD` no longer matches the installed Git hash.
 
 Manual install from the repo root, using the same cache staging as `dotman push`:
 

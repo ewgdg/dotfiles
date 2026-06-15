@@ -28,6 +28,7 @@
 - Do not edit `*.archived` files unless explicitly asked.
 - Do not commit secrets, generated state, or local-only overrides.
 - For install-only bundle packages, keep the marker file content meaningful: list installed package/tool names, one per line, so future additions show up as tracked repo deltas.
+- Prefer dotman probe targets for conditional install/update work. Keep probes side-effect-free: exit `0` when action is needed, exit `100` when already current/noop, and put the actual install/update command in target hooks.
 
 ## Agent Behavior
 
