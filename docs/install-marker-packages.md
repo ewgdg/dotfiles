@@ -1,7 +1,9 @@
 # Install Marker Packages
 
-Some packages exist only to ensure software is installed and do not manage any user-facing config files.
-For those cases, keep a small tracked marker file so the package still has managed state.
+Install marker files are a legacy fallback for install-only packages.
+Prefer probe targets for new conditional install/update work; see `docs/install-probe-targets.md`.
+
+Use a marker only when a package still needs a real managed file target and a probe target cannot model the requirement.
 
 ## Convention
 
@@ -21,31 +23,22 @@ Examples:
 - `linux/lutris` -> `~/.local/state/dotfiles/installed/linux/lutris`
 - namespaced packages should usually keep their namespace, e.g. `mac/fonts` -> `~/.local/state/dotfiles/installed/mac/fonts`
 
-## Package Pattern
-
-Example install-only package:
+## Legacy Package Pattern
 
 ```toml
-id = "rustup"
-description = "Rust toolchain bootstrap marker and install hooks"
+id = "example-toolchain"
+description = "Example install marker"
 
-[targets.f_local_state_dotfiles_installed_rustup]
-source = "files/local/state/dotfiles/installed/rustup"
-path = "~/.local/state/dotfiles/installed/rustup"
-
-# Marker exists so install-only packages still have a managed target.
-[hooks]
-pre_push = [
-  'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
-]
+[targets.f_local_state_dotfiles_installed_example_toolchain]
+source = "files/local/state/dotfiles/installed/example-toolchain"
+path = "~/.local/state/dotfiles/installed/example-toolchain"
 ```
 
 ## When To Use
 
-Use this pattern when:
+Use this pattern only when:
 
-- package has install hooks but no config files yet
-- package should remain explicit in group membership and dependency graphs
-- you want a stable place to hang future package-local state
+- package needs a stable tracked file target for compatibility or state ownership
+- a probe target cannot express the live requirement
 
-Do not use this pattern when the package already manages real config files or directories.
+Do not use this pattern just to keep an install-only package selectable. Use an install probe target instead.

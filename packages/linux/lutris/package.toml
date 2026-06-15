@@ -1,13 +1,23 @@
 id = "linux/lutris"
 description = "Install and configs for Lutris, a linux gaming platform"
 
-[targets.f_local_state_dotfiles_installed_linux_lutris]
-source = "files/local/state/dotfiles/installed/linux/lutris"
-path = "~/.local/state/dotfiles/installed/linux/lutris"
+[targets.lutris_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} lutris'
 
-# Marker exists so install-only packages still have a managed target.
-[hooks]
-pre_push = [
-  # wine-gecko optional
-  "{{ INSTALL }} lutris wine-mono proton-ge-custom-bin",
-]
+[targets.lutris_installed.hooks]
+pre_push = "{{ INSTALL }} lutris"
+
+[targets.wine_mono_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} wine-mono'
+
+[targets.wine_mono_installed.hooks]
+pre_push = "{{ INSTALL }} wine-mono"
+
+[targets.proton_ge_custom_bin_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} proton-ge-custom-bin'
+
+[targets.proton_ge_custom_bin_installed.hooks]
+pre_push = "{{ INSTALL }} proton-ge-custom-bin"

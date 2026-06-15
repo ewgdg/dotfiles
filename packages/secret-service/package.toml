@@ -6,15 +6,33 @@ source = "files/config/kwalletrc"
 path = "~/.config/kwalletrc"
 chmod = "600"
 
-[targets.f_local_state_dotfiles_installed_secret_service]
-source = "files/local/state/dotfiles/installed/secret-service"
-path = "~/.local/state/dotfiles/installed/secret-service"
+[targets.kwallet_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} kwallet'
 
-[hooks]
-# KWallet provides ksecretd for the Secret portal and Secret Service API;
-# libsecret provides common client libraries/tooling used by Electron apps and
-# `secret-tool` diagnostics. kwalletmanager is the matching GUI editor.
-pre_push = [
-  "{{ INSTALL }} kwallet libsecret kwalletmanager seahorse",
-]
+[targets.kwallet_installed.hooks]
+# KWallet provides ksecretd for the Secret portal and Secret Service API.
+pre_push = "{{ INSTALL }} kwallet"
 
+[targets.libsecret_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} libsecret'
+
+[targets.libsecret_installed.hooks]
+# libsecret provides common client libraries/tooling used by Electron apps and `secret-tool` diagnostics.
+pre_push = "{{ INSTALL }} libsecret"
+
+[targets.kwalletmanager_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} kwalletmanager'
+
+[targets.kwalletmanager_installed.hooks]
+# Matching GUI editor for KWallet state.
+pre_push = "{{ INSTALL }} kwalletmanager"
+
+[targets.seahorse_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} seahorse'
+
+[targets.seahorse_installed.hooks]
+pre_push = "{{ INSTALL }} seahorse"

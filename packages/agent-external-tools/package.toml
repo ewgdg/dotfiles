@@ -6,13 +6,16 @@ depends = [
   "nodejs",
 ]
 
-[targets.f_local_state_dotfiles_installed_agent_external_tools]
-source = "files/local/state/dotfiles/installed/agent-external-tools"
-path = "~/.local/state/dotfiles/installed/agent-external-tools"
+[targets.crit_current]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_crit_update.sh"'
 
-# Keep external agent workflow tools separate from agent config and built-in tools.
-[hooks]
-pre_push = [
-  "go install github.com/tomasz-tomczyk/crit@latest",
-  "{{ NPM_INSTALL }} surf-cli",
-]
+[targets.crit_current.hooks]
+pre_push = "go install github.com/tomasz-tomczyk/crit@latest"
+
+[targets.surf_cli_current]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_surf_cli_update.sh"'
+
+[targets.surf_cli_current.hooks]
+pre_push = "{{ NPM_INSTALL }} surf-cli"

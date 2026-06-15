@@ -8,18 +8,18 @@ depends = [
 [vars.linux_xembedsniproxy]
 git_url = "https://somegit.dev/vikingowl/xembed-sni-proxy.git"
 
-[targets.f_local_state_dotfiles_installed_linux_xembedsniproxy]
-source = "files/local/state/dotfiles/installed/linux/xembedsniproxy"
-path = "~/.local/state/dotfiles/installed/linux/xembedsniproxy"
+[targets.xembed_sni_proxy_update]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_xembed_sni_proxy_update.sh" "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy'
+
+[targets.xembed_sni_proxy_update.hooks]
+pre_push = 'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy'
 
 [targets.f_config_systemd_user_xembed_sni_proxy_service]
 source = "files/config/systemd/user/xembed-sni-proxy.service"
 path = "~/.config/systemd/user/xembed-sni-proxy.service"
 
 [hooks]
-pre_push = [
-  'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy',
-]
 post_push = [
   'sh -c "systemctl --user daemon-reload >/dev/null 2>&1 || true"',
   '{{ ENSURE_SYSTEMD }} user xembed-sni-proxy.service',

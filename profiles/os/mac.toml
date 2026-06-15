@@ -2,4 +2,5 @@ includes = ["runtime/core"]
 
 [vars]
 INSTALL = "sh \"$DOTMAN_REPO_ROOT/scripts/install_homebrew_packages.sh\""
+PROBE_PACKAGES_INSTALLED = "sh \"$DOTMAN_REPO_ROOT/scripts/probe_homebrew_packages_installed.sh\""
 NODEJS_INSTALL_PACKAGES = "node"

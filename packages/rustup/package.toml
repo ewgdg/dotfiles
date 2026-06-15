@@ -1,14 +1,16 @@
 id = "rustup"
-description = "Rust toolchain bootstrap marker and install hooks"
+description = "Rust toolchain bootstrap"
 
-[targets.f_local_state_dotfiles_installed_rustup]
-source = "files/local/state/dotfiles/installed/rustup"
-path = "~/.local/state/dotfiles/installed/rustup"
+[targets.rustup_toolchain_ready]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/probe_rustup.sh"'
 
-# todo support always run hooks?
-[hooks]
-pre_push = [
-  'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"',
-  # cargo-update provides `cargo install-update`; use `cargo install-update -a` to update cargo-installed CLI tools in ~/.cargo/bin.
-  'cargo install cargo-update',
-]
+[targets.rustup_toolchain_ready.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"'
+
+[targets.cargo_update_installed]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/probe_cargo_update.sh"'
+
+[targets.cargo_update_installed.hooks]
+pre_push = "cargo install cargo-update"

@@ -1,12 +1,9 @@
 id = "go-lang"
 description = "Go language toolchain bootstrap"
 
-[targets.f_local_state_dotfiles_installed_go_lang]
-source = "files/local/state/dotfiles/installed/go-lang"
-path = "~/.local/state/dotfiles/installed/go-lang"
+[targets.go_toolchain_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} go'
 
-# Marker exists so install-only toolchain package stays selectable as a managed target.
-[hooks]
-pre_push = [
-  "{{ INSTALL }} go",
-]
+[targets.go_toolchain_installed.hooks]
+pre_push = "{{ INSTALL }} go"

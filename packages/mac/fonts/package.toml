@@ -1,11 +1,9 @@
 id = "mac/fonts"
 description = "macOS font package"
 
-[targets.f_local_state_dotfiles_installed_mac_fonts]
-source = "files/local/state/dotfiles/installed/mac/fonts"
-path = "~/.local/state/dotfiles/installed/mac/fonts"
+[targets.mac_fonts_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} font-caskaydia-cove-nerd-font'
 
-[hooks]
-pre_push = [
-  "{{ INSTALL }} font-caskaydia-cove-nerd-font",
-]
+[targets.mac_fonts_installed.hooks]
+pre_push = "{{ INSTALL }} font-caskaydia-cove-nerd-font"
