@@ -10,7 +10,9 @@
 		},
 		"npm:pi-vim",
 		"git:github.com/ewgdg/pi-multicodex@main",
-		"npm:pi-subagents"
+		"npm:pi-subagents",
+		"git:github.com/nicobailon/visual-explainer",
+		"npm:pi-mcporter"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.4-mini",

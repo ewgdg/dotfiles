@@ -13,6 +13,7 @@ pull = [
     "*.dotdropbak",
 ]
 push = []
+skip_markers = [".dotman-skip"]
 
 [hooks]
 guard_push = [
