@@ -76,13 +76,13 @@ Change proposals are long-lived, human-reviewable source artifacts for code chan
 
 ## Pseudocode Granularity
 
-Default to behavior-level pseudocode, not line-by-line code shadowing.
-Use the lowest-detail level that still lets a reviewer catch behavior bugs.
+Use behavior-focused pseudocode, not line-by-line code shadowing.
+Choose the lowest-detail level that still lets a reviewer catch behavior bugs.
 
 Detail levels:
 
 1. Contract pseudocode for simple modules, wrappers, data models, and stable APIs.
-2. Decision pseudocode as the default for workflows and state changes. Show observable branches, outcomes, errors, no-ops, and side effects with clear `if` / `return` / `reject` behavior.
+2. Decision pseudocode for workflows, state changes, and behavior with observable branches. Show outcomes, errors, no-ops, and side effects with clear `if` / `return` / `reject` behavior.
 3. Rule/algorithm pseudocode only when exact ordering, precedence, ranking, merge, traversal, collision, pruning, transformation, or selection logic is the reviewed behavior.
 
 Primary goal: pseudocode must be clearer than implementation and useful for human review, not template completion.
