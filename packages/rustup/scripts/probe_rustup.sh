@@ -3,6 +3,11 @@
 set -euo pipefail
 
 required_components=(clippy rustfmt rust-src)
+required_targets=()
+
+if [ -n "${RUSTUP_EXTRA_TARGETS:-}" ]; then
+    read -r -a required_targets <<<"$RUSTUP_EXTRA_TARGETS"
+fi
 
 rustup_path=""
 if command -v rustup >/dev/null 2>&1; then
@@ -25,6 +30,14 @@ installed_components=$("$rustup_path" component list --installed 2>/dev/null || 
 for component in "${required_components[@]}"; do
     if ! printf '%s\n' "$installed_components" | grep -Eq "^${component}($|-)"; then
         printf 'rustup component missing: %s\n' "$component" >&2
+        exit 0
+    fi
+done
+
+installed_targets=$("$rustup_path" target list --installed 2>/dev/null || true)
+for target in "${required_targets[@]}"; do
+    if ! printf '%s\n' "$installed_targets" | grep -Fxq "$target"; then
+        printf 'rustup target missing: %s\n' "$target" >&2
         exit 0
     fi
 done

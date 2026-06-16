@@ -2,6 +2,11 @@
 set -euo pipefail
 
 required_rustup_components=(clippy rustfmt rust-src)
+required_rustup_targets=()
+
+if [ -n "${RUSTUP_EXTRA_TARGETS:-}" ]; then
+  read -r -a required_rustup_targets <<<"$RUSTUP_EXTRA_TARGETS"
+fi
 
 pacman_available() {
   command -v pacman >/dev/null 2>&1
@@ -71,6 +76,15 @@ ensure_required_components() {
   "$rustup_path" component add "${required_rustup_components[@]}"
 }
 
+ensure_required_targets() {
+  if [ "${#required_rustup_targets[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  rustup_path="$(rustup_command)"
+  "$rustup_path" target add "${required_rustup_targets[@]}"
+}
+
 if pacman_available; then
   install_rustup_with_pacman
 
@@ -81,6 +95,7 @@ if pacman_available; then
 
   ensure_default_toolchain
   ensure_required_components
+  ensure_required_targets
   exit 0
 fi
 
@@ -88,6 +103,7 @@ if rustup_path="$(rustup_command)"; then
   echo "rustup is already installed at ${rustup_path}; skipping installer."
   ensure_default_toolchain
   ensure_required_components
+  ensure_required_targets
   exit 0
 fi
 
@@ -100,3 +116,4 @@ fi
 
 ensure_default_toolchain
 ensure_required_components
+ensure_required_targets

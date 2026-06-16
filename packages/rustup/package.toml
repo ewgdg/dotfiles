@@ -3,10 +3,10 @@ description = "Rust toolchain bootstrap"
 
 [targets.rustup_toolchain_ready]
 sync_policy = "push-only"
-probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/probe_rustup.sh"'
+probe = 'RUSTUP_EXTRA_TARGETS="{{ RUSTUP_EXTRA_TARGETS }}" bash "$DOTMAN_PACKAGE_ROOT/scripts/probe_rustup.sh"'
 
 [targets.rustup_toolchain_ready.hooks]
-pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"'
+pre_push = 'RUSTUP_EXTRA_TARGETS="{{ RUSTUP_EXTRA_TARGETS }}" bash "$DOTMAN_REPO_ROOT/scripts/install_rustup.sh"'
 
 [targets.cargo_update_installed]
 sync_policy = "push-only"
