@@ -45,7 +45,6 @@ MIN_SCALE = 1.0
 MAX_SCALE = 3.0
 HEADLESS_OUTPUT_NAME = "sunshine"
 DORMANT_OUTPUT_FPS = "60.000"
-DORMANT_OUTPUT_SCALE = "1"
 DEFAULT_NIRI_SHELL_SERVICE = "niri-shell.service"
 NIRI_SHELL_SERVICE_ENV_VAR_NAME = "NIRI_SHELL_SERVICE"
 # Dotman can render vars.niri.bin into this env var so prep uses the same
@@ -768,6 +767,9 @@ def do_output_action(
         apply_output_scale(connector, scale_to_set)
 
     if solo:
+        # Move focus before removing the previous output so Niri does not need
+        # to migrate focus while Wayland clients process monitor removal.
+        niri_msg("action", "focus-monitor", connector, check=True)
         for o in outputs:
             other = str(o.get("name") or "").strip()
             if not other or other == connector:
@@ -803,8 +805,6 @@ def park_headless_output_dormant() -> None:
             file=sys.stderr,
             flush=True,
         )
-
-    apply_output_scale(HEADLESS_OUTPUT_NAME, DORMANT_OUTPUT_SCALE)
 
 
 def disable_headless_output() -> None:

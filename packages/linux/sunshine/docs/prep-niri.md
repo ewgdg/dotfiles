@@ -3,9 +3,9 @@
 - Purpose: create/select/configure the fixed Niri virtual output `sunshine` for
   Sunshine streaming (`WxH@FPS`), optionally turn off other outputs, then
   restore by manually re-enabling connected physical outputs except ones
-  explicitly marked `off` in `cfg/output.kdl`, then turning off the
-  `sunshine` virtual output by default. `--dormant-headless` remains an
-  opt-in manual undo mode.
+  explicitly marked `off` in `cfg/output.kdl`, then parking the `sunshine`
+  virtual output dormant in the rendered Sunshine config. Manual undo without
+  `--dormant-headless` still turns the virtual output off.
 - Files:
   - `packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py`
   - `packages/linux/sunshine/files/sunshine.conf`
@@ -21,8 +21,8 @@ Run directly inside a running Niri session:
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
 - optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
 - optional host GPU pin: set `vars.niri.render_drm_device` to a stable DRM render-node path when Sunshine WLR capture and the chosen hardware encoder must stay on the same GPU
-- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo`
-- optional manual dormant teardown: append `--dormant-headless`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo --dormant-headless`
+- optional manual full teardown: omit `--dormant-headless` to turn the virtual output off
 
 ## Notes
 
@@ -31,34 +31,36 @@ Run directly inside a running Niri session:
   - `niri msg output <output> on`
   - `niri msg output <output> mode <WxH@RRR.RRR>`
   - optional: `niri msg output <output> scale <scale>` (`--scale auto` uses Niri auto scaling)
+  - optional: when `--solo` is set, focuses the selected output before turning other outputs `off`
   - optional: turns other outputs `off` when `--solo` is set
   - optional: stops `niri-shell.service` before output changes and runs `systemctl --user reset-failed niri-shell.service` immediately before starting it again when `--suspend-niri-shell` is set
 - With `--headless`, the script creates `sunshine` via IPC if needed, then
   reuses and resizes it via `custom-mode`.
 - `undo` explicitly turns back on connected outputs, skipping outputs
-  explicitly marked `off` in `cfg/output.kdl` and the `sunshine` virtual output,
-  then turns `sunshine` off by default. With `--dormant-headless`, it keeps the
-  current `sunshine` resolution, lowers refresh to `60.000`, and sets scale `1`.
-  If Niri does not report a current resolution, it skips the refresh change and
-  only applies scale.
+  explicitly marked `off` in `cfg/output.kdl` and the `sunshine` virtual output.
+  The rendered Sunshine config passes `--dormant-headless`, which keeps the
+  current `sunshine` resolution and scale, and only lowers refresh to `60.000`.
+  If Niri does not report a current resolution, it skips the refresh change.
 - Reason to park `sunshine` dormant between streams: a persistent high-refresh
   Niri virtual output is suspected to keep Niri/wlroots/NVIDIA-GSP output state
   hot while idle/disconnected, matching observed NVKMS GEM allocation spam
   during the disconnection period plus Sunshine NVENC `InitializeEncoder
   failed: out of memory (10)` / kernel `NVRM NV_ERR_NO_MEMORY` failure. Parking
   keeps `wl_output` present for client stability while reducing render/VRAM
-  pressure. Dormant mode avoids resolution churn because resizing the virtual
-  output during teardown can confuse clients that still hold output/screen state.
+  pressure. Dormant mode avoids resolution and scale churn because changing the
+  virtual output geometry during teardown can confuse clients that still hold
+  output/screen state.
 - Reason to use manual IPC instead of config reload: `niri msg action
   load-config-file` can preserve transient IPC output state when disk `outputs`
   did not change, so config reload is not a reliable stream teardown primitive.
   Manual IPC cleanup is the reliable path.
 - `sunshine.conf` uses `capture = wlr` and `output_name = sunshine` for Niri
   headless capture; non-Niri rendered configs use `capture = kms`.
-- Niri prep keeps `--solo`; `undo` limits restore churn by only re-enabling
-  non-Sunshine outputs and explicitly cleaning up the virtual Sunshine output.
-  Rendered Niri config does not pass `--dormant-headless`; dormant teardown is
-  manual opt-in only.
+- Niri prep keeps `--solo`; stream start focuses `sunshine` before disabling
+  other outputs to avoid focus migration during output removal. `undo
+  --dormant-headless` limits restore churn by only re-enabling non-Sunshine
+  outputs and lowering the virtual Sunshine output refresh instead of removing
+  its `wl_output`.
 - `--suspend-niri-shell` exists but rendered Niri config currently leaves it
   disabled. If enabled for testing, prep stops `niri-shell.service` during stream
   start/undo and runs `systemctl --user reset-failed niri-shell.service`

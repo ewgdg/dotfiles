@@ -104,7 +104,6 @@ def test_restore_manually_reenables_disabled_outputs_except_sunshine(monkeypatch
         (("output", "HDMI-A-1", "on"), True),
         (("output", "sunshine", "on"), False),
         (("output", "sunshine", "custom-mode", "3440x1440@60.000"), True),
-        (("output", "sunshine", "scale", "1"), True),
         (("kill-runtime-inhibit",), True),
     ]
 
@@ -130,7 +129,6 @@ def test_restore_preserves_configured_off_outputs(monkeypatch) -> None:
     assert calls == [
         (("output", "DP-1", "on"), True),
         (("output", "sunshine", "on"), False),
-        (("output", "sunshine", "scale", "1"), True),
     ]
 
 
@@ -183,8 +181,13 @@ def test_do_stops_niri_shell_before_headless_output_changes(monkeypatch) -> None
         suspend_niri_shell=True,
     )
 
+    focus_call = ("niri-msg", ("action", "focus-monitor", "sunshine"), True)
+    off_call = ("niri-msg", ("output", "DP-1", "off"), True)
+
     assert calls[:3] == ["require-niri", "stop-shell", "ensure-headless"]
-    assert ("niri-msg", ("output", "DP-1", "off"), True) in calls
+    assert focus_call in calls
+    assert off_call in calls
+    assert calls.index(focus_call) < calls.index(off_call)
     assert calls[-1] == "start-shell"
 
 
@@ -238,7 +241,6 @@ def test_restore_does_not_stop_niri_shell_without_flag(monkeypatch) -> None:
         ("niri-msg", ("output", "DP-1", "on"), True),
         ("niri-msg", ("output", "sunshine", "on"), False),
         ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@60.000"), True),
-        ("niri-msg", ("output", "sunshine", "scale", "1"), True),
         "kill-runtime-inhibit",
         "start-shell",
     ]
@@ -266,7 +268,6 @@ def test_restore_stops_niri_shell_around_output_restore_when_flagged(monkeypatch
         ("niri-msg", ("output", "DP-1", "on"), True),
         ("niri-msg", ("output", "sunshine", "on"), False),
         ("niri-msg", ("output", "sunshine", "custom-mode", "1920x1080@60.000"), True),
-        ("niri-msg", ("output", "sunshine", "scale", "1"), True),
         "kill-runtime-inhibit",
         "start-shell",
     ]
