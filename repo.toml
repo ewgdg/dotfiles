@@ -8,6 +8,7 @@ shared = [
     ".DS_Store",
     ".codex",
     "node_modules/",
+    ".venv/",
 ]
 pull = [
     "*.dotdropbak",

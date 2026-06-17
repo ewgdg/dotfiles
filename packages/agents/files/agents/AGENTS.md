@@ -9,6 +9,7 @@
 
 - Use soft deletion `trash-put` instead of `rm`
 - For disposable files, probes, or transient scratch data on this machine, prefer `/tmp` or `$XDG_RUNTIME_DIR` when appropriate instead of writing into regular project or user directories.
+- For durable agent-generated task outputs that do not belong in a repo, use a task-specific subdirectory under `~/.agents/outputs/YYYY-MM-DD/`.
 - For experimenting with source code, you can pull the repo to `~/sandbox`.
 - For agent-managed tools, helper artifacts, small task-local environments, or temporary installs needed to complete a task, prefer `~/.agents/tools`.
 
@@ -25,11 +26,17 @@
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
 - Use GAN style thinking frameworks
 - Use first principles thinking
+
+## Legacy Handling
+
 - Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
+- Zero tolerance to unjustified legacy code/docs
+- Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
+- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script
 
 ## Coding
 
-- Prefer modern and latest libraries and frameworks, reference docs with `context7` or `find-docs` skill
+- Prefer modern and latest libraries and frameworks, reference docs with `find-docs` skill
 - Use descriptive, intention-revealing names; prioritize readability over brevity
 - Prefer DRY code
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier
@@ -41,12 +48,6 @@
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues
 - No hard-coded values
 - No Slop; reuse or extend existing code if possible
-
-## Legacy Handling
-
-- Zero tolerance to unjustified legacy code/docs
-- Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
-- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script
 
 ## Testing
 
@@ -82,7 +83,7 @@
 - Prefer undistracting workflows: unfocused/dedicated browser windows, scoped commands, close temporary windows when done.
 - Prefer subagents for research-heavy browsing tasks so the parent agent stays focused and receives concise findings.
 
-## Skills
+## Skill Management
 
 - Use the `find-skills` skill to discover relevant skills when possible
 - Use `npx skills` to manage skills when possible
