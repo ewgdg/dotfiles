@@ -12,7 +12,8 @@
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"git:github.com/nicobailon/visual-explainer",
 		"npm:pi-mcporter",
-		"git:github.com/ewgdg/pi-subagents@main"
+		"git:github.com/ewgdg/pi-subagents@main",
+		"npm:@quintinshaw/pi-dynamic-workflows"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.4-mini",

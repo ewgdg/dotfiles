@@ -12,7 +12,7 @@ path = "~/.agents"
 
 [targets.d_agents.ignore]
 shared = [
-  "outputs/",
+  "artifacts/",
   "skills/agent-web-context/references/",
 ]
 

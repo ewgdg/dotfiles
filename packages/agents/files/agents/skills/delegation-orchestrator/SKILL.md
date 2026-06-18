@@ -27,6 +27,8 @@ Define acceptance and stop rules before implementation work.
 
 Keep one writer in a shared worktree. Parallelize only read-only labor unless writers are isolated.
 
+Prefer one focused task per delegate over bundling unrelated tasks into one worker. When work units are independent, schedule multiple delegates concurrently; if any concurrent delegate may edit files, use isolated worktrees when possible.
+
 Parent owns tradeoffs. Children may recommend, but unapproved scope/product/architecture/safety decisions must escalate.
 
 Parent synthesizes child results; do not forward child output as final judgment.
