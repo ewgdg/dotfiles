@@ -5,7 +5,7 @@ usage() {
   cat >&2 <<'USAGE'
 Usage:
   run.sh print-path
-  run.sh create --highlight <Highlight> [--author <author>]
+  run.sh create --highlight <Highlight> [--importance 1-3] [--author <author>]
 
 Actions:
   print-path  Print the journal filesystem directory.
@@ -14,6 +14,7 @@ Actions:
 Optional env:
   OBSIDIAN_JOURNAL_VAULT      Vault name (default: knowledgebase)
   JOURNAL_VAULT_RELATIVE_DIR  Journal dir inside vault (default: Streams/Journals)
+  JOURNAL_IMPORTANCE          Default importance if --importance omitted (default: 1)
   JOURNAL_AUTHOR              Author override if --author omitted
 USAGE
 }
@@ -130,11 +131,30 @@ print(relative_path.name)
 PY
 }
 
+validate_importance() {
+  local value="$1"
+  python3 - "$value" <<'PY'
+import sys
+
+raw = sys.argv[1]
+try:
+    value = float(raw)
+except ValueError:
+    print(f"Importance must be a number from 1 to 3. Got: {raw}", file=sys.stderr)
+    raise SystemExit(2)
+
+if not (1 <= value <= 3):
+    print(f"Importance must be a number from 1 to 3. Got: {raw}", file=sys.stderr)
+    raise SystemExit(2)
+PY
+}
+
 create_journal() {
   local vault_path="$1"
   shift
 
   local highlight=""
+  local importance="${JOURNAL_IMPORTANCE:-1}"
   local explicit_author="${JOURNAL_AUTHOR:-}"
 
   while [[ $# -gt 0 ]]; do
@@ -145,6 +165,14 @@ create_journal() {
           exit 2
         fi
         highlight="$2"
+        shift 2
+        ;;
+      --importance)
+        if [[ $# -lt 2 || -z "$2" ]]; then
+          usage
+          exit 2
+        fi
+        importance="$2"
         shift 2
         ;;
       --author)
@@ -170,6 +198,7 @@ create_journal() {
     usage
     exit 2
   fi
+  validate_importance "$importance"
 
   local journal="$(cat)"
   if [[ -z "$(printf '%s' "$journal" | tr -d '[:space:]')" ]]; then
@@ -187,6 +216,7 @@ create_journal() {
   if ! quickadd_output="$(obsidian vault="$vault" quickadd:run \
     choice="Journal" \
     value-Highlight="$highlight_yaml_scalar" \
+    value-Importance="$importance" \
     value-Journal="$journal" 2>&1)"; then
     printf '%s\n' "$quickadd_output" >&2
     exit 1
@@ -205,6 +235,12 @@ create_journal() {
     name="author" \
     value="$author" \
     type=text >/dev/null
+
+  obsidian vault="$vault" property:set \
+    path="$after_path" \
+    name="importance" \
+    value="$importance" \
+    type=number >/dev/null
 
   format_created_filename "$vault_path" "$journal_dir" "$after_path"
 }
