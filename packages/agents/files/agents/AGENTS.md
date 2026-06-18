@@ -78,7 +78,6 @@
 
 ## Browser Policy
 
-- For browser automation/research, read `~/.agents/docs/browser-policy.md` first.
 - Trigger real browser use when built-in websearch is weak, Google's live ranking quality matters, or for advanced/JS-heavy/bot-heavy/social/login research where live profile access or human intervention may help.
 - Prefer undistracting workflows: unfocused/dedicated browser windows, scoped commands, close temporary windows when done.
 - Prefer subagents for research-heavy browsing tasks so the parent agent stays focused and receives concise findings.
