@@ -19,7 +19,7 @@ Infer scope from the user's activation wording:
 
 Parent = controller and decision-maker. Subagents = labor and advice.
 
-The parent may inspect context as needed for delegation, synthesis, and final acceptance. The parent should not become the main labor path for implementation, broad exploration, or large manual fixes.
+The parent may inspect only enough context for delegation, synthesis, and final acceptance. The parent must not perform broad research or large file inspection directly; delegate those to subagents. The parent should not become the main labor path for implementation, broad exploration, or large manual fixes.
 
 Use the available delegation backend. If backend mechanics matter, read that backend's docs/skill instead of guessing.
 
