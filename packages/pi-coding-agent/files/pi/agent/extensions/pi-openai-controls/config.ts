@@ -90,7 +90,6 @@ function parseRawConfig(raw: JsonRecord, path: string): PartialOpenAIControlsCon
   const serviceTier = isRecord(raw.service_tier)
     ? parseServiceTierConfig(raw.service_tier, `${path}.service_tier`)
     : undefined;
-
   return {
     ...(webSearch ? { webSearch } : {}),
     ...(serviceTier ? { serviceTier } : {}),
@@ -165,7 +164,7 @@ function parseUserLocation(value: unknown, context: string): OpenAINativeWebSear
 
 function mergePartialConfig(
   base: PartialOpenAIControlsConfig,
-  override: PartialOpenAIControlsConfig
+  override: PartialOpenAIControlsConfig,
 ): PartialOpenAIControlsConfig {
   return {
     webSearch: mergeWebSearchConfig(base.webSearch, override.webSearch),
@@ -175,7 +174,7 @@ function mergePartialConfig(
 
 function mergeWebSearchConfig(
   base: Partial<WebSearchConfig> | undefined,
-  override: Partial<WebSearchConfig> | undefined
+  override: Partial<WebSearchConfig> | undefined,
 ): Partial<WebSearchConfig> | undefined {
   if (!base && !override) return undefined;
   return {
@@ -187,7 +186,7 @@ function mergeWebSearchConfig(
 
 function mergeUserLocation(
   base: OpenAINativeWebSearchUserLocation | undefined,
-  override: OpenAINativeWebSearchUserLocation | undefined
+  override: OpenAINativeWebSearchUserLocation | undefined,
 ): OpenAINativeWebSearchUserLocation | undefined {
   if (!base && !override) return undefined;
   const merged = { ...(base ?? { type: "approximate" as const }), ...(override ?? {}) };

@@ -93,7 +93,7 @@ pi(){
 
   # OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
   # ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]} \
-  # OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
+  OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
   BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
   EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
   command pi "$@"

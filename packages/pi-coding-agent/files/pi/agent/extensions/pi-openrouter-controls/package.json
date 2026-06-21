@@ -1,0 +1,8 @@
+{
+  "name": "pi-openrouter-controls",
+  "private": true,
+  "description": "Personal pi extension for OpenRouter provider controls.",
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

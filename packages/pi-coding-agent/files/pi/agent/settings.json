@@ -1,6 +1,6 @@
 {
-	"defaultProvider": "openai-codex",
-	"defaultModel": "gpt-5.5",
+	"defaultProvider": "openrouter",
+	"defaultModel": "deepseek/deepseek-v4-flash",
 	"packages": [
 		{
 			"source": "npm:@howaboua/pi-codex-conversion",

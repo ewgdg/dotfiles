@@ -19,15 +19,6 @@
       "installedAt": "2026-03-15T08:42:24.524Z",
       "updatedAt": "2026-03-15T08:42:24.524Z"
     },
-    "using-git-worktrees": {
-      "source": "obra/superpowers",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/obra/superpowers.git",
-      "skillPath": "skills/using-git-worktrees/SKILL.md",
-      "skillFolderHash": "069a24665c6ce34ca78da57727c84e3c05e65c76",
-      "installedAt": "2026-04-12T05:57:16.123Z",
-      "updatedAt": "2026-06-19T07:34:51.815Z"
-    },
     "find-docs": {
       "source": "upstash/context7",
       "sourceType": "github",

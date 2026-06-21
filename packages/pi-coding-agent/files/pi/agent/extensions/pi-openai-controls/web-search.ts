@@ -43,8 +43,12 @@ export function rewriteOpenAINativeWebSearchTools(
   payload: unknown,
   mode: WebSearchMode,
   model: CurrentModel,
-  config: WebSearchConfig
+  config: WebSearchConfig,
 ): unknown {
+  if (!isRecord(payload) || !Array.isArray(payload.tools)) {
+    return undefined;
+  }
+
   if (!isOpenAICodexModel(model) || !isRecord(payload) || !Array.isArray(payload.tools)) {
     return undefined;
   }
@@ -80,7 +84,7 @@ function isOpenAINativeWebSearchTool(tool: unknown): boolean {
 function buildOpenAINativeWebSearchTool(
   mode: Exclude<WebSearchMode, "disabled">,
   model: CurrentModel,
-  config: WebSearchConfig
+  config: WebSearchConfig,
 ): OpenAINativeWebSearchTool {
   const defaultContentTypes = supportsTextAndImageSearch(model) ? ["text", "image"] : undefined;
 
@@ -97,3 +101,4 @@ function buildOpenAINativeWebSearchTool(
         : {}),
   };
 }
+
