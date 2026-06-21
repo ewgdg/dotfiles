@@ -1,6 +1,6 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { formatServiceTierStatus, getSupportedProviderServiceTier } from "./service-tier";
-import { isOpenAIResponsesPayloadModel } from "./model";
+import { isOpenAIProviderModel, isOpenAIResponsesPayloadModel } from "./model";
 import type { OpenAIControlsConfig, OpenAIControlsState, ServiceTier } from "./types";
 import { shouldEnableWebSearch } from "./web-search";
 
@@ -14,6 +14,12 @@ export function updateOpenAIControlsStatus(
   _config: OpenAIControlsConfig
 ): void {
   if (!ctx.hasUI) return;
+
+  if (!isOpenAIProviderModel(ctx.model)) {
+    ctx.ui.setStatus(WEB_SEARCH_STATUS_KEY, undefined);
+    ctx.ui.setStatus(SERVICE_TIER_STATUS_KEY, undefined);
+    return;
+  }
 
   ctx.ui.setStatus(
     WEB_SEARCH_STATUS_KEY,

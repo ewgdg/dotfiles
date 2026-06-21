@@ -114,6 +114,19 @@ function isOpenRouterModel(model: ExtensionContext["model"]): boolean {
   return (model?.provider ?? "").toLowerCase() === "openrouter";
 }
 
+function updateOpenRouterControlsStatus(ctx: ExtensionContext, config: OpenRouterControlsConfig): void {
+  if (!ctx.hasUI) return;
+
+  const status = isOpenRouterModel(ctx.model)
+    ? [
+        config.openrouter.webSearch ? "🌐search" : undefined,
+        config.openrouter.webFetch ? "🌐fetch" : undefined,
+      ].filter(Boolean).join(" ")
+    : "";
+
+  ctx.ui.setStatus("00-openrouter-controls", status || undefined);
+}
+
 function areStringArraysEqual(left: unknown, right: unknown): boolean {
   if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
     return false;
@@ -181,14 +194,11 @@ export default function openRouterControls(pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     config = loadConfig(ctx.cwd);
-    if (ctx.hasUI) {
-      const status = [
-        config.openrouter.webSearch ? "🌐search" : undefined,
-        config.openrouter.webFetch ? "📄fetch" : undefined,
-        config.openrouter.quantizations?.length ? `q:${config.openrouter.quantizations.length}` : undefined,
-      ].filter(Boolean).join(" ");
-      ctx.ui.setStatus("00-openrouter-controls", status || undefined);
-    }
+    updateOpenRouterControlsStatus(ctx, config);
+  });
+
+  pi.on("model_select", async (_event, ctx) => {
+    updateOpenRouterControlsStatus(ctx, config);
   });
 
   pi.on("before_provider_request", async (event, ctx) => {
@@ -206,6 +216,7 @@ export default function openRouterControls(pi: ExtensionAPI) {
 
       if (action === "reload") {
         config = loadConfig(ctx.cwd);
+        updateOpenRouterControlsStatus(ctx, config);
         ctx.ui.notify("OpenRouter controls reloaded", "info");
         return;
       }
