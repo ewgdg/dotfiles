@@ -3,7 +3,6 @@ description = "External CLIs for AI agent workflows"
 
 depends = [
   "go-lang",
-  "nodejs",
 ]
 
 [targets.crit_latest]
@@ -13,10 +12,3 @@ probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_crit_update.sh"'
 [targets.crit_latest.hooks]
 # Root module releases currently contain no package; CLI main lives under cmd/crit.
 pre_push = "go install github.com/tomasz-tomczyk/crit/cmd/crit@latest"
-
-[targets.surf_cli_latest]
-sync_policy = "push-only"
-probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_surf_cli_update.sh"'
-
-[targets.surf_cli_latest.hooks]
-pre_push = "{{ NPM_INSTALL }} surf-cli"
