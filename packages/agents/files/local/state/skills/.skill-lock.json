@@ -24,9 +24,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/using-git-worktrees/SKILL.md",
-      "skillFolderHash": "13a9643fb9e4b236173f7d4b56b15dac10394f1b",
+      "skillFolderHash": "069a24665c6ce34ca78da57727c84e3c05e65c76",
       "installedAt": "2026-04-12T05:57:16.123Z",
-      "updatedAt": "2026-05-06T04:39:20.219Z"
+      "updatedAt": "2026-06-19T07:34:51.815Z"
     },
     "find-docs": {
       "source": "upstash/context7",
@@ -51,10 +51,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/grill-me/SKILL.md",
-      "skillFolderHash": "2a1ad17028306ebe45f0e49703fa28b9b2e7f499",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "8320e7b87f7b208f50ce165b1dd43d1e93c8e801",
       "installedAt": "2026-04-29T07:01:28.678Z",
-      "updatedAt": "2026-04-29T07:01:28.678Z"
+      "updatedAt": "2026-06-19T07:34:52.998Z"
     },
     "google-surf-mcp-search": {
       "source": "aradotso/mcp-skills",
@@ -75,41 +74,13 @@
       "updatedAt": "2026-06-01T07:54:40.910Z"
     },
     "caveman": {
-      "source": "mattpocock/skills",
+      "source": "juliusbrussee/caveman",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/mattpocock/skills.git",
-      "skillPath": "skills/productivity/caveman/SKILL.md",
-      "skillFolderHash": "17972a1bdbf5909b9dbdc435ad348f0bf45f8664",
-      "pluginName": "mattpocock-skills",
+      "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
+      "skillPath": "skills/caveman/SKILL.md",
+      "skillFolderHash": "a22aa2a0a64d7d4b7b59bbddbdb865fedfb40d9c",
       "installedAt": "2026-06-03T06:07:20.142Z",
-      "updatedAt": "2026-06-03T06:07:20.142Z"
-    },
-    "surf": {
-      "source": "nicobailon/surf-cli",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/nicobailon/surf-cli.git",
-      "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "d1ae9a031c8f47f0360ccfaea2010af5899a604e",
-      "installedAt": "2026-06-03T07:34:54.948Z",
-      "updatedAt": "2026-06-03T07:34:54.948Z"
-    },
-    "crit": {
-      "source": "tomasz-tomczyk/crit",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/tomasz-tomczyk/crit.git",
-      "skillPath": "integrations/claude-code/skills/crit/SKILL.md",
-      "skillFolderHash": "2413d82e161071f4341a24ba0c99d5ef27cb7925",
-      "installedAt": "2026-06-03T08:06:07.134Z",
-      "updatedAt": "2026-06-03T08:06:26.812Z"
-    },
-    "crit-cli": {
-      "source": "tomasz-tomczyk/crit",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/tomasz-tomczyk/crit.git",
-      "skillPath": "integrations/claude-code/skills/crit-cli/SKILL.md",
-      "skillFolderHash": "6ed3a67683b8d4b09c78314354fb916510bcab29",
-      "installedAt": "2026-06-03T08:06:07.135Z",
-      "updatedAt": "2026-06-03T08:06:26.813Z"
+      "updatedAt": "2026-06-19T07:38:01.587Z"
     }
   },
   "dismissed": {

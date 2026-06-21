@@ -97,8 +97,8 @@ window-rule {
 }
 
 window-rule {
-    // Surf's dedicated agent window created by `surf window.new --unfocused`.
-    match app-id="google-chrome" title=r#"(?i)Surf Agent"#
+    match app-id=r#"(?i)^chrome-.*Surf%20Agent.*"#
+    match app-id="surf-agent"
     open-on-workspace "stash"
     open-focused false
     open-maximized true
