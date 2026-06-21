@@ -1,0 +1,8 @@
+{
+  "web_search": {
+    "mode": "live"
+  },
+  "service_tier": {
+    "default": "auto"
+  }
+}

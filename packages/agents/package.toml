@@ -19,10 +19,3 @@ shared = [
 [targets.f_local_state_skills_skill_lock_json]
 source = "files/local/state/skills/.skill-lock.json"
 path = "~/.local/state/skills/.skill-lock.json"
-
-[hooks]
-pre_push = [
-  'mkdir -p "$HOME/.codex" "$HOME/.claude" "$HOME/.pi/agent"',
-  "{{ NPM_INSTALL }} @earendil-works/pi-coding-agent",
-]
-post_push = []
