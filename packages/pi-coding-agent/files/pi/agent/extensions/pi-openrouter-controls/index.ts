@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -5,6 +6,8 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 
 const COMMAND_NAME = "openrouter-controls";
 const CONFIG_FILE_NAME = "pi-openrouter-controls.json";
+const MAX_OPENROUTER_SESSION_ID_LENGTH = 256;
+const VALID_OPENROUTER_QUANTIZATIONS = new Set(["int4", "int8", "fp4", "fp6", "fp8", "fp16", "bf16", "fp32"]);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -37,27 +40,33 @@ function readJsonObjectFile(path: string): JsonRecord {
   return parsed;
 }
 
-function parseStringArray(value: unknown, context: string): string[] | undefined {
+function parseQuantizations(value: unknown, context: string): string[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) throw new Error(`${context} must be an array of strings`);
 
-  const items = value.map((item, index) => {
+  return value.map((item, index) => {
     if (typeof item !== "string") throw new Error(`${context}[${index}] must be a string`);
-    return item.trim();
-  }).filter(Boolean);
 
-  return items.length > 0 ? items : undefined;
+    const quantization = item.trim().toLowerCase();
+    if (!quantization) throw new Error(`${context}[${index}] must be a non-empty string`);
+    if (!VALID_OPENROUTER_QUANTIZATIONS.has(quantization)) {
+      throw new Error(
+        `${context}[${index}] must be one of: ${Array.from(VALID_OPENROUTER_QUANTIZATIONS).join(", ")}`,
+      );
+    }
+    return quantization;
+  });
 }
 
 function parseRawConfig(raw: JsonRecord, path: string): Partial<OpenRouterControlsConfig> {
   const openrouter = isRecord(raw.openrouter) ? raw.openrouter : undefined;
   if (!openrouter) return {};
 
-  const quantizations = parseStringArray(openrouter.quantizations, `${path}.openrouter.quantizations`);
+  const quantizations = parseQuantizations(openrouter.quantizations, `${path}.openrouter.quantizations`);
 
   return {
     openrouter: {
-      ...(quantizations ? { quantizations } : {}),
+      ...(quantizations !== undefined ? { quantizations } : {}),
     },
   };
 }
@@ -77,7 +86,7 @@ function mergePartialConfig(
 function normalizeConfig(config: Partial<OpenRouterControlsConfig>): OpenRouterControlsConfig {
   return {
     openrouter: {
-      ...(config.openrouter?.quantizations ? { quantizations: config.openrouter.quantizations } : {}),
+      ...(config.openrouter?.quantizations !== undefined ? { quantizations: config.openrouter.quantizations } : {}),
     },
   };
 }
@@ -104,22 +113,39 @@ function areStringArraysEqual(left: unknown, right: unknown): boolean {
   return left.every((value, index) => value === right[index]);
 }
 
+function getSessionId(ctx: ExtensionContext): string | undefined {
+  const sessionId = ctx.sessionManager.getSessionId().trim();
+  if (!sessionId) return undefined;
+
+  // OpenRouter rejects session_id values longer than 256 chars; hash custom pi IDs that exceed it.
+  if (sessionId.length > MAX_OPENROUTER_SESSION_ID_LENGTH) {
+    return `pi-${createHash("sha256").update(sessionId).digest("hex")}`;
+  }
+
+  return sessionId;
+}
+
 function rewritePayload(payload: unknown, ctx: ExtensionContext, config: OpenRouterControlsConfig): unknown {
   if (!isOpenRouterModel(ctx.model) || !isRecord(payload)) {
     return undefined;
   }
 
-  if (!config.openrouter.quantizations || config.openrouter.quantizations.length === 0) {
-    return undefined;
+  let nextPayload: JsonRecord = payload;
+
+  const sessionId = getSessionId(ctx);
+  if (sessionId && payload.session_id !== sessionId) {
+    nextPayload = { ...nextPayload, session_id: sessionId };
   }
 
-  const currentProvider = isRecord(payload.provider) ? payload.provider : {};
-  const nextProvider = { ...currentProvider, quantizations: config.openrouter.quantizations };
-  if (areStringArraysEqual(currentProvider.quantizations, nextProvider.quantizations)) {
-    return undefined;
+  if (config.openrouter.quantizations && config.openrouter.quantizations.length > 0) {
+    const currentProvider = isRecord(nextPayload.provider) ? nextPayload.provider : {};
+    const nextProvider = { ...currentProvider, quantizations: config.openrouter.quantizations };
+    if (!areStringArraysEqual(currentProvider.quantizations, nextProvider.quantizations)) {
+      nextPayload = { ...nextPayload, provider: nextProvider };
+    }
   }
 
-  return { ...payload, provider: nextProvider };
+  return nextPayload === payload ? undefined : nextPayload;
 }
 
 function formatStatus(config: OpenRouterControlsConfig, cwd: string): string {

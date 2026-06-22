@@ -27,8 +27,8 @@ If cheap-agent output is uncertain, weak, or failing validation, escalate to a s
 ### Cheap Models
 
 - DeepSeek latest flash model with high thinking
-- OpenAI latest GPT mini model with high thinking
-- OpenAI latest GPT model with low thinking
+- OpenAI Codex latest GPT mini model with high thinking
+- OpenAI Codex latest GPT model with low thinking
 
 ## Core Rules
 
@@ -36,7 +36,7 @@ Parent = controller and decision-maker. Subagents = labor and advice.
 
 Parent may carry some light work after deciding they are too small to delegate. Parent may directly answer user query if no extra work is needed.
 
-The parent may inspect only enough context for delegation, synthesis, and final acceptance. The parent must not perform broad research or large file inspection directly; delegate those to subagents. The parent should not become the main labor path for implementation, broad exploration, or large manual fixes.
+The parent may inspect only enough context for delegation, synthesis, and final acceptance. The parent must not perform broad research or large file inspection directly; delegate those to subagents. The parent should not become the main labor path for implementation, broad exploration, or non-trivial manual fixes.
 
 Use the available delegation backend. If backend mechanics matter, read that backend's docs/skill instead of guessing.
 
