@@ -1,3 +1,0 @@
-interface:
-  display_name: "Agent Web Context"
-  short_description: "Search, browse, and extract web content via the agent-web-context HTTP API"

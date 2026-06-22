@@ -5,19 +5,14 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 
 const COMMAND_NAME = "openrouter-controls";
 const CONFIG_FILE_NAME = "pi-openrouter-controls.json";
-const SERVER_TOOL_SEARCH = "openrouter:web_search";
-const SERVER_TOOL_FETCH = "openrouter:web_fetch";
 
 type JsonRecord = Record<string, unknown>;
 
 type OpenRouterControlsConfig = {
   openrouter: {
     quantizations?: string[];
-    webSearch?: boolean;
-    webFetch?: boolean;
   };
 };
-
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -54,25 +49,15 @@ function parseStringArray(value: unknown, context: string): string[] | undefined
   return items.length > 0 ? items : undefined;
 }
 
-function parseBoolean(value: unknown, context: string): boolean | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "boolean") throw new Error(`${context} must be a boolean`);
-  return value;
-}
-
 function parseRawConfig(raw: JsonRecord, path: string): Partial<OpenRouterControlsConfig> {
   const openrouter = isRecord(raw.openrouter) ? raw.openrouter : undefined;
   if (!openrouter) return {};
 
   const quantizations = parseStringArray(openrouter.quantizations, `${path}.openrouter.quantizations`);
-  const webSearch = parseBoolean(openrouter.web_search, `${path}.openrouter.web_search`);
-  const webFetch = parseBoolean(openrouter.web_fetch, `${path}.openrouter.web_fetch`);
 
   return {
     openrouter: {
       ...(quantizations ? { quantizations } : {}),
-      ...(webSearch !== undefined ? { webSearch } : {}),
-      ...(webFetch !== undefined ? { webFetch } : {}),
     },
   };
 }
@@ -93,8 +78,6 @@ function normalizeConfig(config: Partial<OpenRouterControlsConfig>): OpenRouterC
   return {
     openrouter: {
       ...(config.openrouter?.quantizations ? { quantizations: config.openrouter.quantizations } : {}),
-      ...(config.openrouter?.webSearch !== undefined ? { webSearch: config.openrouter.webSearch } : {}),
-      ...(config.openrouter?.webFetch !== undefined ? { webFetch: config.openrouter.webFetch } : {}),
     },
   };
 }
@@ -114,19 +97,6 @@ function isOpenRouterModel(model: ExtensionContext["model"]): boolean {
   return (model?.provider ?? "").toLowerCase() === "openrouter";
 }
 
-function updateOpenRouterControlsStatus(ctx: ExtensionContext, config: OpenRouterControlsConfig): void {
-  if (!ctx.hasUI) return;
-
-  const status = isOpenRouterModel(ctx.model)
-    ? [
-        config.openrouter.webSearch ? "🌐search" : undefined,
-        config.openrouter.webFetch ? "🌐fetch" : undefined,
-      ].filter(Boolean).join(" ")
-    : "";
-
-  ctx.ui.setStatus("00-openrouter-controls", status || undefined);
-}
-
 function areStringArraysEqual(left: unknown, right: unknown): boolean {
   if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
     return false;
@@ -139,43 +109,17 @@ function rewritePayload(payload: unknown, ctx: ExtensionContext, config: OpenRou
     return undefined;
   }
 
-  let nextPayload = payload;
-  let changed = false;
-
-  if (config.openrouter.quantizations && config.openrouter.quantizations.length > 0) {
-    const currentProvider = isRecord(nextPayload.provider) ? nextPayload.provider : {};
-    const nextProvider = { ...currentProvider, quantizations: config.openrouter.quantizations };
-    if (!areStringArraysEqual(currentProvider.quantizations, nextProvider.quantizations)) {
-      nextPayload = { ...nextPayload, provider: nextProvider };
-      changed = true;
-    }
+  if (!config.openrouter.quantizations || config.openrouter.quantizations.length === 0) {
+    return undefined;
   }
 
-  const desiredTools: Array<{ type: string }> = [];
-  if (config.openrouter.webSearch) desiredTools.push({ type: SERVER_TOOL_SEARCH });
-  if (config.openrouter.webFetch) desiredTools.push({ type: SERVER_TOOL_FETCH });
-
-  if (desiredTools.length > 0) {
-    const currentTools = Array.isArray(nextPayload.tools) ? nextPayload.tools : [];
-    const currentToolTypes = new Set(
-      currentTools.flatMap((tool) => (isRecord(tool) && typeof tool.type === "string" ? [tool.type] : [])),
-    );
-    const mergedTools = [...currentTools];
-
-    for (const tool of desiredTools) {
-      if (!currentToolTypes.has(tool.type)) {
-        mergedTools.push(tool);
-        currentToolTypes.add(tool.type);
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      nextPayload = { ...nextPayload, tools: mergedTools };
-    }
+  const currentProvider = isRecord(payload.provider) ? payload.provider : {};
+  const nextProvider = { ...currentProvider, quantizations: config.openrouter.quantizations };
+  if (areStringArraysEqual(currentProvider.quantizations, nextProvider.quantizations)) {
+    return undefined;
   }
 
-  return changed ? nextPayload : undefined;
+  return { ...payload, provider: nextProvider };
 }
 
 function formatStatus(config: OpenRouterControlsConfig, cwd: string): string {
@@ -183,8 +127,6 @@ function formatStatus(config: OpenRouterControlsConfig, cwd: string): string {
     `OpenRouter controls`,
     `Config: ${getConfigPaths(cwd).join(", ")}`,
     `quantizations: ${config.openrouter.quantizations?.join(", ") || "(none)"}`,
-    `web_search: ${config.openrouter.webSearch ? "on" : "off"}`,
-    `web_fetch: ${config.openrouter.webFetch ? "on" : "off"}`,
   ];
   return lines.join("\n");
 }
@@ -194,11 +136,6 @@ export default function openRouterControls(pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     config = loadConfig(ctx.cwd);
-    updateOpenRouterControlsStatus(ctx, config);
-  });
-
-  pi.on("model_select", async (_event, ctx) => {
-    updateOpenRouterControlsStatus(ctx, config);
   });
 
   pi.on("before_provider_request", async (event, ctx) => {
@@ -216,7 +153,6 @@ export default function openRouterControls(pi: ExtensionAPI) {
 
       if (action === "reload") {
         config = loadConfig(ctx.cwd);
-        updateOpenRouterControlsStatus(ctx, config);
         ctx.ui.notify("OpenRouter controls reloaded", "info");
         return;
       }

@@ -1,7 +1,5 @@
 {
   "openrouter": {
-    "quantizations": ["fp8", "fp16", "bf16", "fp32"],
-    "web_search": true,
-    "web_fetch": true
+    "quantizations": ["fp8", "fp16", "bf16", "fp32"]
   }
 }

@@ -1,6 +1,7 @@
 default_command_elevation = "intercept"
 
 [ignore]
+gitignore = ["push", "pull"]
 shared = [
     "*.archived",
     "*.bak",

@@ -4,11 +4,7 @@ OpenRouter-only pi extension.
 
 ## Features
 
-- Restrict OpenRouter routing by quantizations
-- Enable native OpenRouter server tools directly in request payload
-  - `openrouter:web_search`
-  - `openrouter:web_fetch`
-- No synthetic prompt tool needed; Pi still sees the server tools in `tools` payload.
+- Restrict OpenRouter routing by quantizations.
 
 ## Config
 
@@ -22,9 +18,7 @@ JSON uses snake_case.
 ```json
 {
   "openrouter": {
-    "quantizations": ["bf16", "fp16"],
-    "web_search": true,
-    "web_fetch": false
+    "quantizations": ["bf16", "fp16"]
   }
 }
 ```
@@ -38,8 +32,3 @@ JSON uses snake_case.
 
 Edit JSON manually, then run `/openrouter-controls reload`.
 
-## Notes
-
-- `openrouter:web_search` = search only.
-- `openrouter:web_fetch` = fetch/extract page or PDF content.
-- `quantizations` is forwarded to OpenRouter's request `provider` filter.
