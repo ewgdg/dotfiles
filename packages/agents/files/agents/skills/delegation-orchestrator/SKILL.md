@@ -26,9 +26,12 @@ If cheap-agent output is uncertain, weak, or failing validation, escalate to a s
 
 ### Cheap Models
 
-- DeepSeek latest flash model with high thinking
-- OpenAI Codex latest GPT mini model with high thinking
-- OpenAI Codex latest GPT model with low thinking
+always pick latest models of the same family, unless explicitly stated otherwise.
+latest models means models with largest version number from the scoped model list.
+
+- DeepSeek flash model with high thinking
+- OpenAI Codex GPT mini model with high thinking
+- OpenAI Codex GPT model with low thinking
 
 ## Core Rules
 

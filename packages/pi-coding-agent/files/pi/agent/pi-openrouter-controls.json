@@ -1,5 +1,0 @@
-{
-  "openrouter": {
-    "quantizations": ["fp8", "fp16", "bf16", "fp32"]
-  }
-}
