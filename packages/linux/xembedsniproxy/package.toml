@@ -10,7 +10,7 @@ git_url = "https://somegit.dev/vikingowl/xembed-sni-proxy.git"
 
 [targets.xembed_sni_proxy_update]
 sync_policy = "push-only"
-probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_xembed_sni_proxy_update.sh" "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy'
+probe = 'test -x "$HOME/.cargo/bin/xembed-sni-proxy" && exit 100 || exit 0'
 
 [targets.xembed_sni_proxy_update.hooks]
 pre_push = 'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy'
