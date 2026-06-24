@@ -2,7 +2,7 @@
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
 // ksecretd is D-Bus activated by the KWallet Secret portal / Secret Service override.
-// spawn-at-startup "ksecretd"
+spawn-at-startup "ksecretd"
 // DMS provides its own UI integrations (launcher, lock screen, notifications, etc).
 // Start it once per session.
 // spawn-at-startup "dms" "run"

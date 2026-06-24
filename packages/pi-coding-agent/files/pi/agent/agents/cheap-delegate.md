@@ -1,7 +1,7 @@
 ---
 name: cheap-delegate
 description: Low-cost delegate for clear, simple, low-reasoning tasks where the user explicitly wants cost saving.
-model: openrouter/deepseek/deepseek-v4-flash
+model: deepseek/deepseek-v4-flash
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: false

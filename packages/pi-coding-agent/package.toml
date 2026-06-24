@@ -23,6 +23,8 @@ shared = [
   "run-history.jsonl",
   "sessions/",
   "trust.json",
+  # prefer ~/.agents/skills
+  "skills"
 ]
 
 [[targets.d_pi_agent.path_rules]]
