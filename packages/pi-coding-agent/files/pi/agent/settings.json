@@ -11,7 +11,7 @@
 		"npm:pi-mcporter",
 		"git:github.com/ewgdg/pi-subagents@main",
 		"npm:@quintinshaw/pi-dynamic-workflows",
-		"git:github.com/ewgdg/pi-hashline-patch"
+		"git:github.com/ewgdg/pi-locator-patch"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.4-mini",
