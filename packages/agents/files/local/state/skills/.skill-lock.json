@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/skills.git",
       "skillPath": "skills/find-skills/SKILL.md",
-      "skillFolderHash": "3013fdeb8a11b10b1eb795ec3ae8bfca38f7c26d",
+      "skillFolderHash": "eb6a23305aea6e340d14b9de3766e721f9f4861b",
       "installedAt": "2026-02-20T05:20:53.980Z",
-      "updatedAt": "2026-03-15T00:25:08.051Z"
+      "updatedAt": "2026-06-24T03:37:23.536Z"
     },
     "obsidian-cli": {
       "source": "kepano/obsidian-skills",
@@ -55,15 +55,6 @@
       "installedAt": "2026-06-01T06:32:15.719Z",
       "updatedAt": "2026-06-01T06:32:15.719Z"
     },
-    "agent-browser": {
-      "source": "vercel-labs/agent-browser",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
-      "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "c1470a475a0472fceda2401ea6763708a91680a8",
-      "installedAt": "2026-06-01T07:54:40.910Z",
-      "updatedAt": "2026-06-01T07:54:40.910Z"
-    },
     "caveman": {
       "source": "juliusbrussee/caveman",
       "sourceType": "github",
@@ -72,6 +63,24 @@
       "skillFolderHash": "a22aa2a0a64d7d4b7b59bbddbdb865fedfb40d9c",
       "installedAt": "2026-06-03T06:07:20.142Z",
       "updatedAt": "2026-06-19T07:38:01.587Z"
+    },
+    "surf": {
+      "source": "ewgdg/browser-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
+      "skillPath": "skills/surf/SKILL.md",
+      "skillFolderHash": "83540807f95a1ddca4830db3ea945d93a5c2bab2",
+      "installedAt": "2026-06-24T02:59:13.555Z",
+      "updatedAt": "2026-06-24T06:46:56.450Z"
+    },
+    "surf-chatgpt": {
+      "source": "ewgdg/browser-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
+      "skillPath": "skills/surf-chatgpt/SKILL.md",
+      "skillFolderHash": "4b18d332edbb09b2a7d4b04d3d3fad97d45e0466",
+      "installedAt": "2026-06-24T02:59:13.556Z",
+      "updatedAt": "2026-06-24T06:47:38.829Z"
     }
   },
   "dismissed": {
