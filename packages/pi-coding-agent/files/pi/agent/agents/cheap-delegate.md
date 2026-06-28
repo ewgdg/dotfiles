@@ -4,7 +4,7 @@ description: Low-cost delegate for clear, simple, low-reasoning tasks where the 
 model: deepseek/deepseek-v4-flash
 thinking: high
 systemPromptMode: replace
-inheritProjectContext: false
+inheritProjectContext: true
 inheritSkills: false
 defaultContext: fresh
 maxSubagentDepth: 0
