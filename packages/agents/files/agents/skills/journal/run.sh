@@ -16,6 +16,8 @@ Optional env:
   JOURNAL_VAULT_RELATIVE_DIR  Journal dir inside vault (default: Streams/Journals)
   JOURNAL_IMPORTANCE          Default importance if --importance omitted (default: 1)
   JOURNAL_AUTHOR              Author override if --author omitted
+  JOURNAL_CREATE_PATH_RETRIES Attempts to wait for Obsidian to index created note (default: 10)
+  JOURNAL_CREATE_PATH_SLEEP   Delay between path lookup attempts (default: 0.5)
 USAGE
 }
 
@@ -101,6 +103,24 @@ detect_author() {
 latest_journal_path() {
   obsidian vault="$vault" eval code="const journalDir = '$journal_vault_relative_dir'.replace(/\\/+$/, ''); const prefix = journalDir + '/'; const f = app.vault.getMarkdownFiles().filter(f => f.path.startsWith(prefix) && f.name !== 'Journals.md').sort((a, b) => b.stat.ctime - a.stat.ctime)[0]; f ? f.path : '';" \
     </dev/null | strip_obsidian_eval_prefix
+}
+
+wait_for_new_journal_path() {
+  local before_path="$1"
+  local retries="${JOURNAL_CREATE_PATH_RETRIES:-10}"
+  local sleep_seconds="${JOURNAL_CREATE_PATH_SLEEP:-0.5}"
+  local after_path=""
+
+  for ((attempt = 1; attempt <= retries; attempt++)); do
+    after_path="$(latest_journal_path)"
+    if [[ -n "$after_path" && "$after_path" != "$before_path" ]]; then
+      printf '%s\n' "$after_path"
+      return 0
+    fi
+    sleep "$sleep_seconds"
+  done
+
+  return 1
 }
 
 format_created_filename() {
@@ -222,9 +242,8 @@ create_journal() {
     exit 1
   fi
 
-  local after_path="$(latest_journal_path)"
-
-  if [[ -z "$after_path" || "$after_path" == "$before_path" ]]; then
+  local after_path=""
+  if ! after_path="$(wait_for_new_journal_path "$before_path")"; then
     printf '%s\n' "$quickadd_output" >&2
     printf 'Could not identify newly created journal path; author not set.\n' >&2
     exit 1
@@ -235,12 +254,6 @@ create_journal() {
     name="author" \
     value="$author" \
     type=text >/dev/null
-
-  obsidian vault="$vault" property:set \
-    path="$after_path" \
-    name="importance" \
-    value="$importance" \
-    type=number >/dev/null
 
   format_created_filename "$vault_path" "$journal_dir" "$after_path"
 }

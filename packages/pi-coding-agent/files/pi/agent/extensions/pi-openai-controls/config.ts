@@ -13,7 +13,7 @@ import type {
 } from "./types";
 import { isRecord, type JsonRecord } from "./types";
 
-export const CONFIG_FILE_NAME = "pi-openai-controls.json";
+export const CONFIG_RELATIVE_PATH = join("extensions", "pi-openai-controls", "config.json");
 
 const WEB_SEARCH_MODE_ALIASES: Record<string, WebSearchMode> = {
   disabled: "disabled",
@@ -37,18 +37,18 @@ export function parseWebSearchMode(value: string | undefined): WebSearchMode {
 }
 
 export function loadOpenAIControlsConfig(cwd: string = process.cwd()): OpenAIControlsConfig {
-  const globalConfig = readConfigFile(join(getAgentDir(), CONFIG_FILE_NAME));
-  const projectConfig = readConfigFile(join(cwd, ".pi", CONFIG_FILE_NAME));
+  const globalConfig = readConfigFile(join(getAgentDir(), CONFIG_RELATIVE_PATH));
+  const projectConfig = readConfigFile(join(cwd, ".pi", CONFIG_RELATIVE_PATH));
   return normalizeConfig(mergePartialConfig(globalConfig, projectConfig));
 }
 
 export function getConfigSearchPaths(cwd: string): string[] {
-  return [join(getAgentDir(), CONFIG_FILE_NAME), join(cwd, ".pi", CONFIG_FILE_NAME)];
+  return [join(getAgentDir(), CONFIG_RELATIVE_PATH), join(cwd, ".pi", CONFIG_RELATIVE_PATH)];
 }
 
 export function getWritableConfigPath(cwd: string): string {
-  const projectConfigPath = join(cwd, ".pi", CONFIG_FILE_NAME);
-  return existsSync(projectConfigPath) ? projectConfigPath : join(getAgentDir(), CONFIG_FILE_NAME);
+  const projectConfigPath = join(cwd, ".pi", CONFIG_RELATIVE_PATH);
+  return existsSync(projectConfigPath) ? projectConfigPath : join(getAgentDir(), CONFIG_RELATIVE_PATH);
 }
 
 export function saveOpenAIControlsStateToConfig(cwd: string, state: OpenAIControlsState): string {

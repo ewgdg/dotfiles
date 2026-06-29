@@ -43,8 +43,8 @@ Runtime command changes are written to JSON config immediately, so they survive 
 
 Config files, lower priority first:
 
-1. Global agent config: `pi-openai-controls.json`
-2. Project config: `.pi/pi-openai-controls.json`
+1. Global agent config: `extensions/pi-openai-controls/config.json`
+2. Project config: `.pi/extensions/pi-openai-controls/config.json`
 
 Project config overrides global config. JSON uses snake_case.
 
