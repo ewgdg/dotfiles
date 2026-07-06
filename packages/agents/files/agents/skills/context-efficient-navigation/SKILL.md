@@ -13,6 +13,12 @@ Save tokens without skipping needed verification. Prefer narrow, evidence-first 
 
 ## Search-First Workflow
 
+Apply when answer depends on finding a few relevant sections among many candidates or large chunks.
+
+Large or fast-changing files need narrowing first.
+
+Avoid dumping whole logs, lockfiles, generated bundles, snapshots, coverage reports, or minified files unless the whole artifact is genuinely needed.
+
 1. Start with targeted discovery:
    - `rg --files`
    - `rg "literal text"`
@@ -26,21 +32,6 @@ Save tokens without skipping needed verification. Prefer narrow, evidence-first 
    - callers/callees
    - adjacent modules
    - tests covering same behavior
-
-## Logs and Generated Artifacts
-
-Large or fast-changing files need narrowing first.
-
-Prefer:
-
-- `rg "ERROR|WARN|panic|Traceback" log`
-- `tail -n 200 log`
-- `head -n 80 log`
-- `sed -n 'START,ENDp' log`
-- `ls -lh` to spot huge files
-- `wc -l` to estimate read cost
-
-Avoid dumping whole logs, lockfiles, generated bundles, snapshots, coverage reports, or minified files unless the whole artifact is genuinely needed.
 
 ## Structural Code Questions
 
@@ -63,15 +54,6 @@ Use direct text search first for:
 - small unambiguous matches
 - simple literal lookups
 - cases where `cgc` is unavailable or too noisy
-
-## Large Retrieval Tasks
-
-When answer depends on finding a few relevant sections among many candidates:
-
-- prefer available indexing/search workflows
-- avoid repeated broad reads
-- extract bounded candidate snippets first
-- then reason from those snippets
 
 ## Delegation
 

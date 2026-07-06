@@ -148,8 +148,8 @@ window-rule {
 window-rule {
     match is-active=false
     opacity 0.9
-    // we want a colored background for the translucent window
-    draw-border-with-background true
+    // we want a colored (based on border color) background for the translucent window
+    // draw-border-with-background true
 }
 
 // window-rule {

@@ -32,7 +32,7 @@
 - Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
 - Zero tolerance to unjustified legacy code/docs
 - Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
-- Don't bleed migration logic into other source code, either create a separate migration module or just a one-off temporary cleanup run/script
+- Don't bleed migration logic (e.g. rejecting of removed items) or any mentioning/handling into source code, either create a separate migration module or just a one-off temporary cleanup run/script
 
 ## Coding
 
