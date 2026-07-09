@@ -70,6 +70,7 @@
 ## Git
 
 - use semantic commit messages
+- if the commit closes a gh issue, references it in the commit message for auto-closing.
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
 
 ## CLI Tools
