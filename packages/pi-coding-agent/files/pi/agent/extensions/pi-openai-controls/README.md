@@ -12,6 +12,8 @@ Personal pi extension for OpenAI provider controls. It is named for the whole Op
   - synthetic `web_search` tool in pi
   - rewritten to native OpenAI Responses `type = "web_search"` before request send
   - `live`, `cached`, or `disabled`
+  - asks models to use Markdown source links instead of opaque internal citation tags
+  - renders remaining internal citation tags as `[web source]` or `[2 web sources]`
 - Separate footer statuses for web search and service tier so symbols/colors do not visually merge.
 
 ## Commands

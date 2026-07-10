@@ -15,7 +15,9 @@ import type { OpenAIControlsConfig, OpenAIControlsState, ServiceTier, WebSearchM
 import { updateOpenAIControlsStatus } from "./status";
 import {
   createWebSearchTool,
+  rewriteInternalCitationTags,
   rewriteOpenAINativeWebSearchTools,
+  rewriteWebSearchCitationInstructions,
   shouldEnableWebSearch,
   WEB_SEARCH_MODE_OPTIONS,
   WEB_SEARCH_TOOL_NAME,
@@ -72,7 +74,14 @@ function rewritePayload(
     config.webSearch
   );
 
-  return webSearchPayload ?? serviceTierPayload;
+  const payloadAfterWebSearch = webSearchPayload ?? payloadAfterServiceTier;
+  const citationPayload = rewriteWebSearchCitationInstructions(
+    payloadAfterWebSearch,
+    state.webSearchMode,
+    ctx.model,
+  );
+
+  return citationPayload ?? webSearchPayload ?? serviceTierPayload;
 }
 
 function getCommandCandidates(): string[] {
@@ -150,6 +159,21 @@ export default function openAIControls(pi: ExtensionAPI) {
 
   pi.on("before_provider_request", async (event, ctx) => {
     return rewritePayload(event.payload, ctx, state, config);
+  });
+
+  pi.on("message_end", async (event) => {
+    if (event.message.role !== "assistant") return;
+
+    let changed = false;
+    const content = event.message.content.map((block) => {
+      if (block.type !== "text") return block;
+      const text = rewriteInternalCitationTags(block.text);
+      if (text === undefined) return block;
+      changed = true;
+      return { ...block, text };
+    });
+
+    if (changed) return { message: { ...event.message, content } };
   });
 
   pi.registerCommand(COMMAND_NAME, {

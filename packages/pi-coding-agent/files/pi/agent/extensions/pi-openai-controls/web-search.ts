@@ -11,6 +11,11 @@ import { isRecord } from "./types";
 export const WEB_SEARCH_TOOL_NAME = "web_search";
 export const WEB_SEARCH_MODE_OPTIONS = ["live", "cached", "disabled"] as const satisfies readonly WebSearchMode[];
 
+const MARKDOWN_CITATION_INSTRUCTION =
+  "When citing web search sources, use Markdown links with the source URL instead of internal citation tags.";
+
+const INTERNAL_CITATION_TAG_PATTERN = /cite((?:[^]+)+)/gu;
+
 const EMPTY_PARAMETERS_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -18,6 +23,33 @@ const EMPTY_PARAMETERS_SCHEMA = {
 
 export function shouldEnableWebSearch(mode: WebSearchMode, model: CurrentModel): boolean {
   return mode !== "disabled" && isOpenAICodexModel(model);
+}
+
+export function rewriteWebSearchCitationInstructions(
+  payload: unknown,
+  mode: WebSearchMode,
+  model: CurrentModel,
+): unknown {
+  if (!shouldEnableWebSearch(mode, model) || !isRecord(payload)) return undefined;
+
+  const instructions = typeof payload.instructions === "string" ? payload.instructions : "";
+  if (instructions.includes(MARKDOWN_CITATION_INSTRUCTION)) return undefined;
+
+  return {
+    ...payload,
+    instructions: instructions
+      ? `${instructions}\n\n${MARKDOWN_CITATION_INSTRUCTION}`
+      : MARKDOWN_CITATION_INSTRUCTION,
+  };
+}
+
+export function rewriteInternalCitationTags(text: string): string | undefined {
+  if (!INTERNAL_CITATION_TAG_PATTERN.test(text)) return undefined;
+  INTERNAL_CITATION_TAG_PATTERN.lastIndex = 0;
+  return text.replace(INTERNAL_CITATION_TAG_PATTERN, (_tag, references: string) => {
+    const sourceCount = references.split("").filter(Boolean).length;
+    return sourceCount > 1 ? `\\[${sourceCount} web sources\\]` : "\\[web source\\]";
+  });
 }
 
 export function createWebSearchTool(): ToolDefinition<typeof EMPTY_PARAMETERS_SCHEMA> {
