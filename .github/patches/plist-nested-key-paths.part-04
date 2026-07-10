@@ -1,0 +1,75 @@
++            examples=(r"^NS", r"^settings\.window\."),
+         ),
+     )
+@@ -221,12 +363,18 @@ class PlistTransformEngine(BaseTransformEngine):
+ 
+     def validate_request(self, request: TransformRequest) -> None:
+         super().validate_request(request)
++        parse_plist_key_paths(request.selector_values("key"))
+         compile_key_regexes(request.selector_values("key_regex"))
+ 
+     def transform(self, request: TransformRequest) -> TransformOutput:
+         self.validate_request(request)
+-        selected_keys = request.selector_values("key")
++        exact_key_paths = parse_plist_key_paths(request.selector_values("key"))
+         selected_key_regexes = compile_key_regexes(request.selector_values("key_regex"))
+         output_format = str(request.engine_option("output_format", "xml"))
+ 
+         base_data = load_plist(request.base_path)
++        selected_key_paths = selected_plist_key_paths(
++            base_data,
++            exact_key_paths,
++            selected_key_regexes,
++        )
+         transformed_data = select_plist_data(
+             base_data,
+             request.selector_action,
+-            selected_keys,
+-            selected_key_regexes,
++            selected_key_paths,
+         )
+ 
+         if request.mode == TransformMode.MERGE:
+@@ -234,7 +382,12 @@ class PlistTransformEngine(BaseTransformEngine):
+             assert request.overlay_path is not None
+             overlay_data = load_plist(request.overlay_path)
+-            transformed_data = overlay_plist_data(transformed_data, overlay_data)
++            transformed_data = overlay_plist_data(
++                base_data,
++                transformed_data,
++                overlay_data,
++                selected_key_paths,
++            )
+ 
+         return build_plist_output(
+diff --git a/tests/test_plist_transform.py b/tests/test_plist_transform.py
+index 62ae1bd..0000000 100644
+--- a/tests/test_plist_transform.py
++++ b/tests/test_plist_transform.py
+@@ -24,6 +24,124 @@ def test_plist_engine_declares_typed_selectors() -> None:
+     assert selector_specs["key_regex"].prefix == "re"
+ 
+ 
++def test_parse_plist_key_path_accepts_quoted_dotted_key_parts() -> None:
++    assert MODULE.parse_plist_key_path('"settings.window".width') == (
++        "settings.window",
++        "width",
++    )
++
++
++def test_cleanup_retain_quoted_dotted_top_level_key(tmp_path: Path) -> None:
++    input_path = tmp_path / "input.plist"
++    output_path = tmp_path / "output.plist"
++
++    write_plist(
++        input_path,
++        {"com.apple.keyboard.fnState": True, "other": False},
++    )
++
++    exit_code = MODULE.main(
++        [
++            str(input_path),
++            str(output_path),
++            "--mode",
++            "cleanup",
++            "--selector-type",
