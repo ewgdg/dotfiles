@@ -109,6 +109,69 @@ trust_level = "trusted"
     assert "mcp_servers" not in output
 
 
+def test_regex_removes_matching_nested_keys_without_removing_siblings(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.toml"
+    output_path = tmp_path / "output.toml"
+
+    source_path.write_text(
+        """[widget.media]
+enabled = true
+volume = 75
+
+[widget.clock]
+enabled = false
+format = "HH:mm"
+""",
+        encoding="utf-8",
+    )
+
+    stripped_doc = MODULE.build_document_with_stripped_matchers(
+        MODULE.load_document(source_path),
+        [],
+        [MODULE.re.compile(r"^widget\.[^.]+\.enabled$")],
+    )
+    MODULE.write_document_if_changed(
+        output_path,
+        stripped_doc,
+        mode_reference_path=source_path,
+    )
+
+    output_doc = MODULE.load_document(output_path)
+    assert "enabled" not in output_doc["widget"]["media"]
+    assert output_doc["widget"]["media"]["volume"] == 75
+    assert "enabled" not in output_doc["widget"]["clock"]
+    assert output_doc["widget"]["clock"]["format"] == "HH:mm"
+
+
+def test_regex_retain_keeps_matching_nested_keys_only(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.toml"
+
+    source_path.write_text(
+        """[widget.media]
+enabled = true
+volume = 75
+
+[widget.clock]
+enabled = false
+format = "HH:mm"
+""",
+        encoding="utf-8",
+    )
+
+    retained_doc = MODULE.build_document_with_retained_matchers(
+        MODULE.load_document(source_path),
+        [],
+        [MODULE.re.compile(r"^widget\.[^.]+\.enabled$")],
+    )
+
+    assert retained_doc.unwrap() == {
+        "widget": {
+            "media": {"enabled": True},
+            "clock": {"enabled": False},
+        }
+    }
+
+
 def test_strip_table_preserves_following_commented_tables(tmp_path: Path) -> None:
     live_path = tmp_path / "live.toml"
     output_path = tmp_path / "output.toml"

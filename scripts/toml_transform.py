@@ -318,9 +318,9 @@ def iter_item_paths_in_order(
             yield from iter_item_paths_in_order(value, key_path)
 
 
-def matches_table_regex(table_path: tuple[str, ...], table_regexes: list[re.Pattern[str]]) -> bool:
-    raw_table_path = ".".join(table_path)
-    return any(table_regex.search(raw_table_path) for table_regex in table_regexes)
+def matches_path_regex(item_path: tuple[str, ...], path_regexes: list[re.Pattern[str]]) -> bool:
+    raw_item_path = ".".join(item_path)
+    return any(path_regex.search(raw_item_path) for path_regex in path_regexes)
 
 
 def parse_key_paths(raw_key_paths: Iterable[str]) -> list[tuple[str, ...]]:
@@ -328,7 +328,7 @@ def parse_key_paths(raw_key_paths: Iterable[str]) -> list[tuple[str, ...]]:
 
 
 def compile_table_regexes(raw_table_regexes: Iterable[str]) -> list[re.Pattern[str]]:
-    return list(compile_selector_regexes(raw_table_regexes, "TOML table selector"))
+    return list(compile_selector_regexes(raw_table_regexes, "TOML path selector"))
 
 
 def normalize_blank_lines(content: str) -> str:
@@ -535,10 +535,10 @@ def build_document_with_stripped_matchers(
     stripped_table_regexes: list[re.Pattern[str]],
 ) -> TOMLDocument:
     stripped_doc = copy.deepcopy(source_doc)
-    table_paths = sorted(iter_table_paths(stripped_doc), key=len, reverse=True)
-    for table_path in table_paths:
-        if matches_table_regex(table_path, stripped_table_regexes):
-            delete_key_path(stripped_doc, table_path)
+    item_paths = sorted(iter_item_paths_in_order(stripped_doc), key=len, reverse=True)
+    for item_path in item_paths:
+        if matches_path_regex(item_path, stripped_table_regexes):
+            delete_key_path(stripped_doc, item_path)
 
     for key_path in stripped_key_paths:
         delete_key_path(stripped_doc, key_path)
@@ -603,7 +603,7 @@ def overlay_preserved_keys(
         target_container[key_name] = copy.deepcopy(retained_value)
 
 
-def overlay_preserved_tables(
+def overlay_preserved_regex_paths(
     overlay_doc: TomlContainer,
     base_doc: TomlContainer,
     retained_table_regexes: list[re.Pattern[str]],
@@ -611,17 +611,17 @@ def overlay_preserved_tables(
     if not retained_table_regexes:
         return
 
-    for table_path in sorted(iter_table_paths(overlay_doc), key=len):
-        if not matches_table_regex(table_path, retained_table_regexes):
+    for item_path in iter_item_paths_in_order(overlay_doc):
+        if not matches_path_regex(item_path, retained_table_regexes):
             continue
 
-        retained_table = get_key_path_value(overlay_doc, table_path)
-        if retained_table is None:
+        retained_item = get_key_path_value(overlay_doc, item_path)
+        if retained_item is None:
             continue
 
-        parent_path, table_name = split_key_path(table_path)
+        parent_path, item_name = split_key_path(item_path)
         target_container = ensure_container(base_doc, parent_path)
-        target_container[table_name] = copy.deepcopy(retained_table)
+        target_container[item_name] = copy.deepcopy(retained_item)
 
 
 def build_document_with_retained_matchers(
@@ -630,7 +630,7 @@ def build_document_with_retained_matchers(
     retained_table_regexes: list[re.Pattern[str]],
 ) -> TOMLDocument:
     retained_doc = tomlkit.document()
-    overlay_preserved_tables(source_doc, retained_doc, retained_table_regexes)
+    overlay_preserved_regex_paths(source_doc, retained_doc, retained_table_regexes)
     overlay_preserved_keys(source_doc, retained_doc, retained_key_paths)
     return normalize_document(retained_doc)
 
@@ -810,8 +810,8 @@ class TomlTransformEngine(BaseTransformEngine):
         SelectorSpec(
             name="table_regex",
             prefix="re",
-            description="regex matching dotted TOML table paths",
-            examples=(r"^projects\.", r"^mcp_servers\.playwright\.env$"),
+            description="regex matching dotted TOML table or key paths",
+            examples=(r"^projects\.", r"^widget\.[^.]+\.enabled$"),
         ),
     )
 

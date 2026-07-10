@@ -11,7 +11,7 @@ Shared CLI semantics live in
 The TOML engine exposes these selector types:
 
 - default `exact:` selector: exact TOML key path
-- `re:` selector: regex matching a dotted TOML table path
+- `re:` selector: regex matching dotted TOML table or key paths
 
 Examples:
 
@@ -19,11 +19,14 @@ Examples:
 - `mcp_servers.playwright.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN`
 - `re:^projects\.`
 - `re:^mcp_servers\.playwright\.env$`
+- `re:^widget\.[^.]+\.enabled$`
 
 TOML-specific notes:
 
-- key selectors match exact dotted TOML key paths
-- table regex selectors match whole tables, not one nested key inside a table
+- exact selectors match exact dotted TOML key paths
+- regex selectors use Python `re.search` against dotted table and key paths
+- matching a table path selects the whole table
+- matching a key path selects only that key
 - selectorless operation is not supported
 
 ## Merge Semantics
