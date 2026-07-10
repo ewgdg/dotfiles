@@ -93,12 +93,13 @@ def _kill_by_pidfile(pidfile: Path, *, timeout: float = 5.0) -> None:
         pass
 
 
-def call_noctalia_idle_inhibitor(action: str) -> bool:
-    if not which("qs"):
+def set_noctalia_idle_inhibitor(enabled: bool) -> bool:
+    if not which("noctalia"):
         return False
+    command = "caffeine-enable" if enabled else "caffeine-disable"
     try:
         result = subprocess.run(
-            ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
+            ["noctalia", "msg", command],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
@@ -137,7 +138,7 @@ def kill_runtime_inhibit() -> None:
     if not has_noctalia_inhibit_state():
         return
     try:
-        call_noctalia_idle_inhibitor("disable")
+        set_noctalia_idle_inhibitor(False)
     finally:
         clear_noctalia_inhibit_state()
 
@@ -147,7 +148,7 @@ def start_runtime_inhibit() -> None:
     # Sunshine's prep hook runs without creating one, so use Noctalia's
     # compositor-adjacent idle inhibitor and track ownership in runtime state.
     kill_runtime_inhibit()
-    if call_noctalia_idle_inhibitor("enable"):
+    if set_noctalia_idle_inhibitor(True):
         write_noctalia_inhibit_state()
 
 

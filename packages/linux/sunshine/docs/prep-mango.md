@@ -26,7 +26,7 @@ Run directly inside a running Mango session:
 - For idle prevention, Mango's documented native path is surface-based
   idle-inhibit / `windowrule=... idleinhibit ...`, which does not fit a
   windowless Sunshine prep hook. This prep therefore uses Noctalia's
-  `idleInhibitor` directly and stores runtime ownership state in
+  v5 caffeine commands and stores runtime ownership state in
   `$XDG_RUNTIME_DIR`, so a later `do` or `undo` can clear a stale inhibitor left
   behind by a crashed earlier run.
 - This keeps the behavior simple but lossy: `undo` does **not** restore prior

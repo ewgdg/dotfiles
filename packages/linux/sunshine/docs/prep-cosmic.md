@@ -25,4 +25,4 @@ Run directly inside a running COSMIC session:
 - `undo` is stateless: it re-enables all currently disabled outputs.
 - This keeps cleanup simple but lossy: `undo` does **not** restore prior mode,
   scale, position, transform, mirroring, or XWayland primary state.
-- Idle prevention uses Noctalia's global idle inhibitor when `--inhibit` is enabled.
+- Idle prevention uses Noctalia's v5 caffeine commands when `--inhibit` is enabled.

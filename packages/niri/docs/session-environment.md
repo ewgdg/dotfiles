@@ -40,4 +40,4 @@ Starting Noctalia before `xdg-desktop-autostart.target` is useful because it
 provides the tray host early, but a service started that early can race with
 environment provisioning if the variables are only imported later from Niri
 autostart hooks. Keeping setup and tray gating inside `niri-shell.service`
-avoids that race and removes the Niri-only `noctalia-shell.service`.
+avoids that race without relying on compositor autostart ordering.

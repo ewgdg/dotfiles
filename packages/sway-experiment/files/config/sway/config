@@ -14,8 +14,8 @@ set $down j
 set $up k
 set $right l
 set $term alacritty
-set $launcher qs -c noctalia-shell ipc call launcher toggle
-set $launcher_windows qs -c noctalia-shell ipc call launcher windows
+set $launcher noctalia msg panel-toggle launcher
+set $launcher_windows noctalia msg panel-toggle launcher "/win "
 
 # Workspace map mirrors Niri declaration order:
 # 1 stash | 2 games | 3 AI | 4 notes | 5 logs | 6 main | 7-9 spare
@@ -111,7 +111,7 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Ctrl+Shift+Delete exec swaynag -t warning -m 'Exit Sway?' -B 'Yes, exit Sway' 'swaymsg exit'
 
 # Noctalia actions.
-bindsym $mod+Ctrl+Shift+l exec qs -c noctalia-shell ipc call lockScreen lock
+bindsym $mod+Ctrl+Shift+l exec noctalia msg session lock
 
 # Focus.
 bindsym $mod+Left focus left

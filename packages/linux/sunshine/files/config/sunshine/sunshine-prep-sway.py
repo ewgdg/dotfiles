@@ -56,12 +56,13 @@ def run_cmd(argv: List[str], *, check: bool = True) -> subprocess.CompletedProce
 
 
 
-def call_noctalia_idle_inhibitor(action: str) -> bool:
-    if not which("qs"):
+def set_noctalia_idle_inhibitor(enabled: bool) -> bool:
+    if not which("noctalia"):
         return False
+    command = "caffeine-enable" if enabled else "caffeine-disable"
     try:
         result = subprocess.run(
-            ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
+            ["noctalia", "msg", command],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
@@ -72,13 +73,13 @@ def call_noctalia_idle_inhibitor(action: str) -> bool:
 
 
 def kill_runtime_inhibit() -> None:
-    call_noctalia_idle_inhibitor("disable")
+    set_noctalia_idle_inhibitor(False)
 
 
 def start_runtime_inhibit() -> None:
     # Keep this intentionally stateless: Sunshine enables on stream start and
     # disables on stream end.
-    call_noctalia_idle_inhibitor("enable")
+    set_noctalia_idle_inhibitor(True)
 
 
 def wlr_randr_json() -> List[Dict[str, Any]]:

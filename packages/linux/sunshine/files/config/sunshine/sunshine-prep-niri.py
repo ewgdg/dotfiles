@@ -232,11 +232,11 @@ def kill_runtime_inhibit() -> None:
 
 
 def set_noctalia_idle_inhibitor(enabled: bool) -> bool:
-    if not which("qs"):
+    if not which("noctalia"):
         return False
-    action = "enable" if enabled else "disable"
+    command = "caffeine-enable" if enabled else "caffeine-disable"
     result = subprocess.run(
-        ["qs", "-c", "noctalia-shell", "ipc", "call", "idleInhibitor", action],
+        ["noctalia", "msg", command],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

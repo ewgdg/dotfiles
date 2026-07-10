@@ -26,7 +26,7 @@ Source package:
 - Hyprland starts through the stock `hyprland.desktop` runtime session lookup; no wrapper is installed.
 - Hyprland config imports runtime Wayland/Hyprland variables into D-Bus/systemd, then starts `hyprland-shell.service`.
 - `hyprland-shell.service` starts Noctalia and waits for the tray host before graphical/autostart targets continue.
-- Noctalia launcher/lock/media/volume/brightness actions use the same `qs -c noctalia-shell ipc call ...` pattern as Niri/Sway.
+- Noctalia launcher, lock, media, volume, and brightness actions use the v5 `noctalia msg ...` CLI.
 - Portal override prefers `xdg-desktop-portal-hyprland`, uses GTK portal for file chooser (path entry via `Ctrl+L`, `/`, and `~`), and uses KWallet for `org.freedesktop.impl.portal.Secret`.
 
 ## Workspace map

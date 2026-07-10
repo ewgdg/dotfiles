@@ -8,5 +8,5 @@ Niri locking is split by responsibility:
   `AUTOLOGIN_SESSION=1` is present. `packages/greetd` injects that generic
   marker into `[initial_session].command` during render.
 
-The immediate lock path retries briefly because Noctalia/Quickshell may still be
-starting when Niri runs startup commands.
+The immediate lock path retries briefly because the Noctalia daemon may still
+be starting when Niri runs startup commands.

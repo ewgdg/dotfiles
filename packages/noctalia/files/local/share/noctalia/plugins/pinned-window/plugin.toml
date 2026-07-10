@@ -1,0 +1,14 @@
+id = "xian/pinned-window"
+name = "Pinned Window"
+version = "1.0.0"
+min_noctalia = "5.0.0"
+author = "xian"
+license = "MIT"
+dependencies = []
+tags = ["bar", "niri", "window"]
+icon = "pin"
+description = "Shows the currently pinned Niri window and provides summon and clear actions."
+
+[[widget]]
+id = "window"
+entry = "widget.luau"

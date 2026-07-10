@@ -21,7 +21,7 @@ Source package:
 - Mango handles `WAYLAND_DISPLAY`, `DISPLAY`, `XDG_CURRENT_DESKTOP`, and cursor dbus/systemd environment import itself.
 - Mango config keeps session variables in native `env=` lines, imports only repo-specific variables via `exec-once`, then starts `mango-shell.service`.
 - `mango-shell.service` requests `graphical-session.target` / `xdg-desktop-autostart.target` as dependencies, starts Noctalia, then waits for the tray host through `ExecStartPost` before those targets continue.
-- Noctalia app launcher is kept via the same `qs -c noctalia-shell ipc call launcher toggle` action used in Niri.
+- Noctalia app launcher is kept via the v5 `noctalia msg panel-toggle launcher` command used in Niri.
 - Portal override keeps Mango's stock `wlr` screencast/screenshot setup and prefers KWallet for `org.freedesktop.impl.portal.Secret`.
 
 ## Tag map

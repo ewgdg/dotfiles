@@ -1,10 +1,10 @@
 # Niri Post-Startup Auth Prompt Reconciliation
 
 The auth-prompt mover script is currently kept in the repo but is not wired into
-Noctalia's `screenUnlock` hook:
+Noctalia's unlock flow:
 
 - `packages/niri/files/config/niri/bin/move-auth-prompts-to-workspace.sh`
-- `packages/noctalia/files/config/noctalia/settings.json`
+- `packages/noctalia/files/config/noctalia/config.toml`
 
 ## Current Approach
 

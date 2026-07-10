@@ -7,7 +7,8 @@ binds {
 
     // Applications
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-alacritty}\""; }
-    // MOD+SPACE hotkey-overlay-title="Open App Launcher" {}
+    MOD+SPACE hotkey-overlay-title="Open Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    MOD+SHIFT+SPACE hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
@@ -21,30 +22,23 @@ binds {
     MOD+CTRL+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
     MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict-search"; }
     MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
-    // MOD+Ctrl+Shift+L hotkey-overlay-title="Lock Screen" {}
+    // Ctrl+Shift+L already moves a column to the right monitor.
+    MOD+CTRL+ALT+L hotkey-overlay-title="Lock Screen" { spawn "noctalia" "msg" "session" "lock"; }
 
     // Nautilus changes its title as you browse folders, so match the stable app ID.
     // Summon Nautilus only from this workspace; relaunch a new window if it is already focused.
     MOD+E repeat=false hotkey-overlay-title="Summon File Manager" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --same-workspace --relaunch-if-focused '(?i)^org\\.gnome\\.Nautilus$' nautilus --new-window"; }
 
-    // Audio Controls
-    // XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
-    // XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
-    // XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
-    // XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
-
-    // Example media keys mapping using playerctl.
-    // This will work with any MPRIS-enabled media player.
-    // XF86AudioPlay        allow-when-locked=true { spawn-sh "playerctl play-pause"; }
-    // XF86AudioStop        allow-when-locked=true { spawn-sh "playerctl stop"; }
-    // XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
-    // XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
-
-    // Example brightness key mappings for brightnessctl.
-    // You can use regular spawn with multiple arguments too (to avoid going through "sh"),
-    // but you need to manually put each argument in separate "" quotes.
-    // XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
-    // XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+    // Noctalia media, audio, and brightness controls
+    XF86AudioPlay allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
+    XF86AudioPrev allow-when-locked=true { spawn "noctalia" "msg" "media" "previous"; }
+    XF86AudioNext allow-when-locked=true { spawn "noctalia" "msg" "media" "next"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
+    XF86AudioMute allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "noctalia" "msg" "mic-mute"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down"; }
 
     // Window Movement and Focus
 
@@ -168,7 +162,8 @@ binds {
     // Alternatively, there are commands to move just a single window:
     // Mod+Ctrl+1 { move-window-to-workspace 1; }
 
-    // Window switcher uses `recent-windows` defaults (Mod+Tab / Mod+Shift+Tab) or (Alt+Tab).
+    // Alt+Tab uses Niri's built-in `recent-windows` switcher.
+
     // Switches focus between the current and the previous workspace.
     Mod+Tab { focus-workspace-previous; }
 

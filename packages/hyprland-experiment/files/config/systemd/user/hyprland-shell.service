@@ -11,6 +11,6 @@ StartLimitBurst=3
 [Service]
 Type=exec
 TimeoutStartSec=20
-ExecStart=/usr/bin/qs -c noctalia-shell
+ExecStart=/usr/bin/noctalia
 ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
 Restart=on-failure

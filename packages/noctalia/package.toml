@@ -1,6 +1,9 @@
 id = "noctalia"
 description = "Noctalia shell configuration"
 
+[vars.noctalia]
+config_selector_args = '"lockscreen_widgets"'
+
 depends = [
   "linux/status-notifier",
 ]
@@ -10,13 +13,22 @@ source = "files/config/noctalia"
 path = "~/.config/noctalia"
 
 [targets.d_config_noctalia.ignore]
-shared = [
-  "plugins/",
-  "!plugins/*/settings.json",
-  "!plugins/pinned-window/",
-]
+pull = ["*.json", "plugins/"]
 
-[hooks]
-pre_push = [
-  "{{ INSTALL }} noctalia-qs noctalia-shell",
-]
+[[targets.d_config_noctalia.path_rules]]
+pattern = "config.toml"
+capture = "noctalia config export | {{ TOML_TRANSFORM }} /dev/stdin --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\" --selector-type remove --selectors {{ vars.noctalia.config_selector_args }}"
+
+[targets.d_config_noctalia.path_rules.hooks]
+guard_pull = "command -v noctalia >/dev/null 2>&1 || exit 100"
+
+[targets.d_local_share_noctalia_plugins_pinned_window]
+source = "files/local/share/noctalia/plugins/pinned-window"
+path = "~/.local/share/noctalia/plugins/pinned-window"
+
+[targets.noctalia_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} noctalia-git"
+
+[targets.noctalia_installed.hooks]
+pre_push = "{{ INSTALL }} noctalia-git"

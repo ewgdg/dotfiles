@@ -11,7 +11,7 @@ StartLimitBurst=3
 [Service]
 Type=exec
 TimeoutStartSec=20
-ExecStart=/usr/bin/qs -c noctalia-shell
+ExecStart=/usr/bin/noctalia
 ExecStartPost=%h/.config/niri/bin/restore-noctalia-lock-screen.sh
 ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
 Restart=on-failure

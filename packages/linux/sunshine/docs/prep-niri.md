@@ -17,7 +17,7 @@ Run directly inside a running Niri session:
 - `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --solo --scale auto`
 - optional: prevent idle actions while streaming with `--inhibit`
 - rendered Niri Sunshine config does **not** pass `--inhibit` by default: Niri uses `capture = wlr` on the `sunshine` headless output, while the default inhibitor is only for KMS capture to avoid DPMS error spam when outputs idle mid-stream
-- optional: avoid Noctalia/Qt reacting during output hotplug churn with `--suspend-niri-shell`
+- optional: avoid Noctalia reacting during output hotplug churn with `--suspend-niri-shell`
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
 - optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
 - optional host GPU pin: set `vars.niri.render_drm_device` to a stable DRM render-node path when Sunshine WLR capture and the chosen hardware encoder must stay on the same GPU
@@ -65,7 +65,7 @@ Run directly inside a running Niri session:
   disabled. If enabled for testing, prep stops `niri-shell.service` during stream
   start/undo and runs `systemctl --user reset-failed niri-shell.service`
   immediately before restarting it.
-- If explicitly enabled, Noctalia idle inhibition is toggled after `--solo`
+- If explicitly enabled, Noctalia caffeine mode is toggled after `--solo`
   output changes on start and after output restore on undo to avoid notification
   updates racing screen churn.
 

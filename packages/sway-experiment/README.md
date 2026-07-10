@@ -17,7 +17,7 @@ Source package:
 - Sway scratchpad replaces Niri pin/stash helpers as the closest native behavior.
 - Sway config starts `sway-shell.service`; that service requests `graphical-session.target` / `xdg-desktop-autostart.target` as dependencies, starts Noctalia, then waits for the tray host through `ExecStartPost` before those targets continue.
 - greetd uses `vars.desktop.session_command = "/usr/local/bin/start-sway"` for this profile. The wrapper sources `~/.config/sway/session.env`, imports every variable defined there into dbus/systemd, then starts `sway --unsupported-gpu`. Sway config still imports runtime-only display vars (`WAYLAND_DISPLAY`, `DISPLAY`, `SWAYSOCK`) after Sway starts.
-- Noctalia app launcher is kept via `Mod+Space` using the same `qs -c noctalia-shell ipc call launcher toggle` action used in Niri and Mango.
+- Noctalia app launcher is kept via `Mod+Space` using the v5 `noctalia msg panel-toggle launcher` command.
 - Portal override uses `xdg-desktop-portal-wlr` for screencast/screenshot and prefers KWallet for `org.freedesktop.impl.portal.Secret`.
 
 ## Workspace map

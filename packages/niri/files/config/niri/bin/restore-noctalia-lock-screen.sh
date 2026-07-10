@@ -22,7 +22,7 @@ log "logind says session is locked; restoring Noctalia lock screen"
 
 attempt=1
 while [ "$attempt" -le 40 ]; do
-    if qs -c noctalia-shell ipc call lockScreen lock >/dev/null 2>&1; then
+    if noctalia msg session lock >/dev/null 2>&1; then
         log "Noctalia lock screen restored"
         exit 0
     fi

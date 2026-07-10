@@ -25,7 +25,5 @@ include "cfg/debug.kdl"
 // include "dms/alttab.kdl"
 // include "dms/binds.kdl"
 
-include "noctalia/binds.kdl"
-
 include "./noctalia.kdl"
 

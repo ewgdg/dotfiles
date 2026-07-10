@@ -1,0 +1,105 @@
+[bar.default]
+center = [ "taskbar", "window" ]
+end = [
+    "audio_visualizer",
+    "media",
+    "tray",
+    "notifications",
+    "clipboard",
+    "bluetooth",
+    "volume",
+    "brightness",
+    "battery",
+    "control-center",
+    "clock",
+    "privacy",
+    "session"
+]
+margin_ends = 0
+radius = 0
+shadow = false
+start = [ "launcher", "wallpaper", "network_tx", "cpu", "temp" ]
+thickness = 30
+
+[dock]
+shadow = false
+
+[idle]
+behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
+
+    [idle.behavior.lock]
+    action = "lock"
+    enabled = true
+    timeout = 600.0
+
+    [idle.behavior.lock-and-suspend]
+    action = "lock_and_suspend"
+    enabled = false
+    timeout = 900.0
+
+    [idle.behavior.screen-off]
+    action = "screen_off"
+    enabled = true
+    timeout = 660.0
+
+[osd.kinds]
+media = false
+
+[plugins]
+enabled = [ "xian/pinned-window" ]
+
+[shell]
+niri_overview_type_to_launch_enabled = true
+polkit_agent = true
+
+    [shell.launcher]
+    session_search = true
+
+    [shell.panel]
+    control_center_placement = "floating"
+    session_placement = "floating"
+    shadow = false
+    wallpaper_placement = "floating"
+
+    [shell.screenshot]
+    save_to_file = false
+
+[theme]
+builtin = "Gruvbox"
+mode = "dark"
+source = "builtin"
+
+    [theme.templates]
+    builtin_ids = [ "gtk3", "gtk4", "kcolorscheme", "niri", "qt" ]
+
+[widget.audio_visualizer]
+centered = false
+mirrored = false
+
+[widget.network]
+show_label = false
+
+[widget.network_tx]
+display = "graph"
+network_speed_compact = true
+
+[widget.privacy]
+hide_inactive = true
+
+[widget.taskbar]
+anchor = true
+group_by_workspace = true
+hide_empty_workspaces = true
+scale = 1.3
+workspace_group_capsule = false
+workspace_label_placement = "inside"
+
+[widget.tray]
+drawer = true
+pinned = [ "Fcitx", "nm-applet" ]
+
+[widget.window]
+type = "xian/pinned-window:window"
+
+[widget.workspaces]
+max_label_chars = 6

@@ -26,6 +26,6 @@ Run directly inside a running Sway session:
 - `undo` is stateless: it re-enables all currently connected outputs.
 - Sway idle inhibition is surface-based (`idle_inhibit` criteria), which does
   not fit a windowless Sunshine prep hook. This prep therefore uses Noctalia's
-  `idleInhibitor` directly when `--inhibit` is enabled.
+  v5 caffeine commands when `--inhibit` is enabled.
 - This keeps the behavior simple but lossy: `undo` does **not** restore prior
   mode, scale, position, or transform.
