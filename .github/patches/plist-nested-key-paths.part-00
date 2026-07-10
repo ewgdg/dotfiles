@@ -1,0 +1,97 @@
+diff --git a/scripts/plist_transform.py b/scripts/plist_transform.py
+index 47e2c76..0000000 100755
+--- a/scripts/plist_transform.py
++++ b/scripts/plist_transform.py
+@@ -4,6 +4,7 @@
+ 
+ from __future__ import annotations
+ 
++from dataclasses import dataclass, field
+ from pathlib import Path
+ import plistlib
+ import re
+@@ -23,8 +24,16 @@ from scripts.transform_engine import (
+ 
+ 
+ PlistDict = dict[str, Any]
++PlistKeyPath = tuple[str, ...]
+ KeyRegex = re.Pattern[str]
++_MISSING = object()
++
++
++@dataclass
++class PlistPathSelector:
++    include_subtree: bool = False
++    children: dict[str, "PlistPathSelector"] = field(default_factory=dict)
+ 
+ 
+ def load_plist(path: Path) -> PlistDict:
+@@ -40,54 +49,187 @@ def load_plist(path: Path) -> PlistDict:
+ 
+ 
+ def compile_key_regexes(raw_key_regexes: tuple[str, ...]) -> tuple[KeyRegex, ...]:
+-    return compile_selector_regexes(raw_key_regexes, "plist key selector")
++    return compile_selector_regexes(raw_key_regexes, "plist key path selector")
++
++
++def parse_plist_key_path(raw_key: str) -> PlistKeyPath:
++    key_path = tuple(split_plist_key(raw_key))
++    if not key_path:
++        raise ValueError("plist key paths must not be empty")
++    return key_path
++
++
++def split_plist_key(raw_key: str) -> list[str]:
++    parts: list[str] = []
++    current: list[str] = []
++    in_quotes = False
++    escape = False
++
++    for char in raw_key:
++        if in_quotes and escape:
++            current.append(char)
++            escape = False
++            continue
++
++        if in_quotes and char == "\\":
++            escape = True
++            continue
++
++        if char == '"':
++            in_quotes = not in_quotes
++            continue
++
++        if char == "." and not in_quotes:
++            append_plist_key_part(parts, current)
++            current = []
++            continue
++
++        current.append(char)
++
++    if escape:
++        current.append("\\")
++    if in_quotes:
++        raise ValueError(f"unterminated quoted plist key path: {raw_key}")
++
++    append_plist_key_part(parts, current)
++    return parts
++
++
++def append_plist_key_part(parts: list[str], current: list[str]) -> None:
++    key_part = "".join(current)
++    if key_part:
++        parts.append(key_part)
++
++
++def parse_plist_key_paths(raw_key_paths: tuple[str, ...]) -> tuple[PlistKeyPath, ...]:
++    return tuple(parse_plist_key_path(raw_key) for raw_key in raw_key_paths)
++
++
++def build_plist_path_selector(key_paths: tuple[PlistKeyPath, ...]) -> PlistPathSelector:
++    root = PlistPathSelector()
++    for key_path in key_paths:
++        current = root
++        for key_part in key_path:
++            if current.include_subtree:
++                break
++            current = current.children.setdefault(key_part, PlistPathSelector())
