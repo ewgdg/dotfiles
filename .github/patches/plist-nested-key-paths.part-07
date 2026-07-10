@@ -1,0 +1,34 @@
+ 
+-Because plist selectors work at top-level key granularity, nested deletions are
+-reflected by replacing the entire selected key from the overlay plist.
++For top-level selectors, overlay values replace preserved base values at that
++key. For nested selectors, overlay is applied recursively along the selected
++key path ancestors so unselected sibling keys can survive install.
+ 
+ ## Structural Notes
+ 
+-- top-level key identity is exact string equality
+-- when a selected key exists in both operands, the overlay value replaces the
+-  preserved base value for that key
+-- when a selected key was removed from the repo, it stays removed after install
+-  because that top-level key was already excluded from the preserved base
+-  partition
++- dictionary key identity is exact string equality
++- when a selected top-level key exists in both operands, the overlay value
++  replaces the preserved base value for that key
++- when a selected nested key was removed from the repo, it stays removed after
++  install because that path was already excluded from the preserved base
++  partition
++- plist arrays and scalar values are replaced as whole values
+diff --git a/packages/macos-preferences/package.toml b/packages/macos-preferences/package.toml
+index de9adf7..0000000 100644
+--- a/packages/macos-preferences/package.toml
++++ b/packages/macos-preferences/package.toml
+@@ -4,7 +4,7 @@ description = "Bundled macOS global preferences and symbolic hotkeys"
+ 
+ [vars.macos_preferences]
+-global_selector_args = "'NSUserKeyEquivalents' 'ApplePressAndHoldEnabled' 'AppleKeyboardUIMode' 'AppleShowAllExtensions' 'AppleInterfaceStyle' 'com.apple.keyboard.fnState' 'com.apple.swipescrolldirection' 'com.apple.trackpad.forceClick' 'com.apple.trackpad.scaling' 'com.apple.mouse.scaling' 'com.apple.scrollwheel.scaling' 'NSAutomaticSpellingCorrectionEnabled' 'NSAutomaticCapitalizationEnabled' 'NSAutomaticDashSubstitutionEnabled' 'NSAutomaticPeriodSubstitutionEnabled' 'NSAutomaticQuoteSubstitutionEnabled' 'NSAutomaticTextCompletionEnabled'"
++global_selector_args = "'NSUserKeyEquivalents' 'ApplePressAndHoldEnabled' 'AppleKeyboardUIMode' 'AppleShowAllExtensions' 'AppleInterfaceStyle' '\"com.apple.keyboard.fnState\"' '\"com.apple.swipescrolldirection\"' '\"com.apple.trackpad.forceClick\"' '\"com.apple.trackpad.scaling\"' '\"com.apple.mouse.scaling\"' '\"com.apple.scrollwheel.scaling\"' 'NSAutomaticSpellingCorrectionEnabled' 'NSAutomaticCapitalizationEnabled' 'NSAutomaticDashSubstitutionEnabled' 'NSAutomaticPeriodSubstitutionEnabled' 'NSAutomaticQuoteSubstitutionEnabled' 'NSAutomaticTextCompletionEnabled'"
+ 
+ [targets.f_library_preferences_globalpreferences_plist]
+ source = "files/Library/Preferences/.GlobalPreferences.plist"
