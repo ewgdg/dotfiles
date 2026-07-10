@@ -2,7 +2,7 @@ id = "macos-preferences"
 description = "Bundled macOS global preferences and symbolic hotkeys"
 
 [vars.macos_preferences]
-global_selector_args = "'NSUserKeyEquivalents' 'ApplePressAndHoldEnabled' 'AppleKeyboardUIMode' 'AppleShowAllExtensions' 'AppleInterfaceStyle' 'com.apple.keyboard.fnState' 'com.apple.swipescrolldirection' 'com.apple.trackpad.forceClick' 'com.apple.trackpad.scaling' 'com.apple.mouse.scaling' 'com.apple.scrollwheel.scaling' 'NSAutomaticSpellingCorrectionEnabled' 'NSAutomaticCapitalizationEnabled' 'NSAutomaticDashSubstitutionEnabled' 'NSAutomaticPeriodSubstitutionEnabled' 'NSAutomaticQuoteSubstitutionEnabled' 'NSAutomaticTextCompletionEnabled'"
+global_selector_args = "'NSUserKeyEquivalents' 'ApplePressAndHoldEnabled' 'AppleKeyboardUIMode' 'AppleShowAllExtensions' 'AppleInterfaceStyle' '\"com.apple.keyboard.fnState\"' '\"com.apple.swipescrolldirection\"' '\"com.apple.trackpad.forceClick\"' '\"com.apple.trackpad.scaling\"' '\"com.apple.mouse.scaling\"' '\"com.apple.scrollwheel.scaling\"' 'NSAutomaticSpellingCorrectionEnabled' 'NSAutomaticCapitalizationEnabled' 'NSAutomaticDashSubstitutionEnabled' 'NSAutomaticPeriodSubstitutionEnabled' 'NSAutomaticQuoteSubstitutionEnabled' 'NSAutomaticTextCompletionEnabled'"
 
 [targets.f_library_preferences_globalpreferences_plist]
 source = "files/Library/Preferences/.GlobalPreferences.plist"
