@@ -10,19 +10,25 @@ Shared CLI semantics live in
 
 The plist engine exposes these selector types:
 
-- default `exact:` selector: exact top-level plist dictionary key
-- `re:` selector: regex matching top-level plist dictionary keys
+- default `exact:` selector: exact plist dictionary key path
+- `re:` selector: regex matching dotted plist dictionary key paths
 
 Examples:
 
 - `NSUserKeyEquivalents`
 - `bypassEventsFromOtherApplications`
+- `settings.window.width`
+- `"settings.window".width`
 - `re:^NSWindow`
+- `re:^widget\.[^.]+\.enabled$`
 
 Plist-specific notes:
 
-- selectors operate on top-level dictionary keys only
-- regex selectors match key names with Python `re.search`
+- exact selectors use dot-separated dictionary key paths
+- quote a path part when the literal plist key contains a dot
+- regex selectors use Python `re.search` against complete dotted key paths
+- matching a dictionary path selects the whole dictionary subtree
+- arrays are treated as atomic values, not indexable path segments
 - selectorless operation is allowed
 - with no selectors, cleanup is identity and merge starts from the whole base
   plist before applying the overlay plist
@@ -32,21 +38,23 @@ Plist-specific notes:
 The plist engine follows the shared contract:
 
 - selectors always target the base plist
-- merge preserves the selected or complementary top-level keys from the base
-  plist, depending on `--selector-type`
+- merge preserves the selected or complementary key paths from the base plist,
+  depending on `--selector-type`
 - the overlay plist is then applied on top
 
-Because plist selectors work at top-level key granularity, nested deletions are
-reflected by replacing the entire selected key from the overlay plist.
+For top-level selectors, overlay values replace preserved base values at that
+key. For nested selectors, overlay is applied recursively along the selected
+key path ancestors so unselected sibling keys can survive install.
 
 ## Structural Notes
 
-- top-level key identity is exact string equality
-- when a selected key exists in both operands, the overlay value replaces the
-  preserved base value for that key
-- when a selected key was removed from the repo, it stays removed after install
-  because that top-level key was already excluded from the preserved base
+- dictionary key identity is exact string equality
+- when a selected top-level key exists in both operands, the overlay value
+  replaces the preserved base value for that key
+- when a selected nested key was removed from the repo, it stays removed after
+  install because that path was already excluded from the preserved base
   partition
+- plist arrays and scalar values are replaced as whole values
 
 ## Engine-Specific Flags
 
