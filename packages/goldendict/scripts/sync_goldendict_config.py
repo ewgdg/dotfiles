@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render and capture GoldenDict config with a templated dictionary path."""
+"""Apply GoldenDict-specific path templating around dotman's public XML CLI."""
 
 from __future__ import annotations
 
@@ -12,9 +12,6 @@ import sys
 import tempfile
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
-
-from scripts.transform_engine import SelectorAction
-from scripts.xml_transform import render_xml_output
 
 
 REPO_DICTIONARY_DIR_PLACEHOLDER = "{{ vars.goldendict.dictionary_dir }}"
@@ -35,41 +32,60 @@ def patch_xml_text(
 
     path_values = {(node.text or "").strip() for node in path_nodes}
     if len(path_values) > 1:
-        raise ValueError(
-            "multiple distinct dictionary paths found under config/paths/path"
-        )
+        raise ValueError("multiple distinct dictionary paths found under config/paths/path")
 
     for path_node in path_nodes:
         path_node.text = dictionary_dir_template
 
     xml_string = ET.tostring(root, encoding="unicode")
-    pretty_xml = xml.dom.minidom.parseString(xml_string).toprettyxml(
-        indent="  ",
-        newl="\n",
-    )
+    pretty_xml = xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ", newl="\n")
     return "\n".join(line for line in pretty_xml.splitlines() if line.strip())
 
 
-def cleanup_xml_text(
+def run_xml_transform(
     base_path: Path,
     *,
+    mode: str,
     selectors: tuple[str, ...],
     sort_children: tuple[str, ...],
+    overlay_path: Path | None = None,
+    compare_path: Path | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    command = [
+        "dotman", "transform", "xml", str(base_path), "-",
+        "--mode", mode,
+        "--selector-type", "remove" if mode == "cleanup" else "retain",
+    ]
+    if overlay_path is not None:
+        command.extend(("--overlay-file", str(overlay_path)))
+    if compare_path is not None:
+        command.extend(("--compare-file", str(compare_path)))
+    if mode == "cleanup":
+        command.append("--sort-attributes")
+    for selector in sort_children:
+        command.extend(("--sort-children", selector))
+    command.append("--selectors")
+    command.extend(selectors)
+    # argv invocation keeps selectors literal; inherited stderr and returned status
+    # preserve dotman's public CLI diagnostics without wrapper rewriting.
+    return subprocess.run(command, stdout=subprocess.PIPE, check=False)
+
+
+def cleanup_xml_text(
+    base_path: Path, *, selectors: tuple[str, ...], sort_children: tuple[str, ...]
 ) -> str:
-    return render_xml_output(
-        base_path,
-        node_matchers=list(selectors),
-        sort_attributes=True,
-        selector_action=SelectorAction.REMOVE,
-        child_sort_parent_matchers=list(sort_children),
-    ).as_text()
+    result = run_xml_transform(
+        base_path, mode="cleanup", selectors=selectors, sort_children=sort_children
+    )
+    result.check_returncode()
+    return result.stdout.decode("utf-8")
 
 
 def render_repo_template(repo_path: Path) -> str:
     result = subprocess.run(
         ["dotman", "render", "jinja", str(repo_path)],
         check=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
         text=True,
     )
     return result.stdout
@@ -77,13 +93,9 @@ def render_repo_template(repo_path: Path) -> str:
 
 def expand_shell_path(path_value: str) -> str:
     def replace_match(match: re.Match[str]) -> str:
-        fallback_var_name = match.group(1)
-        fallback_value = match.group(2)
-        simple_var_name = match.group(3)
-
+        fallback_var_name, fallback_value, simple_var_name = match.groups()
         if simple_var_name is not None:
             return os.environ.get(simple_var_name, match.group(0))
-
         assert fallback_var_name is not None
         configured_value = os.environ.get(fallback_var_name)
         if configured_value:
@@ -100,8 +112,7 @@ def expand_shell_path(path_value: str) -> str:
 
 
 def render_repo_xml(repo_path: Path) -> str:
-    rendered_repo_xml = render_repo_template(repo_path)
-    root = ET.fromstring(rendered_repo_xml)
+    root = ET.fromstring(render_repo_template(repo_path))
     for path_node in root.findall("./paths/path"):
         path_node.text = expand_shell_path((path_node.text or "").strip())
     return ET.tostring(root, encoding="unicode")
@@ -117,15 +128,16 @@ def merge_rendered_repo_xml(
     with tempfile.TemporaryDirectory(prefix="goldendict-render-") as temp_dir:
         overlay_path = Path(temp_dir) / "overlay.xml"
         overlay_path.write_text(rendered_repo_xml, encoding="utf-8")
-
-        return render_xml_output(
+        result = run_xml_transform(
             base_path,
-            node_matchers=list(selectors),
+            mode="merge",
+            selectors=selectors,
+            sort_children=sort_children,
             overlay_path=overlay_path,
-            selector_action=SelectorAction.RETAIN,
             compare_path=base_path,
-            child_sort_parent_matchers=list(sort_children),
-        ).as_text()
+        )
+        result.check_returncode()
+        return result.stdout.decode("utf-8")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -133,48 +145,40 @@ def build_parser() -> argparse.ArgumentParser:
         description="Render and capture GoldenDict config with a templated dictionary path."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-
     capture_parser = subparsers.add_parser("capture")
     capture_parser.add_argument("base_path", type=Path)
     capture_parser.add_argument("--selectors", nargs="+", required=True)
     capture_parser.add_argument("--sort-children", nargs="+", default=())
-
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("base_path", type=Path)
     render_parser.add_argument("repo_path", type=Path)
     render_parser.add_argument("--selectors", nargs="+", required=True)
     render_parser.add_argument("--sort-children", nargs="+", default=())
-
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-
-    if args.command == "capture":
-        sys.stdout.write(
-            patch_xml_text(
+    try:
+        if args.command == "capture":
+            output = patch_xml_text(
                 cleanup_xml_text(
                     args.base_path,
                     selectors=tuple(args.selectors),
                     sort_children=tuple(args.sort_children),
                 )
             )
-        )
-        return 0
-
-    if args.command == "render":
-        sys.stdout.write(
-            merge_rendered_repo_xml(
+        else:
+            output = merge_rendered_repo_xml(
                 args.base_path,
                 rendered_repo_xml=render_repo_xml(args.repo_path),
                 selectors=tuple(args.selectors),
                 sort_children=tuple(args.sort_children),
             )
-        )
-        return 0
-
-    raise ValueError(f"unsupported command: {args.command}")
+    except subprocess.CalledProcessError as error:
+        return error.returncode
+    sys.stdout.write(output)
+    return 0
 
 
 if __name__ == "__main__":

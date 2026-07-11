@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -101,7 +102,7 @@ def test_render_repo_xml_replaces_template_placeholder_with_expanded_path(
 
 
 def test_merge_rendered_repo_xml_reuses_existing_live_bytes_when_semantically_equal(
-    tmp_path: Path,
+    monkeypatch, tmp_path: Path,
 ) -> None:
     base_path = tmp_path / "live.xml"
     base_text = """<?xml version="1.0"?>
@@ -112,6 +113,13 @@ def test_merge_rendered_repo_xml_reuses_existing_live_bytes_when_semantically_eq
 </config>"""
     base_path.write_text(base_text, encoding="utf-8")
 
+    def fake_run_xml_transform(base_path, **kwargs):
+        assert kwargs["mode"] == "merge"
+        assert kwargs["compare_path"] == base_path
+        assert kwargs["overlay_path"].read_text(encoding="utf-8").startswith("<config>")
+        return subprocess.CompletedProcess([], 0, stdout=base_text.encode("utf-8"))
+
+    monkeypatch.setattr(module, "run_xml_transform", fake_run_xml_transform)
     merged_xml = module.merge_rendered_repo_xml(
         base_path,
         rendered_repo_xml="""<config>
@@ -123,3 +131,40 @@ def test_merge_rendered_repo_xml_reuses_existing_live_bytes_when_semantically_eq
     )
 
     assert merged_xml == base_text
+
+
+def test_public_xml_cli_receives_selectors_as_literal_argv(monkeypatch, tmp_path: Path) -> None:
+    base_path = tmp_path / "live config.xml"
+    selectors = ("config/two words", "re:^config/(x|y);$HOME*[z]", "single'quote")
+    sort_children = ("config/list with spaces",)
+    observed_command: list[str] = []
+
+    def fake_run(command, **kwargs):
+        observed_command.extend(command)
+        return subprocess.CompletedProcess(command, 0, stdout=b"<config/>")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    result = module.run_xml_transform(
+        base_path,
+        mode="cleanup",
+        selectors=selectors,
+        sort_children=sort_children,
+    )
+
+    assert result.returncode == 0
+    assert observed_command[:5] == ["dotman", "transform", "xml", str(base_path), "-"]
+    selector_start = observed_command.index("--selectors") + 1
+    assert observed_command[selector_start:] == list(selectors)
+    assert ["--sort-children", sort_children[0]] == observed_command[
+        observed_command.index("--sort-children") : observed_command.index("--sort-children") + 2
+    ]
+
+
+def test_public_xml_cli_failure_status_is_returned_by_helper(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        module,
+        "run_xml_transform",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 23, stdout=b""),
+    )
+
+    assert module.main(["capture", str(tmp_path / "missing.xml"), "--selectors", "config/x"]) == 23
