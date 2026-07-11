@@ -2,14 +2,23 @@ id = "mac/linearmouse"
 description = "LinearMouse preferences"
 
 [vars.linearmouse]
-config_selector_args = "'LaunchAtLogin__hasMigrated' 'NSStatusItem Preferred Position Item-0' 're:^NSWindow Frame ' 'SUEnableAutomaticChecks' 'SUHasLaunchedBefore' 'SULastCheckTime' 'SUScheduledCheckInterval' 'SUUpdateGroupIdentifier'"
+config_selectors = [
+  "LaunchAtLogin__hasMigrated",
+  "NSStatusItem Preferred Position Item-0",
+  "re:^NSWindow Frame ",
+  "SUEnableAutomaticChecks",
+  "SUHasLaunchedBefore",
+  "SULastCheckTime",
+  "SUScheduledCheckInterval",
+  "SUUpdateGroupIdentifier",
+]
 
 [targets.f_library_preferences_com_lujjjh_linearmouse_plist]
 source = "files/Library/Preferences/com.lujjjh.LinearMouse.plist"
 path = "~/Library/Preferences/com.lujjjh.LinearMouse.plist"
 chmod = "600"
-render = '{{ PLIST_RENDER }} --output-format binary --selector-type retain --selectors {{ vars.linearmouse.config_selector_args }}'
-capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type remove --selectors {{ vars.linearmouse.config_selector_args }}'
+render = '{{ PLIST_RENDER }} --output-format binary --selector-type retain --selectors {{ vars.linearmouse.config_selectors|shell_args }}'
+capture = '{{ PLIST_CAPTURE }} --output-format xml --selector-type remove --selectors {{ vars.linearmouse.config_selectors|shell_args }}'
 
 [targets.f_config_linearmouse_linearmouse_json]
 source = "files/config/linearmouse/linearmouse.json"

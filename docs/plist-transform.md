@@ -1,7 +1,8 @@
 # Plist Transform
 
-`scripts/plist_transform.py` powers the plist-based cleanup/merge helpers used
-by package target commands in this repo.
+`dotman transform plist` powers plist-based cleanup/merge target commands in
+this repo. `scripts/plist_transform.py` remains temporarily for legacy callers
+until its removal in issue #16.
 
 Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).
@@ -73,7 +74,7 @@ requested format.
 ## Example
 
 ```sh
-uv run scripts/plist_transform.py live.plist output.plist \
+dotman transform plist live.plist output.plist \
   --mode merge \
   --overlay-file repo.plist \
   --output-format binary \
