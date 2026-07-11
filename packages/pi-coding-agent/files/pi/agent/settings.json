@@ -3,15 +3,15 @@
 		{
 			"source": "npm:@howaboua/pi-codex-conversion",
 			"extensions": [
-				"-src/index.ts"
+				"-dist/index.js"
 			]
 		},
 		"npm:pi-vim",
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-mcporter",
-		"git:github.com/ewgdg/pi-subagents@main",
 		"npm:@quintinshaw/pi-dynamic-workflows",
-		"git:github.com/ewgdg/pi-select-patch"
+		"git:github.com/ewgdg/pi-select-patch",
+		"npm:@tintinweb/pi-subagents"
 	],
 	"enabledModels": [
 		"openrouter/deepseek/deepseek-v4-flash",
