@@ -7,7 +7,13 @@ depends = [
 [vars.pi_coding_agent]
 # Volatile runtime preferences stay live-local so repo pushes do not force stale
 # provider/model/thinking choices or re-run old changelog/update handling.
-settings_selector_args = "'defaultProvider' 'defaultModel' 'lastChangelogVersion' 'defaultThinkingLevel' 'hideThinkingBlock'"
+settings_selectors = [
+  "defaultProvider",
+  "defaultModel",
+  "lastChangelogVersion",
+  "defaultThinkingLevel",
+  "hideThinkingBlock",
+]
 
 [targets.d_pi_agent]
 source = "files/pi/agent"
@@ -29,8 +35,8 @@ shared = [
 
 [[targets.d_pi_agent.path_rules]]
 pattern = "settings.json"
-render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.pi_coding_agent.settings_selector_args }}'
-capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.pi_coding_agent.settings_selector_args }}'
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'
 
 [targets.pi_coding_agent_install]
 sync_policy = "push-only"

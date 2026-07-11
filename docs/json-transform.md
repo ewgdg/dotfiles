@@ -1,9 +1,10 @@
 # JSON Transform
 
-`scripts/json_transform.py` powers the JSON cleanup/merge helpers used by
-package target commands in this repo.
+Package target commands use the public `dotman transform json` CLI for JSON
+cleanup and merge workflows.
 
-Shared CLI semantics live in
+The repository-local `scripts/json_transform.py` implementation remains during
+the migration for direct legacy coverage. Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).
 
 ## Selector Types
@@ -77,7 +78,7 @@ reusing indentation from the base or overlay file when detectable.
 ## Example
 
 ```sh
-uv run scripts/json_transform.py live.json output.json \
+dotman transform json live.json output.json \
   --mode merge \
   --overlay-file repo.json \
   --selector-type retain \

@@ -4,7 +4,7 @@ description = "Arch Linux package manager and base system configuration"
 [vars.arch_system]
 # Keep yay config key 'version' repo-managed so stale repo config can still
 # trigger yay's own migration path; only yay config key 'buildDir' is machine-local state.
-yay_config_selector_args = "'buildDir'"
+yay_config_selectors = ["buildDir"]
 
 [hooks]
 pre_push = [
@@ -35,5 +35,5 @@ path = "~/.config/paru"
 [targets.f_config_yay_config_json]
 source = "files/config/yay/config.json"
 path = "~/.config/yay/config.json"
-render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.arch_system.yay_config_selector_args }}'
-capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.arch_system.yay_config_selector_args }}'
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.arch_system.yay_config_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.arch_system.yay_config_selectors|shell_args }}'
