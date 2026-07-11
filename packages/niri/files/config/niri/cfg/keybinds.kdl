@@ -9,6 +9,7 @@ binds {
     MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-alacritty}\""; }
     MOD+SPACE hotkey-overlay-title="Open Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     MOD+SHIFT+SPACE hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
+    MOD+V hotkey-overlay-title="Open Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
@@ -209,8 +210,10 @@ binds {
     MOD+T { toggle-column-tabbed-display; }
 
     // Screenshots
-    Print { screenshot; }
-    CTRL+SHIFT+5 { screenshot; }
+    // Print { screenshot; }
+    // CTRL+SHIFT+5 { screenshot; }
+    Print { spawn "noctalia" "msg" "screenshot-region"; }
+    CTRL+SHIFT+5 { spawn "noctalia" "msg" "screenshot-region"; }
     Shift+Print { screenshot-screen show-pointer=false write-to-disk=false; }
     CTRL+Print { screenshot-window write-to-disk=false; }
 
