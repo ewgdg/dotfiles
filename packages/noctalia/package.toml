@@ -2,7 +2,7 @@ id = "noctalia"
 description = "Noctalia shell configuration"
 
 [vars.noctalia]
-config_selector_args = '"lockscreen_widgets"'
+config_selectors = ["lockscreen_widgets"]
 
 depends = [
   "linux/status-notifier",
@@ -17,7 +17,7 @@ pull = ["*.json", "plugins/"]
 
 [[targets.d_config_noctalia.path_rules]]
 pattern = "config.toml"
-capture = "noctalia config export | {{ TOML_TRANSFORM }} /dev/stdin --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\" --selector-type remove --selectors {{ vars.noctalia.config_selector_args }}"
+capture = "noctalia config export | {{ TOML_TRANSFORM }} - --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\" --selector-type remove --selectors {{ vars.noctalia.config_selectors|shell_args }}"
 
 [targets.d_config_noctalia.path_rules.hooks]
 guard_pull = "command -v noctalia >/dev/null 2>&1 || exit 100"

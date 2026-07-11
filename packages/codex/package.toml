@@ -3,14 +3,26 @@ description = "Bundled Codex CLI configuration, agents, and rules"
 
 [vars.codex]
 # Ignore vendor-bundled marketplace state during capture; keep plugin enablement tracked for now.
-config_selector_args = "'model' 'model_reasoning_effort' 're:^projects\\.' 're:^mcp_servers\\.playwright\\.env$' 're:^marketplaces\\.openai-bundled$' 'tui.model_availability_nux' 'notice' 're:^notice\\.' 're:marketplaces.*' 'mcp_servers.node_repl' 'notify'"
+config_selectors = [
+  "model",
+  "model_reasoning_effort",
+  "re:^projects\\.",
+  "re:^mcp_servers\\.playwright\\.env$",
+  "re:^marketplaces\\.openai-bundled$",
+  "tui.model_availability_nux",
+  "notice",
+  "re:^notice\\.",
+  "re:marketplaces.*",
+  "mcp_servers.node_repl",
+  "notify",
+]
 
 [targets.f_codex_config_toml]
 source = "files/codex/config.toml"
 path = "~/.codex/config.toml"
 chmod = "600"
-render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.codex.config_selector_args }}'
-capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.codex.config_selector_args }}'
+render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.codex.config_selectors|shell_args }}'
+capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.codex.config_selectors|shell_args }}'
 
 [targets.f_codex_agents_md]
 source = "files/codex/AGENTS.md"

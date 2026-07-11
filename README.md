@@ -34,13 +34,15 @@ This is to align current shell with the repo's profile env. Skip if already runn
 What `init.sh` does:
 
 - installs `uv` if needed
+- installs or upgrades `dotman` with `uv tool install` before any transform use,
+  then resolves its executable with `uv tool dir --bin` (including custom
+  `UV_TOOL_BIN_DIR` or `XDG_BIN_HOME`) instead of trusting an older PATH entry
 - registers this checkout in `$XDG_CONFIG_HOME/dotman/config.toml` (or
   `~/.config/dotman/config.toml`) as `repos.main`, preserving unrelated TOML
-  config with the repo TOML transform helper
+  config with `dotman transform toml`
 - seeds missing manager defaults from this repo owner's current config:
   `ui.compact_path_tail_segments = 3`, `symlinks.file_symlink_mode = "prompt"`,
   and `symlinks.dir_symlink_mode = "follow"`; existing values are kept
-- installs `dotman` with `uv tool install`
 
 By default `init.sh` installs dotman from:
 

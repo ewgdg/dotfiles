@@ -20,6 +20,7 @@ dotman_tool_spec_default='git+https://github.com/ewgdg/dotman.git'
 dotman_tool_spec="${DOTMAN_TOOL_SPEC:-$dotman_tool_spec_default}"
 dotman_manager_repo_name="${DOTFILES_DOTMAN_MANAGER_REPO_NAME:-main}"
 dotman_config_overlay_path=""
+dotman_executable_path=""
 uv_installer_script_path=""
 
 cleanup() {
@@ -82,11 +83,9 @@ install_dotman_manager_config() {
   mkdir -p "$(dirname -- "${dotman_manager_config_path}")"
   generate_dotman_config_overlay "${dotman_config_overlay_path}" "${dotman_manager_config_path}"
 
-  # Use the repo TOML transform so init preserves unrelated manager config while
-  # replacing only this repo registration. Do not hand-roll TOML merge in shell.
-  (
-    cd -- "${repo_root}"
-    uv run --no-project --with tomlkit python scripts/toml_transform.py \
+  # Merge through dotman's public transform API so bootstrap exercises the same
+  # TOML implementation as managed targets.
+  "${dotman_executable_path}" transform toml \
       "${dotman_manager_config_path}" \
       "${dotman_manager_config_path}" \
       --mode merge \
@@ -94,7 +93,6 @@ install_dotman_manager_config() {
       --selector-type remove \
       --selectors "repos.${dotman_manager_repo_name}" \
       --compare-file "${dotman_manager_config_path}"
-  )
 }
 
 install_uv() {
@@ -152,6 +150,16 @@ install_uv() {
 install_dotman() {
   log "installing dotman with uv tool install --upgrade ${dotman_tool_spec}"
   uv tool install --upgrade "${dotman_tool_spec}"
+
+  dotman_tool_bin_dir="$(uv tool dir --bin)"
+  if [ -z "${dotman_tool_bin_dir}" ]; then
+    die "uv tool dir --bin returned an empty path after installing dotman"
+  fi
+
+  dotman_executable_path="${dotman_tool_bin_dir}/dotman"
+  if [ ! -x "${dotman_executable_path}" ]; then
+    die "dotman executable not found after install: ${dotman_executable_path}"
+  fi
 }
 
 install_uv
@@ -159,7 +167,9 @@ prepend_path "${default_uv_bin_dir}"
 
 export PATH
 
-install_dotman_manager_config
+# Transform support must come from newly installed/upgraded dotman, never a
+# missing or stale command already on PATH.
 install_dotman
+install_dotman_manager_config
 
 log "bootstrap complete"

@@ -1,7 +1,8 @@
 # TOML Transform
 
-`scripts/toml_transform.py` powers the TOML cleanup/merge helpers used by
-package target commands in this repo.
+`dotman transform toml` powers TOML cleanup/merge commands in this repo.
+The older `scripts/toml_transform.py` implementation remains temporarily for
+non-migrated generic transform work and will be removed under issue #16.
 
 Shared CLI semantics live in
 [transform-cli-interface.md](transform-cli-interface.md).
@@ -70,7 +71,7 @@ but changed managed regions may still be serialized fresh.
 ## Example
 
 ```sh
-uv run scripts/toml_transform.py live.toml output.toml \
+dotman transform toml live.toml output.toml \
   --mode merge \
   --overlay-file repo.toml \
   --selector-type retain \

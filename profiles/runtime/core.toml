@@ -3,7 +3,7 @@ UV_RUN = "uv run --project \"$DOTMAN_REPO_ROOT\""
 NPM_INSTALL = "npm install --no-audit --no-fund --loglevel=error -g"
 RUSTUP_EXTRA_TARGETS = ""
 XML_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/xml_transform.py\""
-TOML_TRANSFORM = "{{ UV_RUN }} \"$DOTMAN_REPO_ROOT/scripts/toml_transform.py\""
+TOML_TRANSFORM = "dotman transform toml"
 PLIST_TRANSFORM = "dotman transform plist"
 JSON_TRANSFORM = "dotman transform json"
 
