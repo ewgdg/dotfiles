@@ -8,6 +8,7 @@ depends = [
 [targets.crit_latest]
 sync_policy = "push-only"
 probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_crit_update.sh"'
+disabled = true
 
 [targets.crit_latest.hooks]
 # Root module releases currently contain no package; CLI main lives under cmd/crit.
