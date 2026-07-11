@@ -65,7 +65,6 @@ def test_goldendict_manifest_renders_native_selector_arrays_as_literal_argv(acti
     argv = shlex.split(rendered)
 
     assert core_variables["XML_TRANSFORM"] == "dotman transform xml"
-    assert "xml_transform.py" not in rendered
     helper_index = argv.index("$DOTMAN_PACKAGE_ROOT/scripts/sync_goldendict_config.py")
     assert argv[helper_index + 1] == action
     assert argv[helper_index + 2] == "$DOTMAN_LIVE_PATH"

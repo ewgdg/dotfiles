@@ -22,10 +22,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "scripts/enable_display_manager_systemd_unit.py",
         "scripts/kv_transform.py",
         "scripts/text_rewrite.py",
-        "scripts/xml_transform.py",
-        "scripts/toml_transform.py",
-        "scripts/plist_transform.py",
-        "scripts/json_transform.py",
     ],
 )
 def test_script_runs_via_uv_project_from_outside_repo(
@@ -48,23 +44,3 @@ def test_script_runs_via_uv_project_from_outside_repo(
     )
 
     assert "usage:" in completed.stdout
-
-
-def test_transform_cli_imports_via_uv_project_from_outside_repo(tmp_path: Path) -> None:
-    completed = subprocess.run(
-        [
-            "uv",
-            "run",
-            "--project",
-            str(REPO_ROOT),
-            "python",
-            "-c",
-            "import scripts.transform_cli; print('ok')",
-        ],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-
-    assert completed.stdout.strip() == "ok"

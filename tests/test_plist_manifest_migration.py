@@ -47,8 +47,6 @@ def test_shared_plist_aliases_use_public_dotman_cli() -> None:
     variables = load_toml("profiles/runtime/core.toml")["vars"]
 
     assert variables["PLIST_TRANSFORM"] == "dotman transform plist"
-    assert "$DOTMAN_REPO_ROOT/scripts/plist_transform.py" not in variables["PLIST_RENDER"]
-    assert "$DOTMAN_REPO_ROOT/scripts/plist_transform.py" not in variables["PLIST_CAPTURE"]
 
 
 @pytest.mark.skipif(

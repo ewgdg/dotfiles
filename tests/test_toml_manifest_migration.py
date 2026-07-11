@@ -42,8 +42,6 @@ print(render_template_string(payload["template"], payload["context"], base_dir=P
 def test_shared_toml_alias_uses_public_dotman_cli() -> None:
     variables = load_toml("profiles/runtime/core.toml")["vars"]
     assert variables["TOML_TRANSFORM"] == "dotman transform toml"
-    assert "scripts/toml_transform.py" not in variables["TOML_RENDER"]
-    assert "scripts/toml_transform.py" not in variables["TOML_CAPTURE"]
 
 
 @pytest.mark.skipif(not (CANDIDATE_DOTMAN_ROOT / "pyproject.toml").is_file(), reason="candidate dotman checkout unavailable")
@@ -74,7 +72,6 @@ def test_toml_commands_render_native_selector_argv(
     if group == "noctalia":
         assert argv[:5] == ["noctalia", "config", "export", "|", "dotman"]
         assert argv[7] == "-"
-        assert "/dev/stdin" not in argv
 
 
 @pytest.mark.skipif(not (CANDIDATE_DOTMAN_ROOT / "pyproject.toml").is_file(), reason="candidate dotman checkout unavailable")

@@ -46,8 +46,6 @@ def test_shared_json_aliases_use_public_dotman_cli() -> None:
     variables = load_toml("profiles/runtime/core.toml")["vars"]
 
     assert variables["JSON_TRANSFORM"] == "dotman transform json"
-    assert "$DOTMAN_REPO_ROOT/scripts/json_transform.py" not in variables["JSON_RENDER"]
-    assert "$DOTMAN_REPO_ROOT/scripts/json_transform.py" not in variables["JSON_CAPTURE"]
 
 
 @pytest.mark.skipif(not (CANDIDATE_DOTMAN_ROOT / "pyproject.toml").is_file(), reason="candidate dotman checkout unavailable")

@@ -4,11 +4,13 @@ from pathlib import Path
 import os
 import stat
 import subprocess
-import sys
 import tomllib
+import shutil
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CANDIDATE_DOTMAN_ROOT = Path(os.environ.get("DOTMAN_CANDIDATE_ROOT", REPO_ROOT.parent / "dotman"))
+UV_EXECUTABLE = shutil.which("uv")
 
 
 def write_fake_uv(fake_bin: Path, default_tool_bin: Path, log_path: Path) -> None:
@@ -32,8 +34,7 @@ if [ "$1" = "tool" ] && [ "$2" = "install" ]; then
 set -eu
 printf 'dotman:%s\n' "$*" >> {str(log_path)!r}
 if [ "$1" = "transform" ] && [ "$2" = "toml" ]; then
-  shift 2
-  exec {str(sys.executable)!r} {str(REPO_ROOT / "scripts/toml_transform.py")!r} "$@"
+  exec {UV_EXECUTABLE!r} run --project {str(CANDIDATE_DOTMAN_ROOT)!r} dotman "$@"
 fi
 printf 'unexpected dotman args: %s\n' "$*" >&2
 exit 2
@@ -59,7 +60,7 @@ if [ "$1" = "run" ]; then
   done
   if [ "$1" = "python" ]; then
     shift
-    exec {str(sys.executable)!r} "$@"
+    exec python "$@"
   fi
   exec "$@"
 fi
