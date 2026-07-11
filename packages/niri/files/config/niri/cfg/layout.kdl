@@ -2,7 +2,15 @@
 
 layout {
     // Set gaps around windows in logical pixels.
-    gaps 5
+    gaps 1
+
+    // You can think of them as a kind of outer gaps.
+    struts {
+      // left 1
+      // right 1
+      // top 1
+      // bottom 1
+    }
 
     // background-color "#caafb7"
     // The niri layout should have a transparent background, in order to integrate wallpapers onto the overview.
@@ -136,7 +144,4 @@ layout {
         active-color "#3c3836"
         inactive-color "#5c5c5b"
     }
-
-    // You can think of them as a kind of outer gaps.
-    struts {}
 }

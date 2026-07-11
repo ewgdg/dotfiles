@@ -6,8 +6,6 @@ application/x-yaml=nvim.desktop;
 text/markdown=nvim.desktop;
 text/plain=nvim.desktop;
 text/x-cmake=nvim.desktop;
-x-scheme-handler/x-github-client=desktop-plus.desktop;
-x-scheme-handler/x-github-desktop-auth=desktop-plus.desktop;
 
 [Default Applications]
 application/json=nvim.desktop;

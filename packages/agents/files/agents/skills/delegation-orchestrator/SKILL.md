@@ -28,6 +28,8 @@ Keep one writer in a shared worktree. Parallelize only read-only labor unless wr
 
 Prefer one focused task per delegate over bundling unrelated tasks into one worker. When work units are independent, schedule multiple delegates concurrently; if any concurrent delegate may edit files, use isolated worktrees when possible.
 
+Prefer fresh context for each delegated task so the child receives only task-relevant context. Use forked context only when parent conversation history is necessary for the task.
+
 Parent owns tradeoffs. Children may recommend, but unapproved scope/product/architecture/safety decisions must escalate.
 
 Parent synthesizes child results; do not forward child output as final judgment.

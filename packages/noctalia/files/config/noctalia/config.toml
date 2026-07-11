@@ -42,6 +42,17 @@ behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
     enabled = true
     timeout = 660.0
 
+[notification]
+filter_order = [ "filter" ]
+
+    [notification.filter.filter]
+    allow_permanent = false
+    enabled = true
+    match = "google-chrome"
+    play_sound = true
+    save_history = true
+    show_toast = true
+
 [osd.kinds]
 media = false
 
