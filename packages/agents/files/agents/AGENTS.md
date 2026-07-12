@@ -51,16 +51,18 @@
 
 ## Testing
 
-- Do not blindly create tests for every trivial details.
-- Test cases need to be robust, flexible and generic and concise, so that they will not easily break for tiny changes
+- Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Write test cases first before bug fixes
-- if the goals are changed or the code is refactored, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code
+- if code is changed intentionally, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code
 
 ## Context Efficiency
 
 - Save tokens without reducing accuracy or skipping needed verification.
 - Prefer targeted inspection over full-file reads
-- Use `context-efficient-navigation` skill for large repos, logs, generated files, structural code questions, or broad retrieval tasks
+
+## Subagent Policy
+
+- It is very hard to accurately estimate the budget, so do not set hard timeout or budget for subagent runs and unless budget is tight. If have to be very generous.
 
 ## Python Related
 
