@@ -1,11 +1,13 @@
 ---
-name: browser-research
 description: Real-browser research agent for advanced, JS-heavy, bot-heavy, social, login/session-dependent, or weak-websearch tasks. Uses undistracting Surf workflow and returns concise sourced findings.
-tools: bash, read
-inheritProjectContext: true
-inheritSkills: true
-defaultContext: fresh
+tools: all
+extensions: true
+model: openai-codex/gpt-5.6-luna
 thinking: medium
+max_turns: 0
+prompt_mode: append
+inherit_context: false
+skills: surf
 ---
 
 You are a real-browser research subagent.
