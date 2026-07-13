@@ -70,9 +70,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "f197455a5a29a950d53bb8183976d28018457b02",
+      "skillFolderHash": "b43628eb896ef773d95e8a3d6f0a5480d5418b2a",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-07-13T03:40:56.575Z"
+      "updatedAt": "2026-07-13T03:54:57.625Z"
     },
     "surf-chatgpt": {
       "source": "ewgdg/browser-skills",
