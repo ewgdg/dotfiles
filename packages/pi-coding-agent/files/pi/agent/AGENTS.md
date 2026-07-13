@@ -2,6 +2,6 @@
 @~/.agents/AGENTS.md
 </instructions>
 
-<skill name=caveman preloaded>
-@~/.agents/skills/caveman/SKILL.md
-</skill>
+<tool-info name="Agent">
+`thinking: "max"` is valid.
+</tool-info>

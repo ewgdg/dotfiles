@@ -55,6 +55,7 @@ filter_order = [ "filter" ]
 
 [osd.kinds]
 media = false
+privacy = false
 
 [plugins]
 enabled = [ "xian/pinned-window" ]

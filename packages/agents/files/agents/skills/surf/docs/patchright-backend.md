@@ -48,9 +48,17 @@ open, new, snapshot, text, click, fill, type, press, scroll, wait, back, screens
 
 - Uses `patchright.async_api.async_playwright()` on a persistent `asyncio.Runner`.
 - Launches a persistent Chrome-channel context with `launch_persistent_context(..., channel="chrome", no_viewport=True)`.
+- Resets Patchright's color-scheme emulation so pages follow the desktop theme.
 - Uses `--name=<app_id>` flag form to avoid Chromium treating the app id as a page target.
 
 ## Limitations
 
 - Chrome-extension behavior is profile/browser dependent; verify 1Password manually.
 - `close-matching` is not implemented.
+
+
+## Live cookie refresh and idle stop
+
+After explicit cookie-source consent, Patchright imports changed scoped cookies before launching its inactive persistent Chrome profile. The source may remain live and locked because the import uses SQLite online backup. Browser family, OS user, and `Local State.os_crypt` must match. For imported Linux v11 cookies, the bridge excludes Patchright’s `--password-store=basic` and `--use-mock-keychain` defaults so Chrome uses the real OS password store/keychain. Rows are upserted only and destination-only cookies survive.
+
+Closing the final user-visible page arms a two-second deadline after the close response completes. A new page cancels it. The bridge runtime checks the deadline on its own server thread, then closes the persistent context and stops the bridge; background workers do not count as user-visible pages. Import or compatibility failures abort startup; stop the destination and correct the configuration before retrying `surf-agent profile import-cookies`.

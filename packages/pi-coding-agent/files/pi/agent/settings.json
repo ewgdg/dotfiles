@@ -11,7 +11,7 @@
 		"npm:pi-mcporter",
 		"npm:@quintinshaw/pi-dynamic-workflows",
 		"git:github.com/ewgdg/pi-select-patch",
-		"npm:@tintinweb/pi-subagents"
+		"git:github.com/tintinweb/pi-subagents"
 	],
 	"enabledModels": [
 		"openrouter/deepseek/deepseek-v4-flash",

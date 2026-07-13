@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/skills.git",
       "skillPath": "skills/find-skills/SKILL.md",
-      "skillFolderHash": "eb6a23305aea6e340d14b9de3766e721f9f4861b",
+      "skillFolderHash": "76a98a285cb0434f3d39e1a873823556330e398b",
       "installedAt": "2026-02-20T05:20:53.980Z",
-      "updatedAt": "2026-06-24T03:37:23.536Z"
+      "updatedAt": "2026-07-13T03:40:48.233Z"
     },
     "obsidian-cli": {
       "source": "kepano/obsidian-skills",
@@ -24,9 +24,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/upstash/context7.git",
       "skillPath": "skills/find-docs/SKILL.md",
-      "skillFolderHash": "8755e7a70cef11f4237ef0178a76f08317344894",
+      "skillFolderHash": "f1f7597c0575b2c138a551a222f56808a86e16b1",
       "installedAt": "2026-04-12T07:27:03.518Z",
-      "updatedAt": "2026-07-06T05:12:47.220Z"
+      "updatedAt": "2026-07-13T03:40:50.625Z"
     },
     "brave-search": {
       "source": "badlogic/pi-skills",
@@ -70,18 +70,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "4bc73ee5c3cb45cc7603718bdba497aaf8570663",
+      "skillFolderHash": "f197455a5a29a950d53bb8183976d28018457b02",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-07-06T05:12:49.752Z"
+      "updatedAt": "2026-07-13T03:40:56.575Z"
     },
     "surf-chatgpt": {
       "source": "ewgdg/browser-skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf-chatgpt/SKILL.md",
-      "skillFolderHash": "a105813ecd0170dd97fe355fd2a31cda7791f4a1",
+      "skillFolderHash": "b6ea70cac416f29a53a4c18839b53f66e76bd0a1",
       "installedAt": "2026-06-24T02:59:13.556Z",
-      "updatedAt": "2026-07-06T06:55:02.618Z"
+      "updatedAt": "2026-07-13T03:40:57.917Z"
     },
     "grill-with-docs": {
       "source": "mattpocock/skills",
@@ -118,10 +118,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/ask-matt/SKILL.md",
-      "skillFolderHash": "affab2673308aa529084e8cfe19b8f335b8a1bce",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "a8673d3dac18d59cf4b05c6ae64ebc7d82042d02",
       "installedAt": "2026-07-09T19:30:15.923Z",
-      "updatedAt": "2026-07-09T19:30:15.923Z"
+      "updatedAt": "2026-07-13T03:40:51.945Z"
     },
     "code-review": {
       "source": "mattpocock/skills",
@@ -188,10 +187,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/prototype/SKILL.md",
-      "skillFolderHash": "046ef7c3aae3ec1934b075b26dba1cf87c9b1d5a",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "e50d76191bf197e3d947eb8c780c7009269ba589",
       "installedAt": "2026-07-09T19:30:15.929Z",
-      "updatedAt": "2026-07-09T19:30:15.929Z"
+      "updatedAt": "2026-07-13T03:40:53.035Z"
     },
     "research": {
       "source": "mattpocock/skills",
@@ -208,10 +206,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
-      "skillFolderHash": "3676b312e22e6b615c24e575cf9382a6da3016dd",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "ed1bbe6a06bb049aaa95bfe2c487bdb7a8300838",
       "installedAt": "2026-07-09T19:30:15.929Z",
-      "updatedAt": "2026-07-09T19:30:15.929Z"
+      "updatedAt": "2026-07-13T03:40:54.223Z"
     },
     "tdd": {
       "source": "mattpocock/skills",
@@ -248,10 +245,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/to-tickets/SKILL.md",
-      "skillFolderHash": "b62245172caa8bcc75b490c665566e9ec999cda8",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "c0bc0e58663eec76e769c1496fe124be4545a2ff",
       "installedAt": "2026-07-09T19:30:15.931Z",
-      "updatedAt": "2026-07-09T19:30:15.931Z"
+      "updatedAt": "2026-07-13T03:40:55.116Z"
     },
     "triage": {
       "source": "mattpocock/skills",

@@ -65,7 +65,8 @@ external_migration = true
 goals = true
 
 [tui]
-status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens"]
+status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens", "five-hour-limit"]
+status_line_use_colors = true
 
 [plugins."computer-use@openai-bundled"]
 enabled = true
