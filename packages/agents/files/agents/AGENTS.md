@@ -61,7 +61,7 @@
 
 ## Subagent Policy
 
-- It is very hard to accurately estimate the budget, so do not set hard timeout or budget for subagent runs and unless budget is tight. If have to be very generous.
+- It is very hard to accurately estimate the budget, so do not set a hard timeout or budget for a subagent run and unless requested. If have to, be very generous.
 
 ## Python Related
 
