@@ -1,16 +1,14 @@
 {
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "hooks": {},
   "permissions": {
     "allow": [],
     "deny": []
   },
-  "hooks": {
-    "PreToolUse": []
-  },
+  "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.sh"
-  },
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
-  "skipDangerousModePermissionPrompt": true
+    "command": "~/.claude/statusline.sh",
+    "type": "command"
+  }
 }
