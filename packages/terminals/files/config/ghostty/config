@@ -8,6 +8,9 @@ window-padding-y = 0
 window-padding-balance = true
 background-opacity = 0.9
 
+# Keep wheel input unmultiplied so each layer receives one event per notch.
+mouse-scroll-multiplier = precision:1,discrete:1
+
 # Font
 font-family = CaskaydiaCove Nerd Font Mono
 font-size = 19
@@ -15,6 +18,10 @@ font-size = 19
 # Cursor
 cursor-style = block
 cursor-style-blink = false
+cursor-color = #F1C2A6
+cursor-text = #282828
+# Vim can still request a bar cursor for insert mode; make that bar three pixels thicker.
+adjust-cursor-thickness = 3
 
 # Notify when a long-running command finishes while this terminal is unfocused.
 notify-on-command-finish = unfocused
