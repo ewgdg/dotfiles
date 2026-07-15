@@ -9,9 +9,8 @@
 		"npm:pi-vim",
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-mcporter",
-		"npm:@quintinshaw/pi-dynamic-workflows",
 		"git:github.com/ewgdg/pi-select-patch",
-		"git:github.com/tintinweb/pi-subagents"
+		"npm:pi-herdr-subagents"
 	],
 	"enabledModels": [
 		"openrouter/deepseek/deepseek-v4-flash",
@@ -21,5 +20,13 @@
 		"openai-codex/gpt-5.6-sol",
 		"openai-codex/gpt-5.6-terra"
 	],
-	"theme": "dark"
+	"theme": "dark",
+	"pi-openai-controls": {
+		"web_search": {
+			"mode": "live"
+		},
+		"service_tier": {
+			"default": "auto"
+		}
+	}
 }

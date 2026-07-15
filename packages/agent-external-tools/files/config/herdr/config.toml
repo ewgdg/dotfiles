@@ -4,8 +4,14 @@ onboarding = false
 name = "gruvbox"
 auto_switch = false
 
+[theme.custom]
+surface_dim = "#504945"
+
 [ui]
 show_agent_labels_on_pane_borders = false
 
 [experimental]
 pane_history = true
+
+[ui.toast]
+delivery = "terminal"

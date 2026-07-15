@@ -26,6 +26,7 @@ shadow = false
 
 [idle]
 behavior_order = [ "lock", "screen-off", "lock-and-suspend" ]
+pre_action_fade_seconds = 5
 
     [idle.behavior.lock]
     action = "lock"

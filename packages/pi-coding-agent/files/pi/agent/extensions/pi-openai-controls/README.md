@@ -39,38 +39,40 @@ standard -> default
 prio -> priority
 ```
 
-Runtime command changes are written to JSON config immediately, so they survive new sessions and pi restarts. Edit JSON manually only when you prefer direct file edits, then run `/openai-controls reload`.
+Runtime command changes are written to `settings.json` immediately, so they survive new sessions and pi restarts. Edit settings manually only when you prefer direct file edits, then run `/openai-controls reload`.
 
-## Config
+## Settings
 
-Config files, lower priority first:
+Settings files, lower priority first:
 
-1. Global agent config: `extensions/pi-openai-controls/config.json`
-2. Project config: `.pi/extensions/pi-openai-controls/config.json`
+1. Global agent settings: `~/.pi/agent/settings.json`
+2. Trusted project settings: `.pi/settings.json`
 
-Project config overrides global config. JSON uses snake_case.
+Project settings override global settings. Extension settings live under the `pi-openai-controls` key and use snake_case internally.
 
 ```json
 {
-  "web_search": {
-    "mode": "live",
-    "search_context_size": "medium",
-    "search_content_types": ["text", "image"],
-    "allowed_domains": [],
-    "user_location": {
-      "country": "US",
-      "region": "CA",
-      "city": "San Francisco",
-      "timezone": "America/Los_Angeles"
+  "pi-openai-controls": {
+    "web_search": {
+      "mode": "live",
+      "search_context_size": "medium",
+      "search_content_types": ["text", "image"],
+      "allowed_domains": [],
+      "user_location": {
+        "country": "US",
+        "region": "CA",
+        "city": "San Francisco",
+        "timezone": "America/Los_Angeles"
+      }
+    },
+    "service_tier": {
+      "default": "auto"
     }
-  },
-  "service_tier": {
-    "default": "auto"
   }
 }
 ```
 
-All fields are optional. `/openai-controls service-tier ...` and `/openai-controls web-search ...` update this JSON file while preserving other fields.
+All fields are optional. `/openai-controls service-tier ...` and `/openai-controls web-search ...` update the selected settings file while preserving unrelated Pi settings and other extension fields. Commands write project settings only when the project is trusted and already has a `pi-openai-controls` section; otherwise they write global settings.
 
 ## Service-tier notes
 

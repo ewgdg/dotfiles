@@ -30,7 +30,8 @@ shared = [
   "sessions/",
   "trust.json",
   # prefer ~/.agents/skills
-  "skills"
+  "skills/",
+  "state/"
 ]
 
 [[targets.d_pi_agent.path_rules]]

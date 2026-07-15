@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { CONFIG_DIR_NAME, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { parseServiceTier } from "./service-tier";
 import type {
   OpenAIControlsConfig,
@@ -13,7 +13,8 @@ import type {
 } from "./types";
 import { isRecord, type JsonRecord } from "./types";
 
-export const CONFIG_RELATIVE_PATH = join("extensions", "pi-openai-controls", "config.json");
+export const SETTINGS_KEY = "pi-openai-controls";
+const SETTINGS_FILE = "settings.json";
 
 const WEB_SEARCH_MODE_ALIASES: Record<string, WebSearchMode> = {
   disabled: "disabled",
@@ -36,43 +37,76 @@ export function parseWebSearchMode(value: string | undefined): WebSearchMode {
   return WEB_SEARCH_MODE_ALIASES[normalized] ?? "live";
 }
 
-export function loadOpenAIControlsConfig(cwd: string = process.cwd()): OpenAIControlsConfig {
-  const globalConfig = readConfigFile(join(getAgentDir(), CONFIG_RELATIVE_PATH));
-  const projectConfig = readConfigFile(join(cwd, ".pi", CONFIG_RELATIVE_PATH));
+export function loadOpenAIControlsConfig(
+  cwd: string = process.cwd(),
+  projectTrusted = false,
+): OpenAIControlsConfig {
+  const globalConfig = readSettingsConfig(globalSettingsPath());
+  const projectConfig = projectTrusted
+    ? readSettingsConfig(projectSettingsPath(cwd))
+    : {};
   return normalizeConfig(mergePartialConfig(globalConfig, projectConfig));
 }
 
-export function getConfigSearchPaths(cwd: string): string[] {
-  return [join(getAgentDir(), CONFIG_RELATIVE_PATH), join(cwd, ".pi", CONFIG_RELATIVE_PATH)];
+export function getSettingsSearchPaths(cwd: string, projectTrusted: boolean): string[] {
+  return projectTrusted
+    ? [globalSettingsPath(), projectSettingsPath(cwd)]
+    : [globalSettingsPath()];
 }
 
-export function getWritableConfigPath(cwd: string): string {
-  const projectConfigPath = join(cwd, ".pi", CONFIG_RELATIVE_PATH);
-  return existsSync(projectConfigPath) ? projectConfigPath : join(getAgentDir(), CONFIG_RELATIVE_PATH);
+export function getWritableSettingsPath(cwd: string, projectTrusted: boolean): string {
+  const projectPath = projectSettingsPath(cwd);
+  return projectTrusted && hasSettingsNamespace(projectPath)
+    ? projectPath
+    : globalSettingsPath();
 }
 
-export function saveOpenAIControlsStateToConfig(cwd: string, state: OpenAIControlsState): string {
-  const configPath = getWritableConfigPath(cwd);
-  const raw = readJsonObjectFile(configPath);
-  const webSearch = isRecord(raw.web_search) ? raw.web_search : {};
-  const serviceTier = isRecord(raw.service_tier) ? raw.service_tier : {};
+export function saveOpenAIControlsStateToSettings(
+  cwd: string,
+  projectTrusted: boolean,
+  state: OpenAIControlsState,
+): string {
+  const settingsPath = getWritableSettingsPath(cwd, projectTrusted);
+  const settings = readJsonObjectFile(settingsPath);
+  const configuredNamespace = settings[SETTINGS_KEY];
+  if (configuredNamespace !== undefined && !isRecord(configuredNamespace)) {
+    throw new Error(`${settingsPath}.${SETTINGS_KEY} must be a JSON object`);
+  }
+  const namespace = configuredNamespace ?? {};
+  const webSearch = isRecord(namespace.web_search) ? namespace.web_search : {};
+  const serviceTier = isRecord(namespace.service_tier) ? namespace.service_tier : {};
 
-  raw.web_search = { ...webSearch, mode: state.webSearchMode };
-  raw.service_tier = { ...serviceTier, default: state.serviceTier };
+  namespace.web_search = { ...webSearch, mode: state.webSearchMode };
+  namespace.service_tier = { ...serviceTier, default: state.serviceTier };
+  settings[SETTINGS_KEY] = namespace;
 
-  mkdirSync(dirname(configPath), { recursive: true });
-  writeFileSync(configPath, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
-  return configPath;
+  mkdirSync(dirname(settingsPath), { recursive: true });
+  writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+  return settingsPath;
 }
 
-function getAgentDir(): string {
-  const configuredAgentDir = process.env.PI_CODING_AGENT_DIR?.trim();
-  return configuredAgentDir || join(homedir(), ".pi", "agent");
+function globalSettingsPath(): string {
+  return join(getAgentDir(), SETTINGS_FILE);
 }
 
-function readConfigFile(path: string): PartialOpenAIControlsConfig {
+function projectSettingsPath(cwd: string): string {
+  return join(cwd, CONFIG_DIR_NAME, SETTINGS_FILE);
+}
+
+function hasSettingsNamespace(path: string): boolean {
+  if (!existsSync(path)) return false;
+  return Object.hasOwn(readJsonObjectFile(path), SETTINGS_KEY);
+}
+
+function readSettingsConfig(path: string): PartialOpenAIControlsConfig {
   if (!existsSync(path)) return {};
-  return parseRawConfig(readJsonObjectFile(path), path);
+  const settings = readJsonObjectFile(path);
+  const namespace = settings[SETTINGS_KEY];
+  if (namespace === undefined) return {};
+  if (!isRecord(namespace)) {
+    throw new Error(`${path}.${SETTINGS_KEY} must be a JSON object`);
+  }
+  return parseRawConfig(namespace, `${path}.${SETTINGS_KEY}`);
 }
 
 function readJsonObjectFile(path: string): JsonRecord {

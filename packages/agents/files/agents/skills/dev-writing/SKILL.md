@@ -7,16 +7,16 @@ description: Use when writing for developer/software repository work like Git/Gi
 
 Use this skill for developer/software repository writing: PRs, issues, comments, bug reports, feature requests, review summaries, and repo-facing implementation notes.
 
-## Hard Rules
+## Rules
 
 - Always generate a draft before posting or submitting anything.
-- Store draft files under `/tmp/drafts/<slug>/`.
+- Store draft files under `<tmp>/drafts/<slug>/`.
 - Use a short readable `<slug>` for filesystem use: lowercase, spaces to `-`, remove unsafe chars. It does not need to match the issue/PR title.
-- Store internal metadata in `/tmp/drafts/<slug>/meta.yaml`.
-- Store publishable markdown body in `/tmp/drafts/<slug>/body.md`.
+- Store internal metadata in `<tmp>/drafts/<slug>/meta.yaml`.
+- Store publishable markdown body in `<tmp>/drafts/<slug>/body.md`.
 - `body.md` must contain only text safe to post publicly. No internal YAML frontmatter, hidden metadata, planning notes, or agent instructions.
-- Do not post/create/update PRs or issues until user explicitly approves the draft.
-- Use `$caveman full` style: compressed, direct, no filler, technical substance preserved.
+- If the repo does not belong to the user, do not post/create/update PRs or issues until user explicitly approves the draft.
+- Use concise style: compressed, direct, no filler, technical substance preserved.
 - Use `$personal-writing-style` to mimic user tone.
 - Avoid generated-text smell: no polished filler, no generic praise, no boilerplate transitions, no over-explaining, no symmetric essay structure.
 - Prefer concrete repo-specific facts, exact files/functions/errors, and direct ask/next step.
@@ -28,7 +28,7 @@ Use this skill for developer/software repository writing: PRs, issues, comments,
 
 Create two files:
 
-`/tmp/drafts/<slug>/meta.yaml`
+`meta.yaml`
 
 ```yaml
 title: Real issue or PR title here
@@ -37,7 +37,7 @@ repo: owner/name
 body_file: body.md
 ```
 
-`/tmp/drafts/<slug>/body.md`
+`body.md`
 
 ```markdown
 Main summary paragraph here. No header before this paragraph. This is the first paragraph.
@@ -53,14 +53,6 @@ Hide noisy logs, long examples, investigation notes, or extra evidence here.
 ```
 
 Keep `body.md` concise and directly publishable. Do not add fixed sections like Context or Changes unless user/repo template needs them. Omit Testing and Risks/Follow-up unless they add real value. Hide noisy details in `<details>` blocks.
-
-## Workflow
-
-1. Gather target: PR, issue, or comment, repo, title/thread context, intent, audience, and any template requirements.
-2. Write draft files to `/tmp/drafts/<slug>/meta.yaml` and `/tmp/drafts/<slug>/body.md`.
-3. Show draft paths, metadata title, and concise preview of `body.md`.
-4. Ask user for approval or edits.
-5. Only after approval, post/create/update using `meta.yaml` for title/repo/type and `body.md` as the only body source.
 
 ## GitHub Notes
 

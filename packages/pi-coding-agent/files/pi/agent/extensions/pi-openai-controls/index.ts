@@ -1,9 +1,9 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
-  getConfigSearchPaths,
+  getSettingsSearchPaths,
   loadOpenAIControlsConfig,
   parseWebSearchMode,
-  saveOpenAIControlsStateToConfig,
+  saveOpenAIControlsStateToSettings,
 } from "./config";
 import {
   getSupportedProviderServiceTier,
@@ -133,11 +133,15 @@ function parseWebSearchCommandMode(value: string | undefined): WebSearchMode | u
   return undefined;
 }
 
-function formatStatusMessage(state: OpenAIControlsState, _config: OpenAIControlsConfig, cwd: string): string {
-  const configPaths = getConfigSearchPaths(cwd).join(", ");
+function formatStatusMessage(
+  state: OpenAIControlsState,
+  _config: OpenAIControlsConfig,
+  ctx: ExtensionContext,
+): string {
+  const settingsPaths = getSettingsSearchPaths(ctx.cwd, ctx.isProjectTrusted()).join(", ");
   return [
     `OpenAI controls: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`,
-    `Config: ${configPaths}`,
+    `Settings: ${settingsPaths}`,
   ].join("\n");
 }
 
@@ -148,7 +152,7 @@ export default function openAIControls(pi: ExtensionAPI) {
   pi.registerTool(createWebSearchTool());
 
   pi.on("session_start", async (_event, ctx) => {
-    config = loadOpenAIControlsConfig(ctx.cwd);
+    config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
     resetStateFromConfig(state, config);
     syncActiveWebSearchTool(pi, ctx, state, config);
   });
@@ -193,15 +197,15 @@ export default function openAIControls(pi: ExtensionAPI) {
       }
 
       if (command.action === "status") {
-        ctx.ui.notify(formatStatusMessage(state, config, ctx.cwd), "info");
+        ctx.ui.notify(formatStatusMessage(state, config, ctx), "info");
         return;
       }
 
       if (command.action === "reload") {
-        config = loadOpenAIControlsConfig(ctx.cwd);
+        config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
         resetStateFromConfig(state, config);
         syncActiveWebSearchTool(pi, ctx, state, config);
-        ctx.ui.notify(`OpenAI controls reloaded from JSON: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`, "info");
+        ctx.ui.notify(`OpenAI controls reloaded from settings.json: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`, "info");
         return;
       }
 
@@ -213,11 +217,15 @@ export default function openAIControls(pi: ExtensionAPI) {
         }
 
         state.serviceTier = selectedServiceTier;
-        const configPath = saveOpenAIControlsStateToConfig(ctx.cwd, state);
-        config = loadOpenAIControlsConfig(ctx.cwd);
+        const settingsPath = saveOpenAIControlsStateToSettings(
+          ctx.cwd,
+          ctx.isProjectTrusted(),
+          state,
+        );
+        config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
         syncActiveWebSearchTool(pi, ctx, state, config);
         const providerServiceTier = getSupportedProviderServiceTier(state.serviceTier, ctx.model) ?? "omitted";
-        ctx.ui.notify(`OpenAI service tier: ${state.serviceTier} (applied: ${providerServiceTier}; saved: ${configPath})`, "info");
+        ctx.ui.notify(`OpenAI service tier: ${state.serviceTier} (applied: ${providerServiceTier}; saved: ${settingsPath})`, "info");
         return;
       }
 
@@ -229,10 +237,14 @@ export default function openAIControls(pi: ExtensionAPI) {
         }
 
         state.webSearchMode = selectedMode;
-        const configPath = saveOpenAIControlsStateToConfig(ctx.cwd, state);
-        config = loadOpenAIControlsConfig(ctx.cwd);
+        const settingsPath = saveOpenAIControlsStateToSettings(
+          ctx.cwd,
+          ctx.isProjectTrusted(),
+          state,
+        );
+        config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
         syncActiveWebSearchTool(pi, ctx, state, config);
-        ctx.ui.notify(`OpenAI native web search: ${state.webSearchMode} (saved: ${configPath})`, "info");
+        ctx.ui.notify(`OpenAI native web search: ${state.webSearchMode} (saved: ${settingsPath})`, "info");
       }
     },
   });
