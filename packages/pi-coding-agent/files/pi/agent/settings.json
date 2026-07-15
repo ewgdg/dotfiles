@@ -28,5 +28,17 @@
 		"service_tier": {
 			"default": "auto"
 		}
+	},
+	"compaction": {
+		"enabled": true
+	},
+	"treeFilterMode": "default",
+	"enableInstallTelemetry": false,
+	"terminal": {
+		"showTerminalProgress": true
+	},
+	"enableSkillCommands": true,
+	"pi-select-patch": {
+		"anchorMode": "tolerant"
 	}
 }

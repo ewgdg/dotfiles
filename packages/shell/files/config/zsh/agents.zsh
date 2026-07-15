@@ -77,10 +77,18 @@ claude() {
   command claude --dangerously-skip-permissions "$@"
 }
 
-claudecode() {
-  # ANTHROPIC_BASE_URL="https://litellm.service.xianzzz.com" \
-  # ANTHROPIC_AUTH_TOKEN="litellm" \
-  # ANTHROPIC_SMALL_FAST_MODEL="gpt-5-nano" \
+claudex() {
+  ANTHROPIC_BASE_URL="http://127.0.0.1:8317" \
+  ANTHROPIC_AUTH_TOKEN="local-cliproxyapi" \
+  ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-sol" \
+  CLAUDE_CODE_MAX_CONTEXT_TOKENS=272000 \
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW=272000 \
+  CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=85 \
+  ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5.6-terra" \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-5.6-luna" \
+  CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1 \
+  CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=3 \
+  ENABLE_TOOL_SEARCH=false \
   claude "$@"
 }
 

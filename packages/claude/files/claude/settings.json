@@ -1,7 +1,21 @@
 {
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
-  "hooks": {},
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bash '/home/xian/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  },
+  "model": "haiku",
   "permissions": {
     "allow": [],
     "deny": []
@@ -10,5 +24,6 @@
   "statusLine": {
     "command": "~/.claude/statusline.sh",
     "type": "command"
-  }
+  },
+  "tui": "fullscreen"
 }
