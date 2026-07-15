@@ -18,7 +18,7 @@ end = [
 margin_ends = 0
 radius = 0
 shadow = false
-start = [ "launcher", "wallpaper", "network_tx", "cpu", "temp" ]
+start = [ "launcher", "wallpaper", "network_tx", "cpu", "ram", "temp" ]
 thickness = 30
 
 [dock]

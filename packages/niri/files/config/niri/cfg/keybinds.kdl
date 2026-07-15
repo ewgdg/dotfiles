@@ -11,6 +11,7 @@ binds {
     MOD+SHIFT+SPACE hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
     MOD+V hotkey-overlay-title="Open Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
     MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
+    MOD+SHIFT+B hotkey-overlay-title="Open New Browser Window" { spawn "google-chrome-stable" "--new-window"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
     MOD+CTRL+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
