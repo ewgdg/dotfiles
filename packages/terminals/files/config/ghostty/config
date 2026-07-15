@@ -35,6 +35,8 @@ clipboard-write = allow
 
 keybind = ctrl+insert=copy_to_clipboard
 keybind = shift+insert=paste_from_clipboard
+# Let Herdr receive this chord instead of writing and pasting a terminal screen file.
+keybind = ctrl+shift+j=unbind
 
 # Tabs
 keybind = ctrl+shift+h=previous_tab
