@@ -18,4 +18,10 @@ if [[ -o interactive ]]; then
     source "$ZSH_CONFIG_DIR/keybindings.zsh"
     source "$ZSH_CONFIG_DIR/aliases.zsh"
     source "$ZSH_CONFIG_DIR/agents.zsh"
+
+    # Load independent optional snippets last; filename sorting defines their order.
+    for config_file in "$ZSH_CONFIG_DIR"/conf.d/*.zsh(N); do
+        source "$config_file"
+    done
+    unset config_file
 fi
