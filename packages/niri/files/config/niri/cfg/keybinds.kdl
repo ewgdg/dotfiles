@@ -6,7 +6,7 @@ binds {
     MOD+SHIFT+Slash { show-hotkey-overlay; }
 
     // Applications
-    MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-alacritty}\""; }
+    MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-ghostty}\""; }
     MOD+SPACE hotkey-overlay-title="Open Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     MOD+SHIFT+SPACE hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
     MOD+V hotkey-overlay-title="Open Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }

@@ -13,7 +13,7 @@ set $left h
 set $down j
 set $up k
 set $right l
-set $term alacritty
+set $term ghostty
 set $launcher noctalia msg panel-toggle launcher
 set $launcher_windows noctalia msg panel-toggle launcher "/win "
 
@@ -39,7 +39,7 @@ exec launch-desktop-app memos '^chrome-.*-Default[.]desktop$'
 exec obsidian
 exec launch-desktop-app ChatGPT '^chrome-.*-Default[.]desktop$'
 exec launch-desktop-app 'Google AI Studio' '^chrome-.*-Default[.]desktop$'
-exec sh -lc 'exec "${TERMINAL:-alacritty}" --title logs-journalctl -e journalctl -f -n 20'
+exec sh -lc 'exec "${TERMINAL:-ghostty}" --title=logs-journalctl -e journalctl -f -n 20'
 
 ### Output / look
 output * bg #000000 solid_color

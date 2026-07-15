@@ -348,8 +348,8 @@ toggle do not disturb=none,,Toggle do not disturb
 [services][1password-quickaccess.desktop]
 _launch=Meta+Ctrl+Shift+Space
 
-[services][Alacritty.desktop]
-New=Meta+Return
+[services][com.mitchellh.ghostty.desktop]
+new-window=Meta+Return
 _launch=none
 
 [services][goldendict-search.desktop]

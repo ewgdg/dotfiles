@@ -1,5 +1,5 @@
 id = "terminals"
-description = "Bundled Alacritty and Kitty terminal configuration"
+description = "Bundled Alacritty, Kitty, and Ghostty terminal configuration"
 
 [targets.d_config_alacritty]
 source = "files/config/alacritty"
@@ -9,7 +9,27 @@ path = "~/.config/alacritty"
 source = "files/config/kitty"
 path = "~/.config/kitty"
 
-[hooks]
-pre_push = [
-  "{{ INSTALL }} alacritty kitty",
-]
+[targets.d_config_ghostty]
+source = "files/config/ghostty"
+path = "~/.config/ghostty"
+
+[targets.alacritty_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} alacritty"
+
+[targets.alacritty_installed.hooks]
+pre_push = "{{ INSTALL }} alacritty"
+
+[targets.kitty_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} kitty"
+
+[targets.kitty_installed.hooks]
+pre_push = "{{ INSTALL }} kitty"
+
+[targets.ghostty_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} ghostty"
+
+[targets.ghostty_installed.hooks]
+pre_push = "{{ INSTALL }} ghostty"

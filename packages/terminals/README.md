@@ -1,6 +1,12 @@
 # Terminals
 
-Bundled Alacritty and Kitty terminal configuration.
+Bundled Alacritty, Kitty, and Ghostty terminal configuration.
+
+## Ghostty themes
+
+Ghostty currently uses its built-in `Gruvbox Material Dark` theme. The custom
+`gruvbox-everforest` theme remains under `files/config/ghostty/themes/` as an
+alternative.
 
 ## Scrolling
 

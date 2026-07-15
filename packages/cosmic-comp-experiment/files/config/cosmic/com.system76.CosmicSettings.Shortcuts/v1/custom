@@ -1,6 +1,6 @@
 {
     // App launchers; overrides COSMIC defaults where they collide with Niri/Mango muscle memory.
-    (modifiers: [Super], key: "Return"): Spawn("alacritty"),
+    (modifiers: [Super], key: "Return"): Spawn("ghostty"),
     (modifiers: [Super], key: "space"): System(Launcher),
     (modifiers: [Super, Shift], key: "space"): System(WindowSwitcher),
     (modifiers: [Super], key: "b"): Spawn("google-chrome-stable"),

@@ -1,0 +1,37 @@
+theme = Gruvbox Material Dark
+
+# Window
+window-width = 100
+window-height = 25
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+background-opacity = 0.9
+
+# Font
+font-family = CaskaydiaCove Nerd Font Mono
+font-size = 19
+
+# Cursor
+cursor-style = block
+cursor-style-blink = false
+
+# Notify when a long-running command finishes while this terminal is unfocused.
+notify-on-command-finish = unfocused
+notify-on-command-finish-action = no-bell,notify
+notify-on-command-finish-after = 5s
+
+# Clipboard
+# Match Alacritty's OSC 52 policy: applications may copy, but not read the clipboard.
+clipboard-read = deny
+clipboard-write = allow
+
+keybind = ctrl+insert=copy_to_clipboard
+keybind = shift+insert=paste_from_clipboard
+
+# Tabs
+keybind = ctrl+shift+h=previous_tab
+keybind = ctrl+shift+l=next_tab
+
+# Send Shift+Enter using the CSI-u sequence expected by the tmux configuration.
+keybind = shift+enter=csi:13;2u

@@ -1,0 +1,25 @@
+# Gruvbox Material Medium Dark with Everforest-inspired bright colors.
+background = #282828
+foreground = #d4be98
+
+cursor-color = #F1C2A6
+cursor-text = #282828
+selection-background = #F1C2A6
+selection-foreground = #282828
+
+palette = 0=#3c3836
+palette = 1=#ea6962
+palette = 2=#a9b665
+palette = 3=#d8a657
+palette = 4=#7daea3
+palette = 5=#d3869b
+palette = 6=#89b482
+palette = 7=#d4be98
+palette = 8=#475258
+palette = 9=#e67e80
+palette = 10=#a7c080
+palette = 11=#dbbc7f
+palette = 12=#7fbbb3
+palette = 13=#d699b6
+palette = 14=#83c092
+palette = 15=#d3c6aa
