@@ -9,9 +9,14 @@ source = "files/claude/settings.json"
 path = "~/.claude/settings.json"
 chmod = "600"
 
-[targets.f_claude_statusline_sh]
-source = "files/claude/statusline.sh"
-path = "~/.claude/statusline.sh"
+[targets.f_claude_statusline_js]
+source = "files/claude/statusline.js"
+path = "~/.claude/statusline.js"
+chmod = "755"
+
+[targets.f_claude_subagent_statusline_js]
+source = "files/claude/subagent-statusline.js"
+path = "~/.claude/subagent-statusline.js"
 chmod = "755"
 
 [targets.d_claude_hooks]

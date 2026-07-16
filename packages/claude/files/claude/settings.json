@@ -22,8 +22,12 @@
   },
   "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "command": "~/.claude/statusline.sh",
+    "command": "node \"$HOME/.claude/statusline.js\"",
     "type": "command"
   },
-  "tui": "fullscreen"
+  "tui": "fullscreen",
+  "subagentStatusLine": {
+    "type": "command",
+    "command": "node \"$HOME/.claude/subagent-statusline.js\""
+  }
 }
