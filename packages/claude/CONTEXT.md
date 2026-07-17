@@ -5,8 +5,8 @@ Managed Claude Code configuration, helpers, and status-line renderers.
 ## Language
 
 **Subagent identity**:
-The first segment of a Claude Code subagent status row. It is the task's `name`; when unavailable, it is displayed as `agent`.
-_Avoid_: task label, task type
+The first segment of a Claude Code subagent status row. It is the task's `name`; when unavailable, it is the persisted subagent transcript's `attributionAgent`. When both are unavailable, the custom renderer omits the row so Claude Code keeps its default rendering.
+_Avoid_: task label
 
 **Subagent status row**:
 The complete row for a Claude Code subagent: identity, description, token count, model label, and context percentage, in that order. Unavailable segments are omitted and the row is never renderer-truncated.
@@ -15,8 +15,8 @@ The complete row for a Claude Code subagent: identity, description, token count,
 The second segment of a Claude Code subagent status row. It is the task's `description` when supplied; it is otherwise absent.
 _Avoid_: task label, task type
 
-**Subagent token count**:
-The current `tokenCount` reported for a Claude Code subagent, displayed in compact decimal units such as `70.8k tokens`. A reported zero is displayed as `0 tokens`; it is not inferred from historical samples.
+**Subagent token spend**:
+The cumulative API-token usage persisted in a Claude Code subagent transcript, displayed in compact decimal units such as `70.8k tokens`. It includes input, cache creation, cache reads, and output. When persisted usage is unavailable, the current reported `tokenCount` is displayed instead.
 _Avoid_: token-sample recovery, estimated token count
 
 **Primary context indicator**:
@@ -24,7 +24,7 @@ The API-reported proportion of a context window in use. A reported zero is displ
 _Avoid_: calculated context percentage, recovered percentage
 
 **Subagent context percentage**:
-The proportion of a subagent's resolved context window represented by its current `tokenCount`, displayed with capacity as `0%/272k`. It is displayed only when both values are present and valid; it is calculated directly from those current fields.
+The proportion of a subagent's resolved context window represented by the latest persisted API input usage, displayed with capacity as `0%/272k`. It is displayed only when both values are present and valid; it falls back to the current reported `tokenCount` when persisted usage is unavailable.
 _Avoid_: token-sample recovery, historical percentage
 
 **Subagent model label**:

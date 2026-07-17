@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
@@ -12,6 +14,24 @@ function runStatusline(input) {
   return spawnSync(process.execPath, [subagentStatuslinePath], {
     encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input),
   });
+}
+
+function runStatuslineWithTranscript(task, entries) {
+  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
+  const sessionDirectory = path.join(projectDirectory, 'session');
+  const subagentsDirectory = path.join(sessionDirectory, 'subagents');
+  fs.mkdirSync(subagentsDirectory, { recursive: true });
+  const transcriptPath = path.join(projectDirectory, 'session.jsonl');
+  fs.writeFileSync(transcriptPath, '');
+  fs.writeFileSync(
+    path.join(subagentsDirectory, `agent-${task.id}.jsonl`),
+    `${entries.map(JSON.stringify).join('\n')}\n`,
+  );
+  try {
+    return runStatusline({ transcript_path: transcriptPath, tasks: [task] });
+  } finally {
+    fs.rmSync(projectDirectory, { recursive: true, force: true });
+  }
 }
 
 function stripAnsi(value) {
@@ -38,7 +58,7 @@ test('renders name, description, tokens, supplied model, and context in order', 
   assert.equal(result.stdout, `${JSON.stringify({ id: 'agent-1', content })}\n`);
 });
 
-test('uses task.name only for identity and task.description only for description', () => {
+test('keeps Claude Code’s default row until a nameless task has persisted identity data', () => {
   const result = runStatusline({
     tasks: [
       { id: 'named', name: '   ', label: 'Ignore label', type: 'local_agent', description: '  ', status: 'failed' },
@@ -48,9 +68,32 @@ test('uses task.name only for identity and task.description only for description
   const rows = result.stdout.trimEnd().split('\n').map(JSON.parse);
 
   assert.deepEqual(rows, [
-    { id: 'named', content: `${COLORS.cyan}agent${COLORS.reset}` },
     { id: 'described', content: `${COLORS.cyan}worker${COLORS.reset} · Review auth` },
   ]);
+});
+
+test('uses the persisted agent subtype when task.name is unavailable', () => {
+  const result = runStatuslineWithTranscript(
+    { id: 'plan', name: '   ' },
+    [{ attributionAgent: 'Plan' }],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    id: 'plan', content: `${COLORS.cyan}Plan${COLORS.reset}`,
+  });
+});
+
+test('reads transcript records that cross stream chunk boundaries', () => {
+  const result = runStatuslineWithTranscript(
+    { id: 'explorer', name: '' },
+    [{ attributionAgent: 'Explore', padding: 'x'.repeat(70_000) }],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    id: 'explorer', content: `${COLORS.cyan}Explore${COLORS.reset}`,
+  });
 });
 
 test('formats valid tokenCount values without tokenSamples', () => {
@@ -68,6 +111,22 @@ test('formats valid tokenCount values without tokenSamples', () => {
   assert.deepEqual(rows.map(({ content }) => stripAnsi(content)), [
     'zero · 0 tokens', 'small · 999 tokens', 'thousand · 1.0k tokens', 'million · 1.2m tokens', 'invalid',
   ]);
+});
+
+test('uses persisted subagent API usage when Claude Code reports zero progress tokens', () => {
+  const result = runStatuslineWithTranscript(
+    { id: 'spent', name: 'worker', tokenCount: 0, contextWindowSize: 200_000 },
+    [
+      { message: { role: 'assistant', usage: { input_tokens: 100, cache_creation_input_tokens: 200, cache_read_input_tokens: 300, output_tokens: 400 } } },
+      { message: { role: 'assistant', usage: { input_tokens: 500, cache_creation_input_tokens: 600, cache_read_input_tokens: 700, output_tokens: 800 } } },
+    ],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    JSON.parse(result.stdout).content,
+    `${COLORS.cyan}worker${COLORS.reset} · 3.6k tokens · ${COLORS.green}1%/200k${COLORS.reset}`,
+  );
 });
 
 test('derives rounded, clamped context only from valid tokenCount and capacity', () => {
