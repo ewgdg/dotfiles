@@ -38,9 +38,5 @@ keybind = shift+insert=paste_from_clipboard
 # Let Herdr receive this chord instead of writing and pasting a terminal screen file.
 keybind = ctrl+shift+j=unbind
 
-# Tabs
-keybind = ctrl+shift+h=previous_tab
-keybind = ctrl+shift+l=next_tab
-
 # Send Shift+Enter using the CSI-u sequence expected by the tmux configuration.
 keybind = shift+enter=csi:13;2u

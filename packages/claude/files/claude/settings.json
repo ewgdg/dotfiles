@@ -1,33 +1,34 @@
 {
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Skill(claude-api)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "*",
         "hooks": [
           {
+            "type": "command",
             "command": "bash '/home/xian/.claude/hooks/herdr-agent-state.sh' session",
-            "timeout": 10,
-            "type": "command"
+            "timeout": 10
           }
-        ],
-        "matcher": "*"
+        ]
       }
     ]
   },
-  "model": "haiku",
-  "permissions": {
-    "allow": [],
-    "deny": []
-  },
-  "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "command": "node \"$HOME/.claude/statusline.js\"",
-    "type": "command"
+    "type": "command",
+    "command": "node \"$HOME/.claude/statusline.js\""
   },
-  "tui": "fullscreen",
   "subagentStatusLine": {
     "type": "command",
     "command": "node \"$HOME/.claude/subagent-statusline.js\""
-  }
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true
 }

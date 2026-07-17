@@ -1,5 +1,9 @@
 id = "claude"
 
+[vars.claude]
+# Model choice is a live-local preference and should not be forced by repo sync.
+settings_selectors = ["model"]
+
 [targets.f_claude_claude_md]
 source = "files/claude/CLAUDE.md"
 path = "~/.claude/CLAUDE.md"
@@ -8,6 +12,8 @@ path = "~/.claude/CLAUDE.md"
 source = "files/claude/settings.json"
 path = "~/.claude/settings.json"
 chmod = "600"
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.claude.settings_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.claude.settings_selectors|shell_args }}'
 
 [targets.f_claude_statusline_js]
 source = "files/claude/statusline.js"
