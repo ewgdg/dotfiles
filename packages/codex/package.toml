@@ -1,5 +1,6 @@
 id = "codex"
 description = "Bundled Codex CLI configuration, agents, and rules"
+depends = ["agents"]
 
 [vars.codex]
 # Ignore vendor-bundled marketplace state during capture; keep plugin enablement tracked for now.
@@ -24,9 +25,12 @@ chmod = "600"
 render = '{{ TOML_RENDER }} --selector-type retain --selectors {{ vars.codex.config_selectors|shell_args }}'
 capture = '{{ TOML_CAPTURE }} --selector-type remove --selectors {{ vars.codex.config_selectors|shell_args }}'
 
-[targets.f_codex_agents_md]
-source = "files/codex/AGENTS.md"
-path = "~/.codex/AGENTS.md"
+[targets.codex_global_instructions]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.codex/AGENTS.md" "~/.agents/AGENTS.md"'
+
+[targets.codex_global_instructions.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.codex/AGENTS.md" "~/.agents/AGENTS.md"'
 
 [targets.d_codex_rules]
 source = "files/codex/rules"

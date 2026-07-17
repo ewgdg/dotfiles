@@ -107,27 +107,3 @@ pi(){
   EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
   command pi "$@"
 }
-
-codex() {
-  if ! _ensure_command codex "Codex"; then
-    return 1
-  fi
-
-  local helper="$ZSH_CONFIG_DIR/helpers/agents-file-expand.py"
-  if [[ ! -f "$helper" ]]; then
-    print -u2 -- "Missing helper: $helper"
-    return 1
-  fi
-  if [[ ! -r "$helper" ]]; then
-    print -u2 -- "Unreadable helper: $helper"
-    return 1
-  fi
-
-  # `uv run` executes Python script directly; helper does not need executable bit.
-  if ! command uv run "$helper"; then
-    print -u2 -- "Failed to expand Codex AGENTS file"
-    return 1
-  fi
-
-  command codex "$@"
-}

@@ -1,12 +1,16 @@
 id = "claude"
+depends = ["agents"]
 
 [vars.claude]
 # Model choice is a live-local preference and should not be forced by repo sync.
 settings_selectors = ["model"]
 
-[targets.f_claude_claude_md]
-source = "files/claude/CLAUDE.md"
-path = "~/.claude/CLAUDE.md"
+[targets.claude_global_instructions]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.claude/rules/global.md" "~/.agents/AGENTS.md"'
+
+[targets.claude_global_instructions.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.claude/rules/global.md" "~/.agents/AGENTS.md"'
 
 [targets.f_claude_settings_json]
 source = "files/claude/settings.json"
