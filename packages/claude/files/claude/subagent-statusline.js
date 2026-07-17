@@ -2,14 +2,13 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { StringDecoder } = require('node:string_decoder');
+const { open } = require('node:fs/promises');
 const { COLORS } = require('./statusline.js');
 
 const TERMINAL_ESCAPE_PATTERN = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b./g;
 const CONTROL_CHARACTER_PATTERN = /\p{Cc}+/gu;
 const CONTEXT_WARNING_PERCENTAGE = 70;
 const CONTEXT_CRITICAL_PERCENTAGE = 85;
-const TRANSCRIPT_READ_BUFFER_SIZE = 64 * 1024;
 
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim() !== '';
@@ -52,29 +51,14 @@ function subagentFilePath(input, task, suffix) {
   return path.join(sessionDirectory, 'subagents', filename);
 }
 
-function forEachTranscriptLine(transcriptPath, visit) {
-  const fileDescriptor = fs.openSync(transcriptPath, 'r');
-  const buffer = Buffer.allocUnsafe(TRANSCRIPT_READ_BUFFER_SIZE);
-  const decoder = new StringDecoder('utf8');
-  let remainder = '';
-  try {
-    let bytesRead;
-    while ((bytesRead = fs.readSync(fileDescriptor, buffer, 0, buffer.length, null)) > 0) {
-      remainder += decoder.write(buffer.subarray(0, bytesRead));
-      let newlineIndex;
-      while ((newlineIndex = remainder.indexOf('\n')) !== -1) {
-        visit(remainder.slice(0, newlineIndex));
-        remainder = remainder.slice(newlineIndex + 1);
-      }
-    }
-    remainder += decoder.end();
-    if (remainder !== '') visit(remainder);
-  } finally {
-    fs.closeSync(fileDescriptor);
+async function forEachTranscriptLine(transcriptPath, visit) {
+  const transcript = await open(transcriptPath);
+  for await (const line of transcript.readLines()) {
+    visit(line);
   }
 }
 
-function persistedSubagentData(input, task) {
+async function persistedSubagentData(input, task) {
   // Gateway-backed subagents can report zero live progress despite persisting API usage.
   const transcriptPath = subagentFilePath(input, task, '.jsonl');
   if (transcriptPath === undefined) return undefined;
@@ -84,25 +68,25 @@ function persistedSubagentData(input, task) {
   let agentType;
   let foundUsage = false;
   try {
-    forEachTranscriptLine(transcriptPath, (line) => {
+    await forEachTranscriptLine(transcriptPath, (line) => {
       try {
-      const entry = JSON.parse(line);
-      agentType ??= normalizedText(entry.attributionAgent);
-      const usage = entry?.message?.usage;
-      let currentContextTokens = 0;
-      let hasCurrentContext = false;
-      for (const field of ['input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens']) {
-        const value = validTokenCount(usage?.[field]);
-        if (value !== undefined) {
-          totalTokens += value;
-          foundUsage = true;
-          if (field !== 'output_tokens') {
-            currentContextTokens += value;
-            hasCurrentContext = true;
+        const entry = JSON.parse(line);
+        agentType ??= normalizedText(entry.attributionAgent);
+        const usage = entry?.message?.usage;
+        let currentContextTokens = 0;
+        let hasCurrentContext = false;
+        for (const field of ['input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens']) {
+          const value = validTokenCount(usage?.[field]);
+          if (value !== undefined) {
+            totalTokens += value;
+            foundUsage = true;
+            if (field !== 'output_tokens') {
+              currentContextTokens += value;
+              hasCurrentContext = true;
+            }
           }
         }
-      }
-      if (hasCurrentContext && currentContextTokens > 0) contextTokens = currentContextTokens;
+        if (hasCurrentContext && currentContextTokens > 0) contextTokens = currentContextTokens;
       } catch {
         // The transcript is append-only and may be read while its final line is incomplete.
       }
@@ -134,9 +118,9 @@ function contextPercentage(tokenCount, contextWindowSize) {
   return Math.min(100, Math.max(0, Math.round((tokenCount / contextWindowSize) * 100)));
 }
 
-function renderTask(input, task) {
+async function renderTask(input, task) {
   const taskName = normalizedText(task.name);
-  const persistedData = persistedSubagentData(input, task);
+  const persistedData = await persistedSubagentData(input, task);
   const identity = taskName ?? persistedData?.agentType;
   if (identity === undefined) return undefined;
   const description = normalizedText(task.description);
@@ -169,7 +153,7 @@ function parseInput(rawInput) {
   return input;
 }
 
-function main() {
+async function main() {
   const input = parseInput(fs.readFileSync(0, 'utf8'));
   if (input === undefined) {
     process.stderr.write('subagent-statusline: invalid input\n');
@@ -177,15 +161,19 @@ function main() {
     return;
   }
 
-  const output = input.tasks
-    .filter((task) => task !== null && typeof task === 'object' && nonEmptyString(task.id))
-    .map((task) => {
-      const content = renderTask(input, task);
+  const rows = await Promise.all(
+    input.tasks
+      .filter((task) => task !== null && typeof task === 'object' && nonEmptyString(task.id))
+      .map(async (task) => {
+        const content = await renderTask(input, task);
       return content === undefined ? undefined : JSON.stringify({ id: task.id, content });
-    })
-    .filter((row) => row !== undefined)
-    .join('\n');
+      }),
+  );
+  const output = rows.filter((row) => row !== undefined).join('\n');
   if (output !== '') process.stdout.write(`${output}\n`);
 }
 
-main();
+main().catch(() => {
+  process.stderr.write('subagent-statusline: failed to render\n');
+  process.exitCode = 1;
+});
