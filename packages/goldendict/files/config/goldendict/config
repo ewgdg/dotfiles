@@ -85,11 +85,7 @@
     <program commandLine="espeak %GDWORD%" enabled="0" icon="" id="2cf8b3a60f27e1ac812de0b57c148340" name="Espeak" type="0"/>
     <program commandLine="man -a --html=/bin/cat %GDWORD%" enabled="0" icon="" id="4f898f7582596cea518c6b0bfdceb8b3" name="Manpages" type="2"/>
   </programs>
-  <mutedDictionaries>
-    <mutedDictionary>6eb6f7a1df225e1cfdcd4cf8e9e4771b</mutedDictionary>
-    <mutedDictionary>ae6f89aac7151829681b85f035d54e48</mutedDictionary>
-    <mutedDictionary>affcf9678e7bfe701c9b071f97eccba3</mutedDictionary>
-  </mutedDictionaries>
+  <mutedDictionaries/>
   <popupMutedDictionaries/>
   <dictionariesToReindex/>
   <preferences>

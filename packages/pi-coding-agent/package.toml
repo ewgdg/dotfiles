@@ -29,6 +29,7 @@ shared = [
   "run-history.jsonl",
   "sessions/",
   "trust.json",
+  "models-store.json",
   # prefer ~/.agents/skills
   "skills/",
   "state/"
