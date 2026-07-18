@@ -9,11 +9,9 @@ Personal pi extension for OpenAI provider controls. It is named for the whole Op
   - footer hidden for `auto`
   - footer labels: `🚀std`, `🚀flex`, `🚀prio`
 - OpenAI Codex native web search
-  - synthetic `web_search` tool in pi
-  - rewritten to native OpenAI Responses `type = "web_search"` before request send
+  - injected directly as native OpenAI Responses `type = "web_search"` before request send
   - `live`, `cached`, or `disabled`
-  - asks models to use Markdown source links instead of opaque internal citation tags
-  - renders remaining internal citation tags as `[web source]` or `[2 web sources]`
+  - renders remaining internal citation tags as `(web source)` or `(2 web sources)`
 - Separate footer statuses for web search and service tier so symbols/colors do not visually merge.
 
 ## Commands
@@ -87,17 +85,13 @@ Pi's `openai-codex` provider uses ChatGPT's Codex backend, not the public Respon
 
 ## Implementation notes
 
-Pi serializes active tools as function tools. This extension registers a synthetic `web_search` tool and rewrites:
-
-```json
-{ "type": "function", "name": "web_search" }
-```
-
-into Codex native web search:
+The extension injects Codex native web search directly at the provider payload seam:
 
 ```json
 { "type": "web_search", "external_web_access": true }
 ```
+
+It does not register a local Pi tool or modify provider instructions. Opaque internal citation tags are normalized after the assistant message completes.
 
 For non-Spark Codex models, web search defaults to:
 

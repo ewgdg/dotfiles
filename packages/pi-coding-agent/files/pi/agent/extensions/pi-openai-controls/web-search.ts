@@ -1,4 +1,3 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { isOpenAICodexModel, supportsTextAndImageSearch } from "./model";
 import type {
   CurrentModel,
@@ -8,39 +7,12 @@ import type {
 } from "./types";
 import { isRecord } from "./types";
 
-export const WEB_SEARCH_TOOL_NAME = "web_search";
 export const WEB_SEARCH_MODE_OPTIONS = ["live", "cached", "disabled"] as const satisfies readonly WebSearchMode[];
-
-const MARKDOWN_CITATION_INSTRUCTION =
-  "When citing web search sources, use Markdown links with the source URL instead of internal citation tags.";
 
 const INTERNAL_CITATION_TAG_PATTERN = /cite((?:[^]+)+)/gu;
 
-const EMPTY_PARAMETERS_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-} as const;
-
 export function shouldEnableWebSearch(mode: WebSearchMode, model: CurrentModel): boolean {
   return mode !== "disabled" && isOpenAICodexModel(model);
-}
-
-export function rewriteWebSearchCitationInstructions(
-  payload: unknown,
-  mode: WebSearchMode,
-  model: CurrentModel,
-): unknown {
-  if (!shouldEnableWebSearch(mode, model) || !isRecord(payload)) return undefined;
-
-  const instructions = typeof payload.instructions === "string" ? payload.instructions : "";
-  if (instructions.includes(MARKDOWN_CITATION_INSTRUCTION)) return undefined;
-
-  return {
-    ...payload,
-    instructions: instructions
-      ? `${instructions}\n\n${MARKDOWN_CITATION_INSTRUCTION}`
-      : MARKDOWN_CITATION_INSTRUCTION,
-  };
 }
 
 export function rewriteInternalCitationTags(text: string): string | undefined {
@@ -48,27 +20,8 @@ export function rewriteInternalCitationTags(text: string): string | undefined {
   INTERNAL_CITATION_TAG_PATTERN.lastIndex = 0;
   return text.replace(INTERNAL_CITATION_TAG_PATTERN, (_tag, references: string) => {
     const sourceCount = references.split("").filter(Boolean).length;
-    return sourceCount > 1 ? `\\[${sourceCount} web sources\\]` : "\\[web source\\]";
+    return sourceCount > 1 ? `(${sourceCount} web sources)` : "(web source)";
   });
-}
-
-export function createWebSearchTool(): ToolDefinition<typeof EMPTY_PARAMETERS_SCHEMA> {
-  return {
-    name: WEB_SEARCH_TOOL_NAME,
-    label: WEB_SEARCH_TOOL_NAME,
-    description:
-      "Search the web for sources relevant to the current task. Uses OpenAI native web search; currently supports openai-codex and does not execute locally.",
-    promptSnippet:
-      "Search the web for sources relevant to the current task. Use web_search when you need up-to-date information, external references, or broader context beyond the workspace.",
-    parameters: EMPTY_PARAMETERS_SCHEMA,
-    prepareArguments: () => ({}),
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-      if (!isOpenAICodexModel(ctx.model)) {
-        throw new Error("web_search is only available with the openai-codex provider");
-      }
-      throw new Error("web_search is a native openai-codex provider tool and should not execute locally");
-    },
-  };
 }
 
 export function rewriteOpenAINativeWebSearchTools(
@@ -77,36 +30,28 @@ export function rewriteOpenAINativeWebSearchTools(
   model: CurrentModel,
   config: WebSearchConfig,
 ): unknown {
-  if (!isRecord(payload) || !Array.isArray(payload.tools)) {
+  if (!isOpenAICodexModel(model) || !isRecord(payload)) {
     return undefined;
   }
 
-  if (!isOpenAICodexModel(model) || !isRecord(payload) || !Array.isArray(payload.tools)) {
+  if (payload.tools !== undefined && !Array.isArray(payload.tools)) {
     return undefined;
   }
 
-  let changed = false;
-  const nextTools: unknown[] = [];
+  const tools = payload.tools ?? [];
+  const toolsWithoutWebSearch = tools.filter((tool) => !isOpenAINativeWebSearchTool(tool));
 
-  for (const tool of payload.tools) {
-    if (!isFunctionWebSearchTool(tool) && !isOpenAINativeWebSearchTool(tool)) {
-      nextTools.push(tool);
-      continue;
-    }
-
-    changed = true;
-    if (mode !== "disabled") {
-      // Codex expects a provider-native Responses API tool, not a function tool.
-      // Pi serializes active tools as functions first, so rewrite at payload edge.
-      nextTools.push(buildOpenAINativeWebSearchTool(mode, model, config));
-    }
+  if (mode === "disabled") {
+    return toolsWithoutWebSearch.length === tools.length
+      ? undefined
+      : { ...payload, tools: toolsWithoutWebSearch };
   }
 
-  return changed ? { ...payload, tools: nextTools } : undefined;
-}
-
-function isFunctionWebSearchTool(tool: unknown): boolean {
-  return isRecord(tool) && tool.type === "function" && tool.name === WEB_SEARCH_TOOL_NAME;
+  // Provider-native capabilities belong at the provider payload seam, not in Pi's local tool registry.
+  return {
+    ...payload,
+    tools: [...toolsWithoutWebSearch, buildOpenAINativeWebSearchTool(mode, model, config)],
+  };
 }
 
 function isOpenAINativeWebSearchTool(tool: unknown): boolean {

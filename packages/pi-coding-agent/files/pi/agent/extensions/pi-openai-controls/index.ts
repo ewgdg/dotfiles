@@ -14,13 +14,9 @@ import {
 import type { OpenAIControlsConfig, OpenAIControlsState, ServiceTier, WebSearchMode } from "./types";
 import { updateOpenAIControlsStatus } from "./status";
 import {
-  createWebSearchTool,
   rewriteInternalCitationTags,
   rewriteOpenAINativeWebSearchTools,
-  rewriteWebSearchCitationInstructions,
-  shouldEnableWebSearch,
   WEB_SEARCH_MODE_OPTIONS,
-  WEB_SEARCH_TOOL_NAME,
 } from "./web-search";
 
 const COMMAND_NAME = "openai-controls";
@@ -40,25 +36,6 @@ function resetStateFromConfig(state: OpenAIControlsState, config: OpenAIControls
   state.serviceTier = config.serviceTier;
 }
 
-function syncActiveWebSearchTool(
-  pi: ExtensionAPI,
-  ctx: ExtensionContext,
-  state: OpenAIControlsState,
-  config: OpenAIControlsConfig
-): void {
-  const activeTools = pi.getActiveTools();
-  const shouldEnable = shouldEnableWebSearch(state.webSearchMode, ctx.model);
-  const isActive = activeTools.includes(WEB_SEARCH_TOOL_NAME);
-
-  if (shouldEnable && !isActive) {
-    pi.setActiveTools([...activeTools, WEB_SEARCH_TOOL_NAME]);
-  } else if (!shouldEnable && isActive) {
-    pi.setActiveTools(activeTools.filter((toolName) => toolName !== WEB_SEARCH_TOOL_NAME));
-  }
-
-  updateOpenAIControlsStatus(ctx, state, config);
-}
-
 function rewritePayload(
   payload: unknown,
   ctx: ExtensionContext,
@@ -74,14 +51,7 @@ function rewritePayload(
     config.webSearch
   );
 
-  const payloadAfterWebSearch = webSearchPayload ?? payloadAfterServiceTier;
-  const citationPayload = rewriteWebSearchCitationInstructions(
-    payloadAfterWebSearch,
-    state.webSearchMode,
-    ctx.model,
-  );
-
-  return citationPayload ?? webSearchPayload ?? serviceTierPayload;
+  return webSearchPayload ?? serviceTierPayload;
 }
 
 function getCommandCandidates(): string[] {
@@ -149,16 +119,14 @@ export default function openAIControls(pi: ExtensionAPI) {
   let config = loadOpenAIControlsConfig();
   const state = createState(config);
 
-  pi.registerTool(createWebSearchTool());
-
   pi.on("session_start", async (_event, ctx) => {
     config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
     resetStateFromConfig(state, config);
-    syncActiveWebSearchTool(pi, ctx, state, config);
+    updateOpenAIControlsStatus(ctx, state, config);
   });
 
   pi.on("model_select", async (_event, ctx) => {
-    syncActiveWebSearchTool(pi, ctx, state, config);
+    updateOpenAIControlsStatus(ctx, state, config);
   });
 
   pi.on("before_provider_request", async (event, ctx) => {
@@ -204,7 +172,7 @@ export default function openAIControls(pi: ExtensionAPI) {
       if (command.action === "reload") {
         config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
         resetStateFromConfig(state, config);
-        syncActiveWebSearchTool(pi, ctx, state, config);
+        updateOpenAIControlsStatus(ctx, state, config);
         ctx.ui.notify(`OpenAI controls reloaded from settings.json: service-tier=${state.serviceTier}, web-search=${state.webSearchMode}`, "info");
         return;
       }
@@ -223,7 +191,7 @@ export default function openAIControls(pi: ExtensionAPI) {
           state,
         );
         config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
-        syncActiveWebSearchTool(pi, ctx, state, config);
+        updateOpenAIControlsStatus(ctx, state, config);
         const providerServiceTier = getSupportedProviderServiceTier(state.serviceTier, ctx.model) ?? "omitted";
         ctx.ui.notify(`OpenAI service tier: ${state.serviceTier} (applied: ${providerServiceTier}; saved: ${settingsPath})`, "info");
         return;
@@ -243,7 +211,7 @@ export default function openAIControls(pi: ExtensionAPI) {
           state,
         );
         config = loadOpenAIControlsConfig(ctx.cwd, ctx.isProjectTrusted());
-        syncActiveWebSearchTool(pi, ctx, state, config);
+        updateOpenAIControlsStatus(ctx, state, config);
         ctx.ui.notify(`OpenAI native web search: ${state.webSearchMode} (saved: ${settingsPath})`, "info");
       }
     },
