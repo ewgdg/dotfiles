@@ -7,6 +7,12 @@ next_workspace = "ctrl+shift+j"
 previous_agent = "ctrl+shift+h"
 next_agent = "ctrl+shift+l"
 
+[[keys.command]]
+key = "prefix+\\"
+type = "shell"
+command = "$HOME/.local/libexec/herdr/reviewr-focus-toggle"
+description = "Toggle reviewr and focus it when opened"
+
 [theme]
 name = "gruvbox"
 auto_switch = false

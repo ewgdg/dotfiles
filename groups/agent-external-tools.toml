@@ -1,0 +1,2 @@
+description = "External CLIs for AI agent workflows"
+members = ["crit", "herdr"]

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+herdr_bin="${HERDR_BIN_PATH:-herdr}"
+workspace_id="${HERDR_ACTIVE_WORKSPACE_ID:-}"
+plugin_id="persiyanov.reviewr"
+focus_attempts=100
+focus_delay_seconds=0.02
+
+[ -n "$workspace_id" ] || exit 1
+
+reviewr_panes() {
+  "$herdr_bin" pane list --workspace "$workspace_id" |
+    jq -r '.result.panes[]? | select(.label == "reviewr") | .pane_id'
+}
+
+if [ -n "$(reviewr_panes)" ]; then
+  "$herdr_bin" plugin action invoke close --plugin "$plugin_id" >/dev/null
+  exit 0
+fi
+
+"$herdr_bin" plugin action invoke open --plugin "$plugin_id" >/dev/null
+
+for ((attempt = 0; attempt < focus_attempts; attempt++)); do
+  pane_id=$(reviewr_panes | head -n 1)
+  if [ -n "$pane_id" ] && "$herdr_bin" plugin pane focus "$pane_id" >/dev/null; then
+    exit 0
+  fi
+  sleep "$focus_delay_seconds"
+done
+
+exit 1

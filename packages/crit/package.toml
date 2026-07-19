@@ -1,0 +1,15 @@
+id = "crit"
+description = "Crit agent workflow CLI"
+
+depends = [
+  "go-lang",
+]
+
+[targets.latest]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_crit_update.sh"'
+disabled = true
+
+[targets.latest.hooks]
+# Root module releases currently contain no package; CLI main lives under cmd/crit.
+pre_push = "go install github.com/tomasz-tomczyk/crit/cmd/crit@latest"
