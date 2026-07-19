@@ -1,6 +1,7 @@
 [bar.default]
 center = [ "taskbar", "window" ]
 end = [
+    "audio_visualizer",
     "media",
     "tray",
     "notifications",
