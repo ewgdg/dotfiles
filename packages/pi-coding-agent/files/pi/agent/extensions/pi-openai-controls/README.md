@@ -11,6 +11,7 @@ Personal pi extension for OpenAI provider controls. It is named for the whole Op
 - OpenAI Codex native web search
   - injected directly as native OpenAI Responses `type = "web_search"` before request send
   - `live`, `cached`, or `disabled`
+  - asks models to use Markdown source links instead of opaque internal citation tags
   - renders remaining internal citation tags as `(web source)` or `(2 web sources)`
 - Separate footer statuses for web search and service tier so symbols/colors do not visually merge.
 
@@ -91,7 +92,7 @@ The extension injects Codex native web search directly at the provider payload s
 { "type": "web_search", "external_web_access": true }
 ```
 
-It does not register a local Pi tool or modify provider instructions. Opaque internal citation tags are normalized after the assistant message completes.
+It does not register a local Pi tool. When web search is enabled, it adds citation guidance to the provider instructions. Opaque internal citation tags are normalized after the assistant message completes.
 
 For non-Spark Codex models, web search defaults to:
 

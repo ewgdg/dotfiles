@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { rewriteInternalCitationTags, rewriteOpenAINativeWebSearchTools } from "./web-search";
+import {
+  rewriteInternalCitationTags,
+  rewriteOpenAINativeWebSearchTools,
+  rewriteWebSearchCitationInstructions,
+} from "./web-search";
 import type { CurrentModel, WebSearchConfig } from "./types";
 
 const codexModel = {
@@ -27,6 +31,31 @@ describe("rewriteInternalCitationTags", () => {
     expect(rewriteInternalCitationTags("Claim. citeturn1search0turn1search1")).toBe(
       "Claim. (2 web sources)",
     );
+  });
+});
+
+describe("rewriteWebSearchCitationInstructions", () => {
+  test("appends citation guidance when Codex web search is enabled", () => {
+    expect(
+      rewriteWebSearchCitationInstructions(
+        { instructions: "Existing guidance." },
+        "live",
+        codexModel,
+      ),
+    ).toEqual({
+      instructions:
+        "Existing guidance.\n\n<guidance>\nWhen citing web search sources, use Markdown links with the source URL instead of internal citation tags.\n</guidance>",
+    });
+  });
+
+  test("does not add citation guidance when web search is disabled", () => {
+    expect(rewriteWebSearchCitationInstructions({}, "disabled", codexModel)).toBeUndefined();
+  });
+
+  test("does not duplicate existing citation guidance", () => {
+    const instructions =
+      "<guidance>\nWhen citing web search sources, use Markdown links with the source URL instead of internal citation tags.\n</guidance>";
+    expect(rewriteWebSearchCitationInstructions({ instructions }, "live", codexModel)).toBeUndefined();
   });
 });
 

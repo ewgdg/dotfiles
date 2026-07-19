@@ -16,6 +16,7 @@ import { updateOpenAIControlsStatus } from "./status";
 import {
   rewriteInternalCitationTags,
   rewriteOpenAINativeWebSearchTools,
+  rewriteWebSearchCitationInstructions,
   WEB_SEARCH_MODE_OPTIONS,
 } from "./web-search";
 
@@ -51,7 +52,14 @@ function rewritePayload(
     config.webSearch
   );
 
-  return webSearchPayload ?? serviceTierPayload;
+  const payloadAfterWebSearch = webSearchPayload ?? payloadAfterServiceTier;
+  const citationPayload = rewriteWebSearchCitationInstructions(
+    payloadAfterWebSearch,
+    state.webSearchMode,
+    ctx.model,
+  );
+
+  return citationPayload ?? webSearchPayload ?? serviceTierPayload;
 }
 
 function getCommandCandidates(): string[] {

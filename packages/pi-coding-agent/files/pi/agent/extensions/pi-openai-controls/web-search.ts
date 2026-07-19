@@ -9,10 +9,34 @@ import { isRecord } from "./types";
 
 export const WEB_SEARCH_MODE_OPTIONS = ["live", "cached", "disabled"] as const satisfies readonly WebSearchMode[];
 
+const MARKDOWN_CITATION_GUIDANCE = [
+  "<guidance>",
+  "When citing web search sources, use Markdown links with the source URL instead of internal citation tags.",
+  "</guidance>",
+].join("\n");
+
 const INTERNAL_CITATION_TAG_PATTERN = /cite((?:[^]+)+)/gu;
 
 export function shouldEnableWebSearch(mode: WebSearchMode, model: CurrentModel): boolean {
   return mode !== "disabled" && isOpenAICodexModel(model);
+}
+
+export function rewriteWebSearchCitationInstructions(
+  payload: unknown,
+  mode: WebSearchMode,
+  model: CurrentModel,
+): unknown {
+  if (!shouldEnableWebSearch(mode, model) || !isRecord(payload)) return undefined;
+
+  const instructions = typeof payload.instructions === "string" ? payload.instructions : "";
+  if (instructions.includes(MARKDOWN_CITATION_GUIDANCE)) return undefined;
+
+  return {
+    ...payload,
+    instructions: instructions
+      ? `${instructions}\n\n${MARKDOWN_CITATION_GUIDANCE}`
+      : MARKDOWN_CITATION_GUIDANCE,
+  };
 }
 
 export function rewriteInternalCitationTags(text: string): string | undefined {
