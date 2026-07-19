@@ -1,11 +1,5 @@
 {
 	"packages": [
-		{
-			"source": "npm:@howaboua/pi-codex-conversion",
-			"extensions": [
-				"-dist/index.js"
-			]
-		},
 		"npm:pi-vim",
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-mcporter",
