@@ -1,11 +1,11 @@
 ---
 name: dev-writing
-description: Use when writing for developer/software repository work like Git/GitHub/GitLab pull requests, issues, comments, bug reports, feature requests, review summaries. Always draft before posting.
+description: Create a developer-facing draft when the user or another skill explicitly requires one before posting, such as a pull request, issue, comment, bug report, feature request, or review.
 ---
 
 # Dev Writing
 
-Use this skill for developer/software repository writing: PRs, issues, comments, bug reports, feature requests, review summaries, and repo-facing implementation notes.
+Use this skill only when the user or another skill explicitly requires a publishable draft before posting developer-facing repository content.
 
 ## Rules
 
@@ -56,6 +56,5 @@ Keep `body.md` concise and directly publishable. Do not add fixed sections like 
 
 ## GitHub Notes
 
-- For GitHub issues, also use `gh-issue-template-create` if available.
 - Preserve repo templates when creating issues.
 - If template conflicts with this format, preserve template first, but keep first meaningful body paragraph headerless when possible.

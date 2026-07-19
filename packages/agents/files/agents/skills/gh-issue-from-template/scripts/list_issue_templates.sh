@@ -9,7 +9,7 @@ usage() {
 Usage: list_issue_templates.sh [-R owner/repo] [--json]
 
 Lists GitHub issue templates from the current checkout or a remote GitHub repo.
-Extracts common metadata keys: name, description, about, title, labels, assignees.
+Extracts common metadata keys: name, description, about, title, labels, assignees, projects, type.
 USAGE
 }
 
@@ -95,7 +95,7 @@ from pathlib import Path
 
 template_dir = Path(sys.argv[1])
 as_json = sys.argv[2] == "1"
-interesting_keys = {"name", "description", "about", "title", "labels", "assignees"}
+interesting_keys = {"name", "description", "about", "title", "labels", "assignees", "projects", "type"}
 
 
 def parse_scalar(value: str):
