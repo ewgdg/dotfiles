@@ -9,7 +9,7 @@
 - Use soft deletion `trash-put` instead of `rm`
 - For disposable files, probes, or transient scratch data on this machine, prefer `/tmp` or `$XDG_RUNTIME_DIR` when appropriate instead of writing into regular project or user directories.
 - Store durable agent artifacts under `~/.agents/artifacts/`; use `~/.agents/artifacts/outputs/YYYY-MM-DD/<task-slug>/` for generated task outputs.
-- For experimenting with source code, you can pull the repo to `~/sandbox`.
+- For experimenting with source code, you can pull the repo to `~/sandbox` after checking its existence.
 - For agent-managed tools, helper artifacts, small task-local environments, or temporary installs needed to complete a task, prefer `~/.agents/tools`.
 
 ## Documentation
