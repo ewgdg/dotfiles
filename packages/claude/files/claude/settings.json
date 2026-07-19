@@ -1,9 +1,10 @@
 {
   "permissions": {
     "allow": [],
-    "deny": [
-      "Skill(claude-api)"
-    ]
+    "deny": []
+  },
+  "skillOverrides": {
+    "claude-api": "off"
   },
   "hooks": {
     "SessionStart": [
