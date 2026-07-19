@@ -11,6 +11,11 @@ StartLimitBurst=3
 [Service]
 Type=exec
 TimeoutStartSec=20
+# Work around NVIDIA's explicit-sync present-path memory leak; remove after the upstream fix.
+# Reproduction and workaround: https://forums.developer.nvidia.com/t/host-memory-leak-in-wayland-explicit-sync-present-path-eglgears-wayland-repro-rtx-5080-610-43-02/371770
+# Upstream tracking: https://github.com/NVIDIA/egl-wayland2/issues/51
+# Noctalia report: https://github.com/noctalia-dev/noctalia/issues/3523
+Environment=__NV_DISABLE_EXPLICIT_SYNC=1
 ExecStart=/usr/bin/noctalia
 ExecStartPost=%h/.config/niri/bin/restore-noctalia-lock-screen.sh
 ExecStartPost=/usr/local/bin/wait-for-status-notifier-host
