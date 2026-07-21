@@ -28,4 +28,4 @@ mouse_scroll_lines = 1
 pane_history = true
 
 [ui.toast]
-delivery = "herdr"
+delivery = "off"

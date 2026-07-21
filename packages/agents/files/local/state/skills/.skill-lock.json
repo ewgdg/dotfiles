@@ -231,9 +231,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/to-tickets/SKILL.md",
-      "skillFolderHash": "5467d7a37ef365ed43ebe6eb466d6e952be881b8",
+      "skillFolderHash": "80c1bedbdaa72a4abd524055013accb4fe0ea8c4",
       "installedAt": "2026-07-09T19:30:15.931Z",
-      "updatedAt": "2026-07-17T03:07:53.170Z"
+      "updatedAt": "2026-07-21T19:51:58.542Z"
     },
     "triage": {
       "source": "mattpocock/skills",
