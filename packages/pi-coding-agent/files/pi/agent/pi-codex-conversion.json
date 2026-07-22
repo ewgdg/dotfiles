@@ -17,6 +17,7 @@
     "statusLine": true,
     "toolRenaming": true,
     "compactTools": false,
+    "codeModeDetails": false,
     "backgroundShellWidget": true,
     "backgroundShellToggleShortcut": "alt+w",
     "backgroundShellPrevShortcut": "alt+q",
@@ -24,17 +25,18 @@
     "backgroundShellCloseShortcut": "alt+r"
   },
   "compaction": {
-    "responsesCompaction": false
+    "responsesCompaction": false,
+    "version": "v1"
   },
   "beta": {
-    "responsesLite": false
+    "codeMode": false,
+    "responsesLite": false,
+    "v2UserMessageRetention": 64
   },
   "openai": {
     "fast": false,
     "verbosity": "low",
     "forceCachedWebSockets": true,
-    "webSearchModel": "gpt-5.6-luna",
-    "compactionModel": "gpt-5.6-luna",
-    "compactionReasoning": "current"
+    "webSearchModel": "gpt-5.6-luna"
   }
 }

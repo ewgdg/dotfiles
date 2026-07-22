@@ -71,7 +71,7 @@
 ## Git
 
 - use semantic commit messages
-- if the commit closes a gh issue, references it in the commit message for auto-closing.
+- if the commit closes a gh issue, references it in the commit message for auto-closing. `Closes #<num>` need to be the first line of the msg body.
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
 
 ## CLI Tools

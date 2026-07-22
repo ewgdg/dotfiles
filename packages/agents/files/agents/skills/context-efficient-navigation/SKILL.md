@@ -1,6 +1,6 @@
 ---
 name: context-efficient-navigation
-description: Use token-efficient codebase/log navigation workflows. Load when inspecting large repos, logs, generated files, unfamiliar code, structural relationships, or any task where broad file reads would waste context.
+description: Use token-efficient workflows for large repositories, logs, generated files, and noisy test, lint, build, or diagnostic commands.
 ---
 
 # Context-Efficient Navigation
@@ -33,11 +33,19 @@ Avoid dumping whole logs, lockfiles, generated bundles, snapshots, coverage repo
    - adjacent modules
    - tests covering same behavior
 
+## Noisy Command Output
+
+- Prefer compact reporters for tests, linters, and builds.
+- Otherwise redirect output to a temporary file while preserving the command's exit code.
+- On success, print only the final summary.
+- On failure, print focused diagnostics or rerun only the failing target with detailed output.
+- Set tool output limits as a secondary safeguard, not as a substitute for reducing output at the source.
+
 ## Delegation
 
 When a large body of text needs triage or summarization, delegate a bounded extraction/summarization task to a lightweight, low-cost sub-agent if it reduces main context and does not block critical reasoning. Prefer agents/models configured with low thinking effort for extraction-only work; reserve high-cost reasoning for synthesis or decisions.
 
-## Response Discipline
+### Response Discipline
 
 When reporting findings:
 

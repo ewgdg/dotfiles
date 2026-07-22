@@ -3,8 +3,8 @@
 		"npm:pi-vim",
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-mcporter",
-		"git:github.com/ewgdg/pi-select-patch",
-		"npm:pi-herdr-subagents"
+		"npm:pi-herdr-subagents",
+		"npm:@howaboua/pi-codex-conversion"
 	],
 	"enabledModels": [
 		"openrouter/deepseek/deepseek-v4-flash",
@@ -24,7 +24,8 @@
 		}
 	},
 	"compaction": {
-		"enabled": true
+		"enabled": true,
+		"reserveTokens": 22000
 	},
 	"treeFilterMode": "default",
 	"enableInstallTelemetry": false,
@@ -34,5 +35,9 @@
 	"enableSkillCommands": true,
 	"pi-select-patch": {
 		"anchorMode": "tolerant"
-	}
+	},
+	"extensions": [
+		"-extensions/pi-openai-controls/index.ts",
+		"+extensions/pi-openrouter-controls/index.ts"
+	]
 }

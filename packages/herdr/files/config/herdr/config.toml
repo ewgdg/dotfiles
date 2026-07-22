@@ -29,3 +29,6 @@ pane_history = true
 
 [ui.toast]
 delivery = "off"
+
+[ui.sound]
+enabled = false
