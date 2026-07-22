@@ -1,5 +1,3 @@
-typeset -gA _API_KEY_CACHE
-
 # disable rtk telemetry
 export RTK_TELEMETRY_DISABLED=1
 
@@ -31,41 +29,41 @@ _disable_legacy_agent_override() {
   command mv -f "$legacy_file" "$disabled_file"
 }
 
+# Resolve 1Password secrets in one batched op run call.
+# Populates the associative array named by the first argument with service→value entries.
 _load_api_key() {
   if ! _ensure_command op "1Password API key lookup"; then
     return 1
   fi
 
-  local service env_var resolved_output print_script
+  typeset -n _target=$1; shift
+
+  local env_var print_script resolved_output
   local index
-  local -a missing_services env_assignments resolved_values
+  local -a env_assignments resolved_values
 
-  for service in "$@"; do
-    [[ -n ${_API_KEY_CACHE[$service]-} ]] && continue
+  (( $# )) || return 0
 
-    missing_services+=("$service")
-    env_var="OP_CACHE_KEY_${#missing_services[@]}"
-    env_assignments+=("${env_var}=op://dev/${service}/credential")
+  for (( index = 1; index <= $#; index++ )); do
+    env_var="OP_CACHE_KEY_${index}"
+    env_assignments+=("${env_var}=op://dev/${argv[index]}/credential")
   done
 
-  (( ${#missing_services[@]} )) || return 0
-
   print_script='printf "%s\\n"'
-  for (( index = 1; index <= ${#missing_services[@]}; index++ )); do
+  for (( index = 1; index <= $#; index++ )); do
     print_script+=" \"\$OP_CACHE_KEY_${index}\""
   done
 
-  # Resolve all uncached secrets in one CLI invocation to avoid repeated startup overhead.
   resolved_output=$(env "${env_assignments[@]}" op run --no-masking -- zsh -fc "$print_script") || return 1
   resolved_values=("${(@f)resolved_output}")
 
-  if (( ${#resolved_values[@]} != ${#missing_services[@]} )); then
+  if (( ${#resolved_values[@]} != $# )); then
     print -u2 -- "Failed to resolve expected number of API keys via op run"
     return 1
   fi
 
-  for (( index = 1; index <= ${#missing_services[@]}; index++ )); do
-    _API_KEY_CACHE[${missing_services[index]}]=${resolved_values[index]}
+  for (( index = 1; index <= $#; index++ )); do
+    _target[${argv[index]}]=${resolved_values[index]}
   done
 }
 
@@ -97,14 +95,15 @@ pi() (
     return 1
   fi
 
-  _load_api_key openai-api anthropic-api openrouter-api deepseek-api brave-api exa-api || return 1
+  local -A _keys
+  _load_api_key _keys openai-api anthropic-api openrouter-api deepseek-api brave-api exa-api || return 1
 
-  # export OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]}
-  # export ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]}
-  export DEEPSEEK_API_KEY=${_API_KEY_CACHE[deepseek-api]}
-  export OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]}
-  export BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]}
-  export EXA_API_KEY=${_API_KEY_CACHE[exa-api]}
+  # export OPENAI_API_KEY=${_keys[openai-api]}
+  # export ANTHROPIC_API_KEY=${_keys[anthropic-api]}
+  export DEEPSEEK_API_KEY=${_keys[deepseek-api]}
+  export OPENROUTER_API_KEY=${_keys[openrouter-api]}
+  export BRAVE_API_KEY=${_keys[brave-api]}
+  export EXA_API_KEY=${_keys[exa-api]}
 
   command pi "$@"
 )
