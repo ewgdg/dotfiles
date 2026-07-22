@@ -32,7 +32,8 @@ shared = [
   "models-store.json",
   # prefer ~/.agents/skills
   "skills/",
-  "state/"
+  "state/",
+  "cache/",
 ]
 
 [[targets.d_pi_agent.path_rules]]

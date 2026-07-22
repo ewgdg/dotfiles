@@ -8,13 +8,13 @@
     "webRun": true,
     "imageGeneration": true,
     "viewImageFallback": false,
-    "applyPatchOnly": false,
+    "applyPatchOnly": true,
     "viewImageOnly": false,
-    "webRunOnly": false,
+    "webRunOnly": true,
     "imageGenerationOnly": false
   },
   "ui": {
-    "statusLine": true,
+    "statusLine": false,
     "toolRenaming": true,
     "compactTools": false,
     "codeModeDetails": false,

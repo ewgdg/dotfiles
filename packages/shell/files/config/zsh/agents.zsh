@@ -92,18 +92,19 @@ claudex() {
   claude "$@"
 }
 
-pi(){
+pi() (
   if ! _ensure_command pi "Pi coding agent"; then
     return 1
   fi
 
   _load_api_key openai-api anthropic-api openrouter-api deepseek-api brave-api exa-api || return 1
 
-  # OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]} \
-  # ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]} \
-  DEEPSEEK_API_KEY=${_API_KEY_CACHE[deepseek-api]} \
-  OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]} \
-  BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]} \
-  EXA_API_KEY=${_API_KEY_CACHE[exa-api]} \
+  # export OPENAI_API_KEY=${_API_KEY_CACHE[openai-api]}
+  # export ANTHROPIC_API_KEY=${_API_KEY_CACHE[anthropic-api]}
+  export DEEPSEEK_API_KEY=${_API_KEY_CACHE[deepseek-api]}
+  export OPENROUTER_API_KEY=${_API_KEY_CACHE[openrouter-api]}
+  export BRAVE_API_KEY=${_API_KEY_CACHE[brave-api]}
+  export EXA_API_KEY=${_API_KEY_CACHE[exa-api]}
+
   command pi "$@"
-}
+)

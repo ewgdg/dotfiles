@@ -4,7 +4,8 @@
 		"git:github.com/ewgdg/pi-multicodex@main",
 		"npm:pi-mcporter",
 		"npm:pi-herdr-subagents",
-		"npm:@howaboua/pi-codex-conversion"
+		"npm:@howaboua/pi-codex-conversion",
+		"npm:@narumitw/pi-btw"
 	],
 	"enabledModels": [
 		"openrouter/deepseek/deepseek-v4-flash",

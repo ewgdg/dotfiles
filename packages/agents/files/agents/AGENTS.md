@@ -28,6 +28,7 @@
 
 ## Legacy Handling
 
+- Do not consider backward compatibility.
 - Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
 - Zero tolerance to unjustified legacy code/docs
 - Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
@@ -52,7 +53,6 @@
 
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Write test cases first before bug fixes
-- if code is changed intentionally, clean up the old tests that fail bc of the changes instead of adding backward compatibility to source code
 
 ## Context Efficiency
 

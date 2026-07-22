@@ -1,5 +1,4 @@
 {
-  "timeoutMs": 120000,
-  "mode": "index",
-  "mcpServers": {}
+  "version": 1,
+  "defaultExposure": "index"
 }
