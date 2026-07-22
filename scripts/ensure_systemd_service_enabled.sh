@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+auto_start=true
+if [[ "${1:-}" == "--no-start" ]]; then
+  auto_start=false
+  shift
+fi
+
 if [[ $# -ne 2 ]]; then
-  echo "usage: $0 <user|system> <unit-name>" >&2
+  echo "usage: $0 [--no-start] <user|system> <unit-name>" >&2
   exit 2
 fi
 
@@ -13,6 +19,7 @@ sudo_command=(sudo)
 
 systemctl_query_command=()
 systemctl_enable_command=()
+systemctl_start_command=()
 reload_before_precheck=false
 manager_unreachable_message=""
 unit_unavailable_message=""
@@ -25,6 +32,7 @@ case "${scope}" in
     fi
     systemctl_query_command=(systemctl --user)
     systemctl_enable_command=(systemctl --user enable "${unit_name}")
+    systemctl_start_command=(systemctl --user start "${unit_name}")
     reload_before_precheck=true
     manager_unreachable_message="Skipping ${unit_name}: user systemd is not reachable."
     unit_unavailable_message="Skipping ${unit_name}: the unit is not available to the user manager yet."
@@ -35,8 +43,10 @@ case "${scope}" in
     unit_unavailable_message="Skipping ${unit_name}: the system unit is not available."
     if [[ ${EUID} -eq 0 ]]; then
       systemctl_enable_command=(systemctl enable "${unit_name}")
+      systemctl_start_command=(systemctl start "${unit_name}")
     else
       systemctl_enable_command=("${sudo_command[@]}" systemctl enable "${unit_name}")
+      systemctl_start_command=("${sudo_command[@]}" systemctl start "${unit_name}")
     fi
     ;;
   *)
@@ -52,6 +62,9 @@ fi
 
 if "${systemctl_query_command[@]}" --quiet is-enabled "${unit_name}" >/dev/null 2>&1; then
   echo "${unit_name} is already enabled."
+  if [[ "${auto_start}" == "true" ]]; then
+    "${systemctl_start_command[@]}"
+  fi
   exit 0
 fi
 
@@ -75,3 +88,7 @@ if [[ "${reload_before_precheck}" != "true" ]]; then
 fi
 
 "${systemctl_enable_command[@]}"
+
+if [[ "${auto_start}" == "true" ]]; then
+  "${systemctl_start_command[@]}"
+fi
