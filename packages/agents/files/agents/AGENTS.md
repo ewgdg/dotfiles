@@ -36,7 +36,7 @@
 
 ## Coding
 
-- Prefer modern and latest libraries and frameworks, reference docs with `find-docs` skill
+- Prefer modern and latest libraries and frameworks, reference docs via web search
 - Use descriptive, intention-revealing names; prioritize readability over brevity
 - Prefer DRY code
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier
