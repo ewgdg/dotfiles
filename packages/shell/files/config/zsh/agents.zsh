@@ -86,7 +86,7 @@ claude() {
 }
 
 claudex() {
-  ANTHROPIC_BASE_URL="http://127.0.0.1:8317" \
+  ANTHROPIC_BASE_URL="https://cliproxyapi.service.xianzzz.com:8317" \
   ANTHROPIC_AUTH_TOKEN="local-cliproxyapi" \
   ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-sol" \
   CLAUDE_CODE_MAX_CONTEXT_TOKENS=272000 \
@@ -112,8 +112,8 @@ pi() (
 
   # export OPENAI_API_KEY=${_keys[openai-api]}
   # export ANTHROPIC_API_KEY=${_keys[anthropic-api]}
+  # export OPENROUTER_API_KEY=${_keys[openrouter-api]}
   export DEEPSEEK_API_KEY=${_keys[deepseek-api]}
-  export OPENROUTER_API_KEY=${_keys[openrouter-api]}
   export BRAVE_API_KEY=${_keys[brave-api]}
   export EXA_API_KEY=${_keys[exa-api]}
 

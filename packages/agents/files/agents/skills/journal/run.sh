@@ -147,7 +147,7 @@ if len(relative_path.parts) != 1:
     print(f"Created journal path is not directly inside journal dir: {relative_path}", file=sys.stderr)
     raise SystemExit(1)
 
-print(relative_path.name)
+print(str(created_path))
 PY
 }
 

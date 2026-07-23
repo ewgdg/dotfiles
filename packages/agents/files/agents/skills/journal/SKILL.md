@@ -90,4 +90,4 @@ EOF
 
 QuickAdd owns note creation and the vault's journal-day boundary. The helper validates `--importance` as a number from 1 to 3, defaults to `1`, writes `importance`, then prints the created path so later refinement can use normal read/edit tools.
 
-Path return rule: `create` prints only the created journal filename, e.g. `2026-...md`. Resolve it against `$(run.sh print-path)` for normal file tools.
+Path return rule: `create` prints the full absolute path of the created journal file.

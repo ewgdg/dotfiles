@@ -2,7 +2,7 @@
   "mode": "normal",
   "scope": {
     "allProviders": "off",
-    "additionalProviders": []
+    "additionalProviders": ["codex-lb"]
   },
   "tools": {
     "webRun": true,
