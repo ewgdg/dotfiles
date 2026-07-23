@@ -30,23 +30,26 @@ _disable_legacy_agent_override() {
 }
 
 # Resolve 1Password secrets in one batched op run call.
-# Populates the associative array named by the first argument with service→value entries.
-_load_api_key() {
+_load_api_keys() {
+  emulate -L zsh
+
   if ! _ensure_command op "1Password API key lookup"; then
     return 1
   fi
-
-  typeset -n _target=$1; shift
 
   local env_var print_script resolved_output
   local index
   local -a env_assignments resolved_values
 
+  reply=()
+
   (( $# )) || return 0
 
   for (( index = 1; index <= $#; index++ )); do
     env_var="OP_CACHE_KEY_${index}"
-    env_assignments+=("${env_var}=op://dev/${argv[index]}/credential")
+    env_assignments+=(
+      "${env_var}=op://dev/${argv[index]}/credential"
+    )
   done
 
   print_script='printf "%s\\n"'
@@ -54,7 +57,11 @@ _load_api_key() {
     print_script+=" \"\$OP_CACHE_KEY_${index}\""
   done
 
-  resolved_output=$(env "${env_assignments[@]}" op run --no-masking -- zsh -fc "$print_script") || return 1
+  resolved_output=$(
+    env "${env_assignments[@]}" \
+      op run --no-masking -- zsh -fc "$print_script"
+  ) || return 1
+
   resolved_values=("${(@f)resolved_output}")
 
   if (( ${#resolved_values[@]} != $# )); then
@@ -63,7 +70,10 @@ _load_api_key() {
   fi
 
   for (( index = 1; index <= $#; index++ )); do
-    _target[${argv[index]}]=${resolved_values[index]}
+    reply+=(
+      "${argv[index]}"
+      "${resolved_values[index]}"
+    )
   done
 }
 
@@ -96,7 +106,9 @@ pi() (
   fi
 
   local -A _keys
-  _load_api_key _keys openai-api anthropic-api openrouter-api deepseek-api brave-api exa-api || return 1
+  local -a reply
+  _load_api_keys openai-api deepseek-api openrouter-api brave-api exa-api || return 1
+  _keys=( "${reply[@]}" )
 
   # export OPENAI_API_KEY=${_keys[openai-api]}
   # export ANTHROPIC_API_KEY=${_keys[anthropic-api]}
