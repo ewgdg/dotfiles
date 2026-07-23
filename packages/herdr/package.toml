@@ -12,7 +12,13 @@ pre_push = "curl -fsSL https://herdr.dev/install.sh | sh"
 source = "files/config/herdr/config.toml"
 path = "~/.config/herdr/config.toml"
 
-[targets.reviewr_focus_toggle]
-source = "files/local/libexec/herdr/reviewr-focus-toggle"
-path = "~/.local/libexec/herdr/reviewr-focus-toggle"
-chmod = "755"
+[targets.reviewr_installed]
+sync_policy = "push-only"
+probe = 'if herdr plugin list 2>/dev/null | grep -q persiyanov.reviewr; then exit 100; fi; exit 0'
+
+[targets.reviewr_installed.hooks]
+pre_push = 'herdr plugin install persiyanov/herdr-reviewr'
+
+[targets.d_config_herdr_plugins_config]
+source = "files/config/herdr/plugins/config"
+path = "~/.config/herdr/plugins/config"

@@ -9,9 +9,9 @@ next_agent = "ctrl+shift+l"
 
 [[keys.command]]
 key = "prefix+\\"
-type = "shell"
-command = "$HOME/.local/libexec/herdr/reviewr-focus-toggle"
-description = "Toggle reviewr and focus it when opened"
+type = "plugin_action"
+command = "persiyanov.reviewr.toggle"
+description = "Toggle reviewr"
 
 [theme]
 name = "gruvbox"
