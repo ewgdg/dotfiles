@@ -158,3 +158,9 @@ def test_zsh_uses_normal_codex_resolution_without_expansion_helper() -> None:
     assert "agents-file-expand.py" not in agents_zsh
     assert "claudex()" in agents_zsh
     assert not (REPO_ROOT / "packages/shell/files/config/zsh/helpers/agents-file-expand.py").exists()
+
+
+def test_claudex_uses_the_cross_device_https_endpoint() -> None:
+    agents_zsh = (REPO_ROOT / "packages/shell/files/config/zsh/agents.zsh").read_text()
+
+    assert 'ANTHROPIC_BASE_URL="https://cliproxyapi.service.xianzzz.com"' in agents_zsh

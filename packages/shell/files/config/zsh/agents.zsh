@@ -86,7 +86,7 @@ claude() {
 }
 
 claudex() {
-  ANTHROPIC_BASE_URL="https://cliproxyapi.service.xianzzz.com:8317" \
+  ANTHROPIC_BASE_URL="https://cliproxyapi.service.xianzzz.com" \
   ANTHROPIC_AUTH_TOKEN="local-cliproxyapi" \
   ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5.6-sol" \
   CLAUDE_CODE_MAX_CONTEXT_TOKENS=272000 \

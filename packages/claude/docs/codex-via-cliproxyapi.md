@@ -1,6 +1,6 @@
 # Claude Code through CLIProxyAPI
 
-`claudex` sends Claude Code requests to the local CLIProxyAPI Docker service, which routes them through Codex OAuth.
+`claudex` sends Claude Code requests to CLIProxyAPI over its private-network HTTPS route, which routes them through Codex OAuth.
 
 ## Ownership
 
@@ -12,7 +12,9 @@ For service setup and operations, see `services/cli-proxy-api/README.md` in the 
 
 ## Launcher policy
 
-`claudex` uses the local loopback endpoint `http://127.0.0.1:8317` and maps Claude Code model tiers directly:
+`claudex` uses `https://cliproxyapi.service.xianzzz.com` so the same launcher works across trusted devices. Caddy accepts client API requests only from LAN and Tailscale source addresses.
+
+Claude Code model tiers map directly:
 
 - Main: `gpt-5.6-sol`
 - Sonnet: `gpt-5.6-terra`
@@ -20,7 +22,7 @@ For service setup and operations, see `services/cli-proxy-api/README.md` in the 
 
 `CLAUDE_CODE_SUBAGENT_MODEL` remains unset so subagents can inherit the main model or use their configured tier.
 
-The HTTPS management URL is intentionally not the launcher endpoint: it exposes only management routes, while client API routes remain local-only.
+The raw port `8317` remains host-loopback-only. Cross-device clients connect through Caddy on the standard HTTPS port.
 
 ## Web search
 
