@@ -25,11 +25,11 @@
     "backgroundShellCloseShortcut": "alt+r"
   },
   "compaction": {
-    "responsesCompaction": false,
-    "version": "v1"
+    "responsesCompaction": true,
+    "version": "v2"
   },
   "beta": {
-    "codeMode": false,
+    "codeMode": true,
     "responsesLite": false,
     "v2UserMessageRetention": 64
   },
