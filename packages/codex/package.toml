@@ -46,6 +46,8 @@ path = "~/.codex/agents"
 [targets.f_codex_hooks_json]
 source = "files/codex/hooks.json"
 path = "~/.codex/hooks.json"
+render = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/text_rewrite.py" home expand "$DOTMAN_REPO_PATH"'
+capture = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/text_rewrite.py" home collapse "$DOTMAN_LIVE_PATH"'
 
 [targets.f_codex_herdr_agent_state_sh]
 source = "files/codex/herdr-agent-state.sh"

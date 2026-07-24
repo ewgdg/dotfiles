@@ -52,7 +52,7 @@ def apply_regex_replacement(text: str, *, pattern: str, replacement: str) -> str
 
 
 def read_text(path: Path | None) -> str:
-    if path is None:
+    if path is None or path == Path("-"):
         return sys.stdin.read()
     return path.read_text(encoding="utf-8")
 
@@ -80,7 +80,7 @@ def add_io_arguments(parser: argparse.ArgumentParser) -> None:
         "input_path",
         nargs="?",
         type=Path,
-        help="Input file. Defaults to stdin.",
+        help="Input file, or - for stdin. Defaults to stdin.",
     )
     parser.add_argument(
         "output_path",

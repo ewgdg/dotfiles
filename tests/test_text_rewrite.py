@@ -63,6 +63,20 @@ def test_cli_home_collapse_reads_stdin_and_writes_stdout(monkeypatch) -> None:
     assert completed.stdout == "path=~/project\nother=/home/tester-other\n"
 
 
+def test_cli_dash_input_path_reads_stdin(monkeypatch) -> None:
+    monkeypatch.setenv("HOME", "/home/tester")
+
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "home", "expand", "-"],
+        input="path=~/.codex/herdr-agent-state.sh\n",
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert completed.stdout == "path=/home/tester/.codex/herdr-agent-state.sh\n"
+
+
 def test_cli_replace_writes_output_path(tmp_path: Path) -> None:
     input_path = tmp_path / "input.txt"
     output_path = tmp_path / "output.txt"

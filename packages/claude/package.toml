@@ -16,8 +16,8 @@ pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.
 source = "files/claude/settings.json"
 path = "~/.claude/settings.json"
 chmod = "600"
-render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.claude.settings_selectors|shell_args }}'
-capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.claude.settings_selectors|shell_args }}'
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.claude.settings_selectors|shell_args }} | {{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/text_rewrite.py" home expand -'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.claude.settings_selectors|shell_args }} | {{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/text_rewrite.py" home collapse -'
 
 [targets.f_claude_statusline_js]
 source = "files/claude/statusline.js"
