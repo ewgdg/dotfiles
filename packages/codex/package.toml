@@ -15,8 +15,10 @@ config_selectors = [
   "re:^notice\\.",
   "re:marketplaces.*",
   "mcp_servers.node_repl",
+  "mcp_servers.computer-use",
   "notify",
   "hooks.state",
+  "re:^shell_environment_policy\\.",
 ]
 
 [targets.f_codex_config_toml]
