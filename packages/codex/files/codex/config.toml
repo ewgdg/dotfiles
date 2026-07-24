@@ -48,9 +48,7 @@ js_repl = false
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens", "five-hour-limit"]
 status_line_use_colors = true
-
-[apps.github]
-enabled = false
+vim_mode_default = true
 
 [plugins."computer-use@openai-bundled"]
 enabled = true
@@ -83,4 +81,7 @@ enabled = true
 followUpQueueMode = "queue"
 dock-icon-preference = "codex-system"
 enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "max", "ultra"]
+
+[apps.github]
+enabled = false
 
