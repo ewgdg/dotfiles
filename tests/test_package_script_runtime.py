@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import subprocess
+import tomllib
 
 import pytest
 
@@ -21,7 +22,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "packages/gsettings/scripts/sync_gsettings_gtk.py",
         "scripts/enable_display_manager_systemd_unit.py",
         "scripts/kv_transform.py",
-        "scripts/text_rewrite.py",
     ],
 )
 def test_script_runs_via_uv_project_from_outside_repo(
@@ -44,3 +44,26 @@ def test_script_runs_via_uv_project_from_outside_repo(
     )
 
     assert "usage:" in completed.stdout
+
+
+@pytest.mark.parametrize("action", ["expand", "collapse"])
+def test_dotman_home_rewrite_command_is_available_from_outside_repo(
+    action: str,
+    tmp_path: Path,
+) -> None:
+    completed = subprocess.run(
+        ["dotman", "rewrite", "home", action, "--help"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert f"usage: dotman rewrite home {action}" in completed.stdout
+
+
+def test_dotfiles_tools_does_not_depend_on_dotman_python_package() -> None:
+    with (REPO_ROOT / "pyproject.toml").open("rb") as project_file:
+        dependencies = tomllib.load(project_file)["project"]["dependencies"]
+
+    assert all(not dependency.casefold().startswith("dotman") for dependency in dependencies)

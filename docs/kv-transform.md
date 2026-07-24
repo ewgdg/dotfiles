@@ -25,9 +25,11 @@ uv run scripts/kv_transform.py capture live.conf \
 
 ## Home Path Rewrites
 
-Home path normalization reuses `scripts/text_rewrite.py` helpers:
+Home path normalization composes through Dotman's public CLI:
 
-- render: `~` and `~/...` become `$HOME` and `$HOME/...`
-- capture: `$HOME` and `$HOME/...` become `~` and `~/...`
+- render sends selected values through `dotman rewrite home expand`
+- capture sends selected values through `dotman rewrite home collapse`
 
-Rewrites apply only to selected key values, not whole files.
+The separately installed `dotman` executable is the cross-repository contract;
+`dotfiles-tools` does not depend on Dotman as a Python package. Rewrites apply
+only to selected key values, not whole files.

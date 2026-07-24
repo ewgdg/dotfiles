@@ -8,9 +8,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import subprocess
 import sys
-
-from scripts.text_rewrite import collapse_home_paths, expand_home_paths
 
 
 KEY_VALUE_PATTERN = re.compile(r"^(?P<key>[^=\s][^=]*?)\s*=\s*(?P<value>.*)$")
@@ -79,13 +78,30 @@ def validate_required_keys(values: dict[str, str], required_keys: set[str]) -> N
         raise ValueError(f"missing required keys: {', '.join(missing_keys)}")
 
 
+def rewrite_home_value(value: str, *, action: str) -> str:
+    try:
+        result = subprocess.run(
+            ["dotman", "rewrite", "home", action, "-"],
+            input=value,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+            check=False,
+        )
+    except FileNotFoundError:
+        raise ValueError("dotman executable not found on PATH") from None
+    result.check_returncode()
+    return result.stdout
+
+
 def normalize_values_for_render(
     values: dict[str, str],
     *,
     home_expand_keys: set[str],
 ) -> dict[str, str]:
     return {
-        key: expand_home_paths(value) if key in home_expand_keys else value
+        key: rewrite_home_value(value, action="expand")
+        if key in home_expand_keys
+        else value
         for key, value in values.items()
     }
 
@@ -161,7 +177,9 @@ def capture_config_text(
         if line.key in home_collapse_keys:
             if line.value is None:
                 raise ValueError(f"key has no value: {line.key}")
-            captured_lines.append(line.with_value(collapse_home_paths(line.value)))
+            captured_lines.append(
+                line.with_value(rewrite_home_value(line.value, action="collapse"))
+            )
             continue
         captured_lines.append(line.original)
 
@@ -253,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as error:
         print(f"kv_transform: {error}", file=sys.stderr)
         return 2
+    except subprocess.CalledProcessError as error:
+        return error.returncode
 
     raise ValueError(f"unsupported command: {args.command}")
 
