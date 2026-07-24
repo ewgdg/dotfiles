@@ -2,7 +2,9 @@
   "mode": "normal",
   "scope": {
     "allProviders": "off",
-    "additionalProviders": ["codex-lb"]
+    "additionalProviders": [
+      "codex-lb"
+    ]
   },
   "tools": {
     "webRun": true,
@@ -29,8 +31,8 @@
     "version": "v2"
   },
   "beta": {
-    "codeMode": true,
-    "responsesLite": false,
+    "codeMode": false,
+    "responsesLite": true,
     "v2UserMessageRetention": 64
   },
   "openai": {
