@@ -88,6 +88,7 @@ def test_run_dump_preserves_explicit_template_key_order(
     )
     output_path = tmp_path / "output.ini"
 
+    monkeypatch.setattr(module, "schema_has_key", lambda schema, key: True)
     monkeypatch.setattr(
         module,
         "gsettings_get",
@@ -126,6 +127,7 @@ def test_run_dump_marks_unoverridden_explicit_keys_with_reset_token(
     )
     output_path = tmp_path / "output.ini"
     calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(module, "schema_has_key", lambda schema, key: True)
     monkeypatch.setattr(
         module,
         "gsettings_get",
@@ -231,6 +233,7 @@ def test_run_apply_strips_full_schema_suffix_before_setting_keys(
         encoding="utf-8",
     )
     calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(module, "schema_has_key", lambda schema, key: True)
     monkeypatch.setattr(
         module,
         "gsettings_set",
@@ -257,6 +260,7 @@ def test_run_apply_resets_keys_marked_with_reset_token(
     )
     reset_calls: list[tuple[str, str]] = []
     set_calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(module, "schema_has_key", lambda schema, key: True)
     monkeypatch.setattr(
         module,
         "gsettings_reset",
