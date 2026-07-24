@@ -34,21 +34,6 @@ writable_roots = [
   "~/projects/knowledgebase",
 ]
 
-# [mcp_servers.context7]
-# command = "npx"
-# args = ["-y", "@upstash/context7-mcp"]
-
-# [mcp_servers.chrome-devtools]
-# command = "npx"
-# args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--category-performance=false", "--category-network=false", "--performance-crux=false", "--categoryEmulation=false"]
-
-# [mcp_servers.playwright]
-# command = "npx"
-# args = ["@playwright/mcp@latest", "--extension"]
-#
-# [mcp_servers.playwright.env]
-# PLAYWRIGHT_MCP_EXTENSION_TOKEN = "I9S5fXuyi_lkPuqJ1WYFzeEXDOeevg578KwN1WD6rr8"
-
 [features]
 multi_agent = true
 search_tool = true
@@ -63,6 +48,9 @@ js_repl = false
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens", "five-hour-limit"]
 status_line_use_colors = true
+
+[apps.github]
+enabled = false
 
 [plugins."computer-use@openai-bundled"]
 enabled = true
