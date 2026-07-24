@@ -50,10 +50,12 @@ def write_fake_obsidian(bin_dir: Path, vault_root: Path) -> None:
               quickadd:run)
                 shift
                 highlight=""
+                importance=""
                 journal=""
                 for arg in "$@"; do
                   case "$arg" in
                     value-Highlight=*) highlight="${{arg#value-Highlight=}}" ;;
+                    value-Importance=*) importance="${{arg#value-Importance=}}" ;;
                     value-Journal=*) journal="${{arg#value-Journal=}}" ;;
                   esac
                 done
@@ -68,6 +70,7 @@ def write_fake_obsidian(bin_dir: Path, vault_root: Path) -> None:
             created: 2026-01-01T00:00:0${{next}}.000Z
             day: "[[2026-01-01]]"
             aliases: $highlight
+            importance: $importance
             ---
 
             $journal
@@ -190,16 +193,21 @@ def test_journal_create_reads_body_from_stdin_and_sets_author(tmp_path: Path) ->
         "create",
         "--highlight",
         "Journal writes became stdin-only notes",
+        "--importance",
+        "2",
         "--author",
         "agent-test",
         journal="Dropped positional body args; journal body now comes from stdin.\nQuotes `safe`.",
     )
 
-    assert result.stdout.strip() == "2026-01-01-000001.md"
+    assert result.stdout.strip() == str(
+        vault_root / "Streams/Journals/2026-01-01-000001.md"
+    )
     files = journal_files(vault_root)
     assert len(files) == 1
     content = files[0].read_text()
-    assert "aliases: Journal writes became stdin-only notes" in content
+    assert 'aliases: "Journal writes became stdin-only notes"' in content
+    assert "importance: 2" in content
     assert "author: agent-test" in content
     assert "Dropped positional body args" in content
     assert "Quotes `safe`." in content
@@ -214,8 +222,12 @@ def test_journal_create_always_creates_new_note(tmp_path: Path) -> None:
     first = run_journal(vault_root, bin_dir, "create", "--highlight", "First highlight", journal="First body")
     second = run_journal(vault_root, bin_dir, "create", "--highlight", "Second highlight", journal="Second body")
 
-    assert first.stdout.strip() == "2026-01-01-000001.md"
-    assert second.stdout.strip() == "2026-01-01-000002.md"
+    assert first.stdout.strip() == str(
+        vault_root / "Streams/Journals/2026-01-01-000001.md"
+    )
+    assert second.stdout.strip() == str(
+        vault_root / "Streams/Journals/2026-01-01-000002.md"
+    )
     assert len(journal_files(vault_root)) == 2
 
 
@@ -235,7 +247,9 @@ def test_journal_create_respects_vault_relative_dir_override(tmp_path: Path) -> 
         env_overrides={"JOURNAL_VAULT_RELATIVE_DIR": "Custom/Journals"},
     )
 
-    assert result.stdout.strip() == "2026-01-01-000001.md"
+    assert result.stdout.strip() == str(
+        vault_root / "Custom/Journals/2026-01-01-000001.md"
+    )
     assert len(journal_files(vault_root, "Custom/Journals")) == 1
 
 
@@ -248,7 +262,10 @@ def test_journal_create_rejects_missing_subcommand(tmp_path: Path) -> None:
     result = run_journal(vault_root, bin_dir, "--highlight", "Body", check=False)
 
     assert result.returncode == 2
-    assert "run.sh create --highlight <Highlight> [--author <author>]" in result.stderr
+    assert (
+        "run.sh create --highlight <Highlight> [--importance 1-3] [--author <author>]"
+        in result.stderr
+    )
     assert not (vault_root / "Streams/Journals").exists()
 
 

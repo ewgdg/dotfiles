@@ -124,8 +124,10 @@ dir_symlink_mode = "follow"
     )
 
     config = tomllib.loads(config_path.read_text(encoding="utf-8"))
-    assert config["repos"]["main"] == {
-        "path": str(REPO_ROOT),
+    main_repo = config["repos"]["main"]
+    assert Path(main_repo["path"]).samefile(REPO_ROOT)
+    assert main_repo == {
+        "path": main_repo["path"],
         "order": 10,
         "state_key": "main",
     }
