@@ -2,8 +2,8 @@ id = "claude"
 depends = ["agents"]
 
 [vars.claude]
-# Model choice is a live-local preference and should not be forced by repo sync.
-settings_selectors = ["model"]
+# Interactive model and effort choices are live-local preferences.
+settings_selectors = ["model", "effortLevel"]
 
 [targets.claude_global_instructions]
 sync_policy = "push-only"

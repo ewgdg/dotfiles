@@ -29,7 +29,6 @@
     "command": "node \"$HOME/.claude/subagent-statusline.js\""
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "autoMemoryEnabled": false
