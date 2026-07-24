@@ -30,7 +30,7 @@ uv tool install \
 Also required:
 
 - surf-agent browser backend configured and able to open pages.
-- Logged in to `chatgpt.com` in the surf-agent browser profile. Run `surf-chatgpt login`; it opens and focuses a dedicated login window through the normal Surf bridge, including when the bridge is already running.
+- Logged in to `chatgpt.com` in the surf-agent browser profile. Run `surf-chatgpt login` to open a dedicated login window through the normal Surf bridge, including when the bridge is already running.
 
 ## Commands
 
@@ -38,9 +38,10 @@ Also required:
 surf-chatgpt ask 'Question...'
 printf 'Question...' | surf-chatgpt ask
 printf 'Critique this plan: ...' | surf-chatgpt ask --format text
-surf-chatgpt ask --thinking high 'Question...'
+surf-chatgpt ask --thinking pro 'Question...'
 surf-chatgpt ask --model latest --thinking highest 'Question...'
-surf-chatgpt ask --session '<session-id>' --model gpt-5.5 --thinking medium 'Follow up...'
+surf-chatgpt ask --pace none 'Question...'  # disable default natural pacing
+surf-chatgpt ask --session '<session-id>' --model gpt-5.6-sol --thinking extra-high 'Follow up...'
 surf-chatgpt ask --thread '<thread-id>' 'Follow up in kept browser thread...'
 surf-chatgpt login
 surf-chatgpt --help
@@ -57,23 +58,27 @@ Default output is compact JSON:
 Errors are structured and nonzero:
 
 ```json
-{"ok":false,"source":"external-chatgpt-via-surf-agent","error":{"type":"login_required","message":"ChatGPT login required","hint":"Run `surf-chatgpt login`, log in to chatgpt.com in the opened Surf Agent browser profile, then retry."}}
+{"ok":false,"source":"external-chatgpt-via-surf-agent","error":{"type":"login_required","message":"ChatGPT login required","hint":"Log in to ChatGPT in the preserved Surf Agent window, then retry the same prompt with `surf-chatgpt ask --thread surf-chatgpt-...`.","handoff":{"action":"complete_login","thread":"surf-chatgpt-...","retry":["ask","--thread","surf-chatgpt-..."]}}}
 ```
 
 ## Model / thinking selection
 
-`--model` is a fuzzy query against models visible in ChatGPT's web model picker. `--model latest` selects the first available model in the web UI list. No silent fallback: if no usable match is found, command fails with `model_unavailable`.
+`--model` fuzzily searches the nested model rows. `--thinking` independently fuzzily searches top-level thinking modes such as `Pro` and `Extra High`. `--model latest` and `--thinking highest` select the first available row in their respective lists. No silent fallback: an unavailable query fails with `model_unavailable`.
 `surf-chatgpt ask` requires a logged-in ChatGPT session by default, even if the logged-out page exposes a prompt composer. This prevents accidental use of anonymous/free ChatGPT when the user expects account models. Use `--allow-logged-out` only when the user explicitly wants anonymous ChatGPT; it cannot be combined with `--model` or `--thinking`.
 
+For optional no-prompt picker inspection, read [model picker inspection](references/model-selection.md).
+
 ```bash
-surf-chatgpt ask --thinking high 'Question...'
-surf-chatgpt ask --model pro 'Question...'
-surf-chatgpt ask --model gpt-5.5 'Question...'
-surf-chatgpt ask --model gpt-5.5:high 'Question...'
+surf-chatgpt ask --thinking pro 'Question...'
+surf-chatgpt ask --thinking extra-high 'Question...'
+surf-chatgpt ask --model gpt-5.6-sol 'Question...'
+surf-chatgpt ask --model gpt-5.6-sol --thinking pro 'Question...'
 surf-chatgpt ask --model latest --thinking highest 'Question...'
 ```
 
-Thinking mapping: `low` -> `Instant`, `medium` -> `Medium`, `high` -> `High`, `highest` -> first available thinking level shown by the web UI after model selection.
+## Natural pacing
+
+`ask` uses short randomized UI pacing by default. Use `--pace none` to disable it.
 
 ## Session policy
 
@@ -120,13 +125,15 @@ Failure classes include `login_required`, `captcha_or_cloudflare`, `ui_changed`,
 
 ## Login workflow
 
-If `surf-chatgpt` returns `login_required`:
+When `ask` or `model select` returns `login_required` or `captcha_or_cloudflare` with `error.handoff`, it preserves the exact blocked browser thread. Message the user with the indicated action and preserved thread, then stop and wait for explicit confirmation. After confirmation, retry the same operation using the returned arguments. For `ask`, retain and resend the exact original prompt:
 
 ```bash
-surf-chatgpt login
+surf-chatgpt ask --thread '<error.handoff.thread>' 'same prompt'
 ```
 
-Ask the user to log in to ChatGPT in the opened Surf Agent browser profile, then retry. Do not proceed with logged-out ChatGPT unless the user explicitly asks for anonymous ChatGPT and accepts `--allow-logged-out`.
+Keep using the preserved thread and wait for confirmation before retrying. The original prompt is not sent before readiness checks complete.
+
+Use `surf-chatgpt login` only for proactive login or a `login_required` error without handoff metadata. Ask the user to log in through the dedicated window, then retry. Do not proceed with logged-out ChatGPT unless the user explicitly asks for anonymous ChatGPT and accepts `--allow-logged-out`.
 
 ## Validation checklist
 
@@ -134,6 +141,7 @@ Ask the user to log in to ChatGPT in the opened Surf Agent browser profile, then
 surf-chatgpt --help
 surf-chatgpt ask --format json < /dev/null; test $? -ne 0
 surf-chatgpt ask --help | grep -q -- 'prompt'
+surf-chatgpt ask --help | grep -q -- '--pace'
 surf-chatgpt login --help | grep -q -- 'manual login'
 surf-chatgpt ask --help | grep -q -- '--session' && surf-chatgpt ask --help | grep -q -- '--thread' && ! surf-chatgpt ask --help | grep -q -- '--window-id'
 surf-chatgpt session search --help | grep -q -- '--limit'
