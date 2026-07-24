@@ -29,7 +29,10 @@
     "command": "node \"$HOME/.claude/subagent-statusline.js\""
   },
   "alwaysThinkingEnabled": true,
+  "attribution": {
+    "commit": ""
+  },
   "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
-  "autoMemoryEnabled": false
+  "autoMemoryEnabled": false,
+  "skipDangerousModePermissionPrompt": true
 }
