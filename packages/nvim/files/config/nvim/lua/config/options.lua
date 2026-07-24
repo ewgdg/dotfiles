@@ -4,6 +4,7 @@
 -- Add any additional options here
 
 vim.opt.wrap = true
+vim.opt.mousescroll = "ver:1,hor:6"
 
 -- Configure clipboard to only sync yanks, not deletions
 vim.opt.clipboard = ""  -- Disable automatic clipboard sync
