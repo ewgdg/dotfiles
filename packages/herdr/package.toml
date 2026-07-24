@@ -17,7 +17,7 @@ sync_policy = "push-only"
 probe = 'if herdr plugin list 2>/dev/null | grep -q persiyanov.reviewr; then exit 100; fi; exit 0'
 
 [targets.reviewr_installed.hooks]
-pre_push = 'herdr plugin install persiyanov/herdr-reviewr'
+pre_push = 'herdr plugin install persiyanov/herdr-reviewr --yes'
 
 [targets.d_config_herdr_plugins_config]
 source = "files/config/herdr/plugins/config"

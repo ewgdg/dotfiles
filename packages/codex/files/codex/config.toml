@@ -5,7 +5,6 @@ web_search = "live"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
 approvals_reviewer = "auto_review"
-
 model_provider = "codex-lb"
 
 [model_providers.codex-lb]
@@ -59,15 +58,13 @@ terminal_resize_reflow = true
 memories = true
 external_migration = true
 goals = true
+js_repl = false
 
 [tui]
 status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens", "five-hour-limit"]
 status_line_use_colors = true
 
 [plugins."computer-use@openai-bundled"]
-enabled = true
-
-[plugins."browser@openai-bundled"]
 enabled = true
 
 [plugins."documents@openai-primary-runtime"]
@@ -82,6 +79,20 @@ enabled = true
 [plugins."chrome@openai-bundled"]
 enabled = true
 
-[plugins."github@openai-curated-remote"]
-enabled = false
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[desktop]
+followUpQueueMode = "queue"
+dock-icon-preference = "codex-system"
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "max", "ultra"]
 

@@ -6,5 +6,11 @@
 	<true/>
 	<key>bypassEventsFromOtherApplications</key>
 	<false/>
+	<key>menuBarVisibilityMode</key>
+	<string>"always"</string>
+	<key>menuBarVisibilityModeMigrationCompleted</key>
+	<true/>
+	<key>showInMenuBar</key>
+	<true/>
 </dict>
 </plist>
