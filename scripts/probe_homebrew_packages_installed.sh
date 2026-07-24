@@ -2,6 +2,9 @@
 
 set -eu
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$script_dir/homebrew_package_state.sh"
+
 if [ "$#" -eq 0 ]; then
     printf 'usage: %s <package>...\n' "${0##*/}" >&2
     exit 64
@@ -14,7 +17,7 @@ fi
 
 missing_packages=""
 for package_name do
-    if ! brew list --versions "$package_name" >/dev/null 2>&1; then
+    if ! homebrew_package_is_installed "$package_name"; then
         missing_packages="${missing_packages}${missing_packages:+ }$package_name"
     fi
 done

@@ -2,6 +2,9 @@
 
 set -eu
 
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$script_dir/homebrew_package_state.sh"
+
 package_tap_map='
 bun oven-sh/bun
 '
@@ -38,12 +41,6 @@ ensure_tap() {
     fi
 }
 
-package_is_installed() {
-    package_name=$1
-
-    brew list --versions "$package_name" >/dev/null 2>&1
-}
-
 brew_install_package() {
     package_name=$1
 
@@ -64,7 +61,7 @@ install_package() {
 }
 
 for package_name do
-    if package_is_installed "$package_name"; then
+    if homebrew_package_is_installed "$package_name"; then
         continue
     fi
 
