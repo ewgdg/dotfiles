@@ -34,6 +34,17 @@ function runStatuslineWithTranscript(task, entries) {
   }
 }
 
+function runStatuslineWithoutSubagentTranscript(task) {
+  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
+  const transcriptPath = path.join(projectDirectory, 'session.jsonl');
+  fs.writeFileSync(transcriptPath, '');
+  try {
+    return runStatusline({ transcript_path: transcriptPath, tasks: [task] });
+  } finally {
+    fs.rmSync(projectDirectory, { recursive: true, force: true });
+  }
+}
+
 function stripAnsi(value) {
   return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
@@ -70,6 +81,18 @@ test('keeps Claude Code’s default row until a nameless task has persisted iden
   assert.deepEqual(rows, [
     { id: 'described', content: `${COLORS.cyan}worker${COLORS.reset} · Review auth` },
   ]);
+});
+
+test('uses the supplied task model until the subagent transcript provides effort', () => {
+  const result = runStatuslineWithoutSubagentTranscript({
+    id: 'pending', name: 'worker', model: 'gpt-5.6-sol', tokenCount: 50_000,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    id: 'pending',
+    content: `${COLORS.cyan}worker${COLORS.reset} · 50.0k tokens · ${COLORS.blue}gpt-5.6-sol${COLORS.reset}`,
+  });
 });
 
 test('uses the persisted agent subtype when task.name is unavailable', () => {
@@ -127,6 +150,23 @@ test('uses persisted subagent API usage when Claude Code reports zero progress t
     JSON.parse(result.stdout).content,
     `${COLORS.cyan}worker${COLORS.reset} · 3.6k tokens · ${COLORS.green}1%/200k${COLORS.reset}`,
   );
+});
+
+test('uses the latest transcript model and effort pair', () => {
+  const result = runStatuslineWithTranscript(
+    { id: 'paired', name: 'worker', model: 'task-model' },
+    [
+      { type: 'assistant', message: { role: 'assistant', model: 'gpt-5.6-sol', usage: {} }, effort: 'low' },
+      { type: 'assistant', message: { role: 'assistant', model: 'unpaired-model', usage: {} }, effort: '' },
+      { type: 'assistant', message: { role: 'assistant', model: 'gpt-5.6-terra', usage: {} }, effort: 'medium' },
+    ],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    id: 'paired',
+    content: `${COLORS.cyan}worker${COLORS.reset} · ${COLORS.blue}gpt-5.6-terra•medium${COLORS.reset}`,
+  });
 });
 
 test('derives rounded, clamped context only from valid tokenCount and capacity', () => {

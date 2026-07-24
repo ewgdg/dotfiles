@@ -66,12 +66,18 @@ async function persistedSubagentData(input, task) {
   let totalTokens = 0;
   let contextTokens;
   let agentType;
+  let modelAndEffort;
   let foundUsage = false;
   try {
     await forEachTranscriptLine(transcriptPath, (line) => {
       try {
         const entry = JSON.parse(line);
         agentType ??= normalizedText(entry.attributionAgent);
+        const model = normalizedText(entry?.message?.model);
+        const effort = normalizedText(entry.effort);
+        if (entry.type === 'assistant' && model !== undefined && effort !== undefined) {
+          modelAndEffort = { model, effort };
+        }
         const usage = entry?.message?.usage;
         let currentContextTokens = 0;
         let hasCurrentContext = false;
@@ -94,8 +100,8 @@ async function persistedSubagentData(input, task) {
   } catch {
     return undefined;
   }
-  return foundUsage || agentType !== undefined
-    ? { agentType, totalTokens: foundUsage ? totalTokens : undefined, contextTokens }
+  return foundUsage || agentType !== undefined || modelAndEffort !== undefined
+    ? { agentType, modelAndEffort, totalTokens: foundUsage ? totalTokens : undefined, contextTokens }
     : undefined;
 }
 
@@ -126,13 +132,17 @@ async function renderTask(input, task) {
   const description = normalizedText(task.description);
   const reportedTokenCount = validTokenCount(task.tokenCount);
   const tokenSpend = persistedData?.totalTokens ?? reportedTokenCount;
-  const model = normalizedText(task.model);
+  const modelAndEffort = persistedData?.modelAndEffort;
+  const model = modelAndEffort?.model ?? normalizedText(task.model);
   const percentage = contextPercentage(persistedData?.contextTokens ?? reportedTokenCount, task.contextWindowSize);
   const segments = [color(identity, COLORS.cyan)];
 
   if (description !== undefined) segments.push(description);
   if (tokenSpend !== undefined) segments.push(formatTokenCount(tokenSpend));
-  if (model !== undefined) segments.push(color(model, COLORS.blue));
+  if (model !== undefined) {
+    const modelLabel = modelAndEffort === undefined ? model : `${model}•${modelAndEffort.effort}`;
+    segments.push(color(modelLabel, COLORS.blue));
+  }
   if (percentage !== undefined) {
     segments.push(color(`${percentage}%/${formatContextWindowSize(task.contextWindowSize)}`, contextColor(percentage)));
   }
