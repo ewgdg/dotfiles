@@ -1,23 +1,19 @@
 approval_policy = "on-request"
-sandbox_mode = "workspace-write"
+# sandbox_mode = "workspace-write"
+sandbox_mode = "danger-full-access"
 web_search = "live"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
-approvals_reviewer = "guardian_subagent"
+approvals_reviewer = "auto_review"
 
-# model_provider = "openai_http"
+model_provider = "codex-lb"
 
-[model_providers.openai_http]
-name = "OpenAI HTTP only"
+[model_providers.codex-lb]
+name = "Codex LB"
+base_url = "https://codexlb.service.xianzzz.com/backend-api/codex"
 wire_api = "responses"
-requires_openai_auth = true
-supports_websockets = false
-base_url = "https://chatgpt.com/backend-api/codex"
-
-[profiles.obsidian]
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
-approval_policy = "on-request"
+supports_websockets = true
+# requires_openai_auth = true
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]
@@ -85,3 +81,7 @@ enabled = true
 
 [plugins."chrome@openai-bundled"]
 enabled = true
+
+[plugins."github@openai-curated-remote"]
+enabled = false
+
