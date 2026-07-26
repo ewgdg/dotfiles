@@ -2,14 +2,14 @@
 
 layout {
     // Set gaps around windows in logical pixels.
-    gaps 1
+    gaps 2
 
     // You can think of them as a kind of outer gaps.
     struts {
-      // left 1
-      // right 1
-      // top 1
-      // bottom 1
+      left 1
+      right 1
+      top 1
+      bottom 1
     }
 
     // background-color "#caafb7"
@@ -59,7 +59,8 @@ layout {
     // You can change how the focus ring looks.
     focus-ring {
         // Uncomment this line to disable the focus ring.
-        off
+        // off
+        on
 
         // How many logical pixels the ring extends out from the windows.
         width 2
@@ -101,8 +102,8 @@ layout {
     border {
         // The settings are the same as for the focus ring.
         // If you enable the border, you probably want to disable the focus ring.
-        // off
-        on
+        off
+        // on
 
         width 2
         active-color "#ffc87f"

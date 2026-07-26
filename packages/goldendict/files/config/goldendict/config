@@ -94,6 +94,7 @@
     <interfaceFontSize_0>12</interfaceFontSize_0>
     <enableInterfaceFont>0</enableInterfaceFont>
     <customFonts monospace="DejaVu Sans Mono" sans-serif="DejaVu Sans" serif="DejaVu Serif" standard="DejaVu Serif"/>
+    <useFallbackFonts>1</useFallbackFonts>
     <displayStyle>classic</displayStyle>
     <interfaceStyle>Default</interfaceStyle>
     <newTabsOpenAfterCurrentOne>1</newTabsOpenAfterCurrentOne>

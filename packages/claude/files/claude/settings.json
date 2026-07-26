@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "commit": ""
+  },
   "permissions": {
     "allow": [],
     "deny": []
@@ -29,10 +32,8 @@
     "command": "node \"$HOME/.claude/subagent-statusline.js\""
   },
   "alwaysThinkingEnabled": true,
-  "attribution": {
-    "commit": ""
-  },
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "editorMode": "vim"
 }
