@@ -1,1 +1,1 @@
-members = ["os/linux", "os/arch-kernel", "arch-system"]
+members = ["os/linux", "arch-system"]

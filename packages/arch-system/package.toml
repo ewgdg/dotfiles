@@ -1,5 +1,5 @@
 id = "arch-system"
-description = "Arch Linux package manager and base system configuration"
+description = "Arch Linux base-system, package-manager, and initramfs configuration"
 
 [vars.arch_system]
 # Keep yay config key 'version' repo-managed so stale repo config can still
@@ -18,6 +18,10 @@ path = "/etc/pacman.conf"
 [targets.f_etc_makepkg_conf]
 source = "files/etc/makepkg.conf"
 path = "/etc/makepkg.conf"
+
+[targets.f_etc_mkinitcpio_conf]
+source = "files/etc/mkinitcpio.conf"
+path = "/etc/mkinitcpio.conf"
 
 [targets.f_etc_locale_gen]
 source = "files/etc/locale.gen"

@@ -1,6 +1,6 @@
 # Arch system
 
-Owns Arch package-manager configuration and the repo bootstrap path for `paru`.
+Owns Arch base-system, package-manager, and initramfs configuration, plus the repo bootstrap path for `paru`.
 
 `pre_push` runs `scripts/install_paru.sh` before syncing pacman/paru config. The shared Arch install helpers also call that script when `paru` is missing, so package hooks using `{{ INSTALL }}` can self-bootstrap on a fresh Arch host.
 
