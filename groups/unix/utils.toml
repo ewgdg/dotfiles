@@ -1,1 +1,1 @@
-members = ["bin"]
+members = ["bin", "topgrade"]

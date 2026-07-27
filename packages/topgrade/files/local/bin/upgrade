@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ "$#" -eq 1 ] && [ "$1" = "services" ]; then
+    if ! command -v xdg-user-dir >/dev/null 2>&1; then
+        echo "Cannot locate services updater: xdg-user-dir is unavailable" >&2
+        exit 1
+    fi
+
+    if ! projects_dir=$(xdg-user-dir PROJECTS); then
+        echo "Could not resolve projects directory with xdg-user-dir" >&2
+        exit 1
+    fi
+    if [ -z "$projects_dir" ]; then
+        echo "Cannot locate services updater: projects directory is unavailable" >&2
+        exit 1
+    fi
+
+    services_updater="$projects_dir/services/services.sh"
+    if [ ! -x "$services_updater" ]; then
+        echo "Services updater is not executable: $services_updater" >&2
+        exit 1
+    fi
+
+    exec "$services_updater" update
+fi
+
+exec topgrade "$@"

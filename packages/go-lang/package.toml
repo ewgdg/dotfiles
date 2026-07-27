@@ -7,3 +7,10 @@ probe = '{{ PROBE_PACKAGES_INSTALLED }} go'
 
 [targets.go_toolchain_installed.hooks]
 pre_push = "{{ INSTALL }} go"
+
+[targets.gup_installed]
+sync_policy = "push-only"
+probe = 'if command -v gup >/dev/null 2>&1; then exit 100; else exit 0; fi'
+
+[targets.gup_installed.hooks]
+pre_push = "go install github.com/nao1215/gup@latest"

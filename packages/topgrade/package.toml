@@ -1,0 +1,19 @@
+id = "topgrade"
+description = "Interactive workstation upgrade orchestration"
+
+[targets.topgrade_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} topgrade"
+
+[targets.topgrade_installed.hooks]
+pre_push = "{{ INSTALL }} topgrade"
+
+[targets.f_config_topgrade_toml]
+source = "files/config/topgrade.toml"
+path = "~/.config/topgrade.toml"
+chmod = "600"
+
+[targets.f_local_bin_upgrade]
+source = "files/local/bin/upgrade"
+path = "~/.local/bin/upgrade"
+chmod = "755"

@@ -1,0 +1,15 @@
+[misc]
+no_self_update = true
+ask_retry = true
+auto_retry = 0
+disable = ["containers"]
+
+[linux]
+arch_package_manager = "paru"
+
+[git]
+pull_predefined = false
+repos = ["~/Projects/dotfiles"]
+
+[cargo]
+git = true
