@@ -21,7 +21,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
         "packages/linux/avahi/scripts/render_avahi_daemon_conf.py",
         "packages/gsettings/scripts/sync_gsettings_gtk.py",
         "scripts/enable_display_manager_systemd_unit.py",
-        "scripts/kv_transform.py",
     ],
 )
 def test_script_runs_via_uv_project_from_outside_repo(
