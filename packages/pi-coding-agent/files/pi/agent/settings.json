@@ -2,7 +2,6 @@
 	"packages": [
 		"npm:pi-vim",
 		"npm:pi-mcporter",
-		"npm:pi-herdr-subagents",
 		"npm:@howaboua/pi-codex-conversion",
 		"npm:@narumitw/pi-btw",
 		"git:github.com/ewgdg/pi-multicodex"
