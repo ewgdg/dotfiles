@@ -9,7 +9,8 @@ preset = "jinja-patch-editor"
 [targets.d_etc_sddm_conf_d]
 source = "files/etc/sddm.conf.d"
 path = "/etc/sddm.conf.d"
-pull_ignore = [
+[targets.d_etc_sddm_conf_d.ignore]
+pull = [
   "zzz-autologin.local.conf",
 ]
 
