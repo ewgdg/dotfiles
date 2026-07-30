@@ -1,23 +1,19 @@
 --!nonstrict
 
-local UPDATE_INTERVAL_MS = 500
-local COMMAND_TIMEOUT_MS = 2000
-local PINNED_WINDOW_SCRIPT = noctalia.expandPath("~/.config/niri/bin/pinned-window.sh")
+local STATUS_KEY = "status"
+local COMMAND_KEY = "command"
 
-local requestInFlight = false
-local pinned = false
-local windowTitle = ""
-local appId = ""
-local lastError = ""
-
-local function shellQuote(value)
-  return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
-end
+local status = noctalia.state.get(STATUS_KEY) or {
+  pinned = false,
+  id = "",
+}
 
 local function displayTitle()
-  if windowTitle ~= "" then
-    return windowTitle
+  local title = tostring(status.title or "")
+  if title ~= "" then
+    return title
   end
+  local appId = tostring(status.app_id or "")
   if appId ~= "" then
     return appId
   end
@@ -25,6 +21,7 @@ local function displayTitle()
 end
 
 local function render()
+  local pinned = status.pinned == true
   barWidget.setVisible(pinned)
   if not pinned then
     return
@@ -34,97 +31,35 @@ local function render()
   barWidget.setText(displayTitle())
   barWidget.setTooltip({
     { key = "Pinned window", value = displayTitle() },
-    { key = "Application", value = appId },
+    { key = "Application", value = tostring(status.app_id or "") },
     { key = "Left click", value = "Summon" },
     { key = "Right click", value = "Clear" },
   })
 end
 
-local function hideWithError(message)
-  pinned = false
-  windowTitle = ""
-  appId = ""
+local function sendAction(action)
+  noctalia.state.set(COMMAND_KEY, { action = action })
+end
+
+noctalia.state.watch(STATUS_KEY, function(nextStatus)
+  if type(nextStatus) == "table" then
+    status = nextStatus
+  else
+    status = { pinned = false, id = "" }
+  end
   render()
+end)
 
-  if message ~= lastError then
-    noctalia.log(`Pinned Window: {message}`)
-    lastError = message
-  end
-end
-
-local function applyStatus(result)
-  requestInFlight = false
-
-  if result.exitCode ~= 0 then
-    hideWithError(`status command exited with {result.exitCode}: {result.stderr}`)
-    return
-  end
-
-  local status, decodeError = noctalia.json.decode(result.stdout)
-  if type(status) ~= "table" then
-    hideWithError(`invalid status JSON: {decodeError or "unknown error"}`)
-    return
-  end
-
-  lastError = ""
-  pinned = status.pinned == true
-  windowTitle = pinned and tostring(status.title or "") or ""
-  appId = pinned and tostring(status.app_id or "") or ""
-  render()
-end
-
-local function refreshStatus()
-  if requestInFlight then
-    return
-  end
-  if not noctalia.fileExists(PINNED_WINDOW_SCRIPT) then
-    hideWithError(`helper not found: {PINNED_WINDOW_SCRIPT}`)
-    return
-  end
-
-  requestInFlight = true
-  local started = noctalia.runAsync(
-    shellQuote(PINNED_WINDOW_SCRIPT) .. " status-json",
-    applyStatus,
-    COMMAND_TIMEOUT_MS
-  )
-  if not started then
-    requestInFlight = false
-    hideWithError("failed to start status command")
-  end
-end
-
-local function runAction(action)
-  if not noctalia.fileExists(PINNED_WINDOW_SCRIPT) then
-    hideWithError(`helper not found: {PINNED_WINDOW_SCRIPT}`)
-    return
-  end
-
-  noctalia.runAsync(
-    shellQuote(PINNED_WINDOW_SCRIPT) .. " " .. action,
-    function(_result)
-      refreshStatus()
-    end,
-    COMMAND_TIMEOUT_MS
-  )
-end
-
-noctalia.setUpdateInterval(UPDATE_INTERVAL_MS)
 render()
-refreshStatus()
-
-function update()
-  refreshStatus()
-end
 
 function onClick()
-  if pinned then
-    runAction("summon")
+  if status.pinned == true then
+    sendAction("summon")
   end
 end
 
 function onRightClick()
-  if pinned then
-    runAction("clear")
+  if status.pinned == true then
+    sendAction("clear")
   end
 end

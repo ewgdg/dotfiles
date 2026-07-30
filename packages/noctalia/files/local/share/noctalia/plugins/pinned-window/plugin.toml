@@ -1,6 +1,6 @@
 id = "xian/pinned-window"
 name = "Pinned Window"
-version = "1.0.0"
+version = "1.1.0"
 plugin_api = 3
 author = "xian"
 license = "MIT"
@@ -12,3 +12,7 @@ description = "Shows the currently pinned Niri window and provides summon and cl
 [[widget]]
 id = "window"
 entry = "widget.luau"
+
+[[service]]
+id = "state"
+entry = "service.luau"

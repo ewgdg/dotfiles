@@ -10,6 +10,7 @@ usage() {
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 state_file="$runtime_dir/niri-pinned-window.json"
 fallback_workspace="main"
+noctalia_service_entry="xian/pinned-window:state"
 
 mkdir -p "$runtime_dir"
 
@@ -92,6 +93,12 @@ write_pinned_window_id() {
 
 clear_pinned_window_id() {
     write_unpinned_state
+}
+
+notify_status_changed() {
+    if command -v noctalia >/dev/null 2>&1; then
+        noctalia msg plugin "$noctalia_service_entry" all refresh >/dev/null 2>&1 || true
+    fi
 }
 
 window_exists() {
@@ -189,7 +196,7 @@ pin_focused_window() {
     current_pinned_window_id="$(read_pinned_window_id || true)"
     if [ "$allow_toggle" -eq 1 ] && [ "$current_pinned_window_id" = "$focused_window_id" ]; then
         clear_pinned_window_id
-        exit 0
+        return
     fi
 
     write_pinned_window_id "$focused_window_id"
@@ -204,12 +211,15 @@ case "$1" in
         ;;
     pin)
         pin_focused_window 0
+        notify_status_changed
         ;;
     toggle)
         pin_focused_window 1
+        notify_status_changed
         ;;
     clear)
         clear_pinned_window_id
+        notify_status_changed
         ;;
     *)
         usage
