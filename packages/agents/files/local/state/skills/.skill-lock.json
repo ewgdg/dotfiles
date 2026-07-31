@@ -61,18 +61,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "ba76bbef6c2474505bf47f608f4fddebf73bf2a4",
+      "skillFolderHash": "09f2018c0411e059969d59153184a16d072737db",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-07-24T23:05:05.123Z"
+      "updatedAt": "2026-07-30T19:40:02.669Z"
     },
     "surf-chatgpt": {
       "source": "ewgdg/browser-skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf-chatgpt/SKILL.md",
-      "skillFolderHash": "32b71f427773a7d592930de2b36f2038101c11fc",
+      "skillFolderHash": "34aa4191e65486369121cb00b28adaffddfea77d",
       "installedAt": "2026-06-24T02:59:13.556Z",
-      "updatedAt": "2026-07-24T23:05:06.280Z"
+      "updatedAt": "2026-07-31T20:55:07.946Z"
     },
     "grill-with-docs": {
       "source": "mattpocock/skills",

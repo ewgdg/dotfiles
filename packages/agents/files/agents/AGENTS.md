@@ -36,6 +36,7 @@
 
 ## Coding
 
+- Choose the simplest implementation that fully meets the current requirements
 - Prefer modern and latest libraries and frameworks, reference docs via web search
 - Use descriptive, intention-revealing names; prioritize readability over brevity
 - Prefer DRY code
@@ -43,7 +44,7 @@
 - Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context
 - In those cases, comment the reason, constraint, or symptom being handled, not just what the code does
 - Declarative over imperative. Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional
-- Prefer modular source structure. Avoid growing a single large monolith `src` file; split code by responsibility into focused modules before it becomes hard to navigate
+- Prefer modular source structure. Avoid growing a single large monolith src file; split code by responsibility into focused modules before it becomes hard to navigate
 - During implementation, separate enabling refactors from opportunistic changes. Small local refactors are OK if they directly support the requested change. For adjacent cleanup, robustness improvements, behavior changes, or unrelated bug fixes: do not include them silently; propose them as follow-ups or ask before expanding scope.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues
 - No hard-coded values
