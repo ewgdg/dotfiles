@@ -51,8 +51,9 @@
 
 ## Testing
 
-- Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Write test cases first before bug fixes
+- Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
+- Avoid excessive testing of low-value details. Focus on important, regression-prone behavior.
 
 ## Context Efficiency
 

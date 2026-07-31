@@ -1,7 +1,7 @@
 {
   "providers": {
     "codex-lb": {
-      "baseUrl": "https://codexlb.service.xianzzz.com/v1",
+      "baseUrl": "https://codexlb.service.xianzzz.com/backend-api/codex",
       "api": "openai-responses",
       "apiKey": "dummy",
       "models": [

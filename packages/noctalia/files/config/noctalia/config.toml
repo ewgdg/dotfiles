@@ -1,4 +1,5 @@
 [bar.default]
+background_opacity = 0.0
 center = [ "taskbar", "window" ]
 end = [
     "audio_visualizer",

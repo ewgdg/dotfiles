@@ -31,7 +31,8 @@
 	"treeFilterMode": "default",
 	"enableInstallTelemetry": false,
 	"terminal": {
-		"showTerminalProgress": true
+		"showTerminalProgress": true,
+		"clearOnShrink": true
 	},
 	"enableSkillCommands": true,
 	"pi-select-patch": {
