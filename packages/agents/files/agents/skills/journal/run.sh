@@ -16,13 +16,15 @@ Optional env:
   JOURNAL_VAULT_RELATIVE_DIR  Journal dir inside vault (default: Streams/Journals)
   JOURNAL_IMPORTANCE          Default importance if --importance omitted (default: 1)
   JOURNAL_AUTHOR              Author override if --author omitted
-  JOURNAL_CREATE_PATH_RETRIES Attempts to wait for Obsidian to index created note (default: 10)
+  JOURNAL_QUICKADD_CHOICE     QuickAdd choice used for agent entries (default: Agent Journal)
+  JOURNAL_CREATE_PATH_RETRIES Attempts to wait for the created note to appear (default: 10)
   JOURNAL_CREATE_PATH_SLEEP   Delay between path lookup attempts (default: 0.5)
 USAGE
 }
 
 vault="${OBSIDIAN_JOURNAL_VAULT:-knowledgebase}"
 journal_vault_relative_dir="${JOURNAL_VAULT_RELATIVE_DIR:-Streams/Journals}"
+quickadd_choice="${JOURNAL_QUICKADD_CHOICE:-Agent Journal}"
 
 strip_obsidian_eval_prefix() {
   sed -E 's/^=>[[:space:]]*//' | tr -d '\r' | sed -E 's/^"(.*)"$/\1/'
@@ -100,22 +102,35 @@ detect_author() {
   fi
 }
 
-latest_journal_path() {
-  obsidian vault="$vault" eval code="const journalDir = '$journal_vault_relative_dir'.replace(/\\/+$/, ''); const prefix = journalDir + '/'; const f = app.vault.getMarkdownFiles().filter(f => f.path.startsWith(prefix) && f.name !== 'Journals.md').sort((a, b) => b.stat.ctime - a.stat.ctime)[0]; f ? f.path : '';" \
-    </dev/null | strip_obsidian_eval_prefix
+snapshot_journal_paths() {
+  local journal_dir="$1"
+  [[ -d "$journal_dir" ]] || return 0
+  find "$journal_dir" -maxdepth 1 -type f -name '*.md' ! -name 'Journals.md' -print0
 }
 
-wait_for_new_journal_path() {
-  local before_path="$1"
+wait_for_created_journal_path() {
+  local journal_dir="$1"
+  local -n known_paths="$2"
   local retries="${JOURNAL_CREATE_PATH_RETRIES:-10}"
   local sleep_seconds="${JOURNAL_CREATE_PATH_SLEEP:-0.5}"
-  local after_path=""
+  local path=""
+  local -a created_paths=()
 
   for ((attempt = 1; attempt <= retries; attempt++)); do
-    after_path="$(latest_journal_path)"
-    if [[ -n "$after_path" && "$after_path" != "$before_path" ]]; then
-      printf '%s\n' "$after_path"
+    created_paths=()
+    while IFS= read -r -d '' path; do
+      if [[ -z "${known_paths[$path]+present}" ]]; then
+        created_paths+=("$path")
+      fi
+    done < <(snapshot_journal_paths "$journal_dir")
+
+    if [[ ${#created_paths[@]} -eq 1 ]]; then
+      printf '%s\n' "${created_paths[0]}"
       return 0
+    fi
+    if [[ ${#created_paths[@]} -gt 1 ]]; then
+      printf 'Multiple journal files appeared during creation; refusing to guess which one belongs to this run.\n' >&2
+      return 1
     fi
     sleep "$sleep_seconds"
   done
@@ -228,32 +243,32 @@ create_journal() {
 
   local author="$(detect_author "$explicit_author")"
   local journal_dir="$(resolve_journal_dir "$vault_path")"
-  local before_path="$(latest_journal_path)"
+  local -A existing_journal_paths=()
+  local existing_path=""
+  while IFS= read -r -d '' existing_path; do
+    existing_journal_paths["$existing_path"]=1
+  done < <(snapshot_journal_paths "$journal_dir")
   local quickadd_output=""
-  # Journal template writes Highlight into YAML aliases; quote before QuickAdd so ':' cannot corrupt frontmatter.
+  # Agent Journal writes these values into YAML; quote string scalars before QuickAdd substitutes them.
   local highlight_yaml_scalar="$(quote_yaml_string_scalar "$highlight")"
+  local author_yaml_scalar="$(quote_yaml_string_scalar "$author")"
 
   if ! quickadd_output="$(obsidian vault="$vault" quickadd:run \
-    choice="Journal" \
+    choice="$quickadd_choice" \
     value-Highlight="$highlight_yaml_scalar" \
     value-Importance="$importance" \
+    value-Author="$author_yaml_scalar" \
     value-Journal="$journal" 2>&1)"; then
     printf '%s\n' "$quickadd_output" >&2
     exit 1
   fi
 
   local after_path=""
-  if ! after_path="$(wait_for_new_journal_path "$before_path")"; then
+  if ! after_path="$(wait_for_created_journal_path "$journal_dir" existing_journal_paths)"; then
     printf '%s\n' "$quickadd_output" >&2
-    printf 'Could not identify newly created journal path; author not set.\n' >&2
+    printf 'Could not identify newly created journal path.\n' >&2
     exit 1
   fi
-
-  obsidian vault="$vault" property:set \
-    path="$after_path" \
-    name="author" \
-    value="$author" \
-    type=text >/dev/null
 
   format_created_filename "$vault_path" "$journal_dir" "$after_path"
 }

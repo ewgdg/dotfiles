@@ -51,7 +51,7 @@ Importance scale:
 
 Decimals are allowed only when useful, e.g. `2.5` for stronger-than-normal review value without making it must-revisit.
 
-Metadata safety: `Highlight` becomes frontmatter `aliases`. `Importance` becomes frontmatter `importance`. Use the helper instead of hand-writing journal files; it YAML-quotes the alias before QuickAdd so colons like `Reasoning graph: ...` do not break metadata. Obsidian may later normalize safe quoted scalars back to unquoted YAML; that is OK if frontmatter still parses. If manually fixing/editing journal frontmatter, quote alias values that contain `:` or other YAML-significant chars.
+Metadata safety: `Highlight`, `Importance`, and `Author` become frontmatter `aliases`, `importance`, and `author`. Use the helper instead of hand-writing journal files; it YAML-quotes string metadata before QuickAdd substitution so YAML-significant characters remain safe. Obsidian may later normalize safe quoted scalars back to unquoted YAML; that is OK if frontmatter still parses.
 
 Journal entries must be atomic: each entry is a complete memory unit whose essential meaning is preserved inline. Include key result, numbers, decisions, relevant context, and any takeaway directly in the entry. Do not rely on temporary files, scratch directories, local-only paths, external session artifacts, or "see file X" references for essential meaning. References are allowed only to durable notes/files inside the vault, or when a path itself is the durable subject of the memory. Never use external paths as storage for unstated context.
 
@@ -59,7 +59,7 @@ Use concise language. Optimize for future review.
 
 ## Author
 
-Helper sets frontmatter `author` automatically.
+The helper detects `Author`; the Agent Journal template writes it during note creation.
 
 Best-effort format:
 
@@ -88,6 +88,6 @@ Optional author override:
 EOF
 ```
 
-QuickAdd owns note creation and the vault's journal-day boundary. The helper validates `--importance` as a number from 1 to 3, defaults to `1`, writes `importance`, then prints the created path so later refinement can use normal read/edit tools.
+QuickAdd's non-opening `Agent Journal` choice owns note creation and the vault's journal-day boundary. Its dedicated template writes agent metadata during creation. The helper validates `--importance` as a number from 1 to 3, defaults to `1`, then prints the created path so later refinement can use normal file tools.
 
 Path return rule: `create` prints the full absolute path of the created journal file.

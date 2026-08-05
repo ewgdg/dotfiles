@@ -43,22 +43,43 @@ def write_fake_obsidian(bin_dir: Path, vault_root: Path) -> None:
                 done
                 if [[ "$code" == *"getBasePath"* || "$code" == *"basePath"* ]]; then
                   printf '=> %s\n' "$vault_root"
+                elif [[ "${{FAKE_OBSIDIAN_STALE_INDEX:-}}" == "1" ]]; then
+                  index_probe_count_file="$vault_root/.fake-index-probe-count"
+                  index_probe_count=$(($(cat "$index_probe_count_file" 2>/dev/null || echo 0) + 1))
+                  printf '%s\n' "$index_probe_count" >"$index_probe_count_file"
+                  if [[ "$index_probe_count" == "1" ]]; then
+                    printf '=> Streams/Journals/deleted-probe.md\n'
+                  else
+                    printf '=> Streams/Journals/2026-01-01-000001.md\n'
+                  fi
                 else
                   printf '=> %s\n' "$(latest_journal_path)"
                 fi
                 ;;
               quickadd:run)
                 shift
+                choice=""
                 highlight=""
                 importance=""
+                author=""
                 journal=""
                 for arg in "$@"; do
                   case "$arg" in
+                    choice=*) choice="${{arg#choice=}}" ;;
                     value-Highlight=*) highlight="${{arg#value-Highlight=}}" ;;
                     value-Importance=*) importance="${{arg#value-Importance=}}" ;;
+                    value-Author=*) author="${{arg#value-Author=}}" ;;
                     value-Journal=*) journal="${{arg#value-Journal=}}" ;;
                   esac
                 done
+                if [[ "$choice" != "Agent Journal" ]]; then
+                  printf 'expected Agent Journal choice, got: %s\n' "$choice" >&2
+                  exit 2
+                fi
+                if [[ -z "$author" ]]; then
+                  printf 'Agent Journal requires Author\n' >&2
+                  exit 2
+                fi
 
                 mkdir -p "$vault_root/$journal_relative_dir"
                 count=$(find "$vault_root/$journal_relative_dir" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')
@@ -71,6 +92,7 @@ def write_fake_obsidian(bin_dir: Path, vault_root: Path) -> None:
             day: "[[2026-01-01]]"
             aliases: $highlight
             importance: $importance
+            author: $author
             ---
 
             $journal
@@ -208,7 +230,7 @@ def test_journal_create_reads_body_from_stdin_and_sets_author(tmp_path: Path) ->
     content = files[0].read_text()
     assert 'aliases: "Journal writes became stdin-only notes"' in content
     assert "importance: 2" in content
-    assert "author: agent-test" in content
+    assert 'author: "agent-test"' in content
     assert "Dropped positional body args" in content
     assert "Quotes `safe`." in content
 
@@ -229,6 +251,32 @@ def test_journal_create_always_creates_new_note(tmp_path: Path) -> None:
         vault_root / "Streams/Journals/2026-01-01-000002.md"
     )
     assert len(journal_files(vault_root)) == 2
+
+
+def test_journal_create_returns_the_file_created_by_this_run_when_obsidian_index_is_stale(tmp_path: Path) -> None:
+    vault_root = tmp_path / "vault"
+    journal_dir = vault_root / "Streams/Journals"
+    journal_dir.mkdir(parents=True)
+    existing = journal_dir / "2026-01-01-000001.md"
+    existing.write_text("Existing journal.\n")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    write_fake_obsidian(bin_dir, vault_root)
+
+    result = run_journal(
+        vault_root,
+        bin_dir,
+        "create",
+        "--highlight",
+        "Created despite stale index",
+        journal="The helper identifies the filesystem delta instead of trusting Obsidian's stale latest-file index.",
+        env_overrides={"FAKE_OBSIDIAN_STALE_INDEX": "1"},
+    )
+
+    expected = journal_dir / "2026-01-01-000002.md"
+    assert result.stdout.strip() == str(expected)
+    assert "Created despite stale index" in expected.read_text()
+    assert existing.read_text() == "Existing journal.\n"
 
 
 def test_journal_create_respects_vault_relative_dir_override(tmp_path: Path) -> None:
