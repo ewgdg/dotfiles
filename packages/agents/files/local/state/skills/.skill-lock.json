@@ -52,9 +52,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
       "skillPath": "skills/caveman/SKILL.md",
-      "skillFolderHash": "166040c027f7764d43df36abc5df0079bfc6394b",
+      "skillFolderHash": "3e4386ca694c65a65ba84024f0fe2646a8c9076a",
       "installedAt": "2026-06-03T06:07:20.142Z",
-      "updatedAt": "2026-07-06T05:12:48.451Z"
+      "updatedAt": "2026-08-04T23:50:56.805Z"
     },
     "surf": {
       "source": "ewgdg/browser-skills",

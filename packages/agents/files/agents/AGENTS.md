@@ -25,10 +25,11 @@
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
 - Use GAN style thinking frameworks
 - Use first principles thinking
+- Grow the system in layers. Start from the smallest version that works end to end, and add each new capability on top of a product that already works. Never trade a working product for unfinished complexity.
 
 ## Legacy Handling
 
-- Do not consider backward compatibility.
+- Do not preserve backward compatibility. Remove obsolete paths.
 - Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
 - Zero tolerance to unjustified legacy code/docs
 - Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
@@ -37,18 +38,20 @@
 ## Coding
 
 - Choose the simplest implementation that fully meets the current requirements
-- Prefer modern and latest libraries and frameworks, reference docs via web search
+- Avoid speculative abstractions, configuration, and indirection.
+- Prefer established, well-maintained libraries when they reduce overall complexity or improve reliability. Do not reimplement common functionality without a clear reason.
+- Reference latest doc with web access.
 - Use descriptive, intention-revealing names; prioritize readability over brevity
 - Prefer DRY code
 - Add concise comments when they clarify non-obvious or confusing logic, or make review easier
-- Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context
-- In those cases, comment the reason, constraint, or symptom being handled, not just what the code does
+- Mandatory comment cases: when a change may look arbitrary or unjustified during later review because the reason is not obvious from local context. In those cases, comment the reason, constraint, or symptom being handled, not just what the code does
 - Declarative over imperative. Prefer declarative style when it improves readability and maintainability. Encapsulate imperative logic in small, well-named functions, and keep core logic primarily compositional
-- Prefer modular source structure. Avoid growing a single large monolith src file; split code by responsibility into focused modules before it becomes hard to navigate
+- Keep components modular and concerns clearly separated.
 - During implementation, separate enabling refactors from opportunistic changes. Small local refactors are OK if they directly support the requested change. For adjacent cleanup, robustness improvements, behavior changes, or unrelated bug fixes: do not include them silently; propose them as follow-ups or ask before expanding scope.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues
 - No hard-coded values
-- No Slop; reuse or extend existing code if possible
+- Lean on the dependencies already in the project before writing your own implementation or adding packages. Do not assume a library lacks a capability without checking its documentation and types.
+- Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
 
 ## Testing
 
