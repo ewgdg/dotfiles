@@ -318,10 +318,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/writing-for-agents/SKILL.md",
-      "skillFolderHash": "8c87c5b64bef2f62b1697384954643ad2c912909",
-      "pluginName": "mattpocock-skills",
+      "skillFolderHash": "bd9c9c4762db0a9a094fd419316ebd4b0444d06e",
       "installedAt": "2026-08-05T17:46:33.192Z",
-      "updatedAt": "2026-08-05T17:46:33.192Z"
+      "updatedAt": "2026-08-06T08:31:54.866Z"
     }
   },
   "dismissed": {

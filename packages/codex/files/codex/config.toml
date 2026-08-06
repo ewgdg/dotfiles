@@ -46,7 +46,7 @@ goals = true
 js_repl = false
 
 [tui]
-status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "total-input-tokens", "five-hour-limit"]
+status_line = ["current-dir", "git-branch", "model-with-reasoning", "context-remaining", "weekly-limit", "fast-mode", "five-hour-limit"]
 status_line_use_colors = true
 vim_mode_default = true
 
