@@ -2,7 +2,7 @@
     "default-prefix": "~/Games/prefixes",
     "mangohud": "False",
     "gamemode": "False",
-    "default-runner": "Proton-CachyOS Latest",
+    "default-runner": "Proton-GE Latest",
     "lossless-location": "",
     "discrete-gpu": "False",
     "system-tray": "True",
@@ -14,7 +14,7 @@
     "wayland-driver": "False",
     "enable-hdr": "False",
     "language": "en_US",
-    "logging-warning": "False",
+    "logging-warning": "True",
     "show-hidden": "False",
     "show-donate": "False",
     "gamepad-navigation": "False",
@@ -44,5 +44,7 @@
     "accent-color": "system",
     "background-mode": "default",
     "banner-enabled": "True",
-    "steam-user": "all"
+    "steam-user": "all",
+    "header-bar": "False",
+    "theme-engine": "adwaita"
 }

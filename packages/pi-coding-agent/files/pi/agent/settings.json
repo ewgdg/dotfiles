@@ -3,15 +3,13 @@
 		"npm:pi-vim",
 		"npm:pi-mcporter",
 		"npm:@howaboua/pi-codex-conversion",
-		"npm:@narumitw/pi-btw",
-		"git:github.com/ewgdg/pi-multicodex"
+		"git:github.com/ewgdg/pi-multicodex",
+		"git:github.com/ewgdg/pi-agent-coordination",
+		"npm:pi-btw"
 	],
 	"enabledModels": [
 		"deepseek/deepseek-v4-flash",
 		"deepseek/deepseek-v4-pro",
-		"openai-codex/gpt-5.6-luna",
-		"openai-codex/gpt-5.6-sol",
-		"openai-codex/gpt-5.6-terra",
 		"codex-lb/gpt-5.6-sol",
 		"codex-lb/gpt-5.6-luna"
 	],
@@ -41,5 +39,7 @@
 	"extensions": [
 		"-extensions/pi-openai-controls/index.ts",
 		"+extensions/pi-openrouter-controls/index.ts"
-	]
+	],
+	"fullscreenScrollbar": "always",
+	"tuiMode": "fullscreen"
 }
