@@ -1,26 +1,26 @@
 id = "linux/xembedsniproxy"
-description = "XEmbed-to-SNI tray proxy for Wine/legacy X11 tray icons"
+description = "XEmbed-to-SNI tray bridge for Wayland (Wine/Proton and legacy X11 tray icons)"
 
 depends = [
   "rustup",
 ]
 
 [vars.linux_xembedsniproxy]
-git_url = "https://somegit.dev/vikingowl/xembed-sni-proxy.git"
+git_url = "https://github.com/jmylchreest/xembsni.git"
 
-[targets.xembed_sni_proxy_update]
+[targets.xembsni_update]
 sync_policy = "push-only"
-probe = 'test -x "$HOME/.cargo/bin/xembed-sni-proxy" && exit 100 || exit 0'
+probe = 'command -v xembsni >/dev/null 2>&1 && exit 100 || exit 0'
 
-[targets.xembed_sni_proxy_update.hooks]
-pre_push = 'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" xembed-sni-proxy'
+[targets.xembsni_update.hooks]
+pre_push = 'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" --root "$HOME/.local" xembsni'
 
-[targets.f_config_systemd_user_xembed_sni_proxy_service]
-source = "files/config/systemd/user/xembed-sni-proxy.service"
-path = "~/.config/systemd/user/xembed-sni-proxy.service"
+[targets.f_config_systemd_user_xembedsniproxy_service]
+source = "files/config/systemd/user/xembedsniproxy.service"
+path = "~/.config/systemd/user/xembedsniproxy.service"
 
 [hooks]
 post_push = [
   'sh -c "systemctl --user daemon-reload >/dev/null 2>&1 || true"',
-  '{{ ENSURE_SYSTEMD }} user xembed-sni-proxy.service',
+  '{{ ENSURE_SYSTEMD }} user xembedsniproxy.service',
 ]
