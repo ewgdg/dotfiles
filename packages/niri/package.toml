@@ -43,15 +43,37 @@ source = "files/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer
 path = "/etc/nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json"
 #sync_policy = "push-only-delete"
 
-[hooks]
 # Niri session expects these desktop apps/themes via keybinds, mime defaults, and GTK/icon settings.
-pre_push = [
-  "{{ INSTALL }} xwayland-satellite xdg-desktop-portal-gnome jq",
-  "{{ INSTALL }} nautilus imv loupe papers gnome-text-editor file-roller",
-  "{{ INSTALL }} bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look",
-  # for nautilus
-  "{{ INSTALL }} ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd",
-]
+# One probe target per related group; probes are variadic, so a group is a single probe + install.
+[targets.session_dependencies_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} xwayland-satellite xdg-desktop-portal-gnome jq"
+
+[targets.session_dependencies_installed.hooks]
+pre_push = "{{ INSTALL }} xwayland-satellite xdg-desktop-portal-gnome jq"
+
+[targets.desktop_apps_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} nautilus imv loupe papers gnome-text-editor file-roller"
+
+[targets.desktop_apps_installed.hooks]
+pre_push = "{{ INSTALL }} nautilus imv loupe papers gnome-text-editor file-roller"
+
+[targets.desktop_themes_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look"
+
+[targets.desktop_themes_installed.hooks]
+pre_push = "{{ INSTALL }} bibata-cursor-theme-bin papirus-icon-theme adw-gtk-theme nwg-look"
+
+[targets.nautilus_support_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd"
+
+[targets.nautilus_support_installed.hooks]
+pre_push = "{{ INSTALL }} ffmpegthumbnailer gvfs-smb gvfs-wsdd gvfs-dnssd"
+
+[hooks]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user niri-shell.service',
   '{{ ENSURE_SYSTEMD }} user niri-event-stream-rules.service',
