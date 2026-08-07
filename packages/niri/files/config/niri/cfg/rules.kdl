@@ -42,8 +42,9 @@ window-rule {
 // }
 
 window-rule {
-    // Steam notification windows: float and position at bottom-right.
+    // Steam toasts: float bottom-right, and don't steal focus when they pop.
     match app-id="steam" title=r#"^notificationtoasts_\d+_desktop$"#
+    open-focused false
     default-floating-position x=10 y=10 relative-to="bottom-right"
 }
 
