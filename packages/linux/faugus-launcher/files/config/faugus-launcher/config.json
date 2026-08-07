@@ -35,7 +35,7 @@
     "logging-enabled": "False",
     "autostart-enabled": "False",
     "minimized-startup-enabled": "False",
-    "categories-and-sort-enabled": "False",
+    "categories-and-sort-enabled": "True",
     "wow64-enabled": "True",
     "startup-window-size": "None",
     "splash-window-enabled": "True",
