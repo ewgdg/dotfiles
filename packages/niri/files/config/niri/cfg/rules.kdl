@@ -75,6 +75,7 @@ window-rule {
   open-on-workspace "stash"
   open-floating false
   open-focused false
+  hidden true
 }
 
 window-rule {
