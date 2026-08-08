@@ -6,13 +6,11 @@ Replaces xembedsniproxy without creating focus-stealing unmanaged X11 windows.
 Byte order note
 ---------------
 The DBus StatusNotifierItem spec describes IconPixmap as "ARGB32 in network
-byte order" (big-endian A,R,G,B bytes). In practice, every known SNI host
-(waybar, Quickshell, KDE Plasma, fcitx5) constructs images via Qt's
-QImage::Format_ARGB32 or Cairo's ARGB32 directly from the DBus byte array,
-and those formats read memory in native byte order — which on x86_64 LE is
-B,G,R,A. So native-endian packing is what hosts actually render correctly.
-Use --byte-order=network only if you encounter a host that truly reads the
-spec literally and shows color-swapped icons with the default.
+byte order" (big-endian A,R,G,B bytes). Every real host reads exactly that:
+waybar and noctalia decode byte 0 as alpha, Quickshell bswaps per pixel, and
+KDE's own SNI library swaps to network order before sending. So 'network'
+(default) is correct everywhere; 'native' (little-endian B,G,R,A) is only for
+hypothetical hosts that build a QImage straight from the raw payload.
 """
 
 import argparse
@@ -146,6 +144,9 @@ class WineSNIBridge:
         # struct pack format: "<I" = little-endian (native on x86_64),
         # ">I" = big-endian (DBus SNI spec literal).
         self._pack_fmt = "<I" if byte_order == "native" else ">I"
+        # Alpha sits at byte 3 in native (B,G,R,A) packing, byte 0 in network
+        # (A,R,G,B) packing; crop/alpha scans must use the right offset.
+        self._alpha_off = 3 if byte_order == "native" else 0
         self._dead = False
         self._display = display.Display()
         self._display.set_error_handler(lambda *a: None)
@@ -531,10 +532,11 @@ class WineSNIBridge:
         min_x, min_y, max_x, max_y = w, h, 0, 0
         for y in range(h):
             for x in range(w):
-                # Alpha is the last byte of each packed pixel; the earlier
-                # byte-0 check mis-cropped icons with no blue channel (pure
-                # red/yellow) down to nothing.
-                if argb[(y * w + x) * 4 + 3] > 0:
+                # Alpha is the byte this packing puts in the slot the host
+                # reads as alpha; the earlier fixed byte-3 check mis-cropped
+                # icons with no blue channel (pure red/yellow) and was wrong
+                # entirely in network order.
+                if argb[(y * w + x) * 4 + self._alpha_off] > 0:
                     min_x, min_y = min(min_x, x), min(min_y, y)
                     max_x, max_y = max(max_x, x), max(max_y, y)
         if max_x < min_x:
@@ -683,13 +685,14 @@ def main():
     parser.add_argument(
         "--byte-order",
         choices=["native", "network"],
-        default="native",
+        default="network",
         help=(
-            "IconPixmap packing byte order. 'native' (default) matches what "
-            "Qt QImage::Format_ARGB32 and Cairo ARGB32 read on little-endian "
-            "hosts — the colors render correctly in every known SNI host. "
-            "'network' follows the DBus SNI spec literally (big-endian ARGB); "
-            "use only if a host requires it."
+            "IconPixmap packing byte order. 'network' (default) follows the DBus "
+            "SNI spec (bytes A,R,G,B) and is what every major host reads: "
+            "waybar, noctalia, Quickshell and KDE all decode the spec's ARGB32 "
+            "order. 'native' packs little-endian (B,G,R,A) and is only for "
+            "hosts that build a QImage directly from the raw bytes without "
+            "conversion."
         ),
     )
     args = parser.parse_args()
