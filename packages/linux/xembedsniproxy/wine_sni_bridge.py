@@ -400,19 +400,10 @@ class WineSNIBridge:
         sni = slot["sni"]
 
         try:
-            # Try _NET_WM_ICON first
-            icon_prop = icon_win.get_full_property(
-                self._atoms["_NET_WM_ICON"], Xatom.CARDINAL)
-            if icon_prop and icon_prop.value is not None and len(icon_prop.value) >= 3:
-                icons = self._parse_net_wm_icon(icon_prop.value)
-                if icons:
-                    sni.update_icon(icons)
-                    self._icon_cache[slot.get("icon_key", "unknown")] = icons
-                    slot["icon_ready"] = True
-                    log(f"Icon {icon_xid}: via _NET_WM_ICON")
-                    return False
-
-            # CopyArea method
+            # Prefer the painted window content — it is what the app actually
+            # displays. Wine/Steam often leave a generic/stale _NET_WM_ICON on
+            # the icon window while painting the real icon, so _NET_WM_ICON is
+            # only a provisional fallback shown until the paint lands.
             self._display.sync()
             geom = icon_win.get_geometry()
             w, h = geom.width, geom.height
@@ -425,21 +416,33 @@ class WineSNIBridge:
                     img = pix.get_image(0, 0, w, h, X.ZPixmap, 0xFFFFFFFF)
                     if img and img.data:
                         bpp = len(img.data) // (w * h) if w * h else 4
-                        colored = sum(1 for i in range(0, len(img.data), bpp)
-                                      if any(img.data[i+j] > 10
-                                             for j in range(min(3, bpp))))
-                        if colored > (w * h * 0.05):
+                        drawn = sum(1 for i in range(0, len(img.data), bpp)
+                                    if any(img.data[i+j] > 10
+                                           for j in range(min(3, bpp))))
+                        if drawn > (w * h * 0.05):
                             icon_data = self._raw_to_argb(img.data, w, h, geom.depth)
                             if icon_data:
                                 sni.update_icon(icon_data)
                                 self._icon_cache[slot.get("icon_key", "unknown")] = icon_data
                                 slot["icon_ready"] = True
-                                log(f"Icon {icon_xid}: extracted ({w}x{h}, {colored}px)")
+                                log(f"Icon {icon_xid}: extracted ({w}x{h}, {drawn}px)")
                                 return False
-                        return True  # retry - not drawn yet
                 finally:
                     gc.free()
                     pix.free()
+
+            # Painted content not usable (yet): fall back to _NET_WM_ICON as a
+            # provisional icon and keep retrying the paint on the next pass.
+            icon_prop = icon_win.get_full_property(
+                self._atoms["_NET_WM_ICON"], Xatom.CARDINAL)
+            if icon_prop and icon_prop.value is not None and len(icon_prop.value) >= 3:
+                icons = self._parse_net_wm_icon(icon_prop.value)
+                if icons:
+                    # Provisional: show it but don't cache/mark ready so the
+                    # real painted icon can replace it when drawn.
+                    sni.update_icon(icons)
+                    log(f"Icon {icon_xid}: provisional _NET_WM_ICON")
+            return True  # retry - painted content not ready
         except (ConnectionClosedError, IOError, OSError) as e:
             return self._fatal(f"_extract_icon: {e!r}")
         except Exception as e:
