@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import tomllib
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -10,10 +11,11 @@ pytest.importorskip("Xlib")
 
 from Xlib import X
 
-PACKAGE_DIR = Path(__file__).parents[1] / "packages/linux/xembedsniproxy"
-sys.path.insert(0, str(PACKAGE_DIR))
+REPO_ROOT = Path(__file__).parents[1]
+PACKAGE_DIR = REPO_ROOT / "packages/linux/xembedsniproxy"
+sys.path.insert(0, str(PACKAGE_DIR / "src"))
 
-import wine_sni_bridge
+from xembed_sni_proxy import bridge as proxy
 
 
 class FakeIconWindow:
@@ -50,15 +52,17 @@ class FakeTrayWindow:
     def __init__(self):
         self.id = 0x1234
         self.configure_calls = []
+        self.wm_names = []
+        self.wm_classes = []
         self.normal_hints = []
         self.protocols = []
         self.clear_count = 0
 
-    def set_wm_name(self, _name):
-        pass
+    def set_wm_name(self, name):
+        self.wm_names.append(name)
 
-    def set_wm_class(self, _instance, _class):
-        pass
+    def set_wm_class(self, instance, window_class):
+        self.wm_classes.append((instance, window_class))
 
     def change_property(self, *_args):
         pass
@@ -145,7 +149,7 @@ class FakeBus:
 def make_claim_bridge():
     tray = FakeTrayWindow()
     root = FakeRoot(tray)
-    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
     bridge._screen = SimpleNamespace(root_depth=24, black_pixel=0)
     bridge._root = root
     bridge._display = FakeDisplay(tray=tray)
@@ -168,14 +172,36 @@ def make_claim_bridge():
 
 def claim_tray(bridge):
     with (
-        patch.object(wine_sni_bridge.GLib, "timeout_add"),
+        patch.object(proxy.GLib, "timeout_add"),
         patch.object(
-            wine_sni_bridge.protocol.event,
+            proxy.protocol.event,
             "ClientMessage",
             side_effect=lambda **kwargs: kwargs,
         ),
     ):
         assert bridge._claim_tray()
+
+
+def test_project_identity_is_xembed_sni_proxy():
+    bridge, _root, tray = make_claim_bridge()
+
+    claim_tray(bridge)
+
+    project = tomllib.loads((PACKAGE_DIR / "pyproject.toml").read_text())
+    service = (
+        PACKAGE_DIR / "files/config/systemd/user/xembedsniproxy.service"
+    ).read_text()
+    niri_rules = (
+        REPO_ROOT / "packages/niri/files/config/niri/cfg/rules.kdl"
+    ).read_text()
+    assert project["project"]["name"] == "xembed-sni-proxy"
+    assert project["project"]["scripts"] == {
+        "xembed-sni-proxy": "xembed_sni_proxy.bridge:main"
+    }
+    assert tray.wm_names == ["xembed-sni-proxy"]
+    assert tray.wm_classes == [("xembed-sni-proxy", "xembed-sni-proxy")]
+    assert "ExecStart=%h/.local/bin/xembed-sni-proxy" in service
+    assert 'match app-id=r#"^xembed-sni-proxy$"#' in niri_rules
 
 
 def test_tray_has_explicit_black_background_for_automatic_repaint():
@@ -203,7 +229,7 @@ def test_tray_advertises_graceful_window_close():
 
 
 def test_each_sni_slot_gets_a_unique_object_path():
-    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
     bridge._slot_counter = 0
     bridge._slots = []
     created_paths = []
@@ -214,16 +240,16 @@ def test_each_sni_slot_gets_a_unique_object_path():
 
     with (
         patch.object(
-            wine_sni_bridge.dbus.bus,
+            proxy.dbus.bus,
             "BusConnection",
             side_effect=lambda _address: FakeBus(),
         ),
         patch.object(
-            wine_sni_bridge.dbus.service,
+            proxy.dbus.service,
             "BusName",
             side_effect=lambda *_args, **_kwargs: object(),
         ),
-        patch.object(wine_sni_bridge, "SNIItem", side_effect=make_sni),
+        patch.object(proxy, "SNIItem", side_effect=make_sni),
     ):
         first = bridge._get_or_create_slot()
         second = bridge._get_or_create_slot()
@@ -238,7 +264,7 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
     tray = FakeTrayWindow()
     registrations = []
     watcher = SimpleNamespace(RegisterStatusNotifierItem=registrations.append)
-    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
     bridge._dead = False
     bridge._active_icons = {}
     bridge._display = FakeDisplay(resource=icon)
@@ -260,10 +286,10 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
     bridge._atoms = {"_XEMBED": "_XEMBED"}
 
     with (
-        patch.object(wine_sni_bridge.GLib, "timeout_add"),
-        patch.object(wine_sni_bridge.dbus, "Interface", return_value=watcher),
+        patch.object(proxy.GLib, "timeout_add"),
+        patch.object(proxy.dbus, "Interface", return_value=watcher),
         patch.object(
-            wine_sni_bridge.protocol.event,
+            proxy.protocol.event,
             "ClientMessage",
             side_effect=lambda **kwargs: kwargs,
         ),
@@ -275,7 +301,7 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
 
 
 def test_sni_item_does_not_publish_a_fake_application_title():
-    item = object.__new__(wine_sni_bridge.SNIItem)
+    item = object.__new__(proxy.SNIItem)
     item._icon_xid = 0
     item._icon_data = []
     item._title = "stale title"
@@ -305,7 +331,7 @@ def test_visual_identity_selects_the_unique_matching_application_title():
         black, black, black, black, black,
     ]
 
-    title = wine_sni_bridge._select_matching_icon_title(
+    title = proxy._select_matching_icon_title(
         padded_blue_cross,
         5,
         5,
@@ -321,7 +347,7 @@ def test_visual_identity_selects_the_unique_matching_application_title():
 def test_visual_identity_rejects_ambiguous_matches():
     icon = [(20, 100, 200)] * 9
 
-    title = wine_sni_bridge._select_matching_icon_title(
+    title = proxy._select_matching_icon_title(
         icon,
         3,
         3,
@@ -339,7 +365,7 @@ def test_window_close_requests_a_controlled_service_restart():
         client_type="WM_PROTOCOLS",
         data=(32, ["WM_DELETE_WINDOW", 0, 0, 0, 0]),
     )
-    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
     bridge._dead = False
     bridge._tray_window = tray
     bridge._display = FakeDisplay(events=[event])
@@ -363,7 +389,7 @@ def test_undock_releases_a_surviving_icon_before_removing_it():
     icon = FakeIconWindow()
     tray = FakeTrayWindow()
     root = object()
-    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
     bridge._dead = False
     bridge._tray_window = tray
     bridge._root = root

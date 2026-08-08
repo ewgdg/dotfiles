@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Wine SNI Bridge - X11 System Tray to StatusNotifierItem bridge for Wayland.
+XEmbed SNI Proxy - X11 System Tray to StatusNotifierItem bridge for Wayland.
 Replaces xembedsniproxy without creating focus-stealing unmanaged X11 windows.
 
 Byte order note
@@ -28,6 +28,7 @@ from gi.repository import GLib
 from Xlib import X, display, Xatom, protocol, error
 from Xlib.error import ConnectionClosedError
 
+APPLICATION_ID = "xembed-sni-proxy"
 SNI_WATCHER_BUS = "org.kde.StatusNotifierWatcher"
 SNI_WATCHER_PATH = "/StatusNotifierWatcher"
 SNI_ITEM_IFACE = "org.kde.StatusNotifierItem"
@@ -255,7 +256,7 @@ class SNIItem(dbus.service.Object):
             self.NewIcon()
 
 
-class WineSNIBridge:
+class XEmbedSNIProxy:
     def __init__(self, byte_order="native"):
         # struct pack format: "<I" = little-endian (native on x86_64),
         # ">I" = big-endian (DBus SNI spec literal).
@@ -359,8 +360,8 @@ class WineSNIBridge:
             background_pixel=self._screen.black_pixel,
             override_redirect=False
         )
-        self._tray_window.set_wm_name("wine-sni-bridge")
-        self._tray_window.set_wm_class("wine-sni-bridge", "wine-sni-bridge")
+        self._tray_window.set_wm_name(APPLICATION_ID)
+        self._tray_window.set_wm_class(APPLICATION_ID, APPLICATION_ID)
         self._tray_window.set_wm_protocols([self._atoms["WM_DELETE_WINDOW"]])
         self._tray_window.change_property(
             self._display.intern_atom("_NET_WM_WINDOW_TYPE"),
@@ -912,7 +913,7 @@ class WineSNIBridge:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Wine SNI Bridge - X11 tray to StatusNotifierItem for Wayland")
+        description="XEmbed SNI Proxy - X11 tray to StatusNotifierItem for Wayland")
     parser.add_argument(
         "--byte-order",
         choices=["native", "network"],
@@ -927,7 +928,7 @@ def main():
         ),
     )
     args = parser.parse_args()
-    sys.exit(WineSNIBridge(byte_order=args.byte_order).run())
+    sys.exit(XEmbedSNIProxy(byte_order=args.byte_order).run())
 
 
 if __name__ == "__main__":

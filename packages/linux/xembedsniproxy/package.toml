@@ -1,11 +1,11 @@
 id = "linux/xembedsniproxy"
 description = "XEmbed-to-SNI tray bridge for Wayland (Wine/Proton and legacy X11 tray icons)"
 
-[targets.wine_sni_bridge_tool]
+[targets.xembed_sni_proxy_tool]
 sync_policy = "push-only"
-probe = 'command -v wine-sni-bridge >/dev/null 2>&1 && exit 100 || exit 0'
+probe = 'command -v xembed-sni-proxy >/dev/null 2>&1 && exit 100 || exit 0'
 
-[targets.wine_sni_bridge_tool.hooks]
+[targets.xembed_sni_proxy_tool.hooks]
 pre_push = 'uv tool install --editable "$DOTMAN_PACKAGE_ROOT"'
 
 [targets.f_config_systemd_user_xembedsniproxy_service]

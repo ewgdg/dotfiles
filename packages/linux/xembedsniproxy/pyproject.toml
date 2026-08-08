@@ -1,7 +1,7 @@
 [project]
-name = "wine-sni-bridge"
+name = "xembed-sni-proxy"
 version = "0.1.0"
-description = "X11 System Tray to StatusNotifierItem bridge for Wayland"
+description = "XEmbed system tray to StatusNotifierItem proxy for Wayland"
 requires-python = ">=3.10"
 dependencies = [
   "python-xlib",
@@ -10,11 +10,11 @@ dependencies = [
 ]
 
 [project.scripts]
-wine-sni-bridge = "wine_sni_bridge:main"
+xembed-sni-proxy = "xembed_sni_proxy.bridge:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-include = ["wine_sni_bridge.py"]
+packages = ["src/xembed_sni_proxy"]

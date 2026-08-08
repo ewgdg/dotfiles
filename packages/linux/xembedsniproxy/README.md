@@ -1,55 +1,60 @@
 # linux/xembedsniproxy
 
-XEmbed → StatusNotifierItem tray bridge for Wayland. Package id is the family
-name (XEmbed-to-SNI proxies); it currently ships `wine-sni-bridge`
-(<https://github.com/waliori/wine-sni-bridge>), superseding `xembsni`
-(<https://github.com/jmylchreest/xembsni>) which could spawn a black,
-unmatchable window under niri.
+XEmbed → StatusNotifierItem proxy for Wayland. The Dotman package keeps the
+functional `xembedsniproxy` family name and installs the locally maintained
+`xembed-sni-proxy` executable. The distinct executable name avoids colliding
+with Plasma's `/usr/bin/xembedsniproxy`.
 
-Bridges legacy X11/Wine/Proton system-tray icons (Battle.net, etc.) into
-`waybar`'s `tray` module under niri/Hyprland/sway.
+Bridges legacy X11, Wine, and Proton system-tray icons into StatusNotifierItem
+hosts such as Noctalia and waybar under niri, Hyprland, and sway.
 
-## Why the niri window rule
+## Layout
 
-Unlike `xembsni` (override-redirect windows, no WM_CLASS), `wine-sni-bridge`
-uses a **managed** window with `WM_CLASS=wine-sni-bridge` and
-`_NET_WM_WINDOW_TYPE_UTILITY`, so it can be stashed with a niri `window-rule`
-(`app-id=^wine-sni-bridge$` → stash workspace, no focus).
+The Python project uses a standard `src/` package:
 
-## Notes
-
-- Vendored as `wine_sni_bridge.py` + `pyproject.toml` at the package root;
-  installed with `uv tool install --editable` (console script
-  `wine-sni-bridge` in `~/.local/bin`). Edits to the repo file apply
-  immediately without reinstall; the tool resolves the repo path, so the
-  dotfiles checkout must stay at the recorded location. Python deps
-  (`python-xlib`, `dbus-python`, `PyGObject`) come from PyPI — no pacman
-  python packages. First build needs the usual system build deps (gcc,
-  pkg-config, dbus/gobject-introspection/cairo headers).
-- Runs as `xembedsniproxy.service` (user, bound to `graphical-session.target`).
-  IconPixmap defaults to `--byte-order network` (the SNI spec's A,R,G,B
-  order), which is what every host decodes — waybar, noctalia, Quickshell,
-  KDE (verified in their sources). The upstream `native` default was the
-  outlier and rendered color-swapped icons in noctalia.
-- Leftover `~/.local/bin/xembsni` from the previous tool is removed manually.
-
-## Updating the vendored script
-
-Vendored at upstream commit `676c5dd2b932` **with local bug fixes** (see git log
-for `wine-sni-bridge.py`): alpha/chroma-key handling, crop on the alpha byte,
-map/unmap → Active/Passive instead of undocking, capped extraction retries,
-clean exit when another tray owns the selection, an explicit tray background
-so X11 automatically repaints regions exposed by undocking children, X11
-SaveSet protection plus clean XEmbed release so app-owned icon windows survive
-proxy restarts, unique SNI object paths so hosts do not collapse multiple Wine
-icons from the same process, conservative app-title inference by matching the
-painted tray icon to titled X11 application windows, and a controlled service
-restart when the required tray-owner window is closed. Re-apply these when
-syncing.
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/waliori/wine-sni-bridge/main/wine-sni-bridge.py \
-  -o packages/linux/xembedsniproxy/wine_sni_bridge.py
+```text
+src/xembed_sni_proxy/
+├── __init__.py
+└── bridge.py
 ```
 
-Review the diff, keep any local patches, then update the commit note above.
+`uv tool install --editable` installs the `xembed-sni-proxy` console script.
+The editable install resolves the repository source directly, so source changes
+apply when the process next starts and the dotfiles checkout must remain at the
+recorded location.
+
+## Managed helper window
+
+The proxy uses a managed utility window with `WM_CLASS=xembed-sni-proxy`.
+The niri rule matches `app-id=^xembed-sni-proxy$` and keeps this required X11
+tray-owner window hidden on the stash workspace without focusing it.
+
+## Runtime
+
+- Runs as `xembedsniproxy.service`, bound to `graphical-session.target`.
+  Plasma's separate unit is `plasma-xembedsniproxy.service`; the unit names do
+  not conflict. The implementations must not run simultaneously because only
+  one process can own `_NET_SYSTEM_TRAY_S0`.
+- IconPixmap defaults to `--byte-order network`, the SNI specification's
+  A,R,G,B byte order used by Noctalia, waybar, Quickshell, and KDE.
+- Python dependencies (`python-xlib`, `dbus-python`, and `PyGObject`) come from
+  PyPI. A first build needs the normal compiler, pkg-config, DBus,
+  GObject-introspection, Cairo, and Python headers.
+
+## Upstream provenance
+
+The implementation started from
+[`waliori/wine-sni-bridge`](https://github.com/waliori/wine-sni-bridge) commit
+`676c5dd2b932`. It is now maintained as a fork with additional behavior:
+
+- alpha-aware extraction, chroma keying, cropping, and bounded retries;
+- map/unmap → Active/Passive state without premature undocking;
+- deterministic X11 background repainting;
+- SaveSet protection and clean XEmbed release across proxy restarts;
+- unique SNI object paths for multiple icons from one process;
+- conservative application-title inference from matching X11 icons;
+- clean selection contention and supervised tray-window restart behavior.
+
+Review upstream changes separately and port applicable changes into
+`src/xembed_sni_proxy/bridge.py`; do not overwrite the maintained
+implementation wholesale.

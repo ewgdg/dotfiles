@@ -70,8 +70,8 @@ window-rule {
 }
 
 window-rule {
-  // Wine SNI bridge tray helper. Managed utility window (WM_CLASS=wine-sni-bridge), stash it off workspaces.
-  match app-id=r#"^wine-sni-bridge$"#
+  // XEmbed SNI proxy tray helper. Hide its managed utility window on the stash workspace.
+  match app-id=r#"^xembed-sni-proxy$"#
   open-on-workspace "stash"
   open-floating false
   open-focused false
