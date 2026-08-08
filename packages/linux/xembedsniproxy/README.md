@@ -41,8 +41,11 @@ map/unmap → Active/Passive instead of undocking, capped extraction retries,
 clean exit when another tray owns the selection, an explicit tray background
 so X11 automatically repaints regions exposed by undocking children, X11
 SaveSet protection plus clean XEmbed release so app-owned icon windows survive
-proxy restarts, and a controlled service restart when the required tray-owner
-window is closed. Re-apply these when syncing.
+proxy restarts, unique SNI object paths so hosts do not collapse multiple Wine
+icons from the same process, conservative app-title inference by matching the
+painted tray icon to titled X11 application windows, and a controlled service
+restart when the required tray-owner window is closed. Re-apply these when
+syncing.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/waliori/wine-sni-bridge/main/wine-sni-bridge.py \

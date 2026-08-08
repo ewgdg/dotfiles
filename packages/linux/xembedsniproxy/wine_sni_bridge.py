@@ -14,6 +14,7 @@ hypothetical hosts that build a QImage straight from the raw payload.
 """
 
 import argparse
+import math
 import os
 import sys
 import struct
@@ -37,6 +38,109 @@ XEMBED_VERSION = 0
 
 TRAY_ICON_SIZE = 32
 EMPTY_TRAY_SIZE = 1
+ICON_MATCH_SIZE = 24
+# Only publish an inferred app title when one top-level window icon is both a
+# strong match and clearly better than every differently titled candidate.
+ICON_MATCH_MIN_SIMILARITY = 0.85
+ICON_MATCH_MIN_MARGIN = 0.05
+ICON_VISIBLE_THRESHOLD = 30
+
+
+def _iter_net_wm_icons(data):
+    offset = 0
+    while offset + 2 < len(data):
+        width, height = int(data[offset]), int(data[offset + 1])
+        offset += 2
+        pixel_count = width * height
+        if width <= 0 or height <= 0 or offset + pixel_count > len(data):
+            break
+        yield width, height, data[offset:offset + pixel_count]
+        offset += pixel_count
+
+
+def _normalize_icon_pixels(pixels, width, height):
+    if width <= 0 or height <= 0 or len(pixels) != width * height:
+        return None
+
+    visible = [
+        (index % width, index // width)
+        for index, pixel in enumerate(pixels)
+        if sum(pixel) > ICON_VISIBLE_THRESHOLD
+    ]
+    if not visible:
+        return None
+
+    min_x = min(x for x, _y in visible)
+    max_x = max(x for x, _y in visible)
+    min_y = min(y for _x, y in visible)
+    max_y = max(y for _x, y in visible)
+    crop_width = max_x - min_x + 1
+    crop_height = max_y - min_y + 1
+    scale = min(ICON_MATCH_SIZE / crop_width, ICON_MATCH_SIZE / crop_height)
+    output_width = max(1, round(crop_width * scale))
+    output_height = max(1, round(crop_height * scale))
+    offset_x = (ICON_MATCH_SIZE - output_width) // 2
+    offset_y = (ICON_MATCH_SIZE - output_height) // 2
+    normalized = [(0, 0, 0)] * (ICON_MATCH_SIZE * ICON_MATCH_SIZE)
+
+    for output_y in range(output_height):
+        source_y = min_y + output_y * crop_height // output_height
+        for output_x in range(output_width):
+            source_x = min_x + output_x * crop_width // output_width
+            normalized[(offset_y + output_y) * ICON_MATCH_SIZE + offset_x + output_x] = (
+                pixels[source_y * width + source_x]
+            )
+    return normalized
+
+
+def _icon_similarity(first, second):
+    first_values = [channel for pixel in first for channel in pixel]
+    second_values = [channel for pixel in second for channel in pixel]
+    magnitude = math.sqrt(
+        sum(value * value for value in first_values)
+        * sum(value * value for value in second_values)
+    )
+    if magnitude == 0:
+        return 0.0
+    return sum(
+        first_value * second_value
+        for first_value, second_value in zip(first_values, second_values)
+    ) / magnitude
+
+
+def _select_matching_icon_title(source_pixels, source_width, source_height,
+                                candidates):
+    source = _normalize_icon_pixels(source_pixels, source_width, source_height)
+    if source is None:
+        return ""
+
+    scores_by_title = {}
+    for title, pixels, width, height in candidates:
+        candidate = _normalize_icon_pixels(pixels, width, height)
+        if not title or candidate is None:
+            continue
+        score = _icon_similarity(source, candidate)
+        scores_by_title[title] = max(score, scores_by_title.get(title, 0.0))
+
+    ranked = sorted(scores_by_title.items(), key=lambda item: item[1], reverse=True)
+    if not ranked or ranked[0][1] < ICON_MATCH_MIN_SIMILARITY:
+        return ""
+    if len(ranked) > 1 and ranked[0][1] - ranked[1][1] < ICON_MATCH_MIN_MARGIN:
+        return ""
+    return ranked[0][0]
+
+
+def _raw_rgb_pixels(raw, width, height):
+    area = width * height
+    if area <= 0 or len(raw) % area:
+        return None
+    bytes_per_pixel = len(raw) // area
+    if bytes_per_pixel not in (3, 4):
+        return None
+    return [
+        (raw[offset + 2], raw[offset + 1], raw[offset])
+        for offset in range(0, len(raw), bytes_per_pixel)
+    ]
 
 
 def log(msg):
@@ -50,17 +154,22 @@ class SNIItem(dbus.service.Object):
         self._bridge = bridge
         self._icon_xid = 0
         self._icon_data = []
-        self._title = "Wine App"
+        self._title = ""
         self._active = False
         dbus.service.Object.__init__(self, bus_name, path)
 
-    def bind(self, icon_xid):
+    def bind(self, icon_xid, title=""):
         """Bind to a new tray icon window."""
         self._icon_xid = icon_xid
         self._icon_data = []
-        self._title = "Wine App"
+        self._title = title
         self._active = True
         self.NewStatus("Active")
+
+    def update_title(self, title):
+        if title and title != self._title:
+            self._title = title
+            self.NewTitle()
 
     def set_passive(self):
         """Icon window hidden: keep the item but report Passive status."""
@@ -98,7 +207,7 @@ class SNIItem(dbus.service.Object):
             "AttentionIconPixmap": dbus.Array([], signature="(iiay)"),
             "AttentionMovieName": "",
             "ToolTip": dbus.Struct(
-                ("", dbus.Array([], signature="(iiay)"), self._title, ""),
+                ("", dbus.Array([], signature="(iiay)"), "", ""),
                 signature="sa(iiay)ss"),
             "ItemIsMenu": dbus.Boolean(False),
             # Standard sentinel for "no menu" (libappindicator/KDE): hosts like
@@ -209,21 +318,26 @@ class WineSNIBridge:
         return False
 
     def _get_or_create_slot(self):
-        """Create a fresh SNI slot with its own DBus connection.
-        Each slot needs a separate connection so multiple /StatusNotifierItem
-        objects can coexist (dbus-python only allows one per path per connection)."""
+        """Create an independently addressable SNI slot.
+
+        Separate connections provide independent service lifetimes; separate
+        paths keep hosts from deduplicating multiple items from this process.
+        """
         self._slot_counter += 1
         bus_name = f"org.kde.StatusNotifierItem-{os.getpid()}-{self._slot_counter}"
+        object_path = f"/StatusNotifierItem/{self._slot_counter}"
 
         # Get the session bus address and create an independent connection
         bus_addr = os.environ.get("DBUS_SESSION_BUS_ADDRESS") or dbus.bus.BUS_SESSION
         slot_bus = dbus.bus.BusConnection(bus_addr)
 
         dbus_name = dbus.service.BusName(bus_name, slot_bus, do_not_queue=True)
-        sni = SNIItem(dbus_name, "/StatusNotifierItem", self)
+        sni = SNIItem(dbus_name, object_path, self)
 
-        slot = {"sni": sni, "bus_name": bus_name, "dbus_name": dbus_name,
-                "slot_bus": slot_bus,
+        slot = {"sni": sni, "bus_name": bus_name,
+                "object_path": object_path,
+                "registration_id": f"{bus_name}{object_path}",
+                "dbus_name": dbus_name, "slot_bus": slot_bus,
                 "xid": None, "window": None, "icon_ready": False}
 
         # Find an empty position or append
@@ -281,6 +395,19 @@ class WineSNIBridge:
         log(f"Claimed tray selection")
         return True
 
+    def _get_window_title(self, window):
+        try:
+            prop = window.get_full_property(
+                self._atoms["_NET_WM_NAME"], self._atoms["UTF8_STRING"])
+            if prop and isinstance(prop.value, bytes):
+                title = prop.value.decode("utf-8", "replace").strip("\0 ")
+                if title:
+                    return title
+            title = window.get_wm_name()
+            return title.strip() if isinstance(title, str) else ""
+        except Exception:
+            return ""
+
     def _get_icon_key(self, icon_win):
         """Get a cache key for the icon window based on its WM_CLASS."""
         try:
@@ -290,6 +417,45 @@ class WineSNIBridge:
         except Exception:
             pass
         return "unknown"
+
+    def _get_application_icon_candidates(self):
+        candidates = []
+        try:
+            windows = self._root.query_tree().children
+        except Exception:
+            return candidates
+
+        for window in windows:
+            if window.id == self._tray_window.id:
+                continue
+            title = self._get_window_title(window)
+            if not title:
+                continue
+            try:
+                prop = window.get_full_property(
+                    self._atoms["_NET_WM_ICON"], Xatom.CARDINAL)
+                if not prop or prop.value is None:
+                    continue
+                for width, height, values in _iter_net_wm_icons(prop.value):
+                    if width > 256 or height > 256:
+                        continue
+                    pixels = [
+                        ((int(value) >> 16) & 0xFF,
+                         (int(value) >> 8) & 0xFF,
+                         int(value) & 0xFF)
+                        for value in values
+                    ]
+                    candidates.append((title, pixels, width, height))
+            except Exception:
+                continue
+        return candidates
+
+    def _match_application_title(self, raw, width, height):
+        pixels = _raw_rgb_pixels(raw, width, height)
+        if pixels is None:
+            return ""
+        return _select_matching_icon_title(
+            pixels, width, height, self._get_application_icon_candidates())
 
     def _resize_tray(self, width, height):
         self._tray_window.configure(width=width, height=height)
@@ -332,7 +498,9 @@ class WineSNIBridge:
             slot["window"] = icon_win
             slot["icon_ready"] = False
             slot["icon_key"] = self._get_icon_key(icon_win)
-            slot["sni"].bind(icon_xid)
+            title = self._get_window_title(icon_win)
+            slot["title_ready"] = bool(title)
+            slot["sni"].bind(icon_xid, title)
 
             # Reuse cached icon for this app so it's not white on re-dock
             cached = self._icon_cache.get(slot["icon_key"])
@@ -345,11 +513,10 @@ class WineSNIBridge:
             for attempt in range(10):
                 try:
                     watcher = self._bus.get_object(SNI_WATCHER_BUS, SNI_WATCHER_PATH)
-                    # Register with bus_name so watcher knows where to find us
-                    # Watcher will query bus_name at /StatusNotifierItem by default,
-                    # but we use a unique path, so register the full path
+                    # A unique path prevents hosts from collapsing distinct
+                    # items created by separate connections in this process.
                     dbus.Interface(watcher, SNI_WATCHER_BUS).RegisterStatusNotifierItem(
-                        slot["bus_name"])
+                        slot["registration_id"])
                     break
                 except dbus.DBusException:
                     if attempt < 9:
@@ -460,6 +627,12 @@ class WineSNIBridge:
                             icon_data = self._raw_to_argb(img.data, w, h, geom.depth)
                             if icon_data:
                                 sni.update_icon(icon_data)
+                                if not slot.get("title_ready"):
+                                    title = self._match_application_title(img.data, w, h)
+                                    if title:
+                                        sni.update_title(title)
+                                        slot["title_ready"] = True
+                                        log(f"Icon {icon_xid}: matched title {title!r}")
                                 self._icon_cache[slot.get("icon_key", "unknown")] = icon_data
                                 slot["icon_ready"] = True
                                 log(f"Icon {icon_xid}: extracted ({w}x{h}, {drawn}px)")
@@ -500,16 +673,9 @@ class WineSNIBridge:
         return self._extract_icon(icon_xid)
 
     def _parse_net_wm_icon(self, data):
-        offset = 0
         best = None
         best_size = 0
-        while offset + 2 < len(data):
-            w, h = int(data[offset]), int(data[offset + 1])
-            offset += 2
-            if w <= 0 or h <= 0 or offset + w * h > len(data):
-                break
-            pixels = data[offset:offset + w * h]
-            offset += w * h
+        for w, h, pixels in _iter_net_wm_icons(data):
             if w * h > best_size and w <= 256:
                 best_size = w * h
                 best = (w, h, b"".join(
@@ -694,7 +860,7 @@ class WineSNIBridge:
             try:
                 watcher = self._bus.get_object(SNI_WATCHER_BUS, SNI_WATCHER_PATH)
                 dbus.Interface(watcher, SNI_WATCHER_BUS).RegisterStatusNotifierItem(
-                    slot["bus_name"])
+                    slot["registration_id"])
                 slot["sni"].NewIcon()
                 log(f"Re-registered {xid}")
             except Exception as e:

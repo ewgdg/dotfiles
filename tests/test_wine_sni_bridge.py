@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -124,10 +124,13 @@ class FakeDisplay:
 
 
 class FakeSNI:
-    def bind(self, _xid):
+    def bind(self, _xid, _title=""):
         pass
 
     def update_icon(self, _icon):
+        pass
+
+    def update_title(self, _title):
         pass
 
     def remove_from_connection(self):
@@ -199,10 +202,42 @@ def test_tray_advertises_graceful_window_close():
     assert tray.protocols == [[bridge._atoms["WM_DELETE_WINDOW"]]]
 
 
-def test_docked_icon_is_protected_by_the_x11_save_set():
+def test_each_sni_slot_gets_a_unique_object_path():
+    bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
+    bridge._slot_counter = 0
+    bridge._slots = []
+    created_paths = []
+
+    def make_sni(_bus_name, path, _bridge):
+        created_paths.append(path)
+        return FakeSNI()
+
+    with (
+        patch.object(
+            wine_sni_bridge.dbus.bus,
+            "BusConnection",
+            side_effect=lambda _address: FakeBus(),
+        ),
+        patch.object(
+            wine_sni_bridge.dbus.service,
+            "BusName",
+            side_effect=lambda *_args, **_kwargs: object(),
+        ),
+        patch.object(wine_sni_bridge, "SNIItem", side_effect=make_sni),
+    ):
+        first = bridge._get_or_create_slot()
+        second = bridge._get_or_create_slot()
+
+    assert created_paths == ["/StatusNotifierItem/1", "/StatusNotifierItem/2"]
+    assert bridge._slots[first]["registration_id"].endswith("/StatusNotifierItem/1")
+    assert bridge._slots[second]["registration_id"].endswith("/StatusNotifierItem/2")
+
+
+def test_docked_icon_is_protected_and_registers_its_unique_object_path():
     icon = FakeIconWindow()
     tray = FakeTrayWindow()
-    watcher = SimpleNamespace(RegisterStatusNotifierItem=lambda _name: None)
+    registrations = []
+    watcher = SimpleNamespace(RegisterStatusNotifierItem=registrations.append)
     bridge = object.__new__(wine_sni_bridge.WineSNIBridge)
     bridge._dead = False
     bridge._active_icons = {}
@@ -211,6 +246,8 @@ def test_docked_icon_is_protected_by_the_x11_save_set():
     bridge._slots = [{
         "sni": FakeSNI(),
         "bus_name": "org.example.Test",
+        "object_path": "/StatusNotifierItem/1",
+        "registration_id": "org.example.Test/StatusNotifierItem/1",
         "dbus_name": object(),
         "slot_bus": FakeBus(),
         "xid": None,
@@ -234,6 +271,64 @@ def test_docked_icon_is_protected_by_the_x11_save_set():
         bridge._dock_icon(icon.id)
 
     assert ("save_set", X.SetModeInsert) in icon.operations
+    assert registrations == ["org.example.Test/StatusNotifierItem/1"]
+
+
+def test_sni_item_does_not_publish_a_fake_application_title():
+    item = object.__new__(wine_sni_bridge.SNIItem)
+    item._icon_xid = 0
+    item._icon_data = []
+    item._title = "stale title"
+    item._active = False
+    item.NewStatus = Mock()
+
+    item.bind(42)
+
+    assert item._props()["Title"] == ""
+    assert item._props()["ToolTip"][2] == ""
+
+
+def test_visual_identity_selects_the_unique_matching_application_title():
+    black = (0, 0, 0)
+    blue = (0, 0, 255)
+    blue_cross = [
+        black, blue, black,
+        blue, blue, blue,
+        black, blue, black,
+    ]
+    red_square = [(255, 0, 0)] * 9
+    padded_blue_cross = [
+        black, black, black, black, black,
+        black, black, blue, black, black,
+        black, blue, blue, blue, black,
+        black, black, blue, black, black,
+        black, black, black, black, black,
+    ]
+
+    title = wine_sni_bridge._select_matching_icon_title(
+        padded_blue_cross,
+        5,
+        5,
+        [
+            ("Battle.net", blue_cross, 3, 3),
+            ("Hearthstone Deck Tracker", red_square, 3, 3),
+        ],
+    )
+
+    assert title == "Battle.net"
+
+
+def test_visual_identity_rejects_ambiguous_matches():
+    icon = [(20, 100, 200)] * 9
+
+    title = wine_sni_bridge._select_matching_icon_title(
+        icon,
+        3,
+        3,
+        [("first", icon, 3, 3), ("second", icon, 3, 3)],
+    )
+
+    assert title == ""
 
 
 def test_window_close_requests_a_controlled_service_restart():
