@@ -75,9 +75,12 @@ package manager owns that executable. Use self-update only for standalone
 installations.
 
 This ownership rule applies to the manager executable, not its payloads. For
-example, `paru` upgrades the `uv` and `rustup` executables on the Arch profile,
-while `uv tool upgrade --all` and `rustup update` upgrade the tools and
-toolchains they manage.
+example, `paru` upgrades the `rustup` executable on the Arch profile (the
+install script prefers the native package), while `uv tool upgrade --all` and
+`rustup update` upgrade the tools and toolchains they manage. `uv` itself is
+bootstrap-installed standalone by `init.sh`; a native `uv` is tolerated because
+`init.sh` skips when one already exists, and the native package manager then
+owns it.
 
 ## Coverage
 
@@ -88,9 +91,9 @@ with `go install github.com/nao1215/gup@latest`; Topgrade then uses the installe
 
 | Concern | Owner / Topgrade step | Notes |
 | --- | --- | --- |
-| Arch repos, AUR, and Arch-owned executables (`uv`, `bun`, `nvim`, Docker) | `paru` system step | Runs the normal full Arch/AUR upgrade. |
+| Arch repos, AUR, and Arch-owned executables (`bun`, `nvim`, Docker) | `paru` system step | Runs the normal full Arch/AUR upgrade. |
 | Homebrew on the macOS profile | Brew steps | Automatically used only where `brew` exists. |
-| uv tools and uv-managed Pythons | `Uv` | Updates managed payloads. Self-updates are allowed only for standalone `uv` installations; the Arch-owned executable remains owned by `paru`. [uv tools](https://docs.astral.sh/uv/concepts/tools/) · [Topgrade uv step](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/generic.rs) |
+| uv executable, uv tools, and uv-managed Pythons | `Uv` | `init.sh` bootstraps `uv` standalone; the step self-updates it and upgrades its tools and managed Pythons. A native `uv` is tolerated (`init.sh` skips when one already exists) and stays owned by its package manager. [uv tools](https://docs.astral.sh/uv/concepts/tools/) · [Topgrade uv step](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/generic.rs) |
 | npm and Bun global packages | npm and Bun-package steps | Update globally installed tools only. Do not search project directories, change project dependencies, or rewrite project lockfiles. The Arch-owned Bun executable remains a `paru` concern. |
 | Zim framework and modules | Zim step | Runs `zimfw upgrade && zimfw update` in interactive zsh. [Source](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/zsh.rs) |
 | LazyVim plugins and Mason packages | Vim step | Runs headless Neovim updates, including `:MasonUpdate` and `:Lazy! sync`. [Updater source](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/upgrade.vim) |
