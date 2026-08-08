@@ -29,8 +29,10 @@ _disable_legacy_agent_override() {
   command mv -f "$legacy_file" "$disabled_file"
 }
 
+typeset -g _API_KEY_CACHE_SCHEMA="api-key-cache-v1"
+typeset -g API_KEY_CACHE_TTL_SECONDS=${API_KEY_CACHE_TTL_SECONDS:-43200}
 # Resolve 1Password secrets in one batched op run call.
-_load_api_keys() {
+_resolve_api_keys_from_1password() {
   emulate -L zsh
 
   if ! _ensure_command op "1Password API key lookup"; then
@@ -77,6 +79,259 @@ _load_api_keys() {
   done
 }
 
+_api_key_cache_available() {
+  [[ $OSTYPE == linux* ]] \
+    && [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] \
+    && (( ${+commands[keyctl]} && ${+commands[flock]} ))
+}
+
+_api_key_cache_description() {
+  REPLY="${_API_KEY_CACHE_SCHEMA}:$1"
+}
+
+_api_key_cache_ttl() {
+  local ttl=$API_KEY_CACHE_TTL_SECONDS
+
+  if [[ $ttl != <-> ]] || (( ttl <= 0 )); then
+    print -u2 -- "API_KEY_CACHE_TTL_SECONDS must be a positive integer"
+    return 1
+  fi
+
+  REPLY=$ttl
+}
+
+_api_key_cache_read() {
+  emulate -L zsh
+
+  local service=$1
+  local description key_id payload
+  local -a records
+
+  _api_key_cache_description "$service"
+  description=$REPLY
+  key_id=$(command keyctl search @u user "$description" 2>/dev/null) || return 1
+  payload=$(command keyctl pipe "$key_id" 2>/dev/null) || return 1
+  records=( "${(@f)payload}" )
+
+  (( ${#records} == 3 )) || return 1
+  [[ ${records[1]} == $_API_KEY_CACHE_SCHEMA ]] || return 1
+  [[ ${records[2]} == $service ]] || return 1
+  [[ -n ${records[3]} ]] || return 1
+  REPLY=${records[3]}
+}
+
+_api_key_cache_write() {
+  emulate -L zsh
+
+  local service=$1
+  local value=$2
+  local ttl=$3
+  local description key_id
+  local payload=$_API_KEY_CACHE_SCHEMA$'\n'$service$'\n'$value
+
+  _api_key_cache_description "$service"
+  description=$REPLY
+  key_id=$(
+    print -rn -- "$payload" \
+      | command keyctl padd user "$description" @u
+  ) || return 1
+
+  if ! command keyctl timeout "$key_id" "$ttl"; then
+    command keyctl unlink "$key_id" @u >/dev/null 2>&1
+    return 1
+  fi
+}
+
+_api_key_cache_delete() {
+  emulate -L zsh
+
+  local service=$1
+  local description key_id
+
+  _api_key_cache_description "$service"
+  description=$REPLY
+  key_id=$(command keyctl search @u user "$description" 2>/dev/null) || return 0
+  command keyctl unlink "$key_id" @u
+}
+
+_api_key_cache_load() {
+  emulate -L zsh
+
+  local force_refresh=$1
+  shift
+
+  local lock_path lock_fd service ttl
+  local index cache_write_failed=0
+  local -A cached_keys
+  local -a missing_services resolved_keys services=( "$@" )
+
+  _api_key_cache_ttl || return 1
+  ttl=$REPLY
+
+  if (( ! force_refresh )); then
+    for service in "${services[@]}"; do
+      if _api_key_cache_read "$service"; then
+        cached_keys[$service]=$REPLY
+      else
+        missing_services+=( "$service" )
+      fi
+    done
+
+    if (( ${#missing_services} == 0 )); then
+      reply=()
+      for service in "${services[@]}"; do
+        reply+=( "$service" "${cached_keys[$service]}" )
+      done
+      return 0
+    fi
+  fi
+
+  lock_path="$XDG_RUNTIME_DIR/api-key-cache.lock"
+  if ! exec {lock_fd}>>"$lock_path"; then
+    print -u2 -- "Unable to open the Linux API key cache lock; bypassing cache"
+    _resolve_api_keys_from_1password "${services[@]}"
+    return
+  fi
+
+  if ! command flock -x "$lock_fd"; then
+    exec {lock_fd}>&-
+    print -u2 -- "Unable to lock the Linux API key cache; bypassing cache"
+    _resolve_api_keys_from_1password "${services[@]}"
+    return
+  fi
+
+  # Recheck every service after locking; another terminal may have populated a miss.
+  cached_keys=()
+  missing_services=()
+  if (( force_refresh )); then
+    missing_services=( "${services[@]}" )
+  else
+    for service in "${services[@]}"; do
+      if _api_key_cache_read "$service"; then
+        cached_keys[$service]=$REPLY
+      else
+        missing_services+=( "$service" )
+      fi
+    done
+  fi
+
+  if (( ${#missing_services} )); then
+    if ! _resolve_api_keys_from_1password "${missing_services[@]}"; then
+      exec {lock_fd}>&-
+      return 1
+    fi
+    resolved_keys=( "${reply[@]}" )
+
+    for (( index = 1; index <= ${#resolved_keys}; index += 2 )); do
+      service=${resolved_keys[index]}
+      cached_keys[$service]=${resolved_keys[index + 1]}
+      _api_key_cache_write "$service" "${resolved_keys[index + 1]}" "$ttl" \
+        || cache_write_failed=1
+    done
+  fi
+
+  if (( cache_write_failed )); then
+    print -u2 -- "Unable to update every API key cache entry; using resolved keys once"
+  fi
+
+  reply=()
+  for service in "${services[@]}"; do
+    reply+=( "$service" "${cached_keys[$service]}" )
+  done
+  exec {lock_fd}>&-
+}
+
+_load_api_keys() {
+  emulate -L zsh
+
+  reply=()
+  (( $# )) || return 0
+
+  if _api_key_cache_available; then
+    _api_key_cache_load 0 "$@"
+  else
+    _resolve_api_keys_from_1password "$@"
+  fi
+}
+
+api-key-cache-status() {
+  emulate -L zsh
+
+  if (( $# == 0 )); then
+    print -u2 -- "usage: api-key-cache-status <service>..."
+    return 2
+  fi
+
+  if ! _api_key_cache_available; then
+    print -- "API key cache: unavailable on this platform"
+    return 0
+  fi
+
+  local service warm_count=0
+  local -a services=( "$@" )
+
+  for service in "${services[@]}"; do
+    _api_key_cache_read "$service" && (( warm_count++ ))
+  done
+
+  if (( warm_count == ${#services} )); then
+    print -- "API key cache: warm"
+  elif (( warm_count == 0 )); then
+    print -- "API key cache: empty"
+  else
+    print -- "API key cache: partial (${warm_count}/${#services})"
+  fi
+}
+
+api-key-cache-clear() {
+  emulate -L zsh
+
+  if (( $# == 0 )); then
+    print -u2 -- "usage: api-key-cache-clear <service>..."
+    return 2
+  fi
+
+  if ! _api_key_cache_available; then
+    print -- "API key cache: unavailable on this platform"
+    return 0
+  fi
+
+  local lock_fd service clear_failed=0
+  local -a services=( "$@" )
+
+  exec {lock_fd}>>"$XDG_RUNTIME_DIR/api-key-cache.lock" || return 1
+  command flock -x "$lock_fd" || {
+    exec {lock_fd}>&-
+    return 1
+  }
+
+  for service in "${services[@]}"; do
+    _api_key_cache_delete "$service" || clear_failed=1
+  done
+
+  exec {lock_fd}>&-
+  (( clear_failed == 0 )) || return 1
+  print -- "API key cache: cleared"
+}
+
+api-key-cache-refresh() {
+  emulate -L zsh
+
+  if (( $# == 0 )); then
+    print -u2 -- "usage: api-key-cache-refresh <service>..."
+    return 2
+  fi
+
+  if ! _api_key_cache_available; then
+    print -- "API key cache: unavailable on this platform"
+    return 1
+  fi
+
+  local -a reply services=( "$@" )
+  _api_key_cache_load 1 "${services[@]}" || return 1
+  print -- "API key cache: refreshed"
+}
+
 claude() {
   if ! _ensure_command claude "Claude Code"; then
       return 1
@@ -107,12 +362,15 @@ pi() (
 
   local -A _keys
   local -a reply
-  _load_api_keys openai-api deepseek-api openrouter-api brave-api exa-api || return 1
+  local -a api_key_services=(
+    deepseek-api
+    brave-api
+    exa-api
+  )
+
+  _load_api_keys "${api_key_services[@]}" || return 1
   _keys=( "${reply[@]}" )
 
-  # export OPENAI_API_KEY=${_keys[openai-api]}
-  # export ANTHROPIC_API_KEY=${_keys[anthropic-api]}
-  # export OPENROUTER_API_KEY=${_keys[openrouter-api]}
   export DEEPSEEK_API_KEY=${_keys[deepseek-api]}
   export BRAVE_API_KEY=${_keys[brave-api]}
   export EXA_API_KEY=${_keys[exa-api]}
