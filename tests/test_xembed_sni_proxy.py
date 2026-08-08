@@ -19,8 +19,9 @@ from xembed_sni_proxy import bridge as proxy
 
 
 class FakeIconWindow:
-    def __init__(self, xid=42):
+    def __init__(self, xid=42, pid=9001):
         self.id = xid
+        self.pid = pid
         self.operations = []
 
     def change_save_set(self, mode):
@@ -46,6 +47,38 @@ class FakeIconWindow:
 
     def get_wm_class(self):
         return ("late-host-probe", "late-host-probe")
+
+    def get_full_property(self, atom, _property_type):
+        if atom == "_NET_WM_PID":
+            return SimpleNamespace(value=[self.pid])
+        return None
+
+
+class FakeWineFallbackTray:
+    def __init__(self, pid=9001):
+        self.id = 84
+        self.pid = pid
+        self.operations = []
+
+    def get_attributes(self):
+        return SimpleNamespace(map_state=X.IsViewable)
+
+    def get_full_property(self, atom, _property_type):
+        values = {
+            "_NET_WM_PID": [self.pid],
+            "_WINE_HWND_STYLE": [proxy.WINE_FALLBACK_TRAY_STYLE_MASK],
+        }
+        value = values.get(atom)
+        return SimpleNamespace(value=value) if value is not None else None
+
+    def get_wm_name(self):
+        return ""
+
+    def get_wm_protocols(self):
+        return ["WM_DELETE_WINDOW"]
+
+    def send_event(self, event):
+        self.operations.append(("send_event", event))
 
 
 class FakeTrayWindow:
@@ -87,13 +120,17 @@ class FakeTrayWindow:
 
 
 class FakeRoot:
-    def __init__(self, tray):
+    def __init__(self, tray, children=None):
         self.tray = tray
+        self.children = list(children or [])
         self.create_window_kwargs = None
 
     def create_window(self, *_args, **kwargs):
         self.create_window_kwargs = kwargs
         return self.tray
+
+    def query_tree(self):
+        return SimpleNamespace(children=self.children)
 
     def send_event(self, *_args, **_kwargs):
         pass
@@ -259,8 +296,11 @@ def test_each_sni_slot_gets_a_unique_object_path():
     assert bridge._slots[second]["registration_id"].endswith("/StatusNotifierItem/2")
 
 
-def test_docked_icon_is_protected_and_registers_its_unique_object_path():
+def test_docking_protects_icon_registers_path_and_closes_wine_fallback_tray():
     icon = FakeIconWindow()
+    wine_fallback_tray = FakeWineFallbackTray(pid=icon.pid)
+    unrelated_wine_tray = FakeWineFallbackTray(pid=icon.pid + 1)
+    unrelated_wine_tray.id += 1
     tray = FakeTrayWindow()
     registrations = []
     watcher = SimpleNamespace(RegisterStatusNotifierItem=registrations.append)
@@ -268,6 +308,8 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
     bridge._dead = False
     bridge._active_icons = {}
     bridge._display = FakeDisplay(resource=icon)
+    bridge._root = FakeRoot(
+        tray, children=[wine_fallback_tray, unrelated_wine_tray])
     bridge._tray_window = tray
     bridge._slots = [{
         "sni": FakeSNI(),
@@ -283,10 +325,16 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
     bridge._get_or_create_slot = lambda: 0
     bridge._icon_cache = {}
     bridge._bus = SimpleNamespace(get_object=lambda *_args: watcher)
-    bridge._atoms = {"_XEMBED": "_XEMBED"}
+    bridge._atoms = {
+        "_XEMBED": "_XEMBED",
+        "_NET_WM_PID": "_NET_WM_PID",
+        "_WINE_HWND_STYLE": "_WINE_HWND_STYLE",
+        "WM_PROTOCOLS": "WM_PROTOCOLS",
+        "WM_DELETE_WINDOW": "WM_DELETE_WINDOW",
+    }
 
     with (
-        patch.object(proxy.GLib, "timeout_add"),
+        patch.object(proxy.GLib, "timeout_add") as timeout_add,
         patch.object(proxy.dbus, "Interface", return_value=watcher),
         patch.object(
             proxy.protocol.event,
@@ -298,6 +346,20 @@ def test_docked_icon_is_protected_and_registers_its_unique_object_path():
 
     assert ("save_set", X.SetModeInsert) in icon.operations
     assert registrations == ["org.example.Test/StatusNotifierItem/1"]
+    timeout_add.assert_any_call(
+        proxy.WINE_FALLBACK_CLOSE_DELAY_MS,
+        bridge._close_wine_fallback_trays,
+        icon,
+    )
+    assert wine_fallback_tray.operations == [(
+        "send_event",
+        {
+            "window": wine_fallback_tray,
+            "client_type": "WM_PROTOCOLS",
+            "data": (32, ["WM_DELETE_WINDOW", X.CurrentTime, 0, 0, 0]),
+        },
+    )]
+    assert unrelated_wine_tray.operations == []
 
 
 def test_sni_item_does_not_publish_a_fake_application_title():

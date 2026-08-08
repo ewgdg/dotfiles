@@ -45,6 +45,11 @@ ICON_MATCH_SIZE = 24
 ICON_MATCH_MIN_SIMILARITY = 0.85
 ICON_MATCH_MIN_MARGIN = 0.05
 ICON_VISIBLE_THRESHOLD = 30
+# Wine's standalone Shell_TrayWnd is created with WS_CAPTION | WS_SYSMENU.
+# Matching these bits, the Wine PID, and WM_DELETE_WINDOW lets us close only
+# the fallback tray without relying on its DPI-dependent pixel dimensions.
+WINE_FALLBACK_TRAY_STYLE_MASK = 0x00C80000
+WINE_FALLBACK_CLOSE_DELAY_MS = 500
 
 
 def _iter_net_wm_icons(data):
@@ -287,6 +292,7 @@ class XEmbedSNIProxy:
                       "_NET_SYSTEM_TRAY_ORIENTATION", "MANAGER",
                       "_XEMBED", "_XEMBED_INFO", "_NET_WM_ICON",
                       "WM_NAME", "_NET_WM_NAME", "UTF8_STRING",
+                      "_NET_WM_PID", "_WINE_HWND_STYLE",
                       "WM_PROTOCOLS", "WM_DELETE_WINDOW"]:
             self._atoms[name] = self._display.intern_atom(name)
 
@@ -461,6 +467,63 @@ class XEmbedSNIProxy:
     def _resize_tray(self, width, height):
         self._tray_window.configure(width=width, height=height)
 
+    def _close_wine_fallback_trays(self, icon_win):
+        """Hide Wine's standalone tray after its icon docks externally."""
+        if self._dead or icon_win.id not in self._active_icons:
+            return False
+        try:
+            icon_pid = icon_win.get_full_property(
+                self._atoms["_NET_WM_PID"], X.AnyPropertyType)
+            if not icon_pid or not icon_pid.value:
+                return False
+            icon_pid = int(icon_pid.value[0])
+            windows = self._root.query_tree().children
+        except Exception:
+            return False
+
+        closed_any = False
+        for window in windows:
+            try:
+                if window.id in (icon_win.id, self._tray_window.id):
+                    continue
+                attributes = window.get_attributes()
+                pid = window.get_full_property(
+                    self._atoms["_NET_WM_PID"], X.AnyPropertyType)
+                style = window.get_full_property(
+                    self._atoms["_WINE_HWND_STYLE"], X.AnyPropertyType)
+                protocols = window.get_wm_protocols() or []
+                if not (
+                    attributes.map_state == X.IsViewable
+                    and pid and pid.value and int(pid.value[0]) == icon_pid
+                    and style and style.value
+                    and (
+                        int(style.value[0]) & WINE_FALLBACK_TRAY_STYLE_MASK
+                    ) == WINE_FALLBACK_TRAY_STYLE_MASK
+                    and not (window.get_wm_name() or "")
+                    and self._atoms["WM_DELETE_WINDOW"] in protocols
+                ):
+                    continue
+
+                # A restart can briefly leave Wine without an XEmbed owner.
+                # Wine then shows Shell_TrayWnd, but an ownership race can
+                # leave it mapped even after the icon re-docks. Its WM_CLOSE
+                # contract hides that fallback without destroying it.
+                ev = protocol.event.ClientMessage(
+                    window=window,
+                    client_type=self._atoms["WM_PROTOCOLS"],
+                    data=(32, [self._atoms["WM_DELETE_WINDOW"],
+                               X.CurrentTime, 0, 0, 0]))
+                window.send_event(ev)
+                closed_any = True
+                log(
+                    f"Closed Wine fallback tray {window.id} "
+                    f"after docking {icon_win.id}")
+            except Exception:
+                continue
+        if closed_any:
+            self._display.flush()
+        return False
+
     def _dock_icon(self, icon_xid):
         if self._dead or icon_xid in self._active_icons:
             return
@@ -509,6 +572,13 @@ class XEmbedSNIProxy:
                 slot["sni"].update_icon(cached)
 
             self._active_icons[icon_xid] = slot_idx
+            self._close_wine_fallback_trays(icon_win)
+            # Wine processes the old proxy's reparent events asynchronously;
+            # close once more after that restart race has settled.
+            GLib.timeout_add(
+                WINE_FALLBACK_CLOSE_DELAY_MS,
+                self._close_wine_fallback_trays,
+                icon_win)
 
             # Register with watcher
             for attempt in range(10):

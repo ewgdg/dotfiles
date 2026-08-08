@@ -51,6 +51,7 @@ The implementation started from
 - map/unmap → Active/Passive state without premature undocking;
 - deterministic X11 background repainting;
 - SaveSet protection and clean XEmbed release across proxy restarts;
+- suppression of Wine's standalone fallback tray after icons re-dock;
 - unique SNI object paths for multiple icons from one process;
 - conservative application-title inference from matching X11 icons;
 - clean selection contention and supervised tray-window restart behavior.
