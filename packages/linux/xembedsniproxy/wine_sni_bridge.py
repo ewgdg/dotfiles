@@ -24,7 +24,7 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
-from Xlib import X, display, Xatom, protocol, error, Xutil
+from Xlib import X, display, Xatom, protocol, error
 from Xlib.error import ConnectionClosedError
 
 SNI_WATCHER_BUS = "org.kde.StatusNotifierWatcher"
@@ -34,6 +34,9 @@ SNI_ITEM_IFACE = "org.kde.StatusNotifierItem"
 SYSTEM_TRAY_REQUEST_DOCK = 0
 XEMBED_EMBEDDED_NOTIFY = 0
 XEMBED_VERSION = 0
+
+TRAY_ICON_SIZE = 32
+EMPTY_TRAY_SIZE = 1
 
 
 def log(msg):
@@ -152,6 +155,7 @@ class WineSNIBridge:
         # (A,R,G,B) packing; crop/alpha scans must use the right offset.
         self._alpha_off = 3 if byte_order == "native" else 0
         self._dead = False
+        self._restart_requested = False
         self._display = display.Display()
         self._display.set_error_handler(lambda *a: None)
         self._screen = self._display.screen()
@@ -172,7 +176,8 @@ class WineSNIBridge:
         for name in ["_NET_SYSTEM_TRAY_S0", "_NET_SYSTEM_TRAY_OPCODE",
                       "_NET_SYSTEM_TRAY_ORIENTATION", "MANAGER",
                       "_XEMBED", "_XEMBED_INFO", "_NET_WM_ICON",
-                      "WM_NAME", "_NET_WM_NAME", "UTF8_STRING"]:
+                      "WM_NAME", "_NET_WM_NAME", "UTF8_STRING",
+                      "WM_PROTOCOLS", "WM_DELETE_WINDOW"]:
             self._atoms[name] = self._display.intern_atom(name)
 
     def _fatal(self, reason):
@@ -233,14 +238,16 @@ class WineSNIBridge:
         sel_atom = self._atoms["_NET_SYSTEM_TRAY_S0"]
 
         self._tray_window = self._root.create_window(
-            0, 0, 1, 1, 0,
+            0, 0, EMPTY_TRAY_SIZE, EMPTY_TRAY_SIZE, 0,
             self._screen.root_depth, X.InputOutput, X.CopyFromParent,
             event_mask=(X.StructureNotifyMask | X.SubstructureNotifyMask |
                        X.PropertyChangeMask | X.ExposureMask),
+            background_pixel=self._screen.black_pixel,
             override_redirect=False
         )
         self._tray_window.set_wm_name("wine-sni-bridge")
         self._tray_window.set_wm_class("wine-sni-bridge", "wine-sni-bridge")
+        self._tray_window.set_wm_protocols([self._atoms["WM_DELETE_WINDOW"]])
         self._tray_window.change_property(
             self._display.intern_atom("_NET_WM_WINDOW_TYPE"),
             Xatom.ATOM, 32,
@@ -252,13 +259,6 @@ class WineSNIBridge:
              self._display.intern_atom("_NET_WM_STATE_SKIP_PAGER")])
         self._tray_window.configure(x=-9999, y=-9999)
         self._tray_window.map()
-        # Re-assert size+hints after mapping: niri sizes a window on its first
-        # layout, and hints written before the map may not reach it in time
-        # (niri would otherwise stretch the tray to the full workspace). The
-        # delayed call covers the startup race where xwayland-satellite has
-        # not created the toplevel surface yet and drops the first configure.
-        self._resize_tray(1, 1)
-        GLib.timeout_add(750, self._resize_tray, 1, 1)
         self._tray_window.change_property(
             self._atoms["_NET_SYSTEM_TRAY_ORIENTATION"],
             Xatom.CARDINAL, 32, [0])
@@ -291,15 +291,8 @@ class WineSNIBridge:
             pass
         return "unknown"
 
-    def _resize_tray(self, w, h):
-        """Size the tray window and pin it via WM_NORMAL_HINTS (min==max) so
-        niri — which manages this window since it is not override-redirect —
-        keeps it at that size instead of stretching it to the full workspace."""
-        self._tray_window.configure(width=w, height=h)
-        self._tray_window.set_wm_normal_hints(
-            flags=Xutil.PSize | Xutil.PMinSize | Xutil.PMaxSize,
-            min_width=w, min_height=h, max_width=w, max_height=h,
-            width=w, height=h)
+    def _resize_tray(self, width, height):
+        self._tray_window.configure(width=width, height=height)
 
     def _dock_icon(self, icon_xid):
         if self._dead or icon_xid in self._active_icons:
@@ -310,11 +303,15 @@ class WineSNIBridge:
 
             # Resize tray window
             n = len(self._active_icons) + 1
-            self._resize_tray(max(1, n * 32), 32)
+            self._resize_tray(n * TRAY_ICON_SIZE, TRAY_ICON_SIZE)
 
-            x_offset = len(self._active_icons) * 32
+            x_offset = len(self._active_icons) * TRAY_ICON_SIZE
+            # SaveSet protection keeps the foreign icon alive if this bridge
+            # crashes and X11 destroys its tray window. KDE's proxy uses the
+            # same mechanism before embedding app-owned windows.
+            icon_win.change_save_set(X.SetModeInsert)
             icon_win.reparent(self._tray_window, x_offset, 0)
-            icon_win.configure(width=32, height=32)
+            icon_win.configure(width=TRAY_ICON_SIZE, height=TRAY_ICON_SIZE)
             icon_win.map()
             icon_win.change_attributes(
                 event_mask=(X.StructureNotifyMask | X.PropertyChangeMask |
@@ -366,12 +363,27 @@ class WineSNIBridge:
         except Exception as e:
             log(f"Dock error {icon_xid}: {e}")
 
+    def _release_icon_window(self, icon_win):
+        """End XEmbed without destroying the app-owned icon window."""
+        try:
+            # XEmbed's normal shutdown sequence is unmap, reparent to root.
+            # Removing it from our SaveSet afterward prevents redundant rescue
+            # processing when this X11 connection closes.
+            icon_win.unmap()
+            icon_win.reparent(self._root, 0, 0)
+            icon_win.change_save_set(X.SetModeDelete)
+            self._display.flush()
+        except Exception:
+            # DestroyNotify reaches us after the icon is already invalid.
+            pass
+
     def _undock_icon(self, icon_xid):
         if icon_xid not in self._active_icons:
             return
 
         slot_idx = self._active_icons.pop(icon_xid)
         slot = self._slots[slot_idx]
+        self._release_icon_window(slot["window"])
 
         # Fully remove from DBus so waybar drops the icon
         try:
@@ -396,14 +408,14 @@ class WineSNIBridge:
         # journal and leaked python-xlib internal queues for days.
         n = len(self._active_icons)
         try:
-            self._resize_tray(max(1, n * 32) if n else 1, 32)
-            # X11 does not restore the parent's pixels under a destroyed
-            # child, so undocked icons would leave ghost images stacked in
-            # the tray. Repaint the tray background to drop them.
-            self._tray_window.clear_area(0, 0, 0, 0)
+            if n:
+                self._resize_tray(n * TRAY_ICON_SIZE, TRAY_ICON_SIZE)
+            else:
+                self._resize_tray(EMPTY_TRAY_SIZE, EMPTY_TRAY_SIZE)
             for i, (xid, si) in enumerate(self._active_icons.items()):
                 try:
-                    self._slots[si]["window"].configure(x=i * 32, y=0)
+                    self._slots[si]["window"].configure(
+                        x=i * TRAY_ICON_SIZE, y=0)
                 except Exception:
                     pass
             self._display.flush()
@@ -630,6 +642,15 @@ class WineSNIBridge:
             while self._display.pending_events():
                 ev = self._display.next_event()
                 if ev.type == X.ClientMessage:
+                    event_window = getattr(ev, "window", None)
+                    event_window_id = getattr(event_window, "id", event_window)
+                    if (ev.client_type == self._atoms["WM_PROTOCOLS"] and
+                            ev.data[1][0] == self._atoms["WM_DELETE_WINDOW"] and
+                            event_window_id == self._tray_window.id):
+                        log("Tray window close requested; restarting service.")
+                        self._restart_requested = True
+                        self._loop.quit()
+                        return False
                     if (hasattr(ev, 'client_type') and
                             ev.client_type == self._atoms["_NET_SYSTEM_TRAY_OPCODE"] and
                             ev.data[1][1] == SYSTEM_TRAY_REQUEST_DOCK):
@@ -715,6 +736,9 @@ class WineSNIBridge:
             pass
         if self._dead:
             log("Stopped (X11 dead — exiting nonzero so systemd restarts).")
+            return 1
+        if self._restart_requested:
+            log("Stopped (tray window closed — exiting nonzero so systemd restarts).")
             return 1
         log("Stopped.")
         return 0

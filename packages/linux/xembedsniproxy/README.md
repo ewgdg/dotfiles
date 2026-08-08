@@ -38,9 +38,11 @@ uses a **managed** window with `WM_CLASS=wine-sni-bridge` and
 Vendored at upstream commit `676c5dd2b932` **with local bug fixes** (see git log
 for `wine-sni-bridge.py`): alpha/chroma-key handling, crop on the alpha byte,
 map/unmap → Active/Passive instead of undocking, capped extraction retries,
-clean exit when another tray owns the selection, and pinning the tray
-window's size via WM_NORMAL_HINTS so niri doesn't stretch it to the full
-workspace. Re-apply these when syncing.
+clean exit when another tray owns the selection, an explicit tray background
+so X11 automatically repaints regions exposed by undocking children, X11
+SaveSet protection plus clean XEmbed release so app-owned icon windows survive
+proxy restarts, and a controlled service restart when the required tray-owner
+window is closed. Re-apply these when syncing.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/waliori/wine-sni-bridge/main/wine-sni-bridge.py \
