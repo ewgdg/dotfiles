@@ -18,11 +18,14 @@ uses a **managed** window with `WM_CLASS=wine-sni-bridge` and
 
 ## Notes
 
-- Single-file Python daemon, vendored into the repo
-  (`files/local/bin/wine-sni-bridge.py`) so it can be patched directly; pushed
-  to `~/.local/bin` as-is.
-- Requires `python-xlib`, `python-dbus`, `python-gobject` (installed via
-  pacman on push).
+- Vendored as `wine_sni_bridge.py` + `pyproject.toml` at the package root;
+  installed with `uv tool install --editable` (console script
+  `wine-sni-bridge` in `~/.local/bin`). Edits to the repo file apply
+  immediately without reinstall; the tool resolves the repo path, so the
+  dotfiles checkout must stay at the recorded location. Python deps
+  (`python-xlib`, `dbus-python`, `PyGObject`) come from PyPI — no pacman
+  python packages. First build needs the usual system build deps (gcc,
+  pkg-config, dbus/gobject-introspection/cairo headers).
 - Runs as `xembedsniproxy.service` (user, bound to `graphical-session.target`).
 - Leftover `~/.local/bin/xembsni` from the previous tool is removed manually.
 
@@ -35,7 +38,7 @@ clean exit when another tray owns the selection. Re-apply these when syncing.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/waliori/wine-sni-bridge/main/wine-sni-bridge.py \
-  -o packages/linux/xembedsniproxy/files/local/bin/wine-sni-bridge.py
+  -o packages/linux/xembedsniproxy/wine_sni_bridge.py
 ```
 
 Review the diff, keep any local patches, then update the commit note above.
