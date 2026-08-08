@@ -24,7 +24,7 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
-from Xlib import X, display, Xatom, protocol, error
+from Xlib import X, display, Xatom, protocol, error, Xutil
 from Xlib.error import ConnectionClosedError
 
 SNI_WATCHER_BUS = "org.kde.StatusNotifierWatcher"
@@ -252,6 +252,13 @@ class WineSNIBridge:
              self._display.intern_atom("_NET_WM_STATE_SKIP_PAGER")])
         self._tray_window.configure(x=-9999, y=-9999)
         self._tray_window.map()
+        # Re-assert size+hints after mapping: niri sizes a window on its first
+        # layout, and hints written before the map may not reach it in time
+        # (niri would otherwise stretch the tray to the full workspace). The
+        # delayed call covers the startup race where xwayland-satellite has
+        # not created the toplevel surface yet and drops the first configure.
+        self._resize_tray(1, 1)
+        GLib.timeout_add(750, self._resize_tray, 1, 1)
         self._tray_window.change_property(
             self._atoms["_NET_SYSTEM_TRAY_ORIENTATION"],
             Xatom.CARDINAL, 32, [0])
@@ -284,6 +291,16 @@ class WineSNIBridge:
             pass
         return "unknown"
 
+    def _resize_tray(self, w, h):
+        """Size the tray window and pin it via WM_NORMAL_HINTS (min==max) so
+        niri — which manages this window since it is not override-redirect —
+        keeps it at that size instead of stretching it to the full workspace."""
+        self._tray_window.configure(width=w, height=h)
+        self._tray_window.set_wm_normal_hints(
+            flags=Xutil.PSize | Xutil.PMinSize | Xutil.PMaxSize,
+            min_width=w, min_height=h, max_width=w, max_height=h,
+            width=w, height=h)
+
     def _dock_icon(self, icon_xid):
         if self._dead or icon_xid in self._active_icons:
             return
@@ -293,7 +310,7 @@ class WineSNIBridge:
 
             # Resize tray window
             n = len(self._active_icons) + 1
-            self._tray_window.configure(width=max(1, n * 32), height=32)
+            self._resize_tray(max(1, n * 32), 32)
 
             x_offset = len(self._active_icons) * 32
             icon_win.reparent(self._tray_window, x_offset, 0)
@@ -379,7 +396,11 @@ class WineSNIBridge:
         # journal and leaked python-xlib internal queues for days.
         n = len(self._active_icons)
         try:
-            self._tray_window.configure(width=max(1, n * 32) if n else 1, height=32)
+            self._resize_tray(max(1, n * 32) if n else 1, 32)
+            # X11 does not restore the parent's pixels under a destroyed
+            # child, so undocked icons would leave ghost images stacked in
+            # the tray. Repaint the tray background to drop them.
+            self._tray_window.clear_area(0, 0, 0, 0)
             for i, (xid, si) in enumerate(self._active_icons.items()):
                 try:
                     self._slots[si]["window"].configure(x=i * 32, y=0)
