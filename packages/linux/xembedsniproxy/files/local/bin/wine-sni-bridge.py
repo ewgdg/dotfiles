@@ -61,11 +61,17 @@ class SNIItem(dbus.service.Object):
         self._active = True
         self.NewStatus("Active")
 
-    def unbind(self):
-        """Unbind from current icon, go passive."""
-        self._active = False
-        self._icon_xid = 0
-        self.NewStatus("Passive")
+    def set_passive(self):
+        """Icon window hidden: keep the item but report Passive status."""
+        if self._active:
+            self._active = False
+            self.NewStatus("Passive")
+
+    def set_active(self):
+        """Icon window visible again: report Active status."""
+        if not self._active:
+            self._active = True
+            self.NewStatus("Active")
 
     @dbus.service.method(dbus.PROPERTIES_IFACE, in_signature="ss", out_signature="v")
     def Get(self, iface, prop):
@@ -200,7 +206,7 @@ class WineSNIBridge:
         bus_name = f"org.kde.StatusNotifierItem-{os.getpid()}-{self._slot_counter}"
 
         # Get the session bus address and create an independent connection
-        bus_addr = os.environ.get("DBUS_SESSION_BUS_ADDRESS", "")
+        bus_addr = os.environ.get("DBUS_SESSION_BUS_ADDRESS") or dbus.bus.BUS_SESSION
         slot_bus = dbus.bus.BusConnection(bus_addr)
 
         dbus_name = dbus.service.BusName(bus_name, slot_bus, do_not_queue=True)
@@ -274,7 +280,7 @@ class WineSNIBridge:
         return "unknown"
 
     def _dock_icon(self, icon_xid):
-        if icon_xid in self._active_icons:
+        if self._dead or icon_xid in self._active_icons:
             return
 
         try:
@@ -475,17 +481,42 @@ class WineSNIBridge:
 
     def _raw_to_argb(self, raw, w, h, depth):
         try:
+            area = w * h
+            if area <= 0:
+                return None
+            bpp = len(raw) // area
+            if bpp not in (3, 4):
+                return None
+            # Alpha handling: respect the source alpha when it carries real
+            # information (semi-transparent pixels, or a 0/255 mask). Wine
+            # often hands us degenerate 32-bit data (alpha all zero, or
+            # uniformly 255 from a 24-bit buffer) — treat that as opaque and
+            # chroma-key the black background instead. Keying only applies
+            # when the icon sits on a black background (all four corners
+            # near-black), so flat opaque icons with dark content stay intact.
+            if bpp == 4:
+                alphas = {raw[i * bpp + 3] for i in range(area)}
+                respect_alpha = (any(0 < a < 255 for a in alphas)
+                                 or (0 in alphas and 255 in alphas))
+            else:
+                respect_alpha = False
+            key = not respect_alpha and all(
+                sum(raw[c * bpp:c * bpp + 3]) < 30
+                for c in (0, w - 1, (h - 1) * w, (h - 1) * w + w - 1))
             pixels = []
-            for i in range(0, min(len(raw), w * h * 4), 4):
-                if i + 3 > len(raw):
-                    break
-                b, g, r = raw[i], raw[i+1], raw[i+2]
-                a = raw[i+3] if depth == 32 else 255
-                if r + g + b < 30:
-                    a = 0
-                pixels.append(struct.pack(self._pack_fmt, (a << 24) | (r << 16) | (g << 8) | b))
+            for i in range(area):
+                o = i * bpp
+                b, g, r = raw[o], raw[o + 1], raw[o + 2]
+                if respect_alpha:
+                    a = raw[o + 3]
+                else:
+                    a = 255
+                    if key and r + g + b < 30:
+                        a = 0
+                pixels.append(struct.pack(self._pack_fmt,
+                                          (a << 24) | (r << 16) | (g << 8) | b))
             argb = b"".join(pixels)
-            if argb and w > 0 and h > 0:
+            if argb:
                 cropped = self._crop_argb(argb, w, h)
                 if cropped:
                     cw, ch, cdata = cropped
@@ -500,7 +531,10 @@ class WineSNIBridge:
         min_x, min_y, max_x, max_y = w, h, 0, 0
         for y in range(h):
             for x in range(w):
-                if argb[(y * w + x) * 4] > 0:
+                # Alpha is the last byte of each packed pixel; the earlier
+                # byte-0 check mis-cropped icons with no blue channel (pure
+                # red/yellow) down to nothing.
+                if argb[(y * w + x) * 4 + 3] > 0:
                     min_x, min_y = min(min_x, x), min(min_y, y)
                     max_x, max_y = max(max_x, x), max(max_y, y)
         if max_x < min_x:
@@ -564,13 +598,23 @@ class WineSNIBridge:
                     if xid and xid.id in self._active_icons:
                         GLib.idle_add(self._undock_icon, xid.id)
                 elif ev.type == X.UnmapNotify:
+                    # Icon window hidden (e.g. Wine toggling tray visibility):
+                    # keep the item, report Passive. Only destruction undocks.
                     xid = getattr(ev, 'window', None)
                     if xid and xid.id in self._active_icons:
-                        GLib.idle_add(self._undock_icon, xid.id)
+                        self._slots[self._active_icons[xid.id]]["sni"].set_passive()
+                elif ev.type == X.MapNotify:
+                    xid = getattr(ev, 'window', None)
+                    if xid and xid.id in self._active_icons:
+                        slot = self._slots[self._active_icons[xid.id]]
+                        slot["sni"].set_active()
+                        slot["icon_ready"] = False
+                        slot.pop("retries", None)
+                        GLib.timeout_add(100, self._extract_icon_retry, xid.id)
                 elif ev.type == X.Expose:
                     xid = getattr(ev, 'window', None)
                     if xid and xid.id in self._active_icons:
-                        GLib.timeout_add(100, self._extract_icon, xid.id)
+                        GLib.timeout_add(100, self._extract_icon_retry, xid.id)
         except (ConnectionClosedError, IOError, OSError) as e:
             return self._fatal(f"_process_x11: {e!r}")
         except Exception:
@@ -598,7 +642,10 @@ class WineSNIBridge:
         if not self._init_dbus():
             return 1
         if not self._claim_tray():
-            return 1
+            # Another tray host owns the selection (e.g. Plasma's proxy); don't
+            # fight it — exit cleanly so Restart=on-failure doesn't loop forever.
+            log("Another tray host owns the selection; exiting cleanly.")
+            return 0
 
         self._bus.watch_name_owner(SNI_WATCHER_BUS,
             lambda owner: GLib.timeout_add(1000, self._re_register_all)
