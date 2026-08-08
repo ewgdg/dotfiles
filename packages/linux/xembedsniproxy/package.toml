@@ -1,19 +1,17 @@
 id = "linux/xembedsniproxy"
 description = "XEmbed-to-SNI tray bridge for Wayland (Wine/Proton and legacy X11 tray icons)"
 
-depends = [
-  "rustup",
-]
-
-[vars.linux_xembedsniproxy]
-git_url = "https://github.com/jmylchreest/xembsni.git"
-
-[targets.xembsni_update]
+[targets.wine_sni_bridge_installed]
 sync_policy = "push-only"
-probe = 'command -v xembsni >/dev/null 2>&1 && exit 100 || exit 0'
+probe = '{{ PROBE_PACKAGES_INSTALLED }} python-xlib python-dbus python-gobject'
 
-[targets.xembsni_update.hooks]
-pre_push = 'cargo install --git "{{ vars.linux_xembedsniproxy.git_url }}" --root "$HOME/.local" xembsni'
+[targets.wine_sni_bridge_installed.hooks]
+pre_push = "{{ INSTALL }} python-xlib python-dbus python-gobject"
+
+[targets.f_local_bin_wine_sni_bridge]
+source = "files/local/bin/wine-sni-bridge.py"
+path = "~/.local/bin/wine-sni-bridge.py"
+chmod = "755"
 
 [targets.f_config_systemd_user_xembedsniproxy_service]
 source = "files/config/systemd/user/xembedsniproxy.service"
