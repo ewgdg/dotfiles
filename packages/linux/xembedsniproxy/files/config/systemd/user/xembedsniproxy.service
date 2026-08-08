@@ -8,7 +8,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/wine-sni-bridge --byte-order native
+ExecStart=%h/.local/bin/wine-sni-bridge --byte-order network
 Restart=on-failure
 RestartSec=5
 

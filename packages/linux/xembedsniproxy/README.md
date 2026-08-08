@@ -26,7 +26,10 @@ uses a **managed** window with `WM_CLASS=wine-sni-bridge` and
   (`python-xlib`, `dbus-python`, `PyGObject`) come from PyPI — no pacman
   python packages. First build needs the usual system build deps (gcc,
   pkg-config, dbus/gobject-introspection/cairo headers).
-- Runs as `xembedsniproxy.service` (user, bound to `graphical-session.target`).
+- Runs as `xembedsniproxy.service` (user, bound to `graphical-session.target`)
+  with `--byte-order network`: noctalia's tray reads IconPixmap per the SNI
+  spec (memory order A,R,G,B), so little-endian/native packing renders
+  color-swapped icons there.
 - Leftover `~/.local/bin/xembsni` from the previous tool is removed manually.
 
 ## Updating the vendored script
