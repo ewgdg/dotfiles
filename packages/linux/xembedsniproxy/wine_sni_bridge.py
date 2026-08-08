@@ -105,17 +105,17 @@ class SNIItem(dbus.service.Object):
     @dbus.service.method(SNI_ITEM_IFACE, in_signature="ii")
     def Activate(self, x, y):
         if self._active:
-            self._bridge.send_click(self._icon_xid, 1)
+            self._bridge.send_click(self._icon_xid, 1, x, y)
 
     @dbus.service.method(SNI_ITEM_IFACE, in_signature="ii")
     def SecondaryActivate(self, x, y):
         if self._active:
-            self._bridge.send_click(self._icon_xid, 2)
+            self._bridge.send_click(self._icon_xid, 2, x, y)
 
     @dbus.service.method(SNI_ITEM_IFACE, in_signature="ii")
     def ContextMenu(self, x, y):
         if self._active:
-            self._bridge.send_click(self._icon_xid, 3)
+            self._bridge.send_click(self._icon_xid, 3, x, y)
 
     @dbus.service.method(SNI_ITEM_IFACE, in_signature="is")
     def Scroll(self, delta, orientation):
@@ -563,21 +563,34 @@ class WineSNIBridge:
                 out[d:d+4] = argb[s:s+4]
         return bytes(out)
 
-    def send_click(self, icon_xid, button):
+    def send_click(self, icon_xid, button, root_x=0, root_y=0):
         if self._dead or icon_xid not in self._active_icons:
             return
         slot = self._slots[self._active_icons[icon_xid]]
         icon_win = slot["window"]
         try:
             geom = icon_win.get_geometry()
-            cx, cy = geom.width // 2, geom.height // 2
+            ex, ey = geom.width // 2, geom.height // 2
+            rx, ry = (root_x, root_y) if (root_x or root_y) else (ex, ey)
+            # Apps pop their menu at the pointer, not at the event coords, so
+            # warp the X pointer to the host-reported interaction point
+            # (best-effort: Xwayland may ignore it over native surfaces).
+            if root_x or root_y:
+                self._root.warp_pointer(X.NONE, 0, 0, 0, 0, rx, ry)
+                self._display.flush()
+            # Send both events with propagate=true and a combined mask: the
+            # client may only have selected one of the two masks, and without
+            # propagation a missing selection drops the event entirely
+            # (synthetic right-clicks opened no menu before this fix).
+            mask = X.ButtonPressMask | X.ButtonReleaseMask
             for EvType in [protocol.event.ButtonPress, protocol.event.ButtonRelease]:
-                mask = X.ButtonPressMask if EvType == protocol.event.ButtonPress else X.ButtonReleaseMask
-                state = 0 if EvType == protocol.event.ButtonPress else (1 << (7 + button))
+                state = 0 if EvType == protocol.event.ButtonPress \
+                    else (1 << (7 + button))
                 icon_win.send_event(EvType(
                     time=X.CurrentTime, root=self._root, window=icon_win,
-                    child=X.NONE, root_x=0, root_y=0, event_x=cx, event_y=cy,
-                    state=state, detail=button, same_screen=True), event_mask=mask)
+                    child=X.NONE, root_x=rx, root_y=ry, event_x=ex, event_y=ey,
+                    state=state, detail=button, same_screen=True),
+                    propagate=True, event_mask=mask)
             self._display.flush()
         except (ConnectionClosedError, IOError, OSError) as e:
             self._fatal(f"send_click: {e!r}")
