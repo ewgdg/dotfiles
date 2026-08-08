@@ -98,7 +98,11 @@ class SNIItem(dbus.service.Object):
                 ("", dbus.Array([], signature="(iiay)"), self._title, ""),
                 signature="sa(iiay)ss"),
             "ItemIsMenu": dbus.Boolean(False),
-            "Menu": dbus.ObjectPath("/NO_MENU"),
+            # Standard sentinel for "no menu" (libappindicator/KDE): hosts like
+            # noctalia only fall back to the SNI ContextMenu method when the
+            # Menu path is empty or exactly /NO_DBUSMENU. Any other path makes
+            # them render an empty host-side menu instead of the app's.
+            "Menu": dbus.ObjectPath("/NO_DBUSMENU"),
             "WindowId": dbus.Int32(self._icon_xid),
         }
 
