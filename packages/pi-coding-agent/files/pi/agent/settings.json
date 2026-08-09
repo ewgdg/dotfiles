@@ -4,8 +4,13 @@
 		"npm:pi-mcporter",
 		"npm:@howaboua/pi-codex-conversion",
 		"git:github.com/ewgdg/pi-multicodex",
-		"git:github.com/ewgdg/pi-agent-coordination",
-		"npm:pi-btw"
+		{
+			"source": "git:github.com/ewgdg/pi-agent-coordination",
+			"extensions": [
+				"-src/index.ts"
+			]
+		},
+		"npm:@firstpick/pi-extension-btw"
 	],
 	"enabledModels": [
 		"deepseek/deepseek-v4-flash",
@@ -24,7 +29,7 @@
 	},
 	"compaction": {
 		"enabled": true,
-		"reserveTokens": 22000
+		"reserveTokens": 32000
 	},
 	"treeFilterMode": "default",
 	"enableInstallTelemetry": false,
@@ -41,5 +46,12 @@
 		"+extensions/pi-openrouter-controls/index.ts"
 	],
 	"fullscreenScrollbar": "always",
-	"tuiMode": "fullscreen"
+	"tuiMode": "fullscreen",
+	"retry": {
+		"enabled": true
+	},
+	"skills": [
+		"-skills/code-review/SKILL.md",
+		"-skills/implement/SKILL.md"
+	]
 }

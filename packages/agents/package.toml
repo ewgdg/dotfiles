@@ -14,6 +14,7 @@ path = "~/.agents"
 shared = [
   "artifacts/",
   "skills/agent-web-context/references/",
+  "tools/",
 ]
 
 [targets.f_local_state_skills_skill_lock_json]
