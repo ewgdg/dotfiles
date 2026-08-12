@@ -1,8 +1,9 @@
 ## Communication
 
+- Intention oriented; highlight intention over technical jargon.
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
-- Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a tradeoff for something meaningful, respect the process. Do not push for action for its own sake.
+- Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
 
 ## File Operations
 
@@ -52,12 +53,15 @@
 - No hard-coded values
 - Lean on the dependencies already in the project before writing your own implementation or adding packages. Do not assume a library lacks a capability without checking its documentation and types.
 - Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
+- Do not let review feedback expand the task beyond the user's original goal. Address real shortcomings, but avoid scope creep.
 
 ## Testing
 
 - Write test cases first before bug fixes
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Avoid excessive testing of low-value details. Focus on important, regression-prone behavior.
+- An automated test must fail fast. ~5s timeout is long enough to determine a test is stuck unless there is a valid reason. You should generally avoid creating long-running tests.
+- If the full test suite takes long (>10s), do not run it as a whole until you are ready to finish and you should not run the full test suite if the blast radius is small.
 
 ## Context Efficiency
 
@@ -67,6 +71,7 @@
 ## Subagent Policy
 
 - It is very hard to accurately estimate the budget, so do not set a hard timeout or budget for a subagent run and unless requested. If have to, be very generous.
+- Do not abuse subagents for tiny tasks or tasks with overlapping scopes, which can cause undesired high context inefficiency.
 
 ## Python Related
 

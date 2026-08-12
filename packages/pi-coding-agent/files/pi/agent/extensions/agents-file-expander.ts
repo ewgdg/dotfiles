@@ -354,10 +354,11 @@ export default function agentsFileExpander(pi: ExtensionAPI) {
     }
   });
 
-  pi.on("before_agent_start", async (event, ctx) => {
-    // Cache only by Pi's assembled per-turn prompt. Context-file and @file edits
-    // are treated as startup state and must be picked up via /reload.
-    const result = expandPromptWithCache(event.systemPrompt, ctx.cwd, event.systemPromptOptions.contextFiles);
+  pi.on("before_agent_start", async (event) => {
+    // Use only event data here: a prompt already in preflight can outlive its session runtime,
+    // making the handler ctx stale before Pi finishes dispatching before_agent_start.
+    const { contextFiles, cwd } = event.systemPromptOptions;
+    const result = expandPromptWithCache(event.systemPrompt, cwd, contextFiles);
 
     if (result.expandedPrompt === event.systemPrompt) {
       return undefined;

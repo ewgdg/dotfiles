@@ -32,4 +32,4 @@ pane_history = true
 delivery = "off"
 
 [ui.sound]
-enabled = false
+enabled = true
