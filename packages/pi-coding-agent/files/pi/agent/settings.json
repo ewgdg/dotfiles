@@ -4,13 +4,8 @@
 		"npm:pi-mcporter",
 		"npm:@howaboua/pi-codex-conversion",
 		"git:github.com/ewgdg/pi-multicodex",
-		{
-			"source": "git:github.com/ewgdg/pi-agent-coordination",
-			"extensions": [
-				"-src/index.ts"
-			]
-		},
-		"npm:@firstpick/pi-extension-btw"
+		"npm:@firstpick/pi-extension-btw",
+		"git:github.com/ewgdg/pi-agent-coordination"
 	],
 	"enabledModels": [
 		"deepseek/deepseek-v4-flash",
