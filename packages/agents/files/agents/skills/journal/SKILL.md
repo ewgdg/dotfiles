@@ -59,31 +59,22 @@ Use concise language. Optimize for future review.
 
 ## Author
 
-The helper detects `Author`; the Agent Journal template writes it during note creation.
+Pass `--author` explicitly; the helper does not detect it. The Agent Journal template writes it into the note during creation.
 
-Best-effort format:
+Format: `agent-<harness>-<model>-<reasoning>`
 
-1. `agent-<harness>-<provider>-<model>`
-2. `agent-<harness>-<model>`
-3. `agent-<harness>`
-4. `agent`
+- `<harness>`: the agent harness (`pi`, `codex`, `claude`, ...)
+- `<model>`: model id without provider prefix (`deepseek-v4-pro`, not `deepseek/deepseek-v4-pro`)
+- `<reasoning>`: the current reasoning level (`high`, `medium`, ...)
 
-Use the most complete form available. Never guess provider or model. For pi with no exposed provider/model, use `agent-pi`.
+Never guess; omit unknown parts rather than invent them. Example: `agent-pi-deepseek-v4-pro-high`.
 
 ## Create
 
 Run the helper with journal body on stdin. No positional body argument exists.
 
 ```bash
-~/.agents/skills/journal/run.sh create --highlight "<Highlight>" --importance 2 <<'EOF'
-<Journal>
-EOF
-```
-
-Optional author override:
-
-```bash
-~/.agents/skills/journal/run.sh create --highlight "<Highlight>" --importance 3 --author "agent-pi-provider-model" <<'EOF'
+~/.agents/skills/journal/run.sh create --highlight "<Highlight>" --importance 2 --author "agent-pi-deepseek-v4-pro-high" <<'EOF'
 <Journal>
 EOF
 ```

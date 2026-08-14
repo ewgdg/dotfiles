@@ -4,6 +4,7 @@
 - ADHD-Friendly Formatting
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
+- Do not treat questions as permissions to action/implementation.
 
 ## File Operations
 
@@ -83,6 +84,7 @@
 - use semantic commit messages
 - if the commit closes a gh issue, references it in the commit message for auto-closing. `Closes #<num>` need to be the first line of the msg body.
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
+- prefer rebase then merge strategy
 
 ## CLI Tools
 

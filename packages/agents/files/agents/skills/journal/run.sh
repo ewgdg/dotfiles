@@ -5,7 +5,7 @@ usage() {
   cat >&2 <<'USAGE'
 Usage:
   run.sh print-path
-  run.sh create --highlight <Highlight> [--importance 1-3] [--author <author>]
+  run.sh create --highlight <Highlight> [--importance 1-3] --author <author>
 
 Actions:
   print-path  Print the journal filesystem directory.
@@ -15,7 +15,6 @@ Optional env:
   OBSIDIAN_JOURNAL_VAULT      Vault name (default: knowledgebase)
   JOURNAL_VAULT_RELATIVE_DIR  Journal dir inside vault (default: Streams/Journals)
   JOURNAL_IMPORTANCE          Default importance if --importance omitted (default: 1)
-  JOURNAL_AUTHOR              Author override if --author omitted
   JOURNAL_QUICKADD_CHOICE     QuickAdd choice used for agent entries (default: Agent Journal)
   JOURNAL_CREATE_PATH_RETRIES Attempts to wait for the created note to appear (default: 10)
   JOURNAL_CREATE_PATH_SLEEP   Delay between path lookup attempts (default: 0.5)
@@ -57,49 +56,8 @@ print((vault_path / journal_vault_relative_dir).resolve())
 PY
 }
 
-normalize_slug_part() {
-  local value="$1"
-  value="${value,,}"
-  value="$(printf '%s' "$value" | sed -E 's/[^a-z0-9._+-]+/-/g; s/^-+//; s/-+$//')"
-  printf '%s' "$value"
-}
-
 quote_yaml_string_scalar() {
   python3 -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' "$1"
-}
-
-detect_author() {
-  local explicit_author="$1"
-
-  if [[ -n "$explicit_author" ]]; then
-    printf '%s' "$explicit_author"
-    return
-  fi
-
-  local harness="${AGENT_HARNESS:-${PI_HARNESS:-${HARNESS:-}}}"
-  if [[ -z "$harness" && "${PI_CODING_AGENT:-}" == "true" ]]; then
-    harness="pi"
-  fi
-  if [[ -z "$harness" && -n "${CODEX_SANDBOX:-}" ]]; then
-    harness="codex"
-  fi
-
-  local provider="${AGENT_PROVIDER:-${PI_PROVIDER:-${LLM_PROVIDER:-${PROVIDER_NAME:-${PROVIDER:-}}}}}"
-  local model="${AGENT_MODEL:-${PI_MODEL:-${OPENAI_MODEL:-${ANTHROPIC_MODEL:-${LLM_MODEL:-${MODEL_NAME:-${MODEL:-}}}}}}}"
-
-  harness="$(normalize_slug_part "$harness")"
-  provider="$(normalize_slug_part "$provider")"
-  model="$(normalize_slug_part "$model")"
-
-  if [[ -n "$harness" && -n "$provider" && -n "$model" ]]; then
-    printf 'agent-%s-%s-%s' "$harness" "$provider" "$model"
-  elif [[ -n "$harness" && -n "$model" ]]; then
-    printf 'agent-%s-%s' "$harness" "$model"
-  elif [[ -n "$harness" ]]; then
-    printf 'agent-%s' "$harness"
-  else
-    printf 'agent'
-  fi
 }
 
 snapshot_journal_paths() {
@@ -190,7 +148,7 @@ create_journal() {
 
   local highlight=""
   local importance="${JOURNAL_IMPORTANCE:-1}"
-  local explicit_author="${JOURNAL_AUTHOR:-}"
+  local author=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -215,7 +173,7 @@ create_journal() {
           usage
           exit 2
         fi
-        explicit_author="$2"
+        author="$2"
         shift 2
         ;;
       --help|-h)
@@ -233,6 +191,11 @@ create_journal() {
     usage
     exit 2
   fi
+  if [[ -z "$author" ]]; then
+    printf '%s\n' '--author is required; the agent must identify itself.' >&2
+    usage
+    exit 2
+  fi
   validate_importance "$importance"
 
   local journal="$(cat)"
@@ -241,7 +204,6 @@ create_journal() {
     exit 2
   fi
 
-  local author="$(detect_author "$explicit_author")"
   local journal_dir="$(resolve_journal_dir "$vault_path")"
   local -A existing_journal_paths=()
   local existing_path=""

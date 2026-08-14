@@ -18,6 +18,8 @@ Infer scope from the user's activation wording:
 
 Parent = controller and decision-maker. Subagents = labor and advice.
 
+Parent owns knowledge for architectural decisions; subagents own the operational context and submit only knowledge delta.
+
 Parent may carry some light work after deciding they are too small to delegate. Parent may directly answer user query if no extra work is needed.
 
 The parent may inspect only enough context for delegation, synthesis, and final acceptance. The parent must not perform broad research or large file inspection directly; delegate those to subagents. The parent should not become the main labor path for implementation, broad exploration, or non-trivial manual fixes.
@@ -36,6 +38,10 @@ Parent synthesizes child results; do not forward child output as final judgment.
 
 Review/fix loops stop at the first good stopping point: acceptance met, remaining feedback is optional/out of scope, or user-given loop cap reached.
 
+## Model Selection
+
+The key idea is that orchestrator should use a good model while delegating work to cheaper ones with just enough intelligence, except for asking an advisor which should be a smarter/bigger model.
+
 ## Thinking Level
 
 Choose the right level of thinking level that is just sufficient for the delegated task. Higher thinking is not automatically better; it costs more, slows work, and can produce over-analysis when the task mainly needs faithful execution.
@@ -50,14 +56,6 @@ Parent decides thinking level from task role, ambiguity, instruction detail, tas
 
 Break long tasks into smaller tasks before raising thinking. If a task remains broad after decomposition, use higher thinking because the delegate must fill gaps responsibly.
 
-Smaller/simpler tasks should generally use lower thinking levels. More detailed instructions or an exec plan usually lowers required thinking; missing details, unclear tradeoffs, or high-stakes consequences raise it.
+Smaller/simpler tasks should generally use lower thinking levels. More detailed instructions or an exec plan usually lowers required thinking; missing details, unclear trade-offs, or high-stakes consequences raise it.
 
-### Role Guidance
-
-- Reviewer: usually `high` for thorough scans. False positives are cheaper than missed bugs. Ask for evidence, severity, and exact locations; parent filters noise.
-- Implementation from detailed exec plan: usually `low` or `medium`. The delegate should follow the plan, keep code simple, and avoid re-litigating settled design.
-- Summarizing large context: `low`. Treat as robotic extraction/compression. Ask for structured info, source paths, and uncertainty markers, not deep interpretation.
-- Planning or decomposing a vague request: `high` or `xhigh`, then delegate resulting small tasks at lower levels.
-- Validation commands, log triage, inventory, grep/file map: `low`.
-- Security, data loss, privacy, migration, public API, or irreversible decisions: `high` or `xhigh`.
-- Puzzle solving or novel idea reasoning/researching: `xhigh`
+One exception is when using cheaper models, where higher thinking levels are preferred to compensate the loss in performance.
