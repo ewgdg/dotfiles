@@ -1,0 +1,27 @@
+id = "linux/deepseek-harness"
+description = "Linux desktop integration for DeepSeek Harness"
+
+depends = [
+  "deepseek-harness",
+]
+
+[targets.f_local_bin_dsh]
+source = "files/local/bin/dsh"
+path = "~/.local/bin/dsh"
+chmod = "755"
+
+[targets.f_local_share_applications_deepseek_harness_desktop]
+source = "files/local/share/applications/deepseek-harness.desktop"
+path = "~/.local/share/applications/deepseek-harness.desktop"
+chmod = "644"
+
+[targets.f_local_share_icons_deepseek_harness_svg]
+source = "files/local/share/icons/hicolor/scalable/apps/deepseek-harness.svg"
+path = "~/.local/share/icons/hicolor/scalable/apps/deepseek-harness.svg"
+chmod = "644"
+
+[targets.f_local_share_icons_deepseek_harness_svg.hooks]
+post_push = 'gtk-update-icon-cache --force --ignore-theme-index "$HOME/.local/share/icons/hicolor"'
+
+[hooks]
+post_push = 'update-desktop-database "$HOME/.local/share/applications"'

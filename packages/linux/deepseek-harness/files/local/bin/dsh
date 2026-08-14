@@ -1,0 +1,211 @@
+#!/bin/sh
+
+host=127.0.0.1
+port=3080
+url="http://$host:$port"
+state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
+state_dir="$state_home/deepseek-harness"
+# A dedicated Chrome process makes the app lifecycle independent from normal browser windows.
+profile_dir="$state_dir/chrome"
+instance_state="$state_dir/instance.state"
+focus_result="$state_dir/focus-result.json"
+instance_lock_fd=9
+focus_lock_fd=8
+mode=terminal
+
+if [ "${1:-}" = "--app" ]; then
+  mode=app
+  shift
+fi
+if [ "$#" -ne 0 ]; then
+  printf 'usage: dsh [--app]\n' >&2
+  exit 2
+fi
+
+dependencies="npx curl grep flock readlink google-chrome-stable"
+if [ "$mode" = app ]; then
+  dependencies="$dependencies setsid"
+fi
+for dependency in $dependencies; do
+  if ! command -v "$dependency" >/dev/null 2>&1; then
+    printf 'Missing dependency for DeepSeek Harness: %s\n' "$dependency" >&2
+    exit 127
+  fi
+done
+
+mkdir -p "$profile_dir" || exit 1
+exec 9>"$state_dir/instance.lock" || exit 1
+
+focus_running_instance() {
+  exec 8>"$state_dir/focus.lock" || return 1
+  flock "$focus_lock_fd" || return 1
+
+  attempt=1
+  while [ "$attempt" -le 240 ]; do
+    if [ "$(readlink "$instance_state" 2>/dev/null)" = browser-ready ]; then
+      : >"$focus_result"
+      google-chrome-stable \
+        --user-data-dir="$profile_dir" \
+        --class="deepseek-harness" \
+        --no-first-run \
+        --no-default-browser-check \
+        --disable-background-mode \
+        --disable-features=TranslateUI \
+        --no-startup-window \
+        --focus="$url" \
+        --focus-result-file="$focus_result" \
+        >/dev/null 2>&1
+      if grep --quiet '"status":"focused"' "$focus_result"; then
+        return 0
+      fi
+    fi
+    sleep 0.05
+    attempt=$((attempt + 1))
+  done
+
+  printf 'The existing DeepSeek Harness window could not be focused.\n' >&2
+  return 1
+}
+
+if ! flock --nonblock "$instance_lock_fd"; then
+  focus_running_instance
+  exit $?
+fi
+ln -sfn starting "$instance_state" || exit 1
+
+mark_browser_ready() {
+  # The watcher must not keep the instance lock alive if Chrome fails to start.
+  exec 9>&-
+  exec 7>"$state_dir/instance.lock" || return
+
+  while ! flock --nonblock 7; do
+    singleton=$(readlink "$profile_dir/SingletonLock" 2>/dev/null) || {
+      sleep 0.05
+      continue
+    }
+    singleton_pid=${singleton##*-}
+    case "$singleton_pid" in
+      ''|*[!0-9]*) ;;
+      *)
+        if kill -0 "$singleton_pid" 2>/dev/null; then
+          ln -sfn browser-ready "$instance_state"
+          return
+        fi
+        ;;
+    esac
+    sleep 0.05
+  done
+}
+
+launch_chrome_when_ready() {
+  server_pid=${1:-}
+  attempt=1
+  while [ "$attempt" -le 240 ]; do
+    if [ -n "$server_pid" ] && ! kill -0 "$server_pid" 2>/dev/null; then
+      return 1
+    fi
+    if curl --silent --fail --max-time 1 "$url" \
+      | grep --quiet 'window.__DSH_BOOT__'; then
+      mark_browser_ready >/dev/null 2>&1 &
+      exec google-chrome-stable \
+        --user-data-dir="$profile_dir" \
+        --class="deepseek-harness" \
+        --no-first-run \
+        --no-default-browser-check \
+        --disable-background-mode \
+        --disable-features=TranslateUI \
+        --new-window "$url" \
+        >/dev/null 2>&1
+    fi
+    sleep 0.5
+    attempt=$((attempt + 1))
+  done
+  printf 'DeepSeek Harness did not become ready at %s\n' "$url" >&2
+  return 1
+}
+
+run_terminal_mode() {
+  launch_chrome_when_ready &
+  browser_pid=$!
+
+  cleanup_browser() {
+    kill "$browser_pid" >/dev/null 2>&1 || :
+    wait "$browser_pid" 2>/dev/null || :
+  }
+  trap cleanup_browser 0
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  npx --yes @deepseek-ai/dsh@latest web \
+    --host "$host" \
+    --port "$port"
+  dsh_status=$?
+
+  trap - HUP INT TERM
+  cleanup_browser
+  trap - 0
+  return "$dsh_status"
+}
+
+run_app_mode() {
+  server_log="$state_dir/dsh.log"
+  setsid --wait npx --yes @deepseek-ai/dsh@latest web \
+    --host "$host" \
+    --port "$port" \
+    >>"$server_log" 2>&1 &
+  server_pid=$!
+  launch_chrome_when_ready "$server_pid" &
+  browser_pid=$!
+
+  stop_browser() {
+    if [ -n "$browser_pid" ]; then
+      kill "$browser_pid" >/dev/null 2>&1 || :
+      wait "$browser_pid" 2>/dev/null || :
+      browser_pid=
+    fi
+  }
+  stop_server() {
+    if [ -n "$server_pid" ]; then
+      # DSH runs in its own session so npx and every server child stop together.
+      kill -TERM -- "-$server_pid" >/dev/null 2>&1 || :
+      wait "$server_pid" 2>/dev/null || :
+      server_pid=
+    fi
+  }
+  cleanup_app() {
+    stop_browser
+    stop_server
+  }
+  trap cleanup_app 0
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  while kill -0 "$server_pid" 2>/dev/null \
+    && kill -0 "$browser_pid" 2>/dev/null; do
+    sleep 0.1
+  done
+
+  if ! kill -0 "$browser_pid" 2>/dev/null; then
+    wait "$browser_pid" 2>/dev/null
+    app_status=$?
+    browser_pid=
+    stop_server
+  else
+    wait "$server_pid" 2>/dev/null
+    app_status=$?
+    server_pid=
+    stop_browser
+  fi
+
+  trap - HUP INT TERM
+  trap - 0
+  return "$app_status"
+}
+
+if [ "$mode" = app ]; then
+  run_app_mode
+else
+  run_terminal_mode
+fi

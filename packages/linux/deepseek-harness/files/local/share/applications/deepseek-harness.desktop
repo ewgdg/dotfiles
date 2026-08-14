@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=DeepSeek Harness
+Comment=Dedicated Chrome window for the local DeepSeek Harness Web UI
+Exec=dsh --app
+Icon=deepseek-harness
+Terminal=false
+StartupNotify=false
+StartupWMClass=deepseek-harness
+Categories=Development;

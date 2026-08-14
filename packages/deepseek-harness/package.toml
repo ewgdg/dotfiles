@@ -1,0 +1,20 @@
+id = "deepseek-harness"
+description = "On-demand DeepSeek Harness Web UI configuration"
+
+depends = [
+  "nodejs",
+]
+
+[vars.deepseek_harness]
+# Runtime UI and model choices stay local instead of forcing one host's state globally.
+settings_selectors = [
+  "ui-onboarding",
+  "agent-default-model",
+]
+
+[targets.f_dsh_settings_yaml]
+source = "files/dsh/settings.yaml"
+path = "~/.dsh/settings.yaml"
+chmod = "600"
+render = '{{ YAML_RENDER }} --selector-type retain --selectors {{ vars.deepseek_harness.settings_selectors|shell_args }}'
+capture = '{{ YAML_CAPTURE }} --selector-type remove --selectors {{ vars.deepseek_harness.settings_selectors|shell_args }}'
