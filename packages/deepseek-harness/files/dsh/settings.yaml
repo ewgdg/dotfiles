@@ -1,6 +1,7 @@
 llm-pi-ai:
   providers:
-    codex-lb:
+    openai:
+      displayName: Codex LB
       apiKeyEnv: CODEX_LB_API_KEY
       api: openai-responses
       baseURL: https://codexlb.service.xianzzz.com/v1
