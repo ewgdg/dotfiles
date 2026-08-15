@@ -6,11 +6,11 @@ usage() {
 usage: has_supported_btrfs_layout.sh
 
 Passes when current system uses btrfs subvolumes mounted as:
-- /     from /root
-- /home from /home
+- /     from /root and /home from /home
+- /     from /@     and /home from /@home
 
 Both mounts must come from same filesystem. Managed snapper configs assume
-that exact layout.
+one of those layouts.
 EOF
 }
 
@@ -79,10 +79,17 @@ root_majmin="$(mount_field / MAJ:MIN || true)"
 home_fstype="$(mount_field /home FSTYPE || true)"
 home_options="$(mount_field /home OPTIONS || true)"
 home_majmin="$(mount_field /home MAJ:MIN || true)"
+root_subvol="$(extract_subvol "$root_options")"
+home_subvol="$(extract_subvol "$home_options")"
 
 [ "$root_fstype" = "btrfs" ] || exit 1
 [ "$home_fstype" = "btrfs" ] || exit 1
 [ -n "$root_majmin" ] || exit 1
 [ "$root_majmin" = "$home_majmin" ] || exit 1
-[ "$(extract_subvol "$root_options")" = "/root" ] || exit 1
-[ "$(extract_subvol "$home_options")" = "/home" ] || exit 1
+case "$root_subvol:$home_subvol" in
+  /root:/home|/@:/@home)
+    ;;
+  *)
+    exit 1
+    ;;
+esac

@@ -110,7 +110,7 @@ def test_guard_rejects_non_btrfs_root_filesystem(tmp_path: Path) -> None:
     assert completed.returncode == 1
 
 
-def test_guard_rejects_non_matching_subvolume_layout(tmp_path: Path) -> None:
+def test_guard_accepts_arch_style_at_subvolumes_on_same_filesystem(tmp_path: Path) -> None:
     completed = run_guard(
         tmp_path,
         {
@@ -119,6 +119,23 @@ def test_guard_rejects_non_matching_subvolume_layout(tmp_path: Path) -> None:
             "ROOT_MAJMIN": "259:2",
             "HOME_FSTYPE": "btrfs",
             "HOME_OPTIONS": "rw,relatime,subvol=/@home,subvolid=257",
+            "HOME_MAJMIN": "259:2",
+        },
+    )
+
+    assert completed.returncode == 0
+    assert completed.stderr == ""
+
+
+def test_guard_rejects_mixed_subvolume_layout(tmp_path: Path) -> None:
+    completed = run_guard(
+        tmp_path,
+        {
+            "ROOT_FSTYPE": "btrfs",
+            "ROOT_OPTIONS": "rw,relatime,subvol=/@,subvolid=256",
+            "ROOT_MAJMIN": "259:2",
+            "HOME_FSTYPE": "btrfs",
+            "HOME_OPTIONS": "rw,relatime,subvol=/home,subvolid=257",
             "HOME_MAJMIN": "259:2",
         },
     )
