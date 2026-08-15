@@ -19,7 +19,7 @@ chmod = "644"
 
 [hooks]
 guard_push = [
-  # Managed configs assume /root + /home or /@ + /@home btrfs subvolume layouts. Soft-skip whole package when layout differs.
+  # Managed configs assume separate / and /home btrfs subvolume mountpoints on one filesystem. Soft-skip whole package when layout differs.
   'sh "$DOTMAN_PACKAGE_ROOT/scripts/has_supported_btrfs_layout.sh" || exit 100',
 ]
 pre_push = [

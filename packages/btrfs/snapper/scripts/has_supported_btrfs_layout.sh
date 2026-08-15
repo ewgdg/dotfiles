@@ -5,12 +5,10 @@ usage() {
   cat >&2 <<'EOF'
 usage: has_supported_btrfs_layout.sh
 
-Passes when current system uses btrfs subvolumes mounted as:
-- /     from /root and /home from /home
-- /     from /@     and /home from /@home
+Passes when / and /home are separate btrfs subvolume mountpoints
+on the same filesystem.
 
-Both mounts must come from same filesystem. Managed snapper configs assume
-one of those layouts.
+Managed snapper configs snapshot those mounted paths separately.
 EOF
 }
 
@@ -40,56 +38,22 @@ mount_field() {
   "$findmnt_bin" -no "$field" --target "$target" 2>/dev/null
 }
 
-normalize_subvol() {
-  case "${1:-}" in
-    "")
-      printf '\n'
-      ;;
-    /*)
-      printf '%s\n' "$1"
-      ;;
-    *)
-      printf '/%s\n' "$1"
-      ;;
-  esac
-}
-
-extract_subvol() {
-  options="${1:-}"
-  old_ifs="$IFS"
-  IFS=,
-  set -- $options
-  IFS="$old_ifs"
-
-  for option in "$@"; do
-    case "$option" in
-      subvol=*)
-        normalize_subvol "${option#subvol=}"
-        return 0
-        ;;
-    esac
-  done
-
-  printf '\n'
-}
-
 root_fstype="$(mount_field / FSTYPE || true)"
-root_options="$(mount_field / OPTIONS || true)"
+root_target="$(mount_field / TARGET || true)"
+root_fsroot="$(mount_field / FSROOT || true)"
 root_majmin="$(mount_field / MAJ:MIN || true)"
 home_fstype="$(mount_field /home FSTYPE || true)"
-home_options="$(mount_field /home OPTIONS || true)"
+home_target="$(mount_field /home TARGET || true)"
+home_fsroot="$(mount_field /home FSROOT || true)"
 home_majmin="$(mount_field /home MAJ:MIN || true)"
-root_subvol="$(extract_subvol "$root_options")"
-home_subvol="$(extract_subvol "$home_options")"
 
 [ "$root_fstype" = "btrfs" ] || exit 1
 [ "$home_fstype" = "btrfs" ] || exit 1
+[ "$root_target" = "/" ] || exit 1
+[ "$home_target" = "/home" ] || exit 1
 [ -n "$root_majmin" ] || exit 1
 [ "$root_majmin" = "$home_majmin" ] || exit 1
-case "$root_subvol:$home_subvol" in
-  /root:/home|/@:/@home)
-    ;;
-  *)
-    exit 1
-    ;;
-esac
+# FSROOT identifies each mounted subvolume without depending on its name.
+[ -n "$root_fsroot" ] || exit 1
+[ -n "$home_fsroot" ] || exit 1
+[ "$root_fsroot" != "$home_fsroot" ] || exit 1
