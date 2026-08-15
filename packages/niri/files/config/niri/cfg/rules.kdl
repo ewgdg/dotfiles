@@ -108,9 +108,8 @@ window-rule {
 }
 
 window-rule {
-    // Obsidian's desktop entry exposes the native window app ID as md.Obsidian.
     // Keep note-taking apps on the dedicated notes workspace.
-    match app-id=r#"(?i)^md[.]obsidian$"#
+    match app-id=r#"(?i)\bobsidian\b"#
     match title=r#"(?i)\bmemos\b"#
     open-on-workspace "notes"
 }
@@ -124,7 +123,7 @@ window-rule {
 // maximized apps
 window-rule {
     match app-id=r#"(?i)^code$"#
-    match app-id=r#"(?i)^md[.]obsidian$"#
+    match app-id=r#"(?i)\bobsidian\b"#
     match app-id=r#"(?i)^google-chrome$"#
     open-maximized true
 }
