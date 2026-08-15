@@ -2,7 +2,7 @@
     "default-prefix": "~/Games/prefixes",
     "mangohud": "False",
     "gamemode": "False",
-    "default-runner": "Proton-GE Latest",
+    "default-runner": "Proton-CachyOS Latest",
     "lossless-location": "",
     "discrete-gpu": "False",
     "system-tray": "True",

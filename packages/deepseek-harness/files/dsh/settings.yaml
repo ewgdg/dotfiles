@@ -39,9 +39,5 @@ llm-pi-ai:
           high: high
           xhigh: xhigh
           max: max
-agent-presets:
-  default: standard
-permission:
-  defaultPreset: danger-full-access
 ui-theme:
   preference: dark

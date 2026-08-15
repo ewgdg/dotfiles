@@ -17,7 +17,12 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
     assert package["depends"] == ["nodejs"]
     assert package["vars"] == {
         "deepseek_harness": {
-            "settings_selectors": ["ui-onboarding", "agent-default-model"]
+            "settings_selectors": [
+                "ui-onboarding",
+                "agent-default-model",
+                "agent-presets",
+                "permission",
+            ]
         }
     }
     assert package["targets"] == {
@@ -33,6 +38,31 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
         ".credentials" in target["path"]
         for target in package["targets"].values()
     )
+
+
+def test_managed_settings_keep_local_choices_out_of_the_repository() -> None:
+    with (PACKAGE_ROOT / "package.toml").open("rb") as package_file:
+        package = tomllib.load(package_file)
+
+    settings = (
+        PACKAGE_ROOT / package["targets"]["f_dsh_settings_yaml"]["source"]
+    ).read_text(encoding="utf-8")
+    local_selectors = set(
+        package["vars"]["deepseek_harness"]["settings_selectors"]
+    )
+    managed_top_level_keys = {
+        line.split(":", 1)[0]
+        for line in settings.splitlines()
+        if line and not line.startswith(" ")
+    }
+
+    assert local_selectors == {
+        "ui-onboarding",
+        "agent-default-model",
+        "agent-presets",
+        "permission",
+    }
+    assert local_selectors.isdisjoint(managed_top_level_keys)
 
 
 def test_linux_package_installs_dedicated_chrome_app_identity() -> None:

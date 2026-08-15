@@ -1,7 +1,7 @@
 {
   "mode": "normal",
   "scope": {
-    "allProviders": "off",
+    "allProviders": "extras",
     "additionalProviders": [
       "codex-lb"
     ]
@@ -17,7 +17,7 @@
     "customRustBinariesDir": ""
   },
   "ui": {
-    "statusLine": false,
+    "statusLine": true,
     "toolRenaming": true,
     "compactTools": false,
     "codeModeDetails": false,
@@ -41,7 +41,8 @@
     "verbosity": "low",
     "forceCachedWebSockets": true,
     "webSearchModel": "gpt-5.6-luna",
-    "harnessIdentifierHeader": false
+    "harnessIdentifierHeader": false,
+    "cacheDiagnostics": "off"
   },
   "voiceFeaturesOnly": false,
   "prompt": {
@@ -53,6 +54,8 @@
     "realtimeShortcut": "ctrl+alt+space",
     "muteShortcut": "ctrl+alt+m",
     "serverShortcut": "ctrl+alt+g",
-    "dictationShortcutMode": "push"
+    "dictationShortcutMode": "push",
+    "autoResumeRealtime": false,
+    "contextReasoning": "high"
   }
 }

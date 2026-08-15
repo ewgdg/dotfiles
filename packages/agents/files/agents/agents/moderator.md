@@ -1,10 +1,8 @@
 ---
-name: cheap-delegate
-use-when: Use as a cheap agent for general tasks with clear boundaries.
+name: moderator
 models:
   - id: codex-lb/gpt-5.6-luna
     thinking: max
   - id: deepseek/deepseek-v4-flash
     thinking: max
-project-context: append
 ---

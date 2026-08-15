@@ -6,10 +6,12 @@ depends = [
 ]
 
 [vars.deepseek_harness]
-# Runtime UI and model choices stay local instead of forcing one host's state globally.
+# Runtime UI, model, agent preset, and permission choices stay local instead of forcing one host's state globally.
 settings_selectors = [
   "ui-onboarding",
   "agent-default-model",
+  "agent-presets",
+  "permission",
 ]
 
 [targets.f_dsh_settings_yaml]
