@@ -27,6 +27,7 @@ mouse_scroll_lines = 1
 
 [experimental]
 pane_history = true
+kitty_graphics = true
 
 [ui.toast]
 delivery = "off"
