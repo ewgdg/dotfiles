@@ -103,7 +103,8 @@ window-rule {
     match app-id="surf-agent"
     open-on-workspace "stash"
     open-focused false
-    xdg-activation "valid-or-urgent"
+    focus-on-xdg-activate false
+    urgent-on-xdg-activate true
     open-maximized true
 }
 

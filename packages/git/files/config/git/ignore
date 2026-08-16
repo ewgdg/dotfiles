@@ -14,5 +14,8 @@ Desktop.ini
 # Local AI/agent state
 **/.claude/settings.local.json
 
+# Local Git worktrees
+.worktrees/
+
 # dotman skip marker
 .dotman-skip
