@@ -3,6 +3,7 @@ description = "On-demand DeepSeek Harness Web UI configuration"
 
 depends = [
   "nodejs",
+  "agents",
 ]
 
 [vars.deepseek_harness]
@@ -13,6 +14,13 @@ settings_selectors = [
   "agent-presets",
   "permission",
 ]
+
+[targets.dsh_global_instructions]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'
+
+[targets.dsh_global_instructions.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'
 
 [targets.f_dsh_settings_yaml]
 source = "files/dsh/settings.yaml"

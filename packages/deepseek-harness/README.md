@@ -1,6 +1,6 @@
 # DeepSeek Harness
 
-This package tracks the non-secret model and provider configuration in `~/.dsh/settings.yaml`.
+This package tracks the non-secret model and provider configuration in `~/.dsh/settings.yaml`. It also maintains the user-global instruction link `~/.dsh/AGENTS.md` as a symlink to `~/.agents/AGENTS.md` (the shared agents file), matching the Codex CLI setup.
 
 On Linux, `linux/deepseek-harness` installs the `dsh` command, application-menu entry, icon, and desktop identity. Both launch paths start the latest release through `npx`, wait for the Web UI, and open it in a dedicated native-Wayland Chrome window with translation prompts disabled. Terminal mode runs until `Ctrl+C`; the terminal-free application-menu mode stops DSH when its Chrome window closes. DSH is single-instance: another launch asks Chrome to focus the existing DSH tab instead of starting another server, tab, or window. Chrome keeps its live-local app profile under `${XDG_STATE_HOME:-~/.local/state}/deepseek-harness/chrome`, and application-mode server output goes to `dsh.log` beside that profile. No manual Chrome web-app installation is required.
 
