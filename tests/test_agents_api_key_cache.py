@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import pty
 import re
+import select
 import shlex
+import signal
 import subprocess
+import time
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -85,6 +89,10 @@ fi
 count=$((count + 1))
 printf '%s\n' "$count" > "$TEST_OP_COUNT"
 flock -u 9
+if test -n "${TEST_OP_DESCENDANT_DELAY:-}"; then
+  sleep "$TEST_OP_DESCENDANT_DELAY" </dev/null >/dev/null 2>&1 &
+  printf '%s\n' "$!" >> "$TEST_OP_DESCENDANT_PIDS"
+fi
 sleep "${TEST_OP_DELAY:-0}"
 index=1
 while :; do
@@ -125,13 +133,64 @@ print -r -- "${{(j:,:)reply}}"
 """
 
 
-def run_zsh(script: str, environment: dict[str, str]) -> subprocess.CompletedProcess[str]:
+def run_zsh(
+    script: str, environment: dict[str, str], *, timeout: float = 5
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["zsh", "-fc", script],
         env=environment,
         capture_output=True,
         text=True,
+        timeout=timeout,
     )
+
+
+def read_until(file_descriptor: int, expected: bytes, timeout: float = 3) -> bytes:
+    deadline = time.monotonic() + timeout
+    output = b""
+    while expected not in output and time.monotonic() < deadline:
+        readable, _, _ = select.select([file_descriptor], [], [], 0.05)
+        if readable:
+            output += os.read(file_descriptor, 4096)
+
+    assert expected in output, output.decode(errors="replace")
+    return output
+
+
+def terminate_process_group(process: subprocess.Popen[str]) -> None:
+    if process.poll() is None:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+    try:
+        process.wait(timeout=0.5)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait(timeout=0.5)
+
+
+def close_interactive_shell(shell_pid: int, terminal: int) -> None:
+    try:
+        os.write(terminal, b"exit\n")
+    except OSError:
+        pass
+
+    deadline = time.monotonic() + 0.5
+    while time.monotonic() < deadline:
+        waited_pid, _ = os.waitpid(shell_pid, os.WNOHANG)
+        if waited_pid == shell_pid:
+            break
+        time.sleep(0.01)
+    else:
+        try:
+            os.killpg(shell_pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        os.waitpid(shell_pid, 0)
+
+    os.close(terminal)
 
 
 def test_linux_reuses_per_service_keyring_entries_across_loads(tmp_path: Path) -> None:
@@ -182,6 +241,186 @@ def test_linux_cache_serializes_concurrent_misses(tmp_path: Path) -> None:
         "alpha-api,value-alpha-api,beta-api,value-beta-api",
         "alpha-api,value-alpha-api,beta-api,value-beta-api",
     ]
+    assert op_count.read_text(encoding="utf-8").strip() == "1"
+
+
+def test_refresh_does_not_leave_the_lock_with_external_descendants(tmp_path: Path) -> None:
+    environment, _, _, op_count = prepare_fake_commands(tmp_path)
+    descendant_pids = tmp_path / "op-descendant-pids"
+    environment.update(
+        {
+            "TEST_OP_DESCENDANT_DELAY": "30",
+            "TEST_OP_DESCENDANT_PIDS": str(descendant_pids),
+        }
+    )
+    script = "\n".join(
+        [
+            '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+            f"source {shlex.quote(str(AGENTS_ZSH))}",
+            "api-key-cache-refresh alpha-api || exit 1",
+            "api-key-cache-refresh alpha-api || exit 1",
+        ]
+    )
+
+    try:
+        completed = subprocess.run(
+            ["zsh", "-fc", script],
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+    finally:
+        if descendant_pids.exists():
+            for pid in descendant_pids.read_text(encoding="utf-8").splitlines():
+                try:
+                    os.kill(int(pid), signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.splitlines() == [
+        "API key cache: refreshed",
+        "API key cache: refreshed",
+    ]
+    assert op_count.read_text(encoding="utf-8").strip() == "2"
+
+
+def test_interrupted_refresh_releases_the_lock(tmp_path: Path) -> None:
+    environment, _, _, op_count = prepare_fake_commands(tmp_path)
+    environment.update(
+        {"PS1": "INITIAL> ", "TERM": "dumb", "TEST_OP_DELAY": "30"}
+    )
+    shell_pid, terminal = pty.fork()
+
+    if shell_pid == 0:
+        os.execvpe("zsh", ["zsh", "-df"], environment)
+
+    try:
+        read_until(terminal, b"INITIAL> ")
+        os.write(terminal, b"stty -echo\n")
+        read_until(terminal, b"INITIAL> ")
+        setup = "; ".join(
+            [
+                "PS1='READY> '",
+                '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+                f"source {shlex.quote(str(AGENTS_ZSH))}",
+                "print -r -- SETUP_DONE",
+            ]
+        )
+        os.write(terminal, f"{setup}\n".encode())
+        read_until(terminal, b"READY> ")
+        os.write(terminal, b"api-key-cache-refresh alpha-api\n")
+
+        deadline = time.monotonic() + 3
+        while not op_count.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert op_count.exists(), "refresh did not reach the 1Password resolver"
+
+        os.write(terminal, b"\x03")
+        read_until(terminal, b"READY> ")
+
+        retry_environment = environment.copy()
+        retry_environment.update(
+            {
+                "API_KEY_CACHE_LOCK_TIMEOUT_SECONDS": "1",
+                "TEST_OP_DELAY": "0",
+            }
+        )
+        completed = run_zsh(
+            "\n".join(
+                [
+                    '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+                    f"source {shlex.quote(str(AGENTS_ZSH))}",
+                    "api-key-cache-refresh alpha-api",
+                ]
+            ),
+            retry_environment,
+            timeout=0.5,
+        )
+
+        assert completed.returncode == 0, completed.stderr
+        assert completed.stdout.strip() == "API key cache: refreshed"
+    finally:
+        close_interactive_shell(shell_pid, terminal)
+
+
+def test_cache_commands_stop_waiting_when_the_lock_limit_is_reached(tmp_path: Path) -> None:
+    environment, _, _, op_count = prepare_fake_commands(tmp_path)
+    lock_path = Path(environment["XDG_RUNTIME_DIR"]) / "api-key-cache.lock"
+    lock_path.touch()
+    holder = subprocess.Popen(
+        [
+            "zsh",
+            "-fc",
+            "zmodload zsh/system; zsystem flock -f lock_fd \"$1\"; "
+            'print -r -- acquired; sleep 30',
+            "zsh",
+            str(lock_path),
+        ],
+        env=environment,
+        stdout=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+
+    try:
+        assert holder.stdout is not None
+        read_until(holder.stdout.fileno(), b"acquired\n", timeout=1)
+        environment["API_KEY_CACHE_LOCK_TIMEOUT_SECONDS"] = "0.1"
+        completed = run_zsh(
+            "\n".join(
+                [
+                    '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+                    f"source {shlex.quote(str(AGENTS_ZSH))}",
+                    "api-key-cache-refresh alpha-api",
+                ]
+            ),
+            environment,
+            timeout=0.5,
+        )
+        clear_completed = run_zsh(
+            "\n".join(
+                [
+                    '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+                    f"source {shlex.quote(str(AGENTS_ZSH))}",
+                    "api-key-cache-clear alpha-api",
+                ]
+            ),
+            environment,
+            timeout=0.5,
+        )
+    finally:
+        terminate_process_group(holder)
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "API key cache: refreshed"
+    assert "Unable to lock the Linux API key cache; bypassing cache" in completed.stderr
+    assert clear_completed.returncode == 1
+    assert clear_completed.stdout == ""
+    assert "Unable to lock the Linux API key cache" in clear_completed.stderr
+    assert op_count.read_text(encoding="utf-8").strip() == "1"
+
+
+def test_refresh_bypasses_a_lock_file_that_cannot_be_opened(tmp_path: Path) -> None:
+    environment, _, _, op_count = prepare_fake_commands(tmp_path)
+    lock_path = Path(environment["XDG_RUNTIME_DIR"]) / "api-key-cache.lock"
+    lock_path.mkdir()
+
+    completed = run_zsh(
+        "\n".join(
+            [
+                '_ensure_command() { command -v "$1" >/dev/null 2>&1 }',
+                f"source {shlex.quote(str(AGENTS_ZSH))}",
+                "api-key-cache-refresh alpha-api",
+            ]
+        ),
+        environment,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "API key cache: refreshed"
+    assert "Unable to open the Linux API key cache lock; bypassing cache" in completed.stderr
     assert op_count.read_text(encoding="utf-8").strip() == "1"
 
 

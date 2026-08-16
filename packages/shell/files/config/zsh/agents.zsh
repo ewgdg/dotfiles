@@ -31,6 +31,7 @@ _disable_legacy_agent_override() {
 
 typeset -g _API_KEY_CACHE_SCHEMA="api-key-cache-v1"
 typeset -g API_KEY_CACHE_TTL_SECONDS=${API_KEY_CACHE_TTL_SECONDS:-43200}
+typeset -g API_KEY_CACHE_LOCK_TIMEOUT_SECONDS=${API_KEY_CACHE_LOCK_TIMEOUT_SECONDS:-30}
 # Resolve 1Password secrets in one batched op run call.
 _resolve_api_keys_from_1password() {
   emulate -L zsh
@@ -82,7 +83,9 @@ _resolve_api_keys_from_1password() {
 _api_key_cache_available() {
   [[ $OSTYPE == linux* ]] \
     && [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] \
-    && (( ${+commands[keyctl]} && ${+commands[flock]} ))
+    && (( ${+commands[keyctl]} )) \
+    && zmodload -F zsh/system b:zsystem 2>/dev/null \
+    && zsystem supports flock
 }
 
 _api_key_cache_description() {
@@ -98,6 +101,17 @@ _api_key_cache_ttl() {
   fi
 
   REPLY=$ttl
+}
+
+_api_key_cache_lock_timeout() {
+  local timeout=$API_KEY_CACHE_LOCK_TIMEOUT_SECONDS
+
+  if [[ $timeout != <-> && $timeout != <->.<-> ]] || (( timeout <= 0 )); then
+    print -u2 -- "API_KEY_CACHE_LOCK_TIMEOUT_SECONDS must be a positive number"
+    return 1
+  fi
+
+  REPLY=$timeout
 }
 
 _api_key_cache_read() {
@@ -160,7 +174,7 @@ _api_key_cache_load() {
   local force_refresh=$1
   shift
 
-  local lock_path lock_fd service ttl
+  local lock_path lock_fd lock_timeout service ttl
   local index cache_write_failed=0
   local -A cached_keys
   local -a missing_services resolved_keys services=( "$@" )
@@ -186,59 +200,60 @@ _api_key_cache_load() {
     fi
   fi
 
+  _api_key_cache_lock_timeout || return 1
+  lock_timeout=$REPLY
   lock_path="$XDG_RUNTIME_DIR/api-key-cache.lock"
-  if ! exec {lock_fd}>>"$lock_path"; then
+  if ! : >> "$lock_path"; then
     print -u2 -- "Unable to open the Linux API key cache lock; bypassing cache"
     _resolve_api_keys_from_1password "${services[@]}"
     return
   fi
 
-  if ! command flock -x "$lock_fd"; then
-    exec {lock_fd}>&-
+  if ! zsystem flock -t "$lock_timeout" -f lock_fd "$lock_path"; then
     print -u2 -- "Unable to lock the Linux API key cache; bypassing cache"
     _resolve_api_keys_from_1password "${services[@]}"
     return
   fi
 
-  # Recheck every service after locking; another terminal may have populated a miss.
-  cached_keys=()
-  missing_services=()
-  if (( force_refresh )); then
-    missing_services=( "${services[@]}" )
-  else
-    for service in "${services[@]}"; do
-      if _api_key_cache_read "$service"; then
-        cached_keys[$service]=$REPLY
-      else
-        missing_services+=( "$service" )
-      fi
-    done
-  fi
-
-  if (( ${#missing_services} )); then
-    if ! _resolve_api_keys_from_1password "${missing_services[@]}"; then
-      exec {lock_fd}>&-
-      return 1
+  {
+    # Recheck every service after locking; another terminal may have populated a miss.
+    cached_keys=()
+    missing_services=()
+    if (( force_refresh )); then
+      missing_services=( "${services[@]}" )
+    else
+      for service in "${services[@]}"; do
+        if _api_key_cache_read "$service"; then
+          cached_keys[$service]=$REPLY
+        else
+          missing_services+=( "$service" )
+        fi
+      done
     fi
-    resolved_keys=( "${reply[@]}" )
 
-    for (( index = 1; index <= ${#resolved_keys}; index += 2 )); do
-      service=${resolved_keys[index]}
-      cached_keys[$service]=${resolved_keys[index + 1]}
-      _api_key_cache_write "$service" "${resolved_keys[index + 1]}" "$ttl" \
-        || cache_write_failed=1
+    if (( ${#missing_services} )); then
+      _resolve_api_keys_from_1password "${missing_services[@]}" || return 1
+      resolved_keys=( "${reply[@]}" )
+
+      for (( index = 1; index <= ${#resolved_keys}; index += 2 )); do
+        service=${resolved_keys[index]}
+        cached_keys[$service]=${resolved_keys[index + 1]}
+        _api_key_cache_write "$service" "${resolved_keys[index + 1]}" "$ttl" \
+          || cache_write_failed=1
+      done
+    fi
+
+    if (( cache_write_failed )); then
+      print -u2 -- "Unable to update every API key cache entry; using resolved keys once"
+    fi
+
+    reply=()
+    for service in "${services[@]}"; do
+      reply+=( "$service" "${cached_keys[$service]}" )
     done
-  fi
-
-  if (( cache_write_failed )); then
-    print -u2 -- "Unable to update every API key cache entry; using resolved keys once"
-  fi
-
-  reply=()
-  for service in "${services[@]}"; do
-    reply+=( "$service" "${cached_keys[$service]}" )
-  done
-  exec {lock_fd}>&-
+  } always {
+    zsystem flock -u lock_fd
+  }
 }
 
 _load_api_keys() {
@@ -296,22 +311,32 @@ api-key-cache-clear() {
     return 0
   fi
 
-  local lock_fd service clear_failed=0
+  local lock_fd lock_path lock_timeout service clear_failed=0
   local -a services=( "$@" )
 
-  exec {lock_fd}>>"$XDG_RUNTIME_DIR/api-key-cache.lock" || return 1
-  command flock -x "$lock_fd" || {
-    exec {lock_fd}>&-
+  _api_key_cache_lock_timeout || return 1
+  lock_timeout=$REPLY
+  lock_path="$XDG_RUNTIME_DIR/api-key-cache.lock"
+  if ! : >> "$lock_path"; then
+    print -u2 -- "Unable to open the Linux API key cache lock"
     return 1
+  fi
+
+  if ! zsystem flock -t "$lock_timeout" -f lock_fd "$lock_path"; then
+    print -u2 -- "Unable to lock the Linux API key cache"
+    return 1
+  fi
+
+  {
+    for service in "${services[@]}"; do
+      _api_key_cache_delete "$service" || clear_failed=1
+    done
+
+    (( clear_failed == 0 )) || return 1
+    print -- "API key cache: cleared"
+  } always {
+    zsystem flock -u lock_fd
   }
-
-  for service in "${services[@]}"; do
-    _api_key_cache_delete "$service" || clear_failed=1
-  done
-
-  exec {lock_fd}>&-
-  (( clear_failed == 0 )) || return 1
-  print -- "API key cache: cleared"
 }
 
 api-key-cache-refresh() {
