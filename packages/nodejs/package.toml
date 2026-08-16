@@ -6,7 +6,11 @@ source = "files/npmrc"
 path = "~/.npmrc"
 chmod = "600"
 
-[hooks]
+[targets.nodejs_toolchain_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} {{ NODEJS_INSTALL_PACKAGES }} bun fnm"
+
+[targets.nodejs_toolchain_installed.hooks]
 # Package-manager names differ across OS profiles (`nodejs` on Arch, `node` on Homebrew).
 pre_push = [
   "{{ INSTALL }} {{ NODEJS_INSTALL_PACKAGES }}",
