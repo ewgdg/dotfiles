@@ -37,6 +37,7 @@ shared = [
   "skills/",
   "state/",
   "cache/",
+  "*changelog.json",
 ]
 
 [[targets.d_pi_agent.path_rules]]
