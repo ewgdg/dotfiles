@@ -1,6 +1,7 @@
 id = "pi-coding-agent"
 
 depends = [
+  "agents",
   "nodejs",
 ]
 
@@ -30,6 +31,8 @@ shared = [
   "sessions/",
   "trust.json",
   "models-store.json",
+  # Managed independently as a symlink to the shared global instructions.
+  "AGENTS.md",
   # prefer ~/.agents/skills
   "skills/",
   "state/",
@@ -40,6 +43,13 @@ shared = [
 pattern = "settings.json"
 render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'
 capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'
+
+[targets.pi_global_instructions]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.pi/agent/AGENTS.md" "~/.agents/AGENTS.md"'
+
+[targets.pi_global_instructions.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.pi/agent/AGENTS.md" "~/.agents/AGENTS.md"'
 
 [targets.pi_coding_agent_install]
 sync_policy = "push-only"

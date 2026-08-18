@@ -117,6 +117,7 @@ def test_symlink_apply_refuses_to_replace_directory(tmp_path: Path) -> None:
     [
         ("claude", "claude_global_instructions", "~/.claude/rules/global.md", "~/.agents/AGENTS.md"),
         ("codex", "codex_global_instructions", "~/.codex/AGENTS.md", "~/.agents/AGENTS.md"),
+        ("pi-coding-agent", "pi_global_instructions", "~/.pi/agent/AGENTS.md", "~/.agents/AGENTS.md"),
     ],
 )
 def test_agent_manifests_use_independent_push_only_symlink_targets(
@@ -149,6 +150,16 @@ def test_agent_import_wrappers_and_codex_developer_instructions_are_removed() ->
     assert not (REPO_ROOT / "packages/codex/files/codex/AGENTS.md").exists()
     assert not (REPO_ROOT / "packages/codex/files/codex/AGENTS.codex.md").exists()
     assert not (REPO_ROOT / "packages/claude/files/claude/CLAUDE.md").exists()
+
+
+def test_pi_uses_native_instruction_files_without_expander() -> None:
+    package_root = REPO_ROOT / "packages/pi-coding-agent"
+    manifest = tomllib.loads((package_root / "package.toml").read_text())
+
+    assert "agents" in manifest["depends"]
+    assert "AGENTS.md" in manifest["targets"]["d_pi_agent"]["ignore"]["shared"]
+    assert not (package_root / "files/pi/agent/AGENTS.md").exists()
+    assert not (package_root / "files/pi/agent/extensions/agents-file-expander.ts").exists()
 
 
 def test_zsh_uses_normal_codex_resolution_without_expansion_helper() -> None:
