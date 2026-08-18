@@ -1,1 +1,1 @@
-members = ["nvim", "terminals"]
+members = ["nvim", "terminals", "hunk"]

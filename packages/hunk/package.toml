@@ -1,0 +1,14 @@
+id = "hunk"
+description = "Hunk terminal diff viewer configuration"
+
+[targets.f_config_hunk_config_toml]
+source = "files/config/hunk/config.toml"
+path = "~/.config/hunk/config.toml"
+
+[targets.hunk_installed]
+sync_policy = "push-only"
+# Arch uses the prebuilt AUR package; Homebrew ships the formula as `hunk`.
+probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} hunk-bin{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} hunk{% endif %}'
+
+[targets.hunk_installed.hooks]
+pre_push = '{% if os == "linux" %}{{ INSTALL }} hunk-bin{% elif os == "darwin" %}{{ INSTALL }} hunk{% endif %}'

@@ -1,0 +1,5 @@
+# Use the built-in darker Gruvbox palette.
+theme = "gruvbox-dark-hard"
+
+# Keep the managed config stable instead of prompting Hunk to write view changes.
+prompt_save_view_preferences = false
