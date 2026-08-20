@@ -72,7 +72,7 @@
 ## Subagent Policy
 
 - It is very hard to accurately estimate the budget, so do not set a hard timeout or budget for a subagent run and unless requested. If have to, be very generous.
-- Do not abuse subagents for tiny tasks or tasks with overlapping scopes, which can cause undesired high context inefficiency.
+- Avoid multiple agents working on tasks with overlapping scopes, which can cause undesired high context inefficiency.
 
 ## Python Related
 

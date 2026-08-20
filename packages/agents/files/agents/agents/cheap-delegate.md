@@ -1,6 +1,6 @@
 ---
-name: moderator
-useWhen: Use for moderation and incident response.
+name: cheap-delegate
+useWhen: Use as a cheap agent for general tasks with clear boundaries.
 models:
   - id: codex-lb/gpt-5.6-luna
     thinking: max
