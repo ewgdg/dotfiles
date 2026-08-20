@@ -1,0 +1,13 @@
+id = "yazi"
+description = "Yazi terminal file manager configuration"
+
+[targets.f_config_yazi_toml]
+source = "files/config/yazi/yazi.toml"
+path = "~/.config/yazi/yazi.toml"
+
+[targets.yazi_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} yazi"
+
+[targets.yazi_installed.hooks]
+pre_push = "{{ INSTALL }} yazi"

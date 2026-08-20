@@ -1,5 +1,6 @@
 id = "shell"
 description = "Shell and prompt workflow configuration"
+depends = ["yazi"]
 
 [targets.d_config_zsh]
 source = "files/config/zsh"
@@ -63,7 +64,7 @@ pre_push = "{{ INSTALL }} tmux oh-my-posh"
 
 [targets.file_management_tools_installed]
 sync_policy = "push-only"
-probe = "{{ PROBE_PACKAGES_INSTALLED }} rsync trash-cli yazi chafa"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} rsync trash-cli chafa"
 
 [targets.file_management_tools_installed.hooks]
-pre_push = "{{ INSTALL }} rsync trash-cli yazi chafa"
+pre_push = "{{ INSTALL }} rsync trash-cli chafa"
