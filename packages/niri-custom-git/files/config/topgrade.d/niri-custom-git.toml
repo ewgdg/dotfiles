@@ -1,0 +1,3 @@
+[misc]
+[commands]
+"Niri custom build" = "dotman push --yes niri-custom-git"

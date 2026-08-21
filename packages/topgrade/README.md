@@ -92,6 +92,7 @@ with `go install github.com/nao1215/gup@latest`; Topgrade then uses the installe
 | Concern | Owner / Topgrade step | Notes |
 | --- | --- | --- |
 | Arch repos, AUR, and Arch-owned executables (`bun`, `nvim`, Docker) | `paru` system step | Runs the normal full Arch/AUR upgrade. |
+| Private `niri-custom-git` PKGBUILD | `Niri custom build` command | The Niri build package contributes a host-specific `topgrade.d` command that pushes only `niri-custom-git`; its probe rebuilds when upstream advances or diverges. |
 | Homebrew on the macOS profile | Brew steps | Automatically used only where `brew` exists. |
 | uv executable, uv tools, and uv-managed Pythons | `Uv` | `init.sh` bootstraps `uv` standalone; the step self-updates it and upgrades its tools and managed Pythons. A native `uv` is tolerated (`init.sh` skips when one already exists) and stays owned by its package manager. [uv tools](https://docs.astral.sh/uv/concepts/tools/) · [Topgrade uv step](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/generic.rs) |
 | npm and Bun global packages | npm and Bun-package steps | Update globally installed tools only. Do not search project directories, change project dependencies, or rewrite project lockfiles. The Arch-owned Bun executable remains a `paru` concern. |

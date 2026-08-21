@@ -1,0 +1,17 @@
+id = "niri-custom-git"
+description = "Custom Git build of Niri"
+
+depends = [
+  "topgrade",
+]
+
+[targets.niri_custom_git_update]
+sync_policy = "push-only"
+probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_niri_custom_git_update.sh" "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
+
+[targets.niri_custom_git_update.hooks]
+pre_push = '{{ INSTALL_CUSTOM_PACKAGE }} --keepsrc "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
+
+[targets.f_config_topgrade_d_niri_custom_git_toml]
+source = "files/config/topgrade.d/niri-custom-git.toml"
+path = "~/.config/topgrade.d/niri-custom-git.toml"

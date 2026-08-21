@@ -2,15 +2,9 @@ id = "niri"
 description = "Niri compositor configuration"
 
 depends = [
+  "niri-custom-git",
   "noctalia",
 ]
-
-[targets.niri_custom_git_update]
-sync_policy = "push-only"
-probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_niri_custom_git_update.sh" "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
-
-[targets.niri_custom_git_update.hooks]
-pre_push = '{{ INSTALL_CUSTOM_PACKAGE }} --keepsrc "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
 
 [targets.d_config_niri]
 source = "files/config/niri"
