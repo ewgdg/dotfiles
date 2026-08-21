@@ -83,8 +83,14 @@ def test_config_keeps_local_state_out_of_the_repository() -> None:
     assert local_keys == LOCAL_CONFIG_KEYS
     assert local_keys.isdisjoint(config)
     assert set(config) == MANAGED_CONFIG_KEYS
-    assert "{{ JSON_RENDER }} --selector-type retain" in config_target["render"]
-    assert "{{ JSON_CAPTURE }} --selector-type remove" in config_target["capture"]
+
+
+def test_config_normalizes_home_paths_before_json_comparison() -> None:
+    package = load_package()
+    config_target = package["targets"]["f_config_faugus_launcher_config_json"]
+
+    assert "{{ JSON_RENDER_HOME_PATHS }} --selector-type retain" in config_target["render"]
+    assert "{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove" in config_target["capture"]
 
 
 def test_managed_v2_preferences_are_portable() -> None:

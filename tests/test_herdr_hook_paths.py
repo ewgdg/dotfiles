@@ -40,18 +40,16 @@ def config_with_hook(hook_path: str, **settings: str) -> dict:
     }
 
 
-def test_claude_pipeline_uses_public_home_rewrite_after_json_selection() -> None:
+def test_claude_pipeline_uses_public_home_rewrite_around_json_selection() -> None:
     target = load_target("packages/claude/package.toml", "f_claude_settings_json")
 
     assert target["render"] == (
-        "{{ JSON_RENDER }} --selector-type retain --selectors "
-        "{{ vars.claude.settings_selectors|shell_args }} | "
-        "dotman rewrite home expand -"
+        "{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors "
+        "{{ vars.claude.settings_selectors|shell_args }}"
     )
     assert target["capture"] == (
-        "{{ JSON_CAPTURE }} --selector-type remove --selectors "
-        "{{ vars.claude.settings_selectors|shell_args }} | "
-        "dotman rewrite home collapse -"
+        "{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors "
+        "{{ vars.claude.settings_selectors|shell_args }}"
     )
 
 
@@ -87,15 +85,24 @@ def render_claude_target_command(
 ) -> str:
     mode = "merge" if command_name == "render" else "cleanup"
     compare_path = live_path if command_name == "render" else repo_path
-    transform_command = (
-        f"dotman transform json {shlex.quote(str(live_path))} --stdout "
-        f"--mode {mode} --compare-file {shlex.quote(str(compare_path))}"
-    )
     if command_name == "render":
-        transform_command += f" --overlay-file {shlex.quote(str(repo_path))}"
+        transform_variable = "{{ JSON_RENDER_HOME_PATHS }}"
+        transform_command = (
+            f"dotman rewrite home expand {shlex.quote(str(repo_path))} | "
+            f"dotman transform json {shlex.quote(str(live_path))} --stdout "
+            f"--mode {mode} --overlay-file - "
+            f"--compare-file {shlex.quote(str(compare_path))}"
+        )
+    else:
+        transform_variable = "{{ JSON_CAPTURE_HOME_PATHS }}"
+        transform_command = (
+            f"dotman rewrite home collapse {shlex.quote(str(live_path))} | "
+            "dotman transform json - --stdout "
+            f"--mode {mode} --compare-file {shlex.quote(str(compare_path))}"
+        )
 
     return (
-        template.replace(f"{{{{ JSON_{command_name.upper()} }}}}", transform_command)
+        template.replace(transform_variable, transform_command)
         .replace(
             "{{ vars.claude.settings_selectors|shell_args }}",
             shlex.join(("model", "effortLevel")),
@@ -145,10 +152,12 @@ def test_claude_pipeline_preserves_json_selection_and_normalizes_home(
         assert transformed["model"] == "live-model"
         assert transformed["effortLevel"] == "live-effort"
         assert "'/home/tester/.claude/hooks/herdr-agent-state.sh'" in hook_command(transformed)
+        assert completed.stdout == live_path.read_text(encoding="utf-8")
     else:
         assert "model" not in transformed
         assert "effortLevel" not in transformed
         assert "'~/.claude/hooks/herdr-agent-state.sh'" in hook_command(transformed)
+        assert completed.stdout == repo_path.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(

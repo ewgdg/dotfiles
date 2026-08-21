@@ -52,6 +52,10 @@ def test_shared_json_aliases_use_public_dotman_cli() -> None:
 @pytest.mark.parametrize(
     ("manifest_path", "variable_group", "selector_variable", "target_path", "command_name", "selector_type"),
     [
+        ("packages/claude/package.toml", "claude", "settings_selectors", "targets.f_claude_settings_json", "render", "retain"),
+        ("packages/claude/package.toml", "claude", "settings_selectors", "targets.f_claude_settings_json", "capture", "remove"),
+        ("packages/linux/faugus-launcher/package.toml", "faugus_launcher", "config_selectors", "targets.f_config_faugus_launcher_config_json", "render", "retain"),
+        ("packages/linux/faugus-launcher/package.toml", "faugus_launcher", "config_selectors", "targets.f_config_faugus_launcher_config_json", "capture", "remove"),
         ("packages/arch-system/package.toml", "arch_system", "yay_config_selectors", "targets.f_config_yay_config_json", "render", "retain"),
         ("packages/arch-system/package.toml", "arch_system", "yay_config_selectors", "targets.f_config_yay_config_json", "capture", "remove"),
         ("packages/pi-coding-agent/package.toml", "pi_coding_agent", "settings_selectors", "targets.d_pi_agent.path_rules.0", "render", "retain"),
@@ -90,7 +94,12 @@ def test_json_commands_preserve_selector_argv_and_transform_behavior(
             core_variables[alias],
             {**path_context, "JSON_TRANSFORM": transform_command},
         )
-        for alias in ("JSON_RENDER", "JSON_CAPTURE")
+        for alias in (
+            "JSON_RENDER",
+            "JSON_CAPTURE",
+            "JSON_RENDER_HOME_PATHS",
+            "JSON_CAPTURE_HOME_PATHS",
+        )
     }
     context = {
         **command_aliases,

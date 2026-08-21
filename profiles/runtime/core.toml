@@ -12,10 +12,12 @@ XML_RENDER = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --
 TOML_RENDER = "{{ TOML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 PLIST_RENDER = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 JSON_RENDER = "{{ JSON_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
+JSON_RENDER_HOME_PATHS = "dotman rewrite home expand \"$DOTMAN_REPO_PATH\" | {{ JSON_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file - --compare-file \"$DOTMAN_LIVE_PATH\""
 YAML_RENDER = "{{ YAML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode merge --overlay-file \"$DOTMAN_REPO_PATH\" --compare-file \"$DOTMAN_LIVE_PATH\""
 
 XML_CAPTURE = "{{ XML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
 TOML_CAPTURE = "{{ TOML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
 PLIST_CAPTURE = "{{ PLIST_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
 JSON_CAPTURE = "{{ JSON_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
+JSON_CAPTURE_HOME_PATHS = "dotman rewrite home collapse \"$DOTMAN_LIVE_PATH\" | {{ JSON_TRANSFORM }} - --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""
 YAML_CAPTURE = "{{ YAML_TRANSFORM }} \"$DOTMAN_LIVE_PATH\" --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\""

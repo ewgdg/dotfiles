@@ -12,8 +12,8 @@ config_selectors = ["donate-last", "playtime", "steamgriddb-api-key"]
 [targets.f_config_faugus_launcher_config_json]
 source = "files/config/faugus-launcher/config.json"
 path = "~/.config/faugus-launcher/config.json"
-render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.faugus_launcher.config_selectors|shell_args }} | dotman rewrite home expand -'
-capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.faugus_launcher.config_selectors|shell_args }} | dotman rewrite home collapse -'
+render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors {{ vars.faugus_launcher.config_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors {{ vars.faugus_launcher.config_selectors|shell_args }}'
 
 [targets.f_config_faugus_launcher_envar_json]
 source = "files/config/faugus-launcher/envar.json"
