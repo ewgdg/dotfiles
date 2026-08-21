@@ -18,7 +18,25 @@ def write_executable(path: Path, content: str) -> None:
     path.chmod(0o755)
 
 
-def test_dsh_runs_latest_release_and_opens_dedicated_app_when_ready(
+def configure_global_dsh(tmp_path: Path, content: str) -> Path:
+    npm_prefix = tmp_path / "npm-prefix"
+    npm_bin = npm_prefix / "bin"
+    npm_bin.mkdir(parents=True)
+    write_executable(npm_bin / "dsh", content)
+    write_executable(
+        tmp_path / "bin/npm",
+        """#!/bin/sh
+if [ "$*" = "prefix --global" ]; then
+  printf '%s\n' "$TEST_NPM_PREFIX"
+  exit 0
+fi
+exit 2
+""",
+    )
+    return npm_prefix
+
+
+def test_dsh_runs_installed_release_and_opens_dedicated_app_when_ready(
     tmp_path: Path,
 ) -> None:
     bin_dir = tmp_path / "bin"
@@ -37,10 +55,10 @@ printf '%s\n' '<script>window.__DSH_BOOT__ = {};</script>'
 printf 'google-chrome-stable %s\n' "$*" >> "$TEST_COMMAND_LOG"
 """,
     )
-    write_executable(
-        bin_dir / "npx",
+    npm_prefix = configure_global_dsh(
+        tmp_path,
         """#!/bin/sh
-printf 'npx %s\n' "$*" >> "$TEST_COMMAND_LOG"
+printf 'dsh %s\n' "$*" >> "$TEST_COMMAND_LOG"
 sleep 0.2
 exit 23
 """,
@@ -51,6 +69,7 @@ exit 23
         {
             "PATH": f"{bin_dir}:{environment['PATH']}",
             "TEST_COMMAND_LOG": str(command_log),
+            "TEST_NPM_PREFIX": str(npm_prefix),
             "XDG_STATE_HOME": str(tmp_path / "state"),
         }
     )
@@ -65,7 +84,7 @@ exit 23
 
     assert completed.returncode == 23
     assert set(command_log.read_text(encoding="utf-8").splitlines()) == {
-        "npx --yes @deepseek-ai/dsh@latest web --host 127.0.0.1 --port 3080",
+        "dsh web --host 127.0.0.1 --port 3080 --no-open",
         " ".join(
             [
                 "google-chrome-stable",
@@ -100,13 +119,13 @@ printf 'google-chrome-stable %s\n' "$*" >> "$TEST_COMMAND_LOG"
 sleep 0.15
 """,
     )
-    write_executable(
-        bin_dir / "npx",
+    npm_prefix = configure_global_dsh(
+        tmp_path,
         """#!/bin/sh
-printf 'npx %s\n' "$*" >> "$TEST_COMMAND_LOG"
-trap 'printf "npx stopped\\n" >> "$TEST_COMMAND_LOG"; exit 0' TERM
+printf 'dsh %s\n' "$*" >> "$TEST_COMMAND_LOG"
+trap 'printf "dsh stopped\\n" >> "$TEST_COMMAND_LOG"; exit 0' TERM
 sleep 1
-printf 'npx finished\n' >> "$TEST_COMMAND_LOG"
+printf 'dsh finished\n' >> "$TEST_COMMAND_LOG"
 exit 19
 """,
     )
@@ -116,6 +135,7 @@ exit 19
         {
             "PATH": f"{bin_dir}:{environment['PATH']}",
             "TEST_COMMAND_LOG": str(command_log),
+            "TEST_NPM_PREFIX": str(npm_prefix),
             "XDG_STATE_HOME": str(tmp_path / "state"),
         }
     )
@@ -132,7 +152,7 @@ exit 19
 
     assert completed.returncode == 0
     assert time.monotonic() - started_at < 0.8
-    assert "npx stopped" in command_log.read_text(encoding="utf-8").splitlines()
+    assert "dsh stopped" in command_log.read_text(encoding="utf-8").splitlines()
 
 
 def test_second_app_launch_focuses_the_existing_chrome_instance(
@@ -172,10 +192,10 @@ ln -s "test-host-$$" "$profile_dir/SingletonLock"
 while [ ! -f "$TEST_CLOSE_BROWSER" ]; do sleep 0.02; done
 """,
     )
-    write_executable(
-        bin_dir / "npx",
+    npm_prefix = configure_global_dsh(
+        tmp_path,
         """#!/bin/sh
-printf 'npx server\n' >> "$TEST_COMMAND_LOG"
+printf 'dsh server\n' >> "$TEST_COMMAND_LOG"
 trap 'exit 0' TERM
 while :; do sleep 0.05; done
 """,
@@ -187,6 +207,7 @@ while :; do sleep 0.05; done
             "PATH": f"{bin_dir}:{environment['PATH']}",
             "TEST_CLOSE_BROWSER": str(close_browser),
             "TEST_COMMAND_LOG": str(command_log),
+            "TEST_NPM_PREFIX": str(npm_prefix),
             "XDG_STATE_HOME": str(tmp_path / "state"),
         }
     )
@@ -224,7 +245,7 @@ while :; do sleep 0.05; done
     first_launch.wait(timeout=2)
     commands = command_log.read_text(encoding="utf-8").splitlines()
     assert second_launch.returncode == 0
-    assert commands.count("npx server") == 1
+    assert commands.count("dsh server") == 1
     assert commands.count("chrome window") == 1
     assert commands.count("chrome focus http://127.0.0.1:3080") == 1
 

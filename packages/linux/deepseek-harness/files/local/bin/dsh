@@ -22,7 +22,7 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-dependencies="npx curl grep flock readlink google-chrome-stable"
+dependencies="npm curl grep flock readlink google-chrome-stable"
 if [ "$mode" = app ]; then
   dependencies="$dependencies setsid"
 fi
@@ -32,6 +32,13 @@ for dependency in $dependencies; do
     exit 127
   fi
 done
+
+npm_prefix=$(npm prefix --global) || exit 1
+dsh_executable="$npm_prefix/bin/dsh"
+if [ ! -x "$dsh_executable" ]; then
+  printf 'DeepSeek Harness is not installed. Run: npm install -g @deepseek-ai/dsh\n' >&2
+  exit 127
+fi
 
 mkdir -p "$profile_dir" || exit 1
 exec 9>"$state_dir/instance.lock" || exit 1
@@ -137,9 +144,10 @@ run_terminal_mode() {
   trap 'exit 130' INT
   trap 'exit 143' TERM
 
-  npx --yes @deepseek-ai/dsh@latest web \
+  "$dsh_executable" web \
     --host "$host" \
-    --port "$port"
+    --port "$port" \
+    --no-open
   dsh_status=$?
 
   trap - HUP INT TERM
@@ -150,9 +158,10 @@ run_terminal_mode() {
 
 run_app_mode() {
   server_log="$state_dir/dsh.log"
-  setsid --wait npx --yes @deepseek-ai/dsh@latest web \
+  setsid --wait "$dsh_executable" web \
     --host "$host" \
     --port "$port" \
+    --no-open \
     >>"$server_log" 2>&1 &
   server_pid=$!
   launch_chrome_when_ready "$server_pid" &
@@ -167,7 +176,7 @@ run_app_mode() {
   }
   stop_server() {
     if [ -n "$server_pid" ]; then
-      # DSH runs in its own session so npx and every server child stop together.
+      # DSH runs in its own session so the server and every child stop together.
       kill -TERM -- "-$server_pid" >/dev/null 2>&1 || :
       wait "$server_pid" 2>/dev/null || :
       server_pid=

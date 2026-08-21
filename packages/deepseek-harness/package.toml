@@ -15,6 +15,13 @@ settings_selectors = [
   "permission",
 ]
 
+[targets.dsh_install]
+sync_policy = "push-only"
+probe = 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh" ] && "$npm_prefix/bin/dsh" --version >/dev/null 2>&1; then exit 100; fi; exit 0'
+
+[targets.dsh_install.hooks]
+pre_push = "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
+
 [targets.dsh_global_instructions]
 sync_policy = "push-only"
 probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'

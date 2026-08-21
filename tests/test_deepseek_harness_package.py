@@ -14,7 +14,7 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
         package = tomllib.load(package_file)
 
     assert package["id"] == "deepseek-harness"
-    assert package["depends"] == ["nodejs"]
+    assert package["depends"] == ["nodejs", "agents"]
     assert package["vars"] == {
         "deepseek_harness": {
             "settings_selectors": [
@@ -26,6 +26,20 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
         }
     }
     assert package["targets"] == {
+        "dsh_install": {
+            "sync_policy": "push-only",
+            "probe": 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh" ] && "$npm_prefix/bin/dsh" --version >/dev/null 2>&1; then exit 100; fi; exit 0',
+            "hooks": {
+                "pre_push": "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
+            },
+        },
+        "dsh_global_instructions": {
+            "sync_policy": "push-only",
+            "probe": 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"',
+            "hooks": {
+                "pre_push": 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'
+            },
+        },
         "f_dsh_settings_yaml": {
             "source": "files/dsh/settings.yaml",
             "path": "~/.dsh/settings.yaml",
@@ -35,7 +49,7 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
         }
     }
     assert not any(
-        ".credentials" in target["path"]
+        ".credentials" in target.get("path", "")
         for target in package["targets"].values()
     )
 
