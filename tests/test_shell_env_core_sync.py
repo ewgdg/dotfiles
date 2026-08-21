@@ -73,3 +73,69 @@ def test_core_env_prepends_cargo_bin_on_clean_login_path(tmp_path: Path) -> None
     path_entries = completed.stdout.strip().split(":")
     assert path_entries.index(str(cargo_bin)) < path_entries.index("/usr/bin")
     assert path_entries.count(str(cargo_bin)) == 1
+
+
+def test_core_env_exports_future_tool_paths_before_directories_exist(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    data_home = tmp_path / "data"
+    env = os.environ.copy()
+    for name in ("BUN_INSTALL", "GOPATH", "PNPM_HOME", "XDG_DATA_HOME"):
+        env.pop(name, None)
+    env.update(
+        {"HOME": str(home), "XDG_DATA_HOME": str(data_home), "PATH": "/usr/bin:/bin"}
+    )
+
+    completed = subprocess.run(
+        [
+            "sh",
+            "-c",
+            f'. "{CORE_ENV_PATH}"; . "{CORE_ENV_PATH}"; printf "%s\\n%s\\n" "$GOPATH" "$PATH"',
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    go_path, path = completed.stdout.strip().splitlines()
+    assert go_path == str(home / "go")
+
+    path_entries = path.split(":")
+    future_tool_paths = (
+        home / "go/bin",
+        home / ".bun/bin",
+        home / ".npm/bin",
+        home / ".cargo/bin",
+        home / ".local/bin",
+        home / "bin",
+        data_home / "pnpm/bin",
+    )
+    for future_tool_path in future_tool_paths:
+        assert path_entries.index(str(future_tool_path)) < path_entries.index("/usr/bin")
+        assert path_entries.count(str(future_tool_path)) == 1
+
+
+def test_core_env_uses_first_custom_gopath_for_installed_commands(tmp_path: Path) -> None:
+    first_go_path = tmp_path / "primary-go"
+    second_go_path = tmp_path / "secondary-go"
+    custom_go_path = f"{first_go_path}:{second_go_path}"
+    env = os.environ.copy()
+    env.update({"GOPATH": custom_go_path, "HOME": str(tmp_path), "PATH": "/usr/bin:/bin"})
+
+    completed = subprocess.run(
+        [
+            "sh",
+            "-c",
+            f'. "{CORE_ENV_PATH}"; printf "%s\\n%s\\n" "$GOPATH" "$PATH"',
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    go_path, path = completed.stdout.strip().splitlines()
+    path_entries = path.split(":")
+    assert go_path == custom_go_path
+    assert str(first_go_path / "bin") in path_entries
+    assert str(second_go_path / "bin") not in path_entries
