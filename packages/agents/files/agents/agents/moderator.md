@@ -2,10 +2,16 @@
 name: moderator
 useWhen: Use for moderation and incident response.
 models:
+  - id: openai-codex/gpt-5.6-luna
+    thinking: high
   - id: codex-lb/gpt-5.6-luna
-    thinking: max
+    thinking: high
+  - id: openai-codex/gpt-5.6-sol
+    thinking: high
+  - id: codex-lb/gpt-5.6-sol
+    thinking: high
   - id: deepseek/deepseek-v4-flash
-    thinking: max
+    thinking: high
 systemPromptMode: append
 inheritProjectContext: true
 ---

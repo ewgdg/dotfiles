@@ -3,15 +3,17 @@
 		"npm:pi-vim",
 		"npm:pi-mcporter",
 		"npm:@howaboua/pi-codex-conversion",
-		"git:github.com/ewgdg/pi-multicodex",
 		"npm:@firstpick/pi-extension-btw",
-		"git:github.com/ewgdg/pi-agent-coordination"
+		"git:github.com/ewgdg/pi-agent-coordination",
+		"npm:@mtrojnar/pi-usage"
 	],
 	"enabledModels": [
-		"deepseek/deepseek-v4-flash",
-		"deepseek/deepseek-v4-pro",
+		"openai-codex/gpt-5.6-luna",
+		"openai-codex/gpt-5.6-sol",
+		"codex-lb/gpt-5.6-luna",
 		"codex-lb/gpt-5.6-sol",
-		"codex-lb/gpt-5.6-luna"
+		"deepseek/deepseek-v4-flash",
+		"deepseek/deepseek-v4-pro"
 	],
 	"theme": "dark",
 	"pi-openai-controls": {

@@ -29,11 +29,7 @@
   },
   "compaction": {
     "responsesCompaction": true,
-    "version": "v2"
-  },
-  "beta": {
-    "codeMode": false,
-    "responsesLite": true,
+    "version": "v2",
     "v2UserMessageRetention": 64
   },
   "openai": {
@@ -42,7 +38,8 @@
     "forceCachedWebSockets": true,
     "webSearchModel": "gpt-5.6-luna",
     "harnessIdentifierHeader": false,
-    "cacheDiagnostics": "off"
+    "cacheDiagnostics": "off",
+    "proxyResponsesLite": true
   },
   "voiceFeaturesOnly": false,
   "prompt": {
@@ -56,6 +53,13 @@
     "serverShortcut": "ctrl+alt+g",
     "dictationShortcutMode": "push",
     "autoResumeRealtime": false,
-    "contextReasoning": "high"
+    "contextReasoning": "high",
+    "audioSetupCompleted": true,
+    "delegationAcknowledgements": true,
+    "forwardReasoningSummaries": true
+  },
+  "executionMode": "normal",
+  "notebook": {
+    "maxHeapMiB": 4096
   }
 }

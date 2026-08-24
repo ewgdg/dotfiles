@@ -61,6 +61,7 @@ privacy = false
 enabled = [ "xian/pinned-window" ]
 
 [shell]
+clipboard_auto_paste = "off"
 niri_overview_type_to_launch_enabled = true
 polkit_agent = true
 

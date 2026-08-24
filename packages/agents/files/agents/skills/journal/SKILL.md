@@ -41,7 +41,7 @@ Create:
 
 - `Highlight`: short concrete proposition; say what changed, no vague titles like "Update" or "Progress". QuickAdd stores this as the note's first alias.
 - `Importance`: number 1-3 for review value. Decimals allowed for fine-tuning exceptional cases. Default is 1 because most entries are routine; choose higher deliberately.
-- `Journal`: concise, information-dense reflection capturing the event, what changed, and why it may matter.
+- `Journal`: body following the digest contract below.
 
 Importance scale:
 
@@ -53,9 +53,13 @@ Decimals are allowed only when useful, e.g. `2.5` for stronger-than-normal revie
 
 Metadata safety: `Highlight`, `Importance`, and `Author` become frontmatter `aliases`, `importance`, and `author`. Use the helper instead of hand-writing journal files; it YAML-quotes string metadata before QuickAdd substitution so YAML-significant characters remain safe. Obsidian may later normalize safe quoted scalars back to unquoted YAML; that is OK if frontmatter still parses.
 
-Journal entries must be atomic: each entry is a complete memory unit whose essential meaning is preserved inline. Include key result, numbers, decisions, relevant context, and any takeaway directly in the entry. Do not rely on temporary files, scratch directories, local-only paths, external session artifacts, or "see file X" references for essential meaning. References are allowed only to durable notes/files inside the vault, or when a path itself is the durable subject of the memory. Never use external paths as storage for unstated context.
+Journal is a digest, not a session record.
 
-Use concise language. Optimize for future review.
+Capture the final intention, decisions, reusable facts, and lessons. Remove superseded reasoning, rejected options, repeated user instructions, and implementation details that are not needed to reuse the conclusion.
+
+Write plain prose without bullets. Put each independent idea on its own physical line so later edits can target it precisely. Use blank lines between distinct themes.
+
+Each entry must preserve its essential meaning inline. Do not rely on temporary files, scratch directories, local-only paths, external session artifacts, or "see file X" references for essential meaning. References are allowed only to durable notes/files inside the vault, or when a path itself is the durable subject of the memory.
 
 ## Author
 

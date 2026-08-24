@@ -5,7 +5,7 @@ web_search = "live"
 personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
 approvals_reviewer = "auto_review"
-model_provider = "codex-lb"
+# model_provider = "codex-lb"
 
 [model_providers.codex-lb]
 name = "Codex LB"
@@ -90,6 +90,8 @@ dock-icon-preference = "codex-system"
 enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "max", "ultra"]
 conversationDetailMode = "STEPS_PROSE"
 ambient-suggestions-enabled = true
+sansFontSize = 16
+selected-avatar-id = "codex"
 
 [apps.github]
 enabled = false
