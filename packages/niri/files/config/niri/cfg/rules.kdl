@@ -64,12 +64,6 @@ window-rule {
 // }
 
 window-rule {
-  match title=r#"(?i)^Battle.net$"#
-  open-on-workspace "games"
-  open-floating false
-}
-
-window-rule {
   // XEmbed SNI proxy tray helper. Hide its managed utility window on the stash workspace.
   match app-id=r#"^xembed-sni-proxy$"#
   open-on-workspace "stash"

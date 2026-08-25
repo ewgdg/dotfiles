@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 XEmbed SNI Proxy - X11 System Tray to StatusNotifierItem bridge for Wayland.
-Replaces xembedsniproxy without creating focus-stealing unmanaged X11 windows.
+Forwards input through transparent XEmbed hosts so applications retain their
+native tray-click behavior.
 
 Byte order note
 ---------------
@@ -16,17 +17,18 @@ hypothetical hosts that build a QImage straight from the raw payload.
 import argparse
 import math
 import os
-import sys
-import struct
 import signal
+import struct
+import sys
 import time
 
 import dbus
-import dbus.service
 import dbus.mainloop.glib
+import dbus.service
 from gi.repository import GLib
-from Xlib import X, display, Xatom, protocol, error
+from Xlib import X, Xatom, display, protocol
 from Xlib.error import ConnectionClosedError
+from Xlib.ext import composite, shape, xtest
 
 APPLICATION_ID = "xembed-sni-proxy"
 SNI_WATCHER_BUS = "org.kde.StatusNotifierWatcher"
@@ -50,6 +52,10 @@ ICON_VISIBLE_THRESHOLD = 30
 # the fallback tray without relying on its DPI-dependent pixel dimensions.
 WINE_FALLBACK_TRAY_STYLE_MASK = 0x00C80000
 WINE_FALLBACK_CLOSE_DELAY_MS = 500
+DIRECT_POINTER_RELEASE_DELAY_MS = 300
+XTEST_DEACTIVATION_DELAY_MS = 300
+INJECT_DIRECT = "direct"
+INJECT_XTEST = "xtest"
 
 
 def _iter_net_wm_icons(data):
@@ -242,7 +248,8 @@ class SNIItem(dbus.service.Object):
 
     @dbus.service.method(SNI_ITEM_IFACE, in_signature="is")
     def Scroll(self, delta, orientation):
-        pass
+        if self._active:
+            self._bridge.send_scroll(self._icon_xid, delta, orientation)
 
     @dbus.service.signal(SNI_ITEM_IFACE)
     def NewIcon(self):
@@ -275,9 +282,16 @@ class XEmbedSNIProxy:
         # (A,R,G,B) packing; crop/alpha scans must use the right offset.
         self._alpha_off = 3 if byte_order == "native" else 0
         self._dead = False
-        self._restart_requested = False
         self._display = display.Display()
         self._display.set_error_handler(lambda *a: None)
+        missing_extensions = [
+            extension
+            for extension in (composite.extname, shape.extname, xtest.extname)
+            if not self._display.query_extension(extension).present
+        ]
+        if missing_extensions:
+            raise RuntimeError(
+                f"Required X11 extensions unavailable: {', '.join(missing_extensions)}")
         self._screen = self._display.screen()
         self._root = self._screen.root
         self._atoms = {}
@@ -296,6 +310,7 @@ class XEmbedSNIProxy:
         for name in ["_NET_SYSTEM_TRAY_S0", "_NET_SYSTEM_TRAY_OPCODE",
                       "_NET_SYSTEM_TRAY_ORIENTATION", "MANAGER",
                       "_XEMBED", "_XEMBED_INFO", "_NET_WM_ICON",
+                      "_NET_WM_WINDOW_OPACITY",
                       "WM_NAME", "_NET_WM_NAME", "UTF8_STRING",
                       "_NET_WM_PID", "_WINE_HWND_STYLE",
                       "WM_PROTOCOLS", "WM_DELETE_WINDOW"]:
@@ -339,12 +354,32 @@ class XEmbedSNIProxy:
         bus_name = f"org.kde.StatusNotifierItem-{os.getpid()}-{self._slot_counter}"
         object_path = f"/StatusNotifierItem/{self._slot_counter}"
 
-        # Get the session bus address and create an independent connection
+        # Get the session bus address and create an independent connection.
         bus_addr = os.environ.get("DBUS_SESSION_BUS_ADDRESS") or dbus.bus.BUS_SESSION
-        slot_bus = dbus.bus.BusConnection(bus_addr)
-
-        dbus_name = dbus.service.BusName(bus_name, slot_bus, do_not_queue=True)
-        sni = SNIItem(dbus_name, object_path, self)
+        slot_bus = None
+        dbus_name = None
+        sni = None
+        try:
+            slot_bus = dbus.bus.BusConnection(bus_addr)
+            dbus_name = dbus.service.BusName(
+                bus_name, slot_bus, do_not_queue=True)
+            # Export through the connection rather than retaining BusName
+            # inside SNIItem, so the name is released before the connection.
+            sni = SNIItem(slot_bus, object_path, self)
+        except Exception:
+            if sni is not None:
+                try:
+                    sni.remove_from_connection()
+                except Exception:
+                    pass
+            if dbus_name is not None:
+                del dbus_name
+            if slot_bus is not None:
+                try:
+                    slot_bus.close()
+                except Exception:
+                    pass
+            raise
 
         slot = {"sni": sni, "bus_name": bus_name,
                 "object_path": object_path,
@@ -369,22 +404,8 @@ class XEmbedSNIProxy:
             event_mask=(X.StructureNotifyMask | X.SubstructureNotifyMask |
                        X.PropertyChangeMask | X.ExposureMask),
             background_pixel=self._screen.black_pixel,
-            override_redirect=False
+            override_redirect=True,
         )
-        self._tray_window.set_wm_name(APPLICATION_ID)
-        self._tray_window.set_wm_class(APPLICATION_ID, APPLICATION_ID)
-        self._tray_window.set_wm_protocols([self._atoms["WM_DELETE_WINDOW"]])
-        self._tray_window.change_property(
-            self._display.intern_atom("_NET_WM_WINDOW_TYPE"),
-            Xatom.ATOM, 32,
-            [self._display.intern_atom("_NET_WM_WINDOW_TYPE_UTILITY")])
-        self._tray_window.change_property(
-            self._display.intern_atom("_NET_WM_STATE"),
-            Xatom.ATOM, 32,
-            [self._display.intern_atom("_NET_WM_STATE_SKIP_TASKBAR"),
-             self._display.intern_atom("_NET_WM_STATE_SKIP_PAGER")])
-        self._tray_window.configure(x=-9999, y=-9999)
-        self._tray_window.map()
         self._tray_window.change_property(
             self._atoms["_NET_SYSTEM_TRAY_ORIENTATION"],
             Xatom.CARDINAL, 32, [0])
@@ -404,7 +425,7 @@ class XEmbedSNIProxy:
         self._root.send_event(ev, event_mask=X.StructureNotifyMask)
         self._display.flush()
 
-        log(f"Claimed tray selection")
+        log("Claimed tray selection")
         return True
 
     def _get_window_title(self, window):
@@ -469,8 +490,55 @@ class XEmbedSNIProxy:
         return _select_matching_icon_title(
             pixels, width, height, self._get_application_icon_candidates())
 
-    def _resize_tray(self, width, height):
-        self._tray_window.configure(width=width, height=height)
+    def _window_wants_button_events(self, window):
+        try:
+            attributes = window.get_attributes()
+            return bool(attributes.all_event_masks & X.ButtonPressMask)
+        except Exception:
+            return False
+
+    def _select_inject_mode(self, icon_win):
+        if (os.environ.get("XDG_SESSION_TYPE") == "wayland" and
+                os.environ.get("NIRI_SOCKET")):
+            # Niri routes real pointer input through Xwayland-satellite.
+            # Proton can reject direct synthetic events even when its icon
+            # advertises a button mask, while XTest preserves native delivery.
+            return INJECT_XTEST
+        return (INJECT_DIRECT
+                if self._window_wants_button_events(icon_win)
+                else INJECT_XTEST)
+
+    def _create_icon_host(self):
+        host = None
+        try:
+            host = self._root.create_window(
+                0, 0, TRAY_ICON_SIZE, TRAY_ICON_SIZE, 0,
+                self._screen.root_depth, X.InputOutput, X.CopyFromParent,
+                event_mask=(X.StructureNotifyMask | X.SubstructureNotifyMask |
+                            X.SubstructureRedirectMask),
+                background_pixel=self._screen.black_pixel,
+                override_redirect=True,
+            )
+            host.set_wm_class(APPLICATION_ID, APPLICATION_ID)
+            host.change_property(
+                self._atoms["_NET_WM_WINDOW_OPACITY"],
+                Xatom.CARDINAL,
+                32,
+                [0],
+            )
+            host.shape_rectangles(
+                shape.SO.Set, shape.SK.Input, X.YXBanded, 0, 0, [])
+            host.configure(stack_mode=X.Below)
+            host.map()
+            return host
+        except Exception:
+            if host is not None:
+                try:
+                    host.destroy()
+                    self._display.flush()
+                except Exception:
+                    pass
+            raise
 
     def _close_wine_fallback_trays(self, icon_win):
         """Hide Wine's standalone tray after its icon docks externally."""
@@ -533,19 +601,19 @@ class XEmbedSNIProxy:
         if self._dead or icon_xid in self._active_icons:
             return
 
+        icon_win = None
+        icon_host = None
+        slot_idx = None
         try:
             icon_win = self._display.create_resource_object("window", icon_xid)
+            icon_host = self._create_icon_host()
 
-            # Resize tray window
-            n = len(self._active_icons) + 1
-            self._resize_tray(n * TRAY_ICON_SIZE, TRAY_ICON_SIZE)
-
-            x_offset = len(self._active_icons) * TRAY_ICON_SIZE
             # SaveSet protection keeps the foreign icon alive if this bridge
             # crashes and X11 destroys its tray window. KDE's proxy uses the
             # same mechanism before embedding app-owned windows.
             icon_win.change_save_set(X.SetModeInsert)
-            icon_win.reparent(self._tray_window, x_offset, 0)
+            icon_win.reparent(icon_host, 0, 0)
+            icon_win.composite_redirect_window(composite.RedirectManual)
             icon_win.configure(width=TRAY_ICON_SIZE, height=TRAY_ICON_SIZE)
             icon_win.map()
             icon_win.change_attributes(
@@ -556,7 +624,7 @@ class XEmbedSNIProxy:
                 window=icon_win,
                 client_type=self._atoms["_XEMBED"],
                 data=(32, [X.CurrentTime, XEMBED_EMBEDDED_NOTIFY, 0,
-                           self._tray_window.id, XEMBED_VERSION]))
+                           icon_host.id, XEMBED_VERSION]))
             icon_win.send_event(ev)
             self._display.flush()
 
@@ -565,6 +633,8 @@ class XEmbedSNIProxy:
             slot = self._slots[slot_idx]
             slot["xid"] = icon_xid
             slot["window"] = icon_win
+            slot["host"] = icon_host
+            slot["inject_mode"] = self._select_inject_mode(icon_win)
             slot["icon_ready"] = False
             slot["icon_key"] = self._get_icon_key(icon_win)
             title = self._get_window_title(icon_win)
@@ -598,16 +668,29 @@ class XEmbedSNIProxy:
                     if attempt < 9:
                         time.sleep(0.5)
 
-            log(f"Docked icon {icon_xid} -> slot {slot_idx} ({slot['bus_name']})")
+            log(
+                f"Docked icon {icon_xid} -> slot {slot_idx} "
+                f"({slot['bus_name']}, input={slot['inject_mode']})")
 
             # Start icon extraction retries
             GLib.timeout_add(500, self._extract_icon_retry, icon_xid)
 
         except Exception as e:
+            if icon_xid in self._active_icons:
+                self._undock_icon(icon_xid)
+            else:
+                if icon_win is not None and icon_host is not None:
+                    self._release_icon_window(icon_win, icon_host)
+                if slot_idx is not None:
+                    self._remove_sni_slot(slot_idx)
             log(f"Dock error {icon_xid}: {e}")
 
-    def _release_icon_window(self, icon_win):
+    def _release_icon_window(self, icon_win, icon_host):
         """End XEmbed without destroying the app-owned icon window."""
+        try:
+            icon_win.composite_unredirect_window(composite.RedirectManual)
+        except Exception:
+            pass
         try:
             # XEmbed's normal shutdown sequence is unmap, reparent to root.
             # Removing it from our SaveSet afterward prevents redundant rescue
@@ -615,20 +698,19 @@ class XEmbedSNIProxy:
             icon_win.unmap()
             icon_win.reparent(self._root, 0, 0)
             icon_win.change_save_set(X.SetModeDelete)
-            self._display.flush()
         except Exception:
             # DestroyNotify reaches us after the icon is already invalid.
             pass
+        try:
+            icon_host.destroy()
+            self._display.flush()
+        except Exception:
+            pass
 
-    def _undock_icon(self, icon_xid):
-        if icon_xid not in self._active_icons:
-            return
-
-        slot_idx = self._active_icons.pop(icon_xid)
+    def _remove_sni_slot(self, slot_idx):
         slot = self._slots[slot_idx]
-        self._release_icon_window(slot["window"])
-
-        # Fully remove from DBus so waybar drops the icon
+        if slot is None:
+            return
         try:
             slot["sni"].remove_from_connection()
         except Exception:
@@ -637,36 +719,23 @@ class XEmbedSNIProxy:
             del slot["dbus_name"]
         except Exception:
             pass
-        # Close the slot's bus connection
         try:
             slot["slot_bus"].close()
         except Exception:
             pass
-
-        # Remove slot entirely so a fresh one is created next time
         self._slots[slot_idx] = None
 
-        # Resize tray window. Wrapped because a dead X server raises here
-        # straight into the GLib idle callback, which is what flooded the
-        # journal and leaked python-xlib internal queues for days.
-        n = len(self._active_icons)
-        try:
-            if n:
-                self._resize_tray(n * TRAY_ICON_SIZE, TRAY_ICON_SIZE)
-            else:
-                self._resize_tray(EMPTY_TRAY_SIZE, EMPTY_TRAY_SIZE)
-            for i, (xid, si) in enumerate(self._active_icons.items()):
-                try:
-                    self._slots[si]["window"].configure(
-                        x=i * TRAY_ICON_SIZE, y=0)
-                except Exception:
-                    pass
-            self._display.flush()
-        except (ConnectionClosedError, IOError, OSError) as e:
-            return self._fatal(f"_undock_icon: {e!r}")
-        except Exception:
-            pass
-        log(f"Undocked icon {icon_xid} ({n} remaining)")
+    def _undock_icon(self, icon_xid):
+        if icon_xid not in self._active_icons:
+            return
+
+        slot_idx = self._active_icons.pop(icon_xid)
+        slot = self._slots[slot_idx]
+        self._cancel_pending_host_callbacks(slot)
+        self._release_icon_window(slot["window"], slot["host"])
+        self._remove_sni_slot(slot_idx)
+
+        log(f"Undocked icon {icon_xid} ({len(self._active_icons)} remaining)")
 
     def _extract_icon(self, icon_xid):
         if self._dead or icon_xid not in self._active_icons:
@@ -842,34 +911,168 @@ class XEmbedSNIProxy:
                 out[d:d+4] = argb[s:s+4]
         return bytes(out)
 
+    def _calculate_click_point(self, icon_win):
+        geometry = icon_win.get_geometry()
+        click_x, click_y = geometry.width // 2, geometry.height // 2
+        try:
+            extents = icon_win.shape_query_extents()
+            if not extents.bounding_shaped:
+                return click_x, click_y
+            rectangles = icon_win.shape_get_rectangles(shape.SK.Bounding).rectangles
+            nearest_distance = math.hypot(geometry.width, geometry.height)
+            for rectangle in rectangles:
+                distance = math.hypot(rectangle.x, rectangle.y)
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    click_x, click_y = rectangle.x, rectangle.y
+        except Exception:
+            pass
+        return click_x, click_y
+
+    def _position_icon_host(self, host, event_x, event_y, root_x, root_y):
+        if (os.environ.get("XDG_SESSION_TYPE") == "wayland" and
+                os.environ.get("NIRI_SOCKET")):
+            # Niri owns xdg-toplevel placement, so Xwayland-satellite cannot
+            # honor absolute X11 configure requests. Events must describe the
+            # compositor-assigned host position or Wine discards them.
+            geometry = host.get_geometry()
+            return geometry.x + event_x, geometry.y + event_y
+
+        host.configure(
+            x=int(root_x) - event_x,
+            y=int(root_y) - event_y,
+        )
+        return int(root_x), int(root_y)
+
+    def _set_icon_host_active(self, host, active):
+        rectangles = ([(0, 0, TRAY_ICON_SIZE, TRAY_ICON_SIZE)]
+                      if active else [])
+        host.shape_rectangles(
+            shape.SO.Set, shape.SK.Input, X.YXBanded, 0, 0, rectangles)
+        host.configure(stack_mode=X.Above if active else X.Below)
+
+    def _deactivate_icon_host(
+            self, icon_xid, host, root_x=None, root_y=None):
+        if icon_xid not in self._active_icons:
+            return False
+        slot = self._slots[self._active_icons[icon_xid]]
+        if slot.get("host") != host:
+            return False
+        slot.pop("deactivate_source_id", None)
+        self._set_icon_host_active(host, False)
+        if root_x is not None and root_y is not None:
+            self._root.warp_pointer(root_x, root_y)
+        self._display.flush()
+        return False
+
+    def _release_icon_pointer(self, icon_xid, host, root_x, root_y):
+        if icon_xid not in self._active_icons:
+            return False
+        slot = self._slots[self._active_icons[icon_xid]]
+        if slot.get("host") != host:
+            return False
+        slot.pop("pointer_release_source_id", None)
+        self._root.warp_pointer(root_x, root_y)
+        self._display.flush()
+        return False
+
+    def _cancel_pending_host_callbacks(self, slot):
+        for key in ("deactivate_source_id", "pointer_release_source_id"):
+            source_id = slot.pop(key, None)
+            if source_id is not None:
+                GLib.source_remove(source_id)
+
+    def send_scroll(self, icon_xid, delta, orientation):
+        pointer = self._root.query_pointer()
+        # X11 core buttons 4/5 and 6/7 represent vertical and horizontal
+        # wheel steps; KDE's proxy likewise forwards one step from the sign.
+        if str(orientation).lower() == "vertical":
+            button = 4 if delta > 0 else 5
+        else:
+            button = 6 if delta > 0 else 7
+        self.send_click(
+            icon_xid, button, pointer.root_x, pointer.root_y)
+
     def send_click(self, icon_xid, button, root_x=0, root_y=0):
         if self._dead or icon_xid not in self._active_icons:
             return
         slot = self._slots[self._active_icons[icon_xid]]
         icon_win = slot["window"]
+        host = slot["host"]
         try:
-            geom = icon_win.get_geometry()
-            ex, ey = geom.width // 2, geom.height // 2
-            rx, ry = (root_x, root_y) if (root_x or root_y) else (ex, ey)
-            # Apps pop their menu at the pointer, not at the event coords, so
-            # warp the X pointer to the host-reported interaction point
-            # (best-effort: Xwayland may ignore it over native surfaces).
-            if root_x or root_y:
-                self._root.warp_pointer(X.NONE, 0, 0, 0, 0, rx, ry)
-                self._display.flush()
-            # Send both events with propagate=true and a combined mask: the
-            # client may only have selected one of the two masks, and without
-            # propagation a missing selection drops the event entirely
-            # (synthetic right-clicks opened no menu before this fix).
-            mask = X.ButtonPressMask | X.ButtonReleaseMask
-            for EvType in [protocol.event.ButtonPress, protocol.event.ButtonRelease]:
-                state = 0 if EvType == protocol.event.ButtonPress \
-                    else (1 << (7 + button))
-                icon_win.send_event(EvType(
-                    time=X.CurrentTime, root=self._root, window=icon_win,
-                    child=X.NONE, root_x=rx, root_y=ry, event_x=ex, event_y=ey,
-                    state=state, detail=button, same_screen=True),
-                    propagate=True, event_mask=mask)
+            self._cancel_pending_host_callbacks(slot)
+            event_x, event_y = self._calculate_click_point(icon_win)
+            event_root_x, event_root_y = self._position_icon_host(
+                host, event_x, event_y, root_x, root_y)
+            if slot.get("inject_mode", INJECT_DIRECT) == INJECT_XTEST:
+                self._set_icon_host_active(host, True)
+                if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+                    icon_win.warp_pointer(event_x, event_y)
+                try:
+                    # XTest targets the window under the pointer, so it alone
+                    # needs a raised input region and pointer placement.
+                    self._display.sync()
+                    self._display.xtest_fake_input(X.ButtonPress, button)
+                    self._display.xtest_fake_input(X.ButtonRelease, button)
+                except Exception:
+                    self._deactivate_icon_host(icon_xid, host)
+                    raise
+                if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+                    try:
+                        slot["deactivate_source_id"] = GLib.timeout_add(
+                            XTEST_DEACTIVATION_DELAY_MS,
+                            self._deactivate_icon_host,
+                            icon_xid,
+                            host,
+                            event_root_x,
+                            event_root_y,
+                        )
+                    except Exception:
+                        self._deactivate_icon_host(icon_xid, host)
+                        raise
+                else:
+                    self._deactivate_icon_host(icon_xid, host)
+            else:
+                self._set_icon_host_active(host, True)
+                if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+                    icon_win.warp_pointer(event_x, event_y)
+                try:
+                    for EventType, event_mask in [
+                            (protocol.event.ButtonPress, X.ButtonPressMask),
+                            (protocol.event.ButtonRelease, X.ButtonReleaseMask)]:
+                        icon_win.send_event(EventType(
+                            time=X.CurrentTime,
+                            root=self._root,
+                            window=icon_win,
+                            child=X.NONE,
+                            root_x=event_root_x,
+                            root_y=event_root_y,
+                            event_x=event_x,
+                            event_y=event_y,
+                            state=0,
+                            detail=button,
+                            same_screen=True,
+                        ), propagate=False, event_mask=event_mask)
+                finally:
+                    self._set_icon_host_active(host, False)
+                    if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+                        # Shape changes alone do not deliver a pointer leave
+                        # through Xwayland-satellite. Delay the leave long
+                        # enough for Wine to validate the delivered button
+                        # events; a following click cancels this callback.
+                        try:
+                            slot["pointer_release_source_id"] = GLib.timeout_add(
+                                DIRECT_POINTER_RELEASE_DELAY_MS,
+                                self._release_icon_pointer,
+                                icon_xid,
+                                host,
+                                event_root_x,
+                                event_root_y,
+                            )
+                        except Exception:
+                            self._release_icon_pointer(
+                                icon_xid, host, event_root_x, event_root_y)
+                            raise
             self._display.flush()
         except (ConnectionClosedError, IOError, OSError) as e:
             self._fatal(f"send_click: {e!r}")
@@ -884,21 +1087,28 @@ class XEmbedSNIProxy:
             while self._display.pending_events():
                 ev = self._display.next_event()
                 if ev.type == X.ClientMessage:
-                    event_window = getattr(ev, "window", None)
-                    event_window_id = getattr(event_window, "id", event_window)
-                    if (ev.client_type == self._atoms["WM_PROTOCOLS"] and
-                            ev.data[1][0] == self._atoms["WM_DELETE_WINDOW"] and
-                            event_window_id == self._tray_window.id):
-                        log("Tray window close requested; restarting service.")
-                        self._restart_requested = True
-                        self._loop.quit()
-                        return False
                     if (hasattr(ev, 'client_type') and
                             ev.client_type == self._atoms["_NET_SYSTEM_TRAY_OPCODE"] and
                             ev.data[1][1] == SYSTEM_TRAY_REQUEST_DOCK):
                         xid = ev.data[1][2]
                         if xid:
                             GLib.idle_add(self._dock_icon, xid)
+                elif ev.type == X.MapRequest:
+                    window = getattr(ev, "window", None)
+                    if window and window.id in self._active_icons:
+                        window.map()
+                        self._display.flush()
+                elif ev.type == X.ConfigureRequest:
+                    window = getattr(ev, "window", None)
+                    if window and window.id in self._active_icons:
+                        dimensions = {}
+                        if ev.value_mask & X.CWWidth:
+                            dimensions["width"] = min(ev.width, TRAY_ICON_SIZE)
+                        if ev.value_mask & X.CWHeight:
+                            dimensions["height"] = min(ev.height, TRAY_ICON_SIZE)
+                        if dimensions:
+                            window.configure(**dimensions)
+                            self._display.flush()
                 elif ev.type == X.DestroyNotify:
                     xid = getattr(ev, 'window', None)
                     if xid and xid.id in self._active_icons:
@@ -978,9 +1188,6 @@ class XEmbedSNIProxy:
             pass
         if self._dead:
             log("Stopped (X11 dead — exiting nonzero so systemd restarts).")
-            return 1
-        if self._restart_requested:
-            log("Stopped (tray window closed — exiting nonzero so systemd restarts).")
             return 1
         log("Stopped.")
         return 0

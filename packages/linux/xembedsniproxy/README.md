@@ -23,14 +23,34 @@ The editable install resolves the repository source directly, so source changes
 apply when the process next starts and the dotfiles checkout must remain at the
 recorded location.
 
-## Managed helper window
+## Native tray input
 
-The proxy uses a managed utility window with `WM_CLASS=xembed-sni-proxy`.
-The niri rule matches `app-id=^xembed-sni-proxy$` and keeps this required X11
-tray-owner window hidden on the stash workspace without focusing it.
+The tray selection owner stays unmapped and outside compositor layout. Each
+embedded icon gets a transparent override-redirect host with
+`WM_CLASS=xembed-sni-proxy`. Xwayland-satellite exposes the host to niri, whose
+rule keeps it hidden on the stash workspace. The underlying X11 host remains
+mapped, transparent, and click-through while idle.
+
+For every SNI activation, the proxy temporarily enables the host's X Shape
+input region and forwards one X11 press/release pair. It uses direct events
+when the icon subscribes to button input and XTest otherwise. On Niri it always
+uses XTest because Proton can reject direct synthetic events even when its icon
+advertises a button mask.
+
+Most X11 window systems let the proxy place the host at the SNI coordinates.
+Niri owns xdg-toplevel placement, so the proxy keeps the host at its
+compositor-assigned X11 position and routes input through the embedded icon.
+After delivery it drops the input region and re-targets the same root point,
+preserving click state while preventing Wine's native tooltip from leaking
+through Xwayland-satellite as a focused window.
+
+Wine and other applications interpret single-clicks and double-clicks
+themselves; the proxy never searches for or maps an application window.
 
 ## Runtime
 
+- Requires the X11 Composite, SHAPE, and XTEST extensions and fails at startup
+  when any is unavailable.
 - Runs as `xembedsniproxy.service`, bound to `graphical-session.target`.
   Plasma's separate unit is `plasma-xembedsniproxy.service`; the unit names do
   not conflict. The implementations must not run simultaneously because only
@@ -54,7 +74,7 @@ The implementation started from
 - suppression of Wine's standalone fallback tray after icons re-dock;
 - unique SNI object paths for multiple icons from one process;
 - conservative application-title inference from matching X11 icons;
-- clean selection contention and supervised tray-window restart behavior.
+- clean tray-selection contention.
 
 Review upstream changes separately and port applicable changes into
 `src/xembed_sni_proxy/bridge.py`; do not overwrite the maintained
