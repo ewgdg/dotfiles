@@ -14,7 +14,7 @@
 
 Run directly inside a running Niri session:
 
-- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --solo --scale auto`
+- `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py do --width 1920 --height 1080 --fps 60 --scale auto`
 - optional: prevent idle actions while streaming with `--inhibit`
 - rendered Niri Sunshine config does **not** pass `--inhibit` by default: Niri uses `capture = wlr` on the `sunshine` headless output, while the default inhibitor is only for KMS capture to avoid DPMS error spam when outputs idle mid-stream
 - optional: avoid Noctalia reacting during output hotplug churn with `--suspend-niri-shell`
@@ -31,7 +31,7 @@ Run directly inside a running Niri session:
   - `niri msg output <output> on`
   - `niri msg output <output> mode <WxH@RRR.RRR>`
   - optional: `niri msg output <output> scale <scale>` (`--scale auto` uses Niri auto scaling)
-  - optional: when `--solo` is set, focuses the selected output before turning other outputs `off`
+  - focuses the selected output so remote input targets the captured workspace
   - optional: turns other outputs `off` when `--solo` is set
   - optional: stops `niri-shell.service` before output changes and runs `systemctl --user reset-failed niri-shell.service` immediately before starting it again when `--suspend-niri-shell` is set
 - With `--headless`, the script creates `sunshine` via IPC if needed, then
@@ -56,11 +56,11 @@ Run directly inside a running Niri session:
   Manual IPC cleanup is the reliable path.
 - `sunshine.conf` uses `capture = wlr` and `output_name = sunshine` for Niri
   headless capture; non-Niri rendered configs use `capture = kms`.
-- Niri prep keeps `--solo`; stream start focuses `sunshine` before disabling
-  other outputs to avoid focus migration during output removal. `undo
-  --dormant-headless` limits restore churn by only re-enabling non-Sunshine
-  outputs and lowering the virtual Sunshine output refresh instead of removing
-  its `wl_output`.
+- The rendered Niri prep does not use `--solo`: physical outputs remain enabled
+  across stream transitions so Wine/Xwayland clients do not receive monitor
+  hotplug events. Stream start still focuses `sunshine`. Manual `--solo` runs
+  remain supported, and `undo --dormant-headless` re-enables outputs disabled by
+  those runs before lowering the virtual Sunshine output refresh.
 - `--suspend-niri-shell` exists but rendered Niri config currently leaves it
   disabled. If enabled for testing, prep stops `niri-shell.service` during stream
   start/undo and runs `systemctl --user reset-failed niri-shell.service`

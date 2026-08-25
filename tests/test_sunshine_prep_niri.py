@@ -191,6 +191,40 @@ def test_do_stops_niri_shell_before_headless_output_changes(monkeypatch) -> None
     assert calls[-1] == "start-shell"
 
 
+def test_do_focuses_headless_output_without_disabling_other_outputs(monkeypatch) -> None:
+    calls = []
+    outputs = [
+        {"name": "sunshine", "current_mode": {"width": 1920, "height": 1080}},
+        {"name": "DP-1", "current_mode": {"width": 2560, "height": 1440}},
+    ]
+
+    monkeypatch.setattr(module, "require_niri_bin", lambda: None)
+    monkeypatch.setattr(module, "which", lambda cmd: False)
+    monkeypatch.setattr(module, "ensure_headless_output", lambda **kwargs: None)
+    monkeypatch.setattr(module, "niri_msg_json", lambda *args: outputs)
+    monkeypatch.setattr(
+        module,
+        "niri_msg",
+        lambda *args, check=True: calls.append((args, check)),
+    )
+
+    module.do_action(
+        width=1920,
+        height=1080,
+        fps=60,
+        output_name=None,
+        headless=True,
+        solo=False,
+        scale_arg=None,
+        inhibit=False,
+        suspend_niri_shell=False,
+    )
+
+    assert (("action", "focus-monitor", "sunshine"), True) in calls
+    assert not any(args[:1] == ("output",) and args[-1:] == ("off",)
+                   for args, _check in calls)
+
+
 def test_do_restarts_niri_shell_when_prep_fails_after_stop(monkeypatch) -> None:
     calls = []
 

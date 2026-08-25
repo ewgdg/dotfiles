@@ -766,10 +766,12 @@ def do_output_action(
     if scale_to_set is not None:
         apply_output_scale(connector, scale_to_set)
 
+    # Remote input must target the captured output even when other outputs stay
+    # enabled. When solo is requested, focus first to avoid migration during
+    # the following output removals.
+    niri_msg("action", "focus-monitor", connector, check=True)
+
     if solo:
-        # Move focus before removing the previous output so Niri does not need
-        # to migrate focus while Wayland clients process monitor removal.
-        niri_msg("action", "focus-monitor", connector, check=True)
         for o in outputs:
             other = str(o.get("name") or "").strip()
             if not other or other == connector:
