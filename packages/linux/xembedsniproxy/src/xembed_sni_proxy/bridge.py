@@ -176,6 +176,7 @@ class SNIItem(dbus.service.Object):
         if title and title != self._title:
             self._title = title
             self.NewTitle()
+            self.NewToolTip()
 
     def set_passive(self):
         """Icon window hidden: keep the item but report Passive status."""
@@ -213,7 +214,7 @@ class SNIItem(dbus.service.Object):
             "AttentionIconPixmap": dbus.Array([], signature="(iiay)"),
             "AttentionMovieName": "",
             "ToolTip": dbus.Struct(
-                ("", dbus.Array([], signature="(iiay)"), "", ""),
+                ("", dbus.Array([], signature="(iiay)"), self._title, ""),
                 signature="sa(iiay)ss"),
             "ItemIsMenu": dbus.Boolean(False),
             # Standard sentinel for "no menu" (libappindicator/KDE): hosts like
@@ -253,6 +254,10 @@ class SNIItem(dbus.service.Object):
 
     @dbus.service.signal(SNI_ITEM_IFACE)
     def NewStatus(self, status):
+        pass
+
+    @dbus.service.signal(SNI_ITEM_IFACE)
+    def NewToolTip(self):
         pass
 
     def update_icon(self, icon_data):

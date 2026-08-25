@@ -376,6 +376,23 @@ def test_sni_item_does_not_publish_a_fake_application_title():
     assert item._props()["ToolTip"][2] == ""
 
 
+def test_sni_item_publishes_a_learned_title_as_its_tooltip():
+    item = object.__new__(proxy.SNIItem)
+    item._icon_xid = 42
+    item._icon_data = []
+    item._title = ""
+    item._active = True
+    item.NewTitle = Mock()
+    item.NewToolTip = Mock()
+
+    item.update_title("Battle.net")
+
+    assert item._props()["Title"] == "Battle.net"
+    assert item._props()["ToolTip"][2:] == ("Battle.net", "")
+    item.NewTitle.assert_called_once_with()
+    item.NewToolTip.assert_called_once_with()
+
+
 def test_visual_identity_selects_the_unique_matching_application_title():
     black = (0, 0, 0)
     blue = (0, 0, 255)
