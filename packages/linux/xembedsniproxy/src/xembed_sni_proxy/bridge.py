@@ -428,6 +428,27 @@ class XEmbedSNIProxy:
         log("Claimed tray selection")
         return True
 
+    def _redock_existing_icons(self):
+        """Recover XEmbed clients that survived a tray-owner restart."""
+        try:
+            windows = self._root.query_tree().children
+        except Exception:
+            return
+
+        for window in windows:
+            if window.id == self._tray_window.id:
+                continue
+            try:
+                attributes = window.get_attributes()
+                if attributes.override_redirect:
+                    continue
+                info = window.get_full_property(
+                    self._atoms["_XEMBED_INFO"], X.AnyPropertyType)
+                if info and len(info.value) >= 2:
+                    self._dock_icon(window.id)
+            except Exception:
+                continue
+
     def _get_window_title(self, window):
         try:
             prop = window.get_full_property(
@@ -1196,6 +1217,7 @@ class XEmbedSNIProxy:
                           if owner and self._active_icons else None)
 
         self._root.change_attributes(event_mask=X.StructureNotifyMask)
+        self._redock_existing_icons()
         self._loop = GLib.MainLoop()
         GLib.timeout_add(50, self._process_x11)
 

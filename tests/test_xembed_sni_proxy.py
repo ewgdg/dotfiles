@@ -20,13 +20,16 @@ from xembed_sni_proxy import bridge as proxy  # noqa: E402
 
 class FakeIconWindow:
     def __init__(self, xid=42, pid=9001, width=32, height=32,
-                 button_event_mask=X.ButtonPressMask, children=None):
+                 button_event_mask=X.ButtonPressMask, children=None,
+                 xembed_info=None, override_redirect=False):
         self.id = xid
         self.pid = pid
         self.width = width
         self.height = height
         self.button_event_mask = button_event_mask
         self.children = list(children or [])
+        self.xembed_info = xembed_info
+        self.override_redirect = override_redirect
         self.operations = []
         self.sent_events = []
         self.warp_pointer_calls = []
@@ -69,6 +72,7 @@ class FakeIconWindow:
         return SimpleNamespace(
             all_event_masks=self.button_event_mask,
             do_not_propagate_mask=0,
+            override_redirect=self.override_redirect,
         )
 
     def query_tree(self):
@@ -89,6 +93,8 @@ class FakeIconWindow:
     def get_full_property(self, atom, _property_type):
         if atom == "_NET_WM_PID":
             return SimpleNamespace(value=[self.pid])
+        if atom == "_XEMBED_INFO" and self.xembed_info is not None:
+            return SimpleNamespace(value=self.xembed_info)
         return None
 
 
@@ -297,6 +303,7 @@ def make_claim_bridge():
         for name in (
             "_NET_SYSTEM_TRAY_S0",
             "_NET_SYSTEM_TRAY_ORIENTATION",
+            "_XEMBED_INFO",
             "_NET_WM_WINDOW_TYPE",
             "_NET_WM_WINDOW_TYPE_UTILITY",
             "_NET_WM_STATE",
@@ -319,6 +326,23 @@ def claim_tray(bridge):
         ),
     ):
         assert bridge._claim_tray()
+
+
+def test_restart_redocks_existing_managed_xembed_icons_only():
+    tray = FakeTrayWindow()
+    icon = FakeIconWindow(xid=99, xembed_info=[0, 1])
+    helper = FakeIconWindow(
+        xid=100, xembed_info=[0, 1], override_redirect=True,
+    )
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
+    bridge._root = FakeRoot(tray, children=[icon, helper])
+    bridge._tray_window = tray
+    bridge._atoms = {"_XEMBED_INFO": "_XEMBED_INFO"}
+    bridge._dock_icon = Mock()
+
+    bridge._redock_existing_icons()
+
+    bridge._dock_icon.assert_called_once_with(icon.id)
 
 
 def test_proxy_requires_native_input_extensions():
