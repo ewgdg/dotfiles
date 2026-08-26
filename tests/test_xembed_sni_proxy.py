@@ -49,6 +49,9 @@ class FakeIconWindow:
     def map(self):
         self.operations.append(("map",))
 
+    def clear_area(self, x, y, width, height, exposures=False):
+        self.operations.append(("clear_area", x, y, width, height, exposures))
+
     def unmap(self):
         self.operations.append(("unmap",))
 
@@ -198,10 +201,12 @@ class FakeRoot:
         self.tray = tray
         self.children = list(children or [])
         self.created_windows = list(created_windows or [])
+        self.create_window_args = None
         self.create_window_kwargs = None
         self.warp_pointer_calls = []
 
-    def create_window(self, *_args, **kwargs):
+    def create_window(self, *args, **kwargs):
+        self.create_window_args = args
         self.create_window_kwargs = kwargs
         if self.created_windows:
             return self.created_windows.pop(0)
@@ -408,6 +413,37 @@ def test_each_sni_slot_gets_a_unique_object_path():
     assert bridge._slots[second]["registration_id"].endswith("/StatusNotifierItem/2")
 
 
+def test_icon_host_uses_a_transparent_argb_visual_when_available():
+    icon_host = FakeTrayWindow(xid=0x5678)
+    visual = SimpleNamespace(
+        visual_id=99,
+        visual_class=X.TrueColor,
+        red_mask=0x00FF0000,
+        green_mask=0x0000FF00,
+        blue_mask=0x000000FF,
+    )
+    argb_depth = SimpleNamespace(depth=32, visuals=[visual])
+    root = FakeRoot(FakeTrayWindow(), created_windows=[icon_host])
+    root.create_colormap = Mock(return_value="argb-colormap")
+    bridge = object.__new__(proxy.XEmbedSNIProxy)
+    bridge._root = root
+    bridge._screen = SimpleNamespace(
+        root_depth=24,
+        black_pixel=0,
+        allowed_depths=[argb_depth],
+    )
+    bridge._display = FakeDisplay()
+    bridge._atoms = {"_NET_WM_WINDOW_OPACITY": "_NET_WM_WINDOW_OPACITY"}
+
+    bridge._create_icon_host()
+
+    assert root.create_window_args[5:8] == (
+        32, X.InputOutput, visual.visual_id,
+    )
+    assert root.create_window_kwargs["colormap"] == "argb-colormap"
+    assert root.create_window_kwargs["background_pixel"] == 0
+
+
 def test_failed_icon_host_creation_destroys_the_partial_window():
     icon_host = FakeTrayWindow(xid=0x5678)
     icon_host.set_wm_class = Mock(side_effect=RuntimeError("WM_CLASS failed"))
@@ -535,6 +571,8 @@ def test_docking_protects_icon_registers_path_and_closes_wine_fallback_tray():
     assert icon_host.shape_rectangles_calls[0][-1] == []
     assert icon_host.map_count == 1
     assert ("save_set", X.SetModeInsert) in icon.operations
+    assert ("clear_area", 0, 0, proxy.TRAY_ICON_SIZE,
+            proxy.TRAY_ICON_SIZE, False) in icon.operations
     assert ("reparent", icon_host, 0, 0) in icon.operations
     assert (
         "composite_redirect", proxy.composite.RedirectManual,

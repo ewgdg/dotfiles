@@ -508,17 +508,41 @@ class XEmbedSNIProxy:
                 if self._window_wants_button_events(icon_win)
                 else INJECT_XTEST)
 
+    def _transparent_window_parameters(self):
+        """Return an ARGB visual so Xwayland cannot paint the host black."""
+        for depth in getattr(self._screen, "allowed_depths", []):
+            if depth.depth != 32:
+                continue
+            for visual in depth.visuals:
+                if (
+                    visual.visual_class == X.TrueColor
+                    and visual.red_mask == 0x00FF0000
+                    and visual.green_mask == 0x0000FF00
+                    and visual.blue_mask == 0x000000FF
+                ):
+                    colormap = self._root.create_colormap(
+                        visual.visual_id, X.AllocNone)
+                    return 32, visual.visual_id, colormap
+        return self._screen.root_depth, X.CopyFromParent, None
+
     def _create_icon_host(self):
         host = None
         try:
-            host = self._root.create_window(
+            depth, visual, colormap = self._transparent_window_parameters()
+            window_args = (
                 0, 0, TRAY_ICON_SIZE, TRAY_ICON_SIZE, 0,
-                self._screen.root_depth, X.InputOutput, X.CopyFromParent,
-                event_mask=(X.StructureNotifyMask | X.SubstructureNotifyMask |
-                            X.SubstructureRedirectMask),
-                background_pixel=self._screen.black_pixel,
-                override_redirect=True,
+                depth, X.InputOutput, visual,
             )
+            window_kwargs = {
+                "event_mask": (X.StructureNotifyMask | X.SubstructureNotifyMask |
+                               X.SubstructureRedirectMask),
+                "background_pixel": 0,
+                "border_pixel": 0,
+                "override_redirect": True,
+            }
+            if colormap is not None:
+                window_kwargs["colormap"] = colormap
+            host = self._root.create_window(*window_args, **window_kwargs)
             host.set_wm_class(APPLICATION_ID, APPLICATION_ID)
             host.change_property(
                 self._atoms["_NET_WM_WINDOW_OPACITY"],
@@ -616,6 +640,10 @@ class XEmbedSNIProxy:
             icon_win.composite_redirect_window(composite.RedirectManual)
             icon_win.configure(width=TRAY_ICON_SIZE, height=TRAY_ICON_SIZE)
             icon_win.map()
+            # Manual Composite redirection can suppress the first expose;
+            # explicitly clear the surface so Steam repaints its tray icon.
+            icon_win.clear_area(
+                0, 0, TRAY_ICON_SIZE, TRAY_ICON_SIZE, exposures=False)
             icon_win.change_attributes(
                 event_mask=(X.StructureNotifyMask | X.PropertyChangeMask |
                            X.ExposureMask))
