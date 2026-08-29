@@ -30,7 +30,7 @@ pane_history = true
 kitty_graphics = true
 
 [ui.toast]
-delivery = "off"
+delivery = "terminal"
 
 [ui.sound]
 enabled = true

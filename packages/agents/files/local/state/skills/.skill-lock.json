@@ -37,15 +37,6 @@
       "installedAt": "2026-06-01T06:32:15.719Z",
       "updatedAt": "2026-06-01T06:32:15.719Z"
     },
-    "caveman": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/juliusbrussee/caveman.git",
-      "skillPath": "skills/caveman/SKILL.md",
-      "skillFolderHash": "bdf0c87a2bdd47fc7fe9008c40cc6491ee801b81",
-      "installedAt": "2026-06-03T06:07:20.142Z",
-      "updatedAt": "2026-08-21T02:15:23.798Z"
-    },
     "surf": {
       "source": "ewgdg/browser-skills",
       "sourceType": "github",

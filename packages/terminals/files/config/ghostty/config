@@ -33,7 +33,12 @@ notify-on-command-finish-after = 5s
 clipboard-read = deny
 clipboard-write = allow
 
-keybind = ctrl+insert=copy_to_clipboard
+# Ghostty GTK 1.3.x bug workaround: replacing the built-in copy binding with the
+# same action plus `performable:` leaves a stale accelerator unless it is unbound first.
+# Remove the unbind after Ghostty fixes the override.
+keybind = ctrl+insert=unbind
+# Copy a Ghostty selection when present; with no selection, forward to the app.
+keybind = performable:ctrl+insert=copy_to_clipboard
 keybind = shift+insert=paste_from_clipboard
 # Let Herdr receive this chord instead of writing and pasting a terminal screen file.
 keybind = ctrl+shift+j=unbind

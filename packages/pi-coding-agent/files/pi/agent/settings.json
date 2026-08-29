@@ -1,17 +1,15 @@
 {
 	"packages": [
-		"npm:pi-vim",
 		"npm:pi-mcporter",
 		"npm:@howaboua/pi-codex-conversion",
 		"npm:@firstpick/pi-extension-btw",
 		"git:github.com/ewgdg/pi-agent-coordination",
-		"npm:@mtrojnar/pi-usage"
+		"npm:@mtrojnar/pi-usage",
+		"npm:@r3b1s/pi-vim-stash"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.6-luna",
 		"openai-codex/gpt-5.6-sol",
-		"codex-lb/gpt-5.6-luna",
-		"codex-lb/gpt-5.6-sol",
 		"deepseek/deepseek-v4-flash",
 		"deepseek/deepseek-v4-pro"
 	],
@@ -50,5 +48,6 @@
 	"skills": [
 		"-skills/code-review/SKILL.md",
 		"-skills/implement/SKILL.md"
-	]
+	],
+	"fullscreenCopyOnSelect": false
 }
