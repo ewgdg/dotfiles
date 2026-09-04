@@ -5,7 +5,9 @@
 		"npm:@firstpick/pi-extension-btw",
 		"git:github.com/ewgdg/pi-agent-coordination",
 		"npm:@mtrojnar/pi-usage",
-		"npm:@r3b1s/pi-vim-stash"
+		"npm:@r3b1s/pi-vim-stash",
+		"npm:@howaboua/pi-codex-web-run",
+		"npm:@howaboua/pi-codex-imagegen"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-5.6-luna",

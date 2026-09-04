@@ -1,7 +1,6 @@
 {
-  "mode": "normal",
   "scope": {
-    "allProviders": "extras",
+    "allProviders": "off",
     "additionalProviders": [
       "codex-lb"
     ]
@@ -10,7 +9,7 @@
     "webRun": true,
     "imageGeneration": true,
     "viewImageFallback": false,
-    "applyPatchOnly": true,
+    "applyPatchOnly": false,
     "viewImageOnly": false,
     "webRunOnly": true,
     "imageGenerationOnly": false,
@@ -30,16 +29,18 @@
   "compaction": {
     "responsesCompaction": true,
     "version": "v2",
-    "v2UserMessageRetention": 64
+    "v2UserMessageRetention": 64,
+    "portableSummary": false
   },
   "openai": {
     "fast": false,
     "verbosity": "low",
-    "forceCachedWebSockets": true,
+    "forceCachedWebSockets": false,
     "webSearchModel": "gpt-5.6-luna",
     "harnessIdentifierHeader": false,
     "cacheDiagnostics": "off",
-    "proxyResponsesLite": true
+    "proxyResponsesLite": true,
+    "lunaCacheKeepaliveMinutes": 0
   },
   "voiceFeaturesOnly": false,
   "prompt": {
@@ -56,9 +57,10 @@
     "contextReasoning": "high",
     "audioSetupCompleted": true,
     "delegationAcknowledgements": true,
-    "forwardReasoningSummaries": true
+    "forwardReasoningSummaries": true,
+    "refreshRealtimeAfterCompaction": false
   },
-  "executionMode": "normal",
+  "executionMode": "notebook",
   "notebook": {
     "maxHeapMiB": 4096
   }

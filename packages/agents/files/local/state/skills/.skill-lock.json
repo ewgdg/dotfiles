@@ -295,9 +295,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/cursor/plugins.git",
       "skillPath": "pstack/skills/unslop/SKILL.md",
-      "skillFolderHash": "6161508c5c7959b156ff0e4e10b510863b51f9cc",
+      "skillFolderHash": "35153230eaaf0aa02437e7004bc319b33c5fbe1f",
       "installedAt": "2026-08-20T00:08:43.943Z",
-      "updatedAt": "2026-08-20T00:08:43.943Z"
+      "updatedAt": "2026-09-04T02:30:22.365Z"
+    },
+    "show-me": {
+      "source": "humanlayer/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/humanlayer/skills.git",
+      "skillPath": "plugins/show-me/skills/show-me/SKILL.md",
+      "skillFolderHash": "0bdb821a21e793a4f6f82a7078c052154447e5cc",
+      "installedAt": "2026-09-04T00:33:21.232Z",
+      "updatedAt": "2026-09-04T00:33:21.232Z"
     }
   },
   "dismissed": {
