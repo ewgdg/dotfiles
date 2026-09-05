@@ -13,5 +13,5 @@ models:
   - id: deepseek/deepseek-v4-flash
     thinking: high
 systemPromptMode: append
-inheritProjectContext: true
+loadContextFiles: true
 ---
