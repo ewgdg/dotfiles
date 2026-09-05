@@ -13,13 +13,14 @@
     "viewImageOnly": false,
     "webRunOnly": true,
     "imageGenerationOnly": false,
-    "customRustBinariesDir": ""
+    "customRustBinariesDir": "",
+    "autoReasoning": true
   },
   "ui": {
     "statusLine": true,
     "toolRenaming": true,
-    "compactTools": false,
-    "codeModeDetails": false,
+    "compactTools": true,
+    "codeModeDetails": true,
     "backgroundShellWidget": true,
     "backgroundShellToggleShortcut": "alt+w",
     "backgroundShellPrevShortcut": "alt+q",
@@ -30,7 +31,8 @@
     "responsesCompaction": true,
     "version": "v2",
     "v2UserMessageRetention": 64,
-    "portableSummary": false
+    "portableSummary": false,
+    "contextManagement": "off"
   },
   "openai": {
     "fast": false,

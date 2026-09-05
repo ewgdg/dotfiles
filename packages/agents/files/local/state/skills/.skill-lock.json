@@ -290,15 +290,6 @@
       "installedAt": "2026-08-09T19:48:28.257Z",
       "updatedAt": "2026-08-21T02:15:27.461Z"
     },
-    "unslop": {
-      "source": "cursor/plugins",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/cursor/plugins.git",
-      "skillPath": "pstack/skills/unslop/SKILL.md",
-      "skillFolderHash": "35153230eaaf0aa02437e7004bc319b33c5fbe1f",
-      "installedAt": "2026-08-20T00:08:43.943Z",
-      "updatedAt": "2026-09-04T02:30:22.365Z"
-    },
     "show-me": {
       "source": "humanlayer/skills",
       "sourceType": "github",
