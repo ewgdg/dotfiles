@@ -58,8 +58,8 @@ def test_shared_json_aliases_use_public_dotman_cli() -> None:
         ("packages/linux/faugus-launcher/package.toml", "faugus_launcher", "config_selectors", "targets.f_config_faugus_launcher_config_json", "capture", "remove"),
         ("packages/arch-system/package.toml", "arch_system", "yay_config_selectors", "targets.f_config_yay_config_json", "render", "retain"),
         ("packages/arch-system/package.toml", "arch_system", "yay_config_selectors", "targets.f_config_yay_config_json", "capture", "remove"),
-        ("packages/pi-coding-agent/package.toml", "pi_coding_agent", "settings_selectors", "targets.d_pi_agent.path_rules.0", "render", "retain"),
-        ("packages/pi-coding-agent/package.toml", "pi_coding_agent", "settings_selectors", "targets.d_pi_agent.path_rules.0", "capture", "remove"),
+        ("packages/pi-coding-agent/package.toml", "pi_coding_agent", "settings_selectors", "targets.d_pi_agent.path_rules.settings_json", "render", "retain"),
+        ("packages/pi-coding-agent/package.toml", "pi_coding_agent", "settings_selectors", "targets.d_pi_agent.path_rules.settings_json", "capture", "remove"),
     ],
 )
 def test_json_commands_preserve_selector_argv_and_transform_behavior(
@@ -76,7 +76,7 @@ def test_json_commands_preserve_selector_argv_and_transform_behavior(
     selectors = manifest["vars"][variable_group][selector_variable]
     target: object = manifest
     for component in target_path.split("."):
-        target = target[int(component)] if component.isdigit() else target[component]  # type: ignore[index]
+        target = target[component]  # type: ignore[index]
     template = target[command_name]  # type: ignore[index]
 
     live_path = tmp_path / "live.json"

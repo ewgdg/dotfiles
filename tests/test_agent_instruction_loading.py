@@ -157,7 +157,7 @@ def test_pi_uses_native_instruction_files_without_expander() -> None:
     manifest = tomllib.loads((package_root / "package.toml").read_text())
 
     assert "agents" in manifest["depends"]
-    assert "AGENTS.md" in manifest["targets"]["d_pi_agent"]["ignore"]["shared"]
+    assert "AGENTS.md" in manifest["targets"]["d_pi_agent"]["ignore"]["patterns"]
     assert not (package_root / "files/pi/agent/AGENTS.md").exists()
     assert not (package_root / "files/pi/agent/extensions/agents-file-expander.ts").exists()
 

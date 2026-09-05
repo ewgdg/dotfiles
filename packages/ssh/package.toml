@@ -7,7 +7,7 @@ path = "~/.ssh"
 chmod = "700"
 
 [targets.d_ssh.ignore]
-shared = [
+patterns = [
   "known_hosts*",
   "config",
   "agent",

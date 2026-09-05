@@ -13,7 +13,7 @@ source = "files/config/sunshine"
 path = "~/.config/sunshine"
 
 [targets.d_config_sunshine.ignore]
-shared = [
+patterns = [
   "tests/",
   "sunshine-*.conf",
   "sunshine.conf",

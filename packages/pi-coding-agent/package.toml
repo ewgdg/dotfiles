@@ -21,7 +21,7 @@ source = "files/pi/agent"
 path = "~/.pi/agent"
 
 [targets.d_pi_agent.ignore]
-shared = [
+patterns = [
   # Runtime state and caches stay local; everything else under ~/.pi/agent is config worth backing up.
   "auth.json",
   "codex-accounts.json",
@@ -40,7 +40,7 @@ shared = [
   "*changelog.json",
 ]
 
-[[targets.d_pi_agent.path_rules]]
+[targets.d_pi_agent.path_rules.settings_json]
 pattern = "settings.json"
 render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'
 capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.pi_coding_agent.settings_selectors|shell_args }}'

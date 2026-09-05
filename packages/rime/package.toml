@@ -7,7 +7,7 @@ path = "~/.config/ibus/rime"
 chmod = "700"
 
 [targets.d_config_ibus_rime.ignore]
-shared = [
+patterns = [
   "*",
   "!*.custom.yaml",
   "!sync/*.custom.yaml",

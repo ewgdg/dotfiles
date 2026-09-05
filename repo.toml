@@ -2,7 +2,7 @@ default_command_elevation = "intercept"
 
 [ignore]
 gitignore = ["push", "pull"]
-shared = [
+patterns = [
     "*.archived",
     "*.bak",
     "__pycache__/",
@@ -10,11 +10,8 @@ shared = [
     ".codex",
     "node_modules/",
     ".venv/",
-]
-pull = [
     "*.dotdropbak",
 ]
-push = []
 skip_markers = [".dotman-skip"]
 
 [hooks]

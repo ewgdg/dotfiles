@@ -7,7 +7,7 @@ path = "~/.config/fcitx5"
 chmod = "700"
 
 [targets.d_config_fcitx5.ignore]
-shared = [
+patterns = [
   "conf/cached_layouts",
   "profile_*",
 ]

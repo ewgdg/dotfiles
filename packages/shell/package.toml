@@ -16,7 +16,7 @@ source = "files/config/tmux"
 path = "~/.config/tmux"
 
 [targets.d_config_tmux.ignore]
-shared = [
+patterns = [
   "plugins/",
 ]
 

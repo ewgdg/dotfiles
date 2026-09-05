@@ -11,7 +11,7 @@ source = "files/agents"
 path = "~/.agents"
 
 [targets.d_agents.ignore]
-shared = [
+patterns = [
   "artifacts/",
   "skills/agent-web-context/references/",
   "tools/",

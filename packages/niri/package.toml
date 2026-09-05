@@ -10,7 +10,7 @@ depends = [
 source = "files/config/niri"
 path = "~/.config/niri"
 
-[[targets.d_config_niri.path_rules]]
+[targets.d_config_niri.path_rules.debug_kdl]
 pattern = "cfg/debug.kdl"
 preset = "jinja-patch"
 

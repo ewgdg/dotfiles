@@ -13,13 +13,13 @@ source = "files/config/noctalia"
 path = "~/.config/noctalia"
 
 [targets.d_config_noctalia.ignore]
-pull = ["*.json", "plugins/"]
+patterns = ["*.json", "plugins/"]
 
-[[targets.d_config_noctalia.path_rules]]
+[targets.d_config_noctalia.path_rules.config_toml]
 pattern = "config.toml"
 capture = "noctalia config export | {{ TOML_TRANSFORM }} - --stdout --mode cleanup --compare-file \"$DOTMAN_REPO_PATH\" --selector-type remove --selectors {{ vars.noctalia.config_selectors|shell_args }}"
 
-[targets.d_config_noctalia.path_rules.hooks]
+[targets.d_config_noctalia.path_rules.config_toml.hooks]
 guard_pull = "command -v noctalia >/dev/null 2>&1 || exit 100"
 
 [targets.d_local_share_noctalia_plugins_pinned_window]

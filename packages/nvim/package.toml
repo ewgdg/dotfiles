@@ -6,7 +6,7 @@ source = "files/config/nvim"
 path = "~/.config/nvim"
 
 [targets.d_config_nvim.ignore]
-shared = [
+patterns = [
   "*lock.json",
   ".nvimlog",
 ]

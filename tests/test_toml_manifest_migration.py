@@ -50,7 +50,7 @@ def test_shared_toml_alias_uses_public_dotman_cli() -> None:
     [
         ("packages/codex/package.toml", "codex", "config_selectors", "targets.f_codex_config_toml", "render", "retain"),
         ("packages/codex/package.toml", "codex", "config_selectors", "targets.f_codex_config_toml", "capture", "remove"),
-        ("packages/noctalia/package.toml", "noctalia", "config_selectors", "targets.d_config_noctalia.path_rules.0", "capture", "remove"),
+        ("packages/noctalia/package.toml", "noctalia", "config_selectors", "targets.d_config_noctalia.path_rules.config_toml", "capture", "remove"),
     ],
 )
 def test_toml_commands_render_native_selector_argv(
@@ -60,7 +60,7 @@ def test_toml_commands_render_native_selector_argv(
     manifest = load_toml(manifest_path)
     target: object = manifest
     for component in target_path.split("."):
-        target = target[int(component)] if component.isdigit() else target[component]  # type: ignore[index]
+        target = target[component]  # type: ignore[index]
     alias_name = f"TOML_{command_name.upper()}"
     context = {"DOTMAN_LIVE_PATH": "/tmp/live.toml", "DOTMAN_REPO_PATH": "/tmp/repo.toml", "TOML_TRANSFORM": core["TOML_TRANSFORM"]}
     alias = render_with_candidate(core[alias_name], context)
@@ -78,7 +78,7 @@ def test_toml_commands_render_native_selector_argv(
 def test_noctalia_capture_reads_stdin_and_preserves_unselected_toml(tmp_path: Path) -> None:
     core = load_toml("profiles/runtime/core.toml")["vars"]
     manifest = load_toml("packages/noctalia/package.toml")
-    template = manifest["targets"]["d_config_noctalia"]["path_rules"][0]["capture"]
+    template = manifest["targets"]["d_config_noctalia"]["path_rules"]["config_toml"]["capture"]
     repo_path = tmp_path / "repo.toml"
     repo_path.write_text('theme = "repo"\n', encoding="utf-8")
     rendered = render_with_candidate(
