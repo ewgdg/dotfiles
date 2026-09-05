@@ -8,6 +8,4 @@ models:
     thinking: high
   - id: deepseek/deepseek-v4-flash
     thinking: high
-systemPromptMode: append
-loadContextFiles: true
 ---
