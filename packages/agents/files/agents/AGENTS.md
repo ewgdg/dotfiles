@@ -86,9 +86,17 @@
 ## Git
 
 - use semantic commit messages
-- if the commit closes a gh issue, references it in the commit message for auto-closing. `Closes #<num>` need to be the first line of the msg body.
 - prefer local worktree dirs in `./.worktrees/` when user asks for worktree
-- prefer rebase then merge strategy
+- Prefer rebasing followed by a fast-forward merge.
+
+### Implementation commits
+
+- Commit at meaningful boundaries.
+- Commit all task-owned changes before handoff for easier review.
+
+### GitHub
+
+- Link parent/sub-issues natively in GitHub, not through issue or PR descriptions.
 
 ## CLI Tools
 
