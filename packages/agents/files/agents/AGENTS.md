@@ -92,7 +92,7 @@
 ### Implementation commits
 
 - Commit at meaningful boundaries.
-- Commit all task-owned changes before handoff for easier review.
+- Commit all task-owned changes and report the new commit hashes before handoff for easier review.
 
 ### GitHub
 
