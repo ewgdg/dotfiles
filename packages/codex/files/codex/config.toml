@@ -97,6 +97,7 @@ ambient-suggestions-enabled = true
 sansFontSize = 16
 selected-avatar-id = "codex"
 open-link-in-target-preference = "external-browser"
+toys-confetti-enabled = true
 
 [apps.github]
 enabled = false
