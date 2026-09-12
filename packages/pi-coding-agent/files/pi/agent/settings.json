@@ -1,6 +1,6 @@
 {
 	"packages": [
-		"npm:pi-mcporter",
+		"npm:pi-mcp-client",
 		"npm:@howaboua/pi-codex-conversion",
 		"npm:@firstpick/pi-extension-btw",
 		"git:github.com/ewgdg/pi-agent-coordination",
