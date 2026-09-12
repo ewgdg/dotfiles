@@ -19,6 +19,18 @@ probe = 'if herdr plugin list 2>/dev/null | grep -q persiyanov.reviewr; then exi
 [targets.reviewr_installed.hooks]
 pre_push = 'herdr plugin install persiyanov/herdr-reviewr --yes'
 
+[targets.nvim_installed]
+sync_policy = "push-only"
+probe = '''
+if ! command -v herdr >/dev/null 2>&1; then exit 0; fi
+plugins=$(herdr plugin list) || exit 1
+if printf '%s\n' "$plugins" | grep -q '^- herdr-nvim .* enabled '; then exit 100; fi
+exit 0
+'''
+
+[targets.nvim_installed.hooks]
+pre_push = 'herdr plugin install jtnovellis/herdr-nvim --ref v0.2.3 --yes'
+
 [targets.d_config_herdr_plugins_config]
 source = "files/config/herdr/plugins/config"
 path = "~/.config/herdr/plugins/config"

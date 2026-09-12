@@ -1,6 +1,8 @@
 onboarding = false
 
 [keys]
+# Keep scrollback editing available when the Neovim sidebar takes prefix+e.
+edit_scrollback = "prefix+shift+e"
 switch_workspace = "ctrl+1..9"
 previous_workspace = "ctrl+shift+k"
 next_workspace = "ctrl+shift+j"
@@ -12,6 +14,18 @@ key = "prefix+\\"
 type = "plugin_action"
 command = "persiyanov.reviewr.toggle"
 description = "Toggle reviewr"
+
+[[keys.command]]
+key = "prefix+e"
+type = "plugin_action"
+command = "herdr-nvim.toggle"
+description = "Toggle Neovim sidebar"
+
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-nvim.pick-file"
+description = "Open file from agent output"
 
 [theme]
 name = "gruvbox"
