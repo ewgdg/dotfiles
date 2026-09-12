@@ -9,16 +9,9 @@ Global server definitions live in `~/.pi/agent/mcp.json`, using the `mcpServers`
 object. Trusted projects can override individual servers in `.mcp.json`.
 See the upstream [configuration guide](https://github.com/mavam/pi-mcp-client/blob/main/docs/configuration.md).
 
-The `node_repl` definition stays live-local: its executable, environment, and
-browser-service paths belong to the local Codex App installation. Dotman preserves
-it on push and excludes it on pull. Other server definitions are tracked; use
-environment references or secret commands rather than committing credentials.
-
-Pi uses its own explicit server definitions, not automatic imports from other
-clients. After Codex App changes its server paths or environment, refresh the
-local definition from `~/.codex/config.toml` with `/mcp import --scope global
-~/.codex/config.toml` and review the selected connection before saving. Preserve
-the intended `cwd` when editing the definition.
+Pi uses its own explicit server definitions, managed with `/mcp add` or file edits.
+Server definitions are tracked; use environment references or secret commands
+rather than committing credentials.
 
 Restart Pi after changing extension packages. Use `/mcp` to check connections
 and `/mcp reload` after editing configuration. The model discovers tools through
