@@ -1,13 +1,13 @@
 {
 	"packages": [
-		"npm:pi-mcp-client",
 		"npm:@howaboua/pi-codex-conversion",
 		"npm:@firstpick/pi-extension-btw",
-		"git:github.com/ewgdg/pi-agent-coordination",
+		"git:github.com/ewgdg/pi-durable-subagents",
 		"npm:@mtrojnar/pi-usage",
 		"npm:@r3b1s/pi-vim-stash",
 		"npm:@howaboua/pi-codex-web-run",
-		"npm:@howaboua/pi-codex-imagegen"
+		"npm:@howaboua/pi-codex-imagegen",
+		"npm:pi-mcp-client"
 	],
 	"enabledModels": [
 		"openai-codex/gpt-6-astra",

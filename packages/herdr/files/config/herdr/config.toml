@@ -15,18 +15,6 @@ type = "plugin_action"
 command = "persiyanov.reviewr.toggle"
 description = "Toggle reviewr"
 
-[[keys.command]]
-key = "prefix+e"
-type = "plugin_action"
-command = "herdr-nvim.toggle"
-description = "Toggle Neovim sidebar"
-
-[[keys.command]]
-key = "prefix+f"
-type = "plugin_action"
-command = "herdr-nvim.pick-file"
-description = "Open file from agent output"
-
 [theme]
 name = "gruvbox"
 auto_switch = false
@@ -39,6 +27,7 @@ show_agent_labels_on_pane_borders = false
 mouse_scroll_lines = 1
 #copy_on_select = false
 
+status_indicators = "symbols"
 [experimental]
 pane_history = true
 kitty_graphics = true
@@ -51,3 +40,16 @@ enabled = true
 
 [update]
 channel = "stable"
+
+# Added by `herdr-nvim setup-keys`.
+[[keys.command]]
+key = "prefix+e"
+type = "plugin_action"
+command = "herdr-nvim.toggle"
+description = "toggle Neovim sidebar"
+
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-nvim.pick-file"
+description = "open file from agent output"

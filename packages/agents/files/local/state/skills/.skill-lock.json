@@ -46,15 +46,6 @@
       "installedAt": "2026-06-24T02:59:13.555Z",
       "updatedAt": "2026-08-10T07:05:37.198Z"
     },
-    "surf-chatgpt": {
-      "source": "ewgdg/browser-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
-      "skillPath": "skills/surf-chatgpt/SKILL.md",
-      "skillFolderHash": "3f39b60c49c865627508a684f8e6447f980e7b34",
-      "installedAt": "2026-06-24T02:59:13.556Z",
-      "updatedAt": "2026-08-21T02:15:25.730Z"
-    },
     "grill-with-docs": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -232,9 +223,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/herdrdev/herdr.git",
       "skillPath": "skills/herdr/SKILL.md",
-      "skillFolderHash": "f8bb649bb92ddc99e6af463ab9a635da98c7b129",
+      "skillFolderHash": "b9dcfddcfa7ce43e2e4cf60e724c519be553f149",
       "installedAt": "2026-08-05T07:26:41.430Z",
-      "updatedAt": "2026-08-21T02:15:30.191Z"
+      "updatedAt": "2026-09-10T08:26:03.666Z"
     },
     "to-questionnaire": {
       "source": "mattpocock/skills",

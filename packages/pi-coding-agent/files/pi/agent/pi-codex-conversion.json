@@ -19,7 +19,7 @@
   "ui": {
     "statusLine": true,
     "toolRenaming": true,
-    "compactTools": true,
+    "compactTools": "on",
     "codeModeDetails": true,
     "backgroundShellWidget": true,
     "backgroundShellToggleShortcut": "alt+w",
@@ -28,11 +28,12 @@
     "backgroundShellCloseShortcut": "alt+r"
   },
   "compaction": {
-    "responsesCompaction": true,
+    "responsesCompaction": false,
     "version": "v2",
     "v2UserMessageRetention": 64,
     "portableSummary": false,
-    "contextManagement": "off"
+    "contextManagement": "local",
+    "hybridCompaction": false
   },
   "openai": {
     "fast": false,
@@ -62,8 +63,9 @@
     "forwardReasoningSummaries": true,
     "refreshRealtimeAfterCompaction": false
   },
-  "executionMode": "notebook",
+  "executionMode": "code",
   "notebook": {
-    "maxHeapMiB": 4096
+    "maxHeapMiB": 4096,
+    "plainCommandOutput": false
   }
 }
