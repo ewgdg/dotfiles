@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "e914f632aea12fa08120f259e0d5b55ef2a05f92",
+      "skillFolderHash": "739cfc46bde81072e9b12d6e5cd0f6f914d5178e",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-08-10T07:05:37.198Z"
+      "updatedAt": "2026-09-17T02:24:46.154Z"
     },
     "grill-with-docs": {
       "source": "mattpocock/skills",
@@ -223,9 +223,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/herdrdev/herdr.git",
       "skillPath": "skills/herdr/SKILL.md",
-      "skillFolderHash": "b9dcfddcfa7ce43e2e4cf60e724c519be553f149",
+      "skillFolderHash": "6985a5e8418d43171c45c2a9e04b02de7308e1d8",
       "installedAt": "2026-08-05T07:26:41.430Z",
-      "updatedAt": "2026-09-10T08:26:03.666Z"
+      "updatedAt": "2026-09-17T02:24:50.366Z"
     },
     "to-questionnaire": {
       "source": "mattpocock/skills",
@@ -268,9 +268,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf-google-search/SKILL.md",
-      "skillFolderHash": "d8c219163808a3af3fc256dde88e42036e4f0000",
+      "skillFolderHash": "2462970e8a3ff08f6d4b7a7e995d2808270045e7",
       "installedAt": "2026-08-09T19:48:28.257Z",
-      "updatedAt": "2026-08-21T02:15:27.461Z"
+      "updatedAt": "2026-09-17T02:24:47.592Z"
     },
     "show-me": {
       "source": "humanlayer/skills",
@@ -280,6 +280,15 @@
       "skillFolderHash": "0bdb821a21e793a4f6f82a7078c052154447e5cc",
       "installedAt": "2026-09-04T00:33:21.232Z",
       "updatedAt": "2026-09-04T00:33:21.232Z"
+    },
+    "retro": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/in-progress/retro/SKILL.md",
+      "skillFolderHash": "335c1862a43da9d629abafdb79ca0c0de118be08",
+      "installedAt": "2026-09-16T10:07:15.876Z",
+      "updatedAt": "2026-09-16T10:07:15.876Z"
     }
   },
   "dismissed": {
@@ -287,14 +296,13 @@
   },
   "lastSelectedAgents": [
     "amp",
-    "antigravity",
-    "antigravity-cli",
     "cline",
     "codex",
     "cursor",
-    "deepagents",
+    "droid",
     "gemini-cli",
     "github-copilot",
+    "kilo",
     "kimi-code-cli",
     "opencode",
     "warp",

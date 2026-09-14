@@ -14,7 +14,8 @@
 		"openai-codex/gpt-5.6-luna",
 		"openai-codex/gpt-5.6-sol",
 		"deepseek/deepseek-v4-flash",
-		"deepseek/deepseek-v4-pro"
+		"deepseek/deepseek-v4-pro",
+		"deepseek/deepseek-flash"
 	],
 	"theme": "dark",
 	"pi-openai-controls": {

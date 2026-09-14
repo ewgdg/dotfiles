@@ -64,6 +64,12 @@ window-rule {
 // }
 
 window-rule {
+  match title=r#"(?i)^Battle.net$"#
+  open-on-workspace "games"
+  open-floating false
+}
+
+window-rule {
   // XEmbed SNI proxy tray helper. Hide its managed utility window on the stash workspace.
   match app-id=r#"^xembed-sni-proxy$"#
   open-on-workspace "stash"
@@ -93,12 +99,18 @@ window-rule {
 }
 
 window-rule {
+    // Agent-launched GUI apps must not interrupt the current task.
+    match client-env=r#"^PI_CODING_AGENT=true$"#
+    open-focused false
+    on-xdg-activate "set-urgent"
+}
+
+window-rule {
     match app-id=r#"(?i)^chrome-.*Surf%20Agent.*"#
     match app-id="surf-agent"
     open-on-workspace "stash"
     open-focused false
-    focus-on-xdg-activate false
-    urgent-on-xdg-activate true
+    on-xdg-activate "set-urgent"
     open-maximized true
 }
 

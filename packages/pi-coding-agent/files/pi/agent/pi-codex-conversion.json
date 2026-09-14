@@ -1,9 +1,7 @@
 {
   "scope": {
     "allProviders": "off",
-    "additionalProviders": [
-      "codex-lb"
-    ]
+    "additionalProviders": []
   },
   "tools": {
     "webRun": true,
@@ -28,11 +26,11 @@
     "backgroundShellCloseShortcut": "alt+r"
   },
   "compaction": {
-    "responsesCompaction": false,
+    "responsesCompaction": true,
     "version": "v2",
     "v2UserMessageRetention": 64,
     "portableSummary": false,
-    "contextManagement": "local",
+    "contextManagement": "off",
     "hybridCompaction": false
   },
   "openai": {
@@ -47,7 +45,7 @@
   },
   "voiceFeaturesOnly": false,
   "prompt": {
-    "heavySystemPromptOverwrite": true
+    "heavySystemPromptOverwrite": false
   },
   "voice": {
     "v3Voice": "cove",

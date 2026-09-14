@@ -40,6 +40,7 @@ pre_action_fade_seconds = 5
     [idle.behavior.screen-off]
     action = "screen_off"
     enabled = true
+    locked_timeout = 60.0
     timeout = 660.0
 
 [notification]

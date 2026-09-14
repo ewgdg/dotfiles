@@ -2,6 +2,7 @@
 
 - Intention oriented; highlight intention over technical jargon.
 - Lead with the conclusion or next action. Use short sections and compact bullets.
+- When presenting a file, show its copyable path, not just a link label.
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
 - Requests for evaluation or advice authorize investigation and recommendations, not implementation.
@@ -99,7 +100,8 @@
 
 ### GitHub
 
-- Link parent/sub-issues natively in GitHub, not through issue or PR descriptions.
+- Link parent/sub-issues natively in GitHub when both repositories are owned by the user.
+- When linking or tracking a repository not owned by the user, leave its timeline unchanged. Use `redirect.github.com` URLs instead of direct issue/PR references or native relationships (dependencies, parent/sub-issues).
 
 ## CLI Tools
 
