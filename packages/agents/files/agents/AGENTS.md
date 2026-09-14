@@ -1,10 +1,15 @@
 ## Communication
 
 - Intention oriented; highlight intention over technical jargon.
-- ADHD-Friendly Formatting
+- Lead with the conclusion or next action. Use short sections and compact bullets.
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
-- Do not treat questions as permissions to action/implementation.
+- Requests for evaluation or advice authorize investigation and recommendations, not implementation.
+
+## Instruction Precedence
+
+- For workflow preferences: explicit user instructions > AGENTS.md > tool guidance > skills.
+- When an instruction blocks requested work, identify the file and rule, explain the conflict, and continue unblocked work.
 
 ## File Operations
 
@@ -29,17 +34,14 @@
 ## Problem Solving
 
 - Do not blindly patch for a narrow case, especially if the patch seems over-complicated. Take a chance to see if a simpler and generic approach can be taken as a fresh design
-- Use GAN style thinking frameworks
+- For consequential designs, challenge the proposal with a concrete failure case and address it before implementation.
 - Use first principles thinking
 - Grow the system in layers. Start from the smallest version that works end to end, and add each new capability on top of a product that already works. Never trade a working product for unfinished complexity.
 
 ## Legacy Handling
 
-- Do not preserve backward compatibility. Remove obsolete paths.
-- Do not carry history burdens or past mistakes into mindset. Do not put those trivial one-off mistakes into design principles when asked for corrections. Focus on the corrected principles and start fresh without looking back.
-- Zero tolerance to unjustified legacy code/docs
-- Always ask user before retaining legacy related logic, whether it is for testing or auditing or warning purpose.
-- Don't bleed migration logic (e.g. rejecting of removed items) or any mentioning/handling into source code, either create a separate migration module or just a one-off temporary cleanup run/script
+- Within the requested change, remove superseded code and documentation rather than adding compatibility paths. Ask before retaining compatibility behavior.
+- Keep migration handling separate from normal runtime logic. Propose unrelated cleanup separately.
 
 ## Coding
 
@@ -55,7 +57,7 @@
 - Keep components modular and concerns clearly separated.
 - During implementation, separate enabling refactors from opportunistic changes. Small local refactors are OK if they directly support the requested change. For adjacent cleanup, robustness improvements, behavior changes, or unrelated bug fixes: do not include them silently; propose them as follow-ups or ask before expanding scope.
 - Failed fast, do not abuse fallback cases and try-catch blocks in core logic for hiding the issues
-- No hard-coded values
+- Keep environment-specific and user-configurable values out of source. Use named constants for meaningful fixed values.
 - Lean on the dependencies already in the project before writing your own implementation or adding packages. Do not assume a library lacks a capability without checking its documentation and types.
 - Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
 - Do not let review feedback expand the task beyond the user's original goal. Address real shortcomings, but avoid scope creep.
@@ -65,7 +67,7 @@
 - Write test cases first before bug fixes
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Avoid excessive testing of low-value details. Focus on important, regression-prone behavior.
-- An automated test must fail fast. ~5s timeout is long enough to determine a test is stuck unless there is a valid reason. You should generally avoid creating long-running tests.
+- Use bounded test timeouts appropriate to the operation; distinguish slow tests from hung tests.
 - If the full test suite takes long (>10s), do not run it as a whole until you are ready to finish and you should not run the full test suite if the blast radius is small.
 
 ## Context Efficiency
@@ -75,7 +77,8 @@
 
 ## Subagent Policy
 
-- It is very hard to accurately estimate the budget, so do not set a hard timeout or budget for a subagent run and unless requested. If have to, be very generous.
+- Delegate independent work when it saves time, improves quality, or keeps low-value intermediate details out of the main context.
+- Set subagent timeouts or budgets only when requested or required; keep them generous.
 - Avoid multiple agents working on tasks with overlapping scopes, which can cause undesired high context inefficiency.
 
 ## Python Related
@@ -101,12 +104,6 @@
 ## CLI Tools
 
 - `gh` for github
-
-## Browser Policy
-
-- Trigger real browser use when built-in websearch is weak, Google's live ranking quality matters, or for advanced/JS-heavy/bot-heavy/social/login research where live profile access or human intervention may help.
-- Prefer undistracting workflows: unfocused/dedicated browser windows, scoped commands, close temporary windows when done.
-- Prefer subagents for research-heavy browsing tasks so the parent agent stays focused and receives concise findings.
 
 ## Skill Management
 
