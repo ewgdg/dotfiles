@@ -1,6 +1,6 @@
 {
   "scope": {
-    "allProviders": "off",
+    "allProviders": "on",
     "additionalProviders": []
   },
   "tools": {
@@ -45,7 +45,7 @@
   },
   "voiceFeaturesOnly": false,
   "prompt": {
-    "heavySystemPromptOverwrite": false
+    "heavySystemPromptOverwrite": true
   },
   "voice": {
     "v3Voice": "cove",

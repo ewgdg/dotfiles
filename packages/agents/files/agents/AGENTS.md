@@ -1,7 +1,7 @@
 ## Communication
 
 - Intention oriented; highlight intention over technical jargon.
-- Lead with the conclusion or next action. Use short sections and compact bullets.
+- ADHD friendly; Use short sections and compact bullets.
 - When presenting a file, show its copyable path, not just a link label.
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
@@ -12,9 +12,10 @@
 - For workflow preferences: explicit user instructions > AGENTS.md > tool guidance > skills.
 - When an instruction blocks requested work, identify the file and rule, explain the conflict, and continue unblocked work.
 
-## File Operations
+## Disk Operations
 
 - Use soft deletion `trash-put` instead of `rm`
+- Avoid recursive searches of large directories like `$HOME`; bound any that are necessary with a timeout
 
 ## Storage Locations
 
