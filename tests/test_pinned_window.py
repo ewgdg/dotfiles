@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PINNED_WINDOW_SCRIPT = (
     REPO_ROOT / "packages/niri/files/config/niri/bin/pinned-window.sh"
 )
-REFRESH_COMMAND = "msg plugin xian/pinned-window:state all refresh"
+REFRESH_COMMAND = "msg plugin ewgdg/pinned-window:state all refresh"
 
 
 def write_executable(path: Path, contents: str) -> None:

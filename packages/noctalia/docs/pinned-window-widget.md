@@ -24,8 +24,8 @@ Behavior:
 The headless entry is a Noctalia plugin service, not a separate systemd unit. It
 starts and stops with the shell managed by `niri-shell.service`.
 
-The plugin is enabled as `xian/pinned-window`; the bar widget type is
-`xian/pinned-window:window`.
+The plugin is enabled as `ewgdg/pinned-window`; the bar widget type is
+`ewgdg/pinned-window:window`.
 
 Related files:
 

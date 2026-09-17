@@ -59,7 +59,7 @@ media = false
 privacy = false
 
 [plugins]
-enabled = [ "xian/pinned-window" ]
+enabled = [ "ewgdg/pinned-window" ]
 
 [shell]
 clipboard_auto_paste = "off"
@@ -117,7 +117,7 @@ drawer = true
 pinned = [ "Fcitx", "nm-applet" ]
 
 [widget.window]
-type = "xian/pinned-window:window"
+type = "ewgdg/pinned-window:window"
 
 [widget.workspaces]
 max_label_chars = 6

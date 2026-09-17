@@ -10,7 +10,7 @@ usage() {
 runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
 state_file="$runtime_dir/niri-pinned-window.json"
 fallback_workspace="main"
-noctalia_service_entry="xian/pinned-window:state"
+noctalia_service_entry="ewgdg/pinned-window:state"
 
 mkdir -p "$runtime_dir"
 
