@@ -2,10 +2,28 @@
 set -euo pipefail
 
 # sudo passes its prompt as argv[1] to the askpass helper.
-prompt="${1:-Enter your password:}"
+prompt="${1:-}"
+
+info_helper() {
+  local script_dir
+  script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+  if [[ -x "$script_dir/sudo-request-context" ]]; then
+    printf '%s' "$script_dir/sudo-request-context"
+    return 0
+  fi
+  command -v sudo-request-context 2>/dev/null || return 1
+}
+
+if helper=$(info_helper); then
+  body=$("$helper" "$prompt")
+else
+  # Installing the askpass script without its helper must still leave a usable
+  # dialog, so fall back to the prompt itself.
+  body="${prompt:-Enter your password:}"
+fi
 
 password="$(
-  /usr/bin/osascript - "$prompt" <<'APPLESCRIPT'
+  /usr/bin/osascript - "$body" <<'APPLESCRIPT'
 on run argv
     set promptText to item 1 of argv
     tell application "System Events"
@@ -18,4 +36,5 @@ APPLESCRIPT
 )" || exit $?
 
 printf '%s\n' "$password"
+
 

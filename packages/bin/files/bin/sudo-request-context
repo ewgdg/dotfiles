@@ -1,0 +1,332 @@
+#!/usr/bin/env bash
+#
+# Prints who is asking for sudo, for what, and where: the body of a password
+# dialog.
+#
+# sudo forks the askpass program from its own process and passes the expanded
+# prompt as $1, so the invocation being authorised can be read back from the
+# parent argv. sudo exports neither SUDO_COMMAND before authentication nor the
+# command in its prompt escapes (%H %h %p %U %u %%), so the parent argv is the
+# only source for it.
+#
+# The dialog grows to fit its text and can neither scroll nor ellipsize (zenity
+# rejects --no-wrap and --ellipsize for the password and entry dialogs), so
+# every field is capped here instead of being left to the toolkit.
+#
+# Deliberately not covered by "set -e": everything below reads volatile
+# process state, and a read that races with a process exiting must degrade to
+# less context rather than kill the password prompt.
+
+set -uo pipefail
+
+max_requester_chars=96
+max_command_chars=120
+max_directory_chars=60
+max_reason_chars=120
+max_scope_chars=28
+max_chain_nodes=4
+label_width=9
+
+# Options that consume the next word, per "sudo -h". Everything else counts as
+# a flag, so an option missing from this list shows up in the command row
+# rather than swallowing the command itself.
+long_value_options=' --chdir --chroot --close-from --command-timeout --group --host --other-user --prompt --user '
+short_value_options=' C D R T U g h p r t u '
+
+# Shorten text to a character budget, marking the cut.
+cap() {
+    local text=$1 max=$2
+    if (( ${#text} > max )); then
+        printf '%s…' "${text:0:max-1}"
+    else
+        printf '%s' "$text"
+    fi
+}
+
+# Collapse whitespace runs so a multi-line script or reason stays one row.
+trim() {
+    printf '%s' "$1" | tr '\n\r\t' '   ' | tr -s ' ' | sed -e 's/^ //' -e 's/ $//'
+}
+
+parent_pid() {
+    ps -o ppid= -p "$1" 2>/dev/null | tr -d ' '
+}
+
+# argv[0] beats comm: comm is cut at fifteen characters and reports the
+# interpreter for script-based callers.
+process_name() {
+    local pid=$1 name=''
+    if [[ -r /proc/$pid/cmdline ]]; then
+        name=$(tr '\0' '\n' < "/proc/$pid/cmdline" | head -n 1)
+    fi
+    if [[ -z $name ]]; then
+        name=$(ps -o args= -p "$pid" 2>/dev/null)
+        name=${name%% *}
+    fi
+    name=${name##*/}
+    name=${name#-}
+    printf '%s' "${name:0:24}"
+}
+
+# The tty survives every wrapper and exec, so it is what separates "you in a
+# terminal" from a background request.
+tty_label() {
+    local tty
+    tty=$(ps -o tty= -p "$1" 2>/dev/null | tr -d ' ')
+    case $tty in
+        '' | '?' | '-') printf '%s' 'no tty' ;;
+        *) printf 'tty %s' "$tty" ;;
+    esac
+}
+
+# Last cgroup segment, e.g. app-ghostty-surface-8720.scope. Cgroup membership
+# is inherited at fork, so it still names the session that launched sudo after
+# the caller itself exited and sudo was reparented.
+cgroup_scope() {
+    local path
+    [[ -r /proc/$1/cgroup ]] || return 0
+    path=$(tail -n 1 "/proc/$1/cgroup")
+    path=${path##*:}
+    path=${path##*/}
+    printf '%s' "${path%.scope}"
+}
+
+# Walks up from the sudo process. Parentage is reliable because sudo forks the
+# askpass helper itself; names are not - a wrapper execs into sudo and loses
+# its name, scripts report their interpreter, and a backgrounded caller ends up
+# reparented - so the chain is shown instead of one guessed process.
+render_requester() {
+    local sudo_pid=$1 pid node chain='' invoker_pid='' root_ppid='' elided=no suffix='' scope=''
+    local count=0 budget
+
+    pid=$sudo_pid
+    while [[ -n $pid && $pid != 1 && $count -lt $max_chain_nodes ]]; do
+        if [[ $count -eq 1 ]]; then
+            invoker_pid=$pid
+        fi
+        node="$(process_name "$pid")($pid)"
+        if [[ $count -eq 0 ]]; then
+            chain=$node
+        else
+            chain="$chain ← $node"
+        fi
+        count=$((count + 1))
+        pid=$(parent_pid "$pid")
+    done
+    root_ppid=$pid
+
+    if [[ -n $root_ppid && $root_ppid != 1 ]]; then
+        elided=yes
+    else
+        # The walk reached PID 1: either a service launched sudo, or the caller
+        # exited and left sudo reparented to a session root. The inherited
+        # cgroup is the only identity that survives the second case.
+        scope=$(cap "$(cgroup_scope "$sudo_pid")" "$max_scope_chars")
+    fi
+
+    suffix=" · $(tty_label "${invoker_pid:-$sudo_pid}")"
+    if [[ -n $scope ]]; then
+        suffix="$suffix · $scope"
+    fi
+
+    budget=$((max_requester_chars - ${#suffix}))
+    if (( budget < 24 )); then
+        budget=24
+    fi
+    while (( ${#chain} > budget )) && [[ $chain == *' ← '* ]]; do
+        chain=${chain% ← *}
+        elided=yes
+    done
+    if [[ $elided == yes ]]; then
+        chain="$chain ← …"
+    fi
+
+    printf '%s' "$(cap "$chain$suffix" "$max_requester_chars")"
+}
+
+# How many words of a flattened (ps) prompt value to consume. Flattening loses
+# the argument boundaries, so the value cannot be told apart from the command.
+# The value ends at the last word ending in ":" within the lookahead window,
+# because sudo prompts end with "…: "; a reason that itself contains colons
+# (agent-sudo writes "Reason: …") stays inside the window. With no such word
+# the value is taken to be one word, which keeps a command that contains colons
+# from being eaten instead.
+flattened_prompt_words() {
+    local count=0 stop=0 limit=24 token
+    for token in "$@"; do
+        count=$((count + 1))
+        if [[ $token == *: ]]; then
+            stop=$count
+        fi
+        if (( count >= limit )); then
+            break
+        fi
+    done
+    if (( stop > 0 )); then
+        printf '%s' "$stop"
+    else
+        printf '%s' 1
+    fi
+}
+
+# Extracts the command from a sudo invocation given its argv. "exact" consumes
+# one word per value-taking option; "flattened" has to guess where the prompt
+# value ends because ps collapsed argv into a single string.
+parse_invocation() {
+    local mode=$1
+    shift
+    local -a tokens=("$@")
+    local count=${#tokens[@]}
+    local token rest ch command=''
+    local i=1 takes_value=no
+
+    while (( i < count )); do
+        token=${tokens[$i]}
+        case $token in
+            --)
+                i=$((i + 1))
+                break
+                ;;
+            -*)
+                takes_value=no
+                case $token in
+                    -p | --prompt)
+                        if [[ $mode == flattened ]]; then
+                            i=$((i + 1 + $(flattened_prompt_words "${tokens[@]:i+1}")))
+                            continue
+                        fi
+                        takes_value=yes
+                        ;;
+                    -p?* | --prompt=* | --*=*)
+                        # Value attached to the option, e.g. -pPassword.
+                        i=$((i + 1))
+                        continue
+                        ;;
+                    --*)
+                        if [[ ${long_value_options} == *" $token "* ]]; then
+                            takes_value=yes
+                        fi
+                        ;;
+                    *)
+                        rest=${token#-}
+                        while [[ -n $rest ]]; do
+                            ch=${rest:0:1}
+                            rest=${rest:1}
+                            if [[ ${short_value_options} == *" $ch "* ]]; then
+                                if [[ -z $rest ]]; then
+                                    takes_value=yes
+                                fi
+                                break
+                            fi
+                        done
+                        ;;
+                esac
+                i=$((i + 1))
+                if [[ $takes_value == yes ]]; then
+                    i=$((i + 1))
+                fi
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    while (( i < count )); do
+        command="$command${tokens[$i]} "
+        i=$((i + 1))
+    done
+    trim "$command"
+}
+
+# Reads the sudo invocation from the parent process, which is the sudo process
+# for a real askpass call.
+render_command() {
+    local pid=$1 token flattened
+    if [[ -r /proc/$pid/cmdline ]]; then
+        local -a tokens=()
+        while IFS= read -r -d '' token; do
+            tokens+=("$token")
+        done < "/proc/$pid/cmdline"
+        if (( ${#tokens[@]} > 1 )); then
+            parse_invocation exact "${tokens[@]}"
+        fi
+        return 0
+    fi
+    # Systems without /proc (macOS) only expose a flattened argv, so the split
+    # below is intentional and globbing is disabled to keep command text with
+    # wildcards from expanding against the current directory.
+    flattened=$(ps -o args= -p "$pid" 2>/dev/null)
+    if [[ -n $flattened ]]; then
+        set -f
+        parse_invocation flattened $flattened
+        set +f
+    fi
+}
+
+row() {
+    printf '%-*s  %s\n' "$label_width" "$1" "$(cap "$2" "$3")"
+}
+
+# The askpass program sits between sudo and this helper, and it is usually a
+# shell script, so sudo is not the direct parent. Walking up also keeps the
+# helper honest when it is run by hand: without a sudo ancestor there is no
+# invocation to describe.
+find_sudo_pid() {
+    local pid
+    pid=$(parent_pid "$$")
+    while [[ -n $pid && $pid != 1 ]]; do
+        if [[ $(process_name "$pid") == sudo ]]; then
+            printf '%s' "$pid"
+            return 0
+        fi
+        pid=$(parent_pid "$pid")
+    done
+}
+
+main() {
+    local prompt=${1-}
+    local sudo_pid='' requester='' command='' directory='' reason='' body='' line piece
+
+    sudo_pid=$(find_sudo_pid)
+    if [[ -n $sudo_pid ]]; then
+        requester=$(render_requester "$sudo_pid")
+        command=$(render_command "$sudo_pid")
+    fi
+
+    directory=$(trim "${PWD:-}")
+    if [[ -z $directory ]]; then
+        directory=$(pwd)
+    fi
+
+    if [[ -n $prompt ]]; then
+        while IFS= read -r line; do
+            case $line in
+                'Reason:'*)
+                    piece=${line#Reason:}
+                    piece=${piece# }
+                    if [[ -n $reason ]]; then
+                        reason="$reason $piece"
+                    else
+                        reason=$piece
+                    fi
+                    ;;
+                '') ;;
+                *) body="$body$line"$'\n' ;;
+            esac
+        done <<<"$prompt"
+        body=${body%$'\n'}
+    fi
+
+    if [[ -n $requester ]]; then row Requester "$requester" "$max_requester_chars"; fi
+    if [[ -n $command ]]; then row Command "$command" "$max_command_chars"; fi
+    if [[ -n $directory ]]; then row Directory "$directory" "$max_directory_chars"; fi
+    if [[ -n $reason ]]; then row Reason "$(trim "$reason")" "$max_reason_chars"; fi
+
+    printf '\n%s\n' "${body:-Enter your password:}"
+}
+
+# Sourced by tests for the parse helpers; only a direct run renders a prompt.
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    main "$@"
+fi

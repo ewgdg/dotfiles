@@ -57,7 +57,9 @@ if [ -z "$reason" ]; then
     exit 2
 fi
 
-prompt=$(printf 'Agent needs elevated privileges.\nReason: %s\nPassword for %%p: ' "$(escape_sudo_prompt "$reason")")
+# The askpass helper renders who and what itself, so the prompt only has to
+# carry the reason; it is read back as the helper's Reason row.
+prompt=$(printf 'Reason: %s\nPassword for %%p: ' "$(escape_sudo_prompt "$reason")")
 
 # Force sudo away from terminal prompting. If auth is needed and no askpass is
 # configured, sudo exits instead of blocking on an unreachable TUI/agent prompt.

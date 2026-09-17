@@ -1,19 +1,45 @@
 #!/usr/bin/env sh
+#
+# zenity helper for sudo -A, which passes its prompt as $1.
+#
+# The password dialog (--password) ignores --text completely and always renders
+# a fixed "Type your password" label, so the entry dialog is used instead: it
+# shows the body and still hides what is typed. --no-markup keeps command text
+# containing & or < intact.
 
 set -eu
 
-prompt=${1:-"Enter your password:"}
+prompt=${1:-}
+
+info_helper() {
+    script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    if [ -x "$script_dir/sudo-request-context" ]; then
+        printf '%s' "$script_dir/sudo-request-context"
+        return 0
+    fi
+    command -v sudo-request-context 2>/dev/null || return 1
+}
 
 if ! command -v zenity >/dev/null 2>&1; then
     printf 'zenity is required for askpass-gui\n' >&2
     exit 1
 fi
 
+if helper=$(info_helper); then
+    body=$("$helper" "$prompt")
+else
+    # Installing the askpass script without its helper must still leave a
+    # usable dialog, so fall back to the prompt itself.
+    body=${prompt:-Enter your password:}
+fi
+
 password=$(
-    zenity --password \
+    zenity --entry --hide-text \
         --title="Authentication Required" \
-        --text="$prompt" \
+        --no-markup \
+        --text="$body" \
         2>/dev/null
 ) || exit $?
 
 printf '%s\n' "$password"
+
