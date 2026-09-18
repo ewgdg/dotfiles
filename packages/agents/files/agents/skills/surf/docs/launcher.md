@@ -10,9 +10,28 @@ The launcher executes Python directly: file-relative imports, working directory,
 
 ## Published runtime
 
-`runtime-revision`, beside `SKILL.md`, selects a full 40-character Git commit for the runtime dependency. Maintainers test and publish that runtime commit before updating the skill's pin, then validate the published skill without a dependency override. Users update the skill; the launcher installs its matching runtime.
+`runtime-revision`, beside `SKILL.md`, selects a full 40-character Git commit for the runtime dependency. Users update the skill; the launcher installs its matching runtime.
 
 A missing or invalid pin is an installation defect. Stop and report it, then update or repair the installed skill. If the pinned commit cannot be fetched, report that failure.
+
+## Sessions
+
+`run.py --new-session [--name SLUG] [--ttl SECONDS] -` creates an interpreter and reports the session id as the last stdout output of that call; [SKILL.md](../SKILL.md) covers when a session is worth using:
+
+```text
+--- BEGIN session metadata ---
+session_id: research-1f3a9c02
+idle_timeout_s: 1800
+--- END session metadata ---
+```
+
+`run.py --session ID -` runs the next cell in that interpreter, `--session ID --reset` discards its bindings without replacing it, and `--timeout SECONDS` bounds a cell (default 300). Ids are opaque: a call naming a session that does not exist is refused with the live list rather than starting a new interpreter.
+
+A session ends when it has been idle for `--ttl` seconds (default 1800), measured between cells, so a running cell is never cut by it, or when `run.py --kill-session ID` stops it. `run.py --list-sessions` prints each live session with its interpreter pid, cell count, idle time, timeout and working directory.
+
+Each session is one socket file in `$XDG_RUNTIME_DIR/surf-agent/` (the state directory when `XDG_RUNTIME_DIR` is unset); that file is the whole session record. The interpreter keeps the environment, working directory and Python bindings of the call that created it, runs cells sequentially, and points its own stdout and stderr at `/dev/null`: cell output travels over the socket, so only `print()` and `emit()` reach the caller. Raw file-descriptor writes, subprocess output, and anything written after the interpreter dies are dropped.
+
+If a call reports that the interpreter did not answer, it is suspended or wedged. Stop it with `--kill-session ID`, or resume it (`kill -CONT <pid>`) to keep its bindings; browser threads survive either way.
 
 ## Local development validation
 

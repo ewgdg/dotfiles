@@ -38,6 +38,7 @@ patterns = [
   "state/",
   "cache/",
   "*changelog.json",
+  "pi-durable-subagents.json",
 ]
 
 [targets.d_pi_agent.path_rules.settings_json]
