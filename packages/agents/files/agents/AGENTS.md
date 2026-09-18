@@ -27,6 +27,10 @@
 - Use repo-local ignored artifact directories when project commands generate or consume those files, following the project's conventions.
 - Store maintained project knowledge in the repo's `./docs/` directory: accepted decisions, current architecture, supported behavior, and reusable guidance. Distill accepted findings into docs; retain evidence in artifacts.
 
+## Computer Use
+
+- Avoid stealing focus from user's current active window unless focus is genuinely needed to finish user's requests
+
 ## Documentation
 
 - document for features or techniques of a project, that worth mention or review

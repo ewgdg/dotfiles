@@ -35,7 +35,6 @@
     "logging-enabled": "False",
     "autostart-enabled": "False",
     "minimized-startup-enabled": "False",
-    "categories-and-sort-enabled": "True",
     "wow64-enabled": "True",
     "startup-window-size": "None",
     "splash-window-enabled": "True",
@@ -46,5 +45,10 @@
     "banner-enabled": "True",
     "steam-user": "all",
     "header-bar": "False",
-    "theme-engine": "adwaita"
+    "theme-engine": "adwaita",
+    "categories-enabled": "True",
+    "sort-enabled": "True",
+    "zoom-enabled": "True",
+    "steamgriddb-enabled": "False",
+    "auto-create-shortcuts": "False"
 }
