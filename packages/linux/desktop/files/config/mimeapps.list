@@ -42,3 +42,4 @@ x-scheme-handler/x-github-client=desktop-plus.desktop
 x-scheme-handler/x-github-desktop-auth=desktop-plus.desktop
 x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 inode/directory=org.gnome.Nautilus.desktop
+x-scheme-handler/codex=chatgpt.desktop

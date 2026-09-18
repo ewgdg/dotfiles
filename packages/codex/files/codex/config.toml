@@ -6,15 +6,6 @@ personality = "pragmatic"
 plan_mode_reasoning_effort = "xhigh"
 approvals_reviewer = "auto_review"
 service_tier = "default"
-# model_provider = "codex-lb"
-
-[model_providers.codex-lb]
-name = "Codex LB"
-base_url = "https://codexlb.service.xianzzz.com/backend-api/codex"
-wire_api = "responses"
-supports_websockets = true
-# required for codex app
-requires_openai_auth = true
 
 # Extra settings that only apply when `sandbox = "workspace-write"`.
 [sandbox_workspace_write]
@@ -80,9 +71,6 @@ enabled = true
 enabled = true
 
 [plugins."codex-app-tools@openai-bundled"]
-enabled = true
-
-[plugins."sites@openai-bundled"]
 enabled = true
 
 [plugins."unified-computer-use@openai-bundled"]
