@@ -23,3 +23,8 @@ path = "~/.config/faugus-launcher/envar.json"
 pre_push = [
   "{{ INSTALL }} faugus-launcher",
 ]
+
+[targets.f_local_bin_faugus_launcher]
+source = "files/local/bin/faugus-launcher"
+path = "~/.local/bin/faugus-launcher"
+chmod = "755"

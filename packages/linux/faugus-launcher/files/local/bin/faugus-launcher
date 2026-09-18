@@ -1,0 +1,6 @@
+#!/bin/sh
+# Faugus forces GTK_IM_MODULE=simple when the variable is unset, and simple
+# disables the IME; pin wayland instead (Faugus is GTK4 on Wayland).
+GTK_IM_MODULE=wayland
+export GTK_IM_MODULE
+exec /usr/bin/faugus-launcher "$@"
