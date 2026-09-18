@@ -1,14 +1,20 @@
 #!/bin/sh
+# Terminal mode pipes the server through tee, and its caller still needs the
+# server's own exit status out of that pipeline.
+set -o pipefail
 
 host=127.0.0.1
 port=3080
-url="http://$host:$port"
+base_url="http://$host:$port"
 state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
 state_dir="$state_home/deepseek-harness"
 # A dedicated Chrome process makes the app lifecycle independent from normal browser windows.
 profile_dir="$state_dir/chrome"
 instance_state="$state_dir/instance.state"
 focus_result="$state_dir/focus-result.json"
+# The launcher reads the server's own URL line, which carries the per-process
+# token every request needs and prints only once the plugin tree has loaded.
+server_log="$state_dir/dsh.log"
 instance_lock_fd=9
 focus_lock_fd=8
 mode=terminal
@@ -22,7 +28,7 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-dependencies="npm curl grep flock readlink google-chrome-stable"
+dependencies="npm curl grep sed tail flock readlink tee google-chrome-stable"
 if [ "$mode" = app ]; then
   dependencies="$dependencies setsid"
 fi
@@ -51,6 +57,8 @@ focus_running_instance() {
   while [ "$attempt" -le 240 ]; do
     if [ "$(readlink "$instance_state" 2>/dev/null)" = browser-ready ]; then
       : >"$focus_result"
+      # The running window shows the bare URL, because the token only ever
+      # appears in the redirect that mints the browser session cookie.
       google-chrome-stable \
         --user-data-dir="$profile_dir" \
         --class="deepseek-harness" \
@@ -59,7 +67,7 @@ focus_running_instance() {
         --disable-background-mode \
         --disable-features=TranslateUI \
         --no-startup-window \
-        --focus="$url" \
+        --focus="$base_url" \
         --focus-result-file="$focus_result" \
         >/dev/null 2>&1
       if grep --quiet '"status":"focused"' "$focus_result"; then
@@ -79,6 +87,9 @@ if ! flock --nonblock "$instance_lock_fd"; then
   exit $?
 fi
 ln -sfn starting "$instance_state" || exit 1
+
+# The launcher below reads the newest URL line, so no earlier one may survive.
+: >"$server_log" || exit 1
 
 mark_browser_ready() {
   # The watcher must not keep the instance lock alive if Chrome fails to start.
@@ -104,6 +115,16 @@ mark_browser_ready() {
   done
 }
 
+announced_ui_url() {
+  # The line is "dsh web: <local url>[ (LAN: <lan url>)]"; the newest one is the
+  # only valid URL, because a connection reload mints a token for a new root.
+  line=$(sed -n 's/^dsh web: //p' "$server_log" 2>/dev/null | tail -n 1)
+  line=${line%% *}
+  case "$line" in
+    http://* | https://*) printf '%s\n' "$line" ;;
+  esac
+}
+
 launch_chrome_when_ready() {
   server_pid=${1:-}
   attempt=1
@@ -111,8 +132,10 @@ launch_chrome_when_ready() {
     if [ -n "$server_pid" ] && ! kill -0 "$server_pid" 2>/dev/null; then
       return 1
     fi
-    if curl --silent --fail --max-time 1 "$url" \
-      | grep --quiet 'window.__DSH_BOOT__'; then
+    ui_url=$(announced_ui_url)
+    # The bare port answers 401, so only a request carrying the token proves the
+    # UI serves this launch rather than a server left over from an earlier one.
+    if [ -n "$ui_url" ] && curl --silent --fail --max-time 1 "$ui_url" >/dev/null; then
       mark_browser_ready >/dev/null 2>&1 &
       exec google-chrome-stable \
         --user-data-dir="$profile_dir" \
@@ -121,13 +144,14 @@ launch_chrome_when_ready() {
         --no-default-browser-check \
         --disable-background-mode \
         --disable-features=TranslateUI \
-        --new-window "$url" \
+        --new-window "$ui_url" \
         >/dev/null 2>&1
     fi
     sleep 0.5
     attempt=$((attempt + 1))
   done
-  printf 'DeepSeek Harness did not become ready at %s\n' "$url" >&2
+  printf 'DeepSeek Harness did not report a reachable Web UI URL for %s; see %s\n' \
+    "$base_url" "$server_log" >&2
   return 1
 }
 
@@ -144,10 +168,12 @@ run_terminal_mode() {
   trap 'exit 130' INT
   trap 'exit 143' TERM
 
+  # tee keeps the server's own output on the terminal while the launcher reads
+  # the URL line out of the log.
   "$dsh_executable" web \
     --host "$host" \
     --port "$port" \
-    --no-open
+    --no-open 2>&1 | tee "$server_log"
   dsh_status=$?
 
   trap - HUP INT TERM
@@ -157,7 +183,6 @@ run_terminal_mode() {
 }
 
 run_app_mode() {
-  server_log="$state_dir/dsh.log"
   setsid --wait "$dsh_executable" web \
     --host "$host" \
     --port "$port" \

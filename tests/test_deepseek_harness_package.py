@@ -116,11 +116,13 @@ def test_linux_package_installs_dedicated_chrome_app_identity() -> None:
         encoding="utf-8"
     )
     assert '--class="deepseek-harness"' in launcher
-    assert '--new-window "$url"' in launcher
+    assert '--new-window "$ui_url"' in launcher
     assert "--disable-features=TranslateUI" in launcher
     assert "--user-data-dir=" in launcher
     assert 'flock --nonblock "$instance_lock_fd"' in launcher
-    assert '--focus="$url"' in launcher
+    assert '--focus="$base_url"' in launcher
+    # The launch path needs the token the server prints, not the bare port.
+    assert 'curl --silent --fail --max-time 1 "$ui_url"' in launcher
 
     desktop_entry = (
         LINUX_PACKAGE_ROOT

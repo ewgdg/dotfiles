@@ -12,10 +12,26 @@ DSH_LAUNCHER = (
 )
 AGENTS_ZSH = REPO_ROOT / "packages/shell/files/config/zsh/agents.zsh"
 
+# DSH serves the Web UI behind a per-launch token: the bare port answers 401 and
+# only the URL the server prints on startup carries that token.
+AUTHENTICATED_URL = "http://127.0.0.1:3080/?token=test-token"
+
 
 def write_executable(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
     path.chmod(0o755)
+
+
+def write_authenticated_curl(bin_dir: Path) -> None:
+    write_executable(
+        bin_dir / "curl",
+        f"""#!/bin/sh
+for argument in "$@"; do
+  if [ "$argument" = "{AUTHENTICATED_URL}" ]; then exit 0; fi
+done
+exit 22
+""",
+    )
 
 
 def configure_global_dsh(tmp_path: Path, content: str) -> Path:
@@ -43,12 +59,7 @@ def test_dsh_runs_installed_release_and_opens_dedicated_app_when_ready(
     bin_dir.mkdir()
     command_log = tmp_path / "commands.log"
 
-    write_executable(
-        bin_dir / "curl",
-        """#!/bin/sh
-printf '%s\n' '<script>window.__DSH_BOOT__ = {};</script>'
-""",
-    )
+    write_authenticated_curl(bin_dir)
     write_executable(
         bin_dir / "google-chrome-stable",
         """#!/bin/sh
@@ -57,9 +68,11 @@ printf 'google-chrome-stable %s\n' "$*" >> "$TEST_COMMAND_LOG"
     )
     npm_prefix = configure_global_dsh(
         tmp_path,
-        """#!/bin/sh
-printf 'dsh %s\n' "$*" >> "$TEST_COMMAND_LOG"
-sleep 0.2
+        f"""#!/bin/sh
+printf 'dsh %s\\n' "$*" >> "$TEST_COMMAND_LOG"
+echo "dsh web: {AUTHENTICATED_URL}"
+# Outlives the launcher's first poll interval, so the URL line is read before exit.
+sleep 0.6
 exit 23
 """,
     )
@@ -95,7 +108,7 @@ exit 23
                 "--disable-background-mode",
                 "--disable-features=TranslateUI",
                 "--new-window",
-                "http://127.0.0.1:3080",
+                AUTHENTICATED_URL,
             ]
         ),
     }
@@ -106,12 +119,7 @@ def test_app_mode_stops_dsh_when_its_chrome_window_closes(tmp_path: Path) -> Non
     bin_dir.mkdir()
     command_log = tmp_path / "commands.log"
 
-    write_executable(
-        bin_dir / "curl",
-        """#!/bin/sh
-printf '%s\n' '<script>window.__DSH_BOOT__ = {};</script>'
-""",
-    )
+    write_authenticated_curl(bin_dir)
     write_executable(
         bin_dir / "google-chrome-stable",
         """#!/bin/sh
@@ -121,11 +129,12 @@ sleep 0.15
     )
     npm_prefix = configure_global_dsh(
         tmp_path,
-        """#!/bin/sh
-printf 'dsh %s\n' "$*" >> "$TEST_COMMAND_LOG"
+        f"""#!/bin/sh
+printf 'dsh %s\\n' "$*" >> "$TEST_COMMAND_LOG"
+echo "dsh web: {AUTHENTICATED_URL}"
 trap 'printf "dsh stopped\\n" >> "$TEST_COMMAND_LOG"; exit 0' TERM
-sleep 1
-printf 'dsh finished\n' >> "$TEST_COMMAND_LOG"
+sleep 5
+printf 'dsh finished\\n' >> "$TEST_COMMAND_LOG"
 exit 19
 """,
     )
@@ -151,7 +160,8 @@ exit 19
     )
 
     assert completed.returncode == 0
-    assert time.monotonic() - started_at < 0.8
+    # Closing the window stops the app instead of leaving it to the server.
+    assert time.monotonic() - started_at < 1.5
     assert "dsh stopped" in command_log.read_text(encoding="utf-8").splitlines()
 
 
@@ -163,12 +173,7 @@ def test_second_app_launch_focuses_the_existing_chrome_instance(
     command_log = tmp_path / "commands.log"
     close_browser = tmp_path / "close-browser"
 
-    write_executable(
-        bin_dir / "curl",
-        """#!/bin/sh
-printf '%s\n' '<script>window.__DSH_BOOT__ = {};</script>'
-""",
-    )
+    write_authenticated_curl(bin_dir)
     write_executable(
         bin_dir / "google-chrome-stable",
         """#!/bin/sh
@@ -194,8 +199,9 @@ while [ ! -f "$TEST_CLOSE_BROWSER" ]; do sleep 0.02; done
     )
     npm_prefix = configure_global_dsh(
         tmp_path,
-        """#!/bin/sh
-printf 'dsh server\n' >> "$TEST_COMMAND_LOG"
+        f"""#!/bin/sh
+printf 'dsh server\\n' >> "$TEST_COMMAND_LOG"
+echo "dsh web: {AUTHENTICATED_URL}"
 trap 'exit 0' TERM
 while :; do sleep 0.05; done
 """,
@@ -247,6 +253,7 @@ while :; do sleep 0.05; done
     assert second_launch.returncode == 0
     assert commands.count("dsh server") == 1
     assert commands.count("chrome window") == 1
+    # The focused window shows the bare URL, so the token URL never matches it.
     assert commands.count("chrome focus http://127.0.0.1:3080") == 1
 
 
