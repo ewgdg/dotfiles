@@ -17,7 +17,7 @@ end = [
 margin_ends = 0
 radius = 0
 shadow = false
-start = [ "launcher", "wallpaper", "network_tx", "cpu", "ram", "temp" ]
+start = [ "launcher", "wallpaper", "network_tx", "cpu", "temp", "sysmon", "ram" ]
 thickness = 30
 
 [dock]
@@ -99,6 +99,9 @@ network_speed_compact = true
 
 [widget.privacy]
 hide_inactive = true
+
+[widget.sysmon]
+stat = "gpu_usage"
 
 [widget.taskbar]
 anchor = true
