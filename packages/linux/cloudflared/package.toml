@@ -1,12 +1,6 @@
 id = "linux/cloudflared"
 description = "Cloudflare Tunnel exposing the DevSpace MCP server"
 
-depends = [
-  # The tunnel exists to publish this service, and the dependency orders the push
-  # so the origin is running before the connector is enabled.
-  "linux/devspace",
-]
-
 [targets.cloudflared_installed]
 sync_policy = "push-only"
 probe = "{{ PROBE_PACKAGES_INSTALLED }} cloudflared"
