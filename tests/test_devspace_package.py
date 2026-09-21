@@ -147,3 +147,16 @@ def test_app_groups_include_the_devspace_packages() -> None:
 
     assert "devspace" in ai_group["members"]
     assert "linux/devspace" in linux_group["members"]
+
+
+def test_host_profile_points_the_tunnel_at_the_devspace_origin() -> None:
+    with (REPO_ROOT / "packages/devspace/package.toml").open("rb") as package_file:
+        origin = tomllib.load(package_file)["vars"]["devspace"]["public_base_url"]
+    with (REPO_ROOT / "profiles/host/linux-niri.toml").open("rb") as profile_file:
+        tunnel = tomllib.load(profile_file)["vars"]["cloudflared"]
+
+    # DevSpace advertises this origin for OAuth discovery, so whatever publishes it
+    # has to answer on the same hostname. packages/linux/cloudflared stays generic, so
+    # this is the only place that ties the two together.
+    assert tunnel["hostname"] == origin.removeprefix("https://")
+    assert tunnel["local_service"].endswith(":7676")

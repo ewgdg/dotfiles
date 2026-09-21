@@ -1,3 +1,12 @@
 includes = ["os/arch", "de/niri", "host/base"]
 
 [vars]
+
+# This host publishes the DevSpace MCP server through one Cloudflare Tunnel.
+# packages/linux/cloudflared stays generic; these values make it concrete. hostname
+# must equal [vars.devspace] public_base_url, which is the origin DevSpace
+# advertises for OAuth discovery.
+[vars.cloudflared]
+tunnel_name = "devspace"
+hostname = "devspace.xianzzz.com"
+local_service = "http://127.0.0.1:7676"
