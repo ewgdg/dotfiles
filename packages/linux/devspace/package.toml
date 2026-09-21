@@ -34,13 +34,13 @@ probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" probe'
 [targets.cloudflared_tunnel_credentials.hooks]
 pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" apply'
 
-[targets.f_config_systemd_user_cloudflared_service]
-source = "files/config/systemd/user/cloudflared.service"
-path = "~/.config/systemd/user/cloudflared.service"
+[targets.f_config_systemd_user_cloudflared_devspace_service]
+source = "files/config/systemd/user/cloudflared-devspace.service"
+path = "~/.config/systemd/user/cloudflared-devspace.service"
 chmod = "644"
 
 [hooks]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user devspace.service',
-  '{{ ENSURE_SYSTEMD }} user cloudflared.service',
+  '{{ ENSURE_SYSTEMD }} user cloudflared-devspace.service',
 ]

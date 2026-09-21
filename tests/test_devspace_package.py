@@ -159,14 +159,14 @@ def test_linux_package_ships_the_tunnel_that_publishes_the_service() -> None:
         "chmod": "600",
         "preset": "jinja-patch-editor",
     }
-    assert package["targets"]["f_config_systemd_user_cloudflared_service"] == {
-        "source": "files/config/systemd/user/cloudflared.service",
-        "path": "~/.config/systemd/user/cloudflared.service",
+    assert package["targets"]["f_config_systemd_user_cloudflared_devspace_service"] == {
+        "source": "files/config/systemd/user/cloudflared-devspace.service",
+        "path": "~/.config/systemd/user/cloudflared-devspace.service",
         "chmod": "644",
     }
     assert package["hooks"]["post_push"] == [
         "{{ ENSURE_SYSTEMD }} user devspace.service",
-        "{{ ENSURE_SYSTEMD }} user cloudflared.service",
+        "{{ ENSURE_SYSTEMD }} user cloudflared-devspace.service",
     ]
 
 
@@ -189,7 +189,7 @@ def test_tunnel_ingress_follows_the_devspace_origin() -> None:
 def test_tunnel_unit_runs_by_name_without_upstreams_service_installer() -> None:
     unit = (
         REPO_ROOT
-        / "packages/linux/devspace/files/config/systemd/user/cloudflared.service"
+        / "packages/linux/devspace/files/config/systemd/user/cloudflared-devspace.service"
     ).read_text(encoding="utf-8")
 
     assert "tunnel run devspace" in unit

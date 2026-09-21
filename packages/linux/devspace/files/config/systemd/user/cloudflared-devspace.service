@@ -5,9 +5,12 @@ Description=Cloudflare Tunnel publishing the DevSpace MCP server
 # exec rather than upstream's notify: readiness reporting buys nothing here and exec
 # cannot hang waiting for a notification that never arrives.
 Type=exec
+# Named for the tunnel it runs, like the config it reads, so a second tunnel gets its
+# own unit instead of claiming cloudflared.service for itself.
+#
 # The tunnel is chosen by name, so no UUID is tracked: cloudflared resolves the name
-# and finds its credentials under ~/.cloudflared itself. The config file carries only
-# the ingress rules.
+# and finds its credentials under ~/.cloudflared itself. The config carries only the
+# ingress rules.
 #
 # --no-autoupdate because pacman owns this binary. Upstream's own installer adds a
 # daily timer that runs `cloudflared update` as root and restarts the service, which
