@@ -57,10 +57,13 @@ def test_nodejs_package_tracks_the_lts_as_the_fnm_default() -> None:
     assert 'fnm default "${latest}"' in script
     # An unavailable network keeps the installed default instead of forcing churn.
     assert "could not resolve the latest LTS; keeping" in script
-    # Each node tree is ~200 MB, so the replaced one is removed; live shell links
-    # are repointed first so those shells keep a working node.
+    # Each node tree is ~200 MB, so the replaced one is removed. That is safe only
+    # because fnm env links each shell through the default alias; relinking a shell
+    # link directly at a version tree would sever that hop and stop the shell from
+    # following later fnm default moves.
     assert 'fnm uninstall "${current}"' in script
-    assert 'ln -sfn "${new_dir}" "${link}"' in script
+    assert "ln -sfn" not in script
+    assert "fnm_multishells" not in script
 
 
 def test_core_env_exports_pnpm_home_and_adds_its_bin_directory(tmp_path: Path) -> None:

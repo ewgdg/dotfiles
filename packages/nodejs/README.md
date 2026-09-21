@@ -18,17 +18,24 @@ probe keeps the installed default instead of forcing churn.
 ## One node tree at a time
 
 Each fnm node tree is roughly 200 MB, and a newer LTS — including a patch release
-— installs a new one, so the replaced tree is removed in the same run. Live
-shells resolve node through their fnm multishell link, which points into the tree
-being removed, so those links are repointed at the new tree first and the shells
-keep working. If fnm refuses the removal, the script reports it and leaves the
-tree in place.
+— installs a new one, so the replaced tree is removed in the same run.
 
-Set `FNM_MULTISHELL_ROOT` to override where those links are looked up; it
-defaults to `$XDG_RUNTIME_DIR/fnm_multishells`.
+That is safe because of how fnm wires shells up. `fnm env` points each shell's
+multishell link at the `default` alias, not at a version tree:
 
-Removal only happens when both trees resolve to real directories, so a failed
-lookup cannot repoint live links at a path that does not exist.
+```text
+shell link -> aliases/default -> node-versions/<version>/installation
+```
+
+So `fnm default` moves every live shell at once, and once the alias has moved,
+nothing references the replaced tree and it can be removed. The script relies on
+that indirection and must not relink shell links itself: pointing a shell link
+directly at a version tree severs the alias hop, and that shell then stops
+following later `fnm default` moves.
+
+The order in the script is load-bearing: `fnm uninstall` also removes the aliases
+that point at the version, so the default alias has to move first. If fnm refuses
+the removal, the script reports it and leaves the tree in place.
 
 ## Node majors and native modules
 
