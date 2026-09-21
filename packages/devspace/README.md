@@ -8,7 +8,7 @@ mints the OAuth owner password on first push.
 ## Install and first push
 
 `dotman push` installs `@waishnav/devspace` through the npm global prefix and
-writes `~/.devspace/config.jsonc`. The `devspace_owner_token` target then writes
+writes `~/.devspace/config.json`. The `devspace_owner_token` target then writes
 `~/.devspace/auth.json` when it is missing.
 
 On Linux the server is a user service, and the unit lives in
@@ -29,14 +29,14 @@ the path, never the value. Start the server with `devspace serve`, or let the
 Linux unit from `packages/linux/devspace` do it.
 
 Run `devspace init` only if you want DevSpace's interactive setup instead; it
-rewrites `config.jsonc` from its answers, so the repo copy has to be pushed again
+rewrites `config.json` from its answers, so the repo copy has to be pushed again
 afterwards.
 
 ## Managed and unmanaged paths
 
 | Path | Owner |
 | --- | --- |
-| `~/.devspace/config.jsonc` | this package, rendered from a Jinja template |
+| `~/.devspace/config.json` | this package, rendered from a Jinja template |
 | `~/.devspace/auth.json` | live-local secret, minted once by the hook |
 | `~/.devspace/skills/`, `~/.devspace/worktrees/` | DevSpace managed |
 | `~/.local/share/devspace` | DevSpace state (`storage.stateDir`) |
@@ -108,8 +108,16 @@ systemctl --user restart devspace
 
 The tracked config is a Jinja source, and the target uses
 `preset = "jinja-patch-editor"` to render it. The preset is used instead of a
-selector transform because `config.jsonc` is JSONC and `dotman transform json`
-rejects commented input.
+selector transform because `publicBaseUrl` is conditional: an empty
+`[vars.devspace] public_base_url` has to render `null`, and a selector transform
+cannot express that.
+
+The file is `config.json`, not `config.jsonc`, and it carries no comments.
+Released DevSpace (1.0.8) reads it with `JSON.parse` and looks only for
+`config.json`; a commented file, or one named `config.jsonc`, leaves the service
+refusing to start with "DevSpace is not configured". `main` reads `config.jsonc`
+and migrates the old file on upgrade, so the target path follows when that
+release lands.
 
 ## Security boundary
 

@@ -1,2 +1,10 @@
 prefix=${HOME}/.npm
 cache=${HOME}/.npm/cache
+
+# npm 12 blocks dependency install scripts unless the package is named, and a global
+# install has no project package.json to record an approval in. These are the ones our
+# globally installed tools need: better-sqlite3 is DevSpace's state store, node-pty is
+# its terminal sessions, and DevSpace's own postinstall chmods node-pty's spawn-helper
+# on macOS only. Everything else stays blocked, which is the point. The flag form
+# (--allow-scripts) is not an alternative: npm rejects it in project-scoped installs.
+allow-scripts=@waishnav/devspace,better-sqlite3,node-pty

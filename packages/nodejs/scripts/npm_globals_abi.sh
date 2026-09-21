@@ -41,7 +41,21 @@ if [ "${action}" = "probe" ]; then
   exit 0
 fi
 
-npm rebuild -g
+# npm exits 0 even when it skips install scripts, and a skipped install script leaves
+# a native binding missing rather than stale — which is how DevSpace ended up with no
+# better_sqlite3.node at all while the rebuild reported success. The allowlist lives
+# in ~/.npmrc (see files/npmrc); surface it here if npm still skipped something.
+if ! rebuild_output="$(npm rebuild -g 2>&1)"; then
+  printf '%s\n' "${rebuild_output}" >&2
+  echo "npm rebuild failed; leaving the ABI stamp untouched" >&2
+  exit 1
+fi
+printf '%s\n' "${rebuild_output}" >&2
+case "${rebuild_output}" in
+  *"install scripts blocked"*)
+    echo "npm skipped install scripts for some packages; if a native binding is missing, add it to allow-scripts in files/npmrc" >&2
+    ;;
+esac
 
 # Written only after a successful rebuild, so a failure retries on the next push
 # instead of leaving the tree recorded as current.

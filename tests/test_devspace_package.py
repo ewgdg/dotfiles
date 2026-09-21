@@ -17,7 +17,7 @@ def load_package() -> dict:
         return tomllib.load(package_file)
 
 
-CONFIG_SOURCE = PACKAGE_ROOT / "files/devspace/config.jsonc"
+CONFIG_SOURCE = PACKAGE_ROOT / "files/devspace/config.json"
 
 # The template guards publicBaseUrl so an empty origin renders null rather than an
 # invalid empty string. These helpers emulate the two branches of that guard.
@@ -26,13 +26,14 @@ GUARDED_VAR = re.compile(r"\{% if .*? %\}(?P<set>.*?)\{% else %\}(?P<unset>.*?)\
 
 def render_config(public_base_url: str = "") -> dict:
     text = CONFIG_SOURCE.read_text(encoding="utf-8")
-    # The file uses whole-line comments only; strip them to parse it as JSON.
-    text = re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE)
 
     def substitute(match: re.Match[str]) -> str:
         branch = match.group("set") if public_base_url else match.group("unset")
         return branch.replace("{{ vars.devspace.public_base_url }}", public_base_url)
 
+    # No comment stripping here: DevSpace reads this file with JSON.parse, so the
+    # template has to be strict JSON. Stripping comments would hide exactly the
+    # defect that leaves the service unconfigured.
     return json.loads(GUARDED_VAR.sub(substitute, text))
 
 
@@ -56,8 +57,8 @@ def test_package_installs_devspace_and_mints_the_owner_token() -> None:
             },
         },
         "f_devspace_config": {
-            "source": "files/devspace/config.jsonc",
-            "path": "~/.devspace/config.jsonc",
+            "source": "files/devspace/config.json",
+            "path": "~/.devspace/config.json",
             "chmod": "600",
             "preset": "jinja-patch-editor",
         },
@@ -80,8 +81,8 @@ def test_owner_password_stays_a_live_local_secret() -> None:
 def test_config_target_renders_through_the_jinja_preset() -> None:
     target = load_package()["targets"]["f_devspace_config"]
 
-    # dotman transform json fails on JSONC comments, so the target renders
-    # through the Jinja preset instead of a JSON selector transform.
+    # A selector transform cannot express the empty-origin branch, so the target
+    # renders through the Jinja preset.
     assert target["preset"] == "jinja-patch-editor"
     assert (PACKAGE_ROOT / target["source"]).is_file()
     assert "{{ vars.devspace.public_base_url }}" in CONFIG_SOURCE.read_text(encoding="utf-8")
@@ -91,18 +92,23 @@ def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
     config = render_config()
 
     assert config["configVersion"] == 1
-    assert config["skills"]["agentDir"] == "~/.agents"
-    assert config["server"]["trustProxy"] is True
-    assert config["workspaces"]["allowedRoots"] == ["~/Projects"]
+    assert config["agentDir"] == "~/.agents"
+    assert config["allowedRoots"] == ["~/Projects"]
+    # Released DevSpace reads flat top-level keys. A nested server/workspaces/skills
+    # block is silently ignored, which leaves the server on its defaults: no public
+    # origin, and allowed roots of the directory it was started from.
+    assert "server" not in config
+    assert "workspaces" not in config
+    assert "skills" not in config
 
 
 def test_public_base_url_defaults_to_the_tunnel_origin() -> None:
     origin = "https://devspace.xianzzz.com"
     assert load_package()["vars"]["devspace"]["public_base_url"] == origin
-    assert render_config(origin)["server"]["publicBaseUrl"] == origin
+    assert render_config(origin)["publicBaseUrl"] == origin
 
     # An empty var still expresses DevSpace's local-only origin as null.
-    assert render_config()["server"]["publicBaseUrl"] is None
+    assert render_config()["publicBaseUrl"] is None
 
 
 def test_linux_package_ships_the_user_systemd_unit() -> None:
@@ -129,6 +135,9 @@ def test_linux_package_ships_the_user_systemd_unit() -> None:
     # pointless: Environment= does not expand $PATH, and the manager's PATH already
     # carries ~/.npm/bin and /usr/bin.
     assert "Environment=PATH=" not in unit
+    # trustProxy is read from the environment only, so the unit is the only place it
+    # can live.
+    assert "Environment=DEVSPACE_TRUST_PROXY=true" in unit
     assert "ExecStart=%h/.npm/bin/devspace serve" in unit
     assert "fnm" not in unit
     assert "WantedBy=default.target" in unit

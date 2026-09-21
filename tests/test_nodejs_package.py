@@ -11,6 +11,9 @@ NODE_PACKAGE_PATH = REPO_ROOT / "packages/nodejs/package.toml"
 NODEJS_SCRIPTS = REPO_ROOT / "packages/nodejs/scripts"
 CORE_ENV_PATH = REPO_ROOT / "packages/shell/files/env.core.sh"
 
+# The install scripts our globally installed tools need, named in files/npmrc.
+ALLOW_SCRIPTS = "@waishnav/devspace,better-sqlite3,node-pty"
+
 
 def test_nodejs_package_installs_pnpm_with_each_os_node_toolchain() -> None:
     package = tomllib.loads(NODE_PACKAGE_PATH.read_text(encoding="utf-8"))
@@ -206,6 +209,16 @@ def test_global_npm_packages_rebuild_when_the_node_abi_moves(tmp_path: Path) -> 
     )
     assert failed.returncode != 0
     assert stamp.read_text(encoding="utf-8").strip() == "137"
+
+
+def test_npmrc_allows_the_install_scripts_our_global_tools_need() -> None:
+    npmrc = (REPO_ROOT / "packages/nodejs/files/npmrc").read_text(encoding="utf-8")
+
+    # npm 12 blocks dependency install scripts unless they are named, and it exits 0
+    # either way, so a global install of DevSpace otherwise leaves better-sqlite3 with
+    # no binding at all. The flag form is not an alternative: npm rejects
+    # --allow-scripts in project-scoped installs.
+    assert f"allow-scripts={ALLOW_SCRIPTS}" in npmrc
 
 
 def test_global_npm_rebuild_is_skipped_without_a_node(tmp_path: Path) -> None:

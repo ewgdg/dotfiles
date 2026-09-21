@@ -26,10 +26,15 @@ probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" probe'
 [targets.devspace_owner_token.hooks]
 pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" apply'
 
-# The source is a Jinja template because config.jsonc carries comments and
-# dotman transform json rejects JSONC, so no selector transform can render it.
+# The source is a Jinja template because publicBaseUrl is conditional: an empty
+# [vars.devspace] public_base_url has to render null rather than "", and no
+# selector transform can express that.
+#
+# config.json, not config.jsonc: the released 1.0.8 reads config.json with
+# JSON.parse, so comments would leave the service unconfigured. main reads
+# config.jsonc and migrates the old file on upgrade.
 [targets.f_devspace_config]
-source = "files/devspace/config.jsonc"
-path = "~/.devspace/config.jsonc"
+source = "files/devspace/config.json"
+path = "~/.devspace/config.json"
 chmod = "600"
 preset = "jinja-patch-editor"

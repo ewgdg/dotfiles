@@ -5,6 +5,10 @@ StartLimitBurst=3
 
 [Service]
 Type=exec
+# Released DevSpace reads trustProxy from the environment only, so it cannot live in
+# the tracked config. It changes only which client IP lands in the logs: Cloudflare
+# terminates TLS and forwards CF-Connecting-IP.
+Environment=DEVSPACE_TRUST_PROXY=true
 # Run on the node inherited from the user manager, which is the system node:
 # packages/nodejs keeps the global npm prefix built for that node's ABI, and
 # better-sqlite3 refuses to load under any other one. The manager's PATH already
