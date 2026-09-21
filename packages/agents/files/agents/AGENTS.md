@@ -43,6 +43,7 @@
 - For consequential designs, challenge the proposal with a concrete failure case and address it before implementation.
 - Use first principles thinking
 - Grow the system in layers. Start from the smallest version that works end to end, and add each new capability on top of a product that already works. Never trade a working product for unfinished complexity.
+- When choosing between viable solutions, use a weighted decision matrix to evaluate tradeoffs, with criteria weighted by the user's goals, priorities, and constraints.
 
 ## Legacy Handling
 
