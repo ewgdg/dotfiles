@@ -138,7 +138,7 @@ def test_trigger_row_names_the_caller_when_sudo_runs_no_command(tmp_path: Path) 
 
     output = completed.stdout.decode()
     assert row(output, "Command") is None
-    trigger = row(output, "Triggered")
+    trigger = row(output, "Trigger")
     assert trigger is not None, output
     assert trigger.startswith("paru ")
     assert trigger.endswith("-S --noconfirm shellcheck")
@@ -156,7 +156,7 @@ def test_trigger_row_stays_hidden_when_the_caller_is_only_a_shell() -> None:
     output = completed.stdout.decode()
     assert row(output, "Requester") is not None, output
     assert row(output, "Command") is None
-    assert row(output, "Triggered") is None, output
+    assert row(output, "Trigger") is None, output
 
 
 def test_trigger_row_stays_hidden_when_sudo_was_given_a_command() -> None:
@@ -166,7 +166,7 @@ def test_trigger_row_stays_hidden_when_sudo_was_given_a_command() -> None:
     assert row(output, "Command") == "/usr/bin/true"
     # The triggering caller is pytest's own command line here; it must not push
     # the authorised command out of a dialog that cannot scroll.
-    assert row(output, "Triggered") is None, output
+    assert row(output, "Trigger") is None, output
 
 
 def test_flattened_ps_output_finds_the_command_after_the_prompt() -> None:

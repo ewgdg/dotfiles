@@ -354,7 +354,7 @@ main() {
     if [[ -n $command ]]; then
         row Command "$command" "$max_command_chars"
     elif [[ -n $trigger ]]; then
-        row Triggered "$trigger" "$max_command_chars"
+        row Trigger "$trigger" "$max_command_chars"
     fi
     if [[ -n $directory ]]; then row Directory "$directory" "$max_directory_chars"; fi
     if [[ -n $reason ]]; then row Reason "$(trim "$reason")" "$max_reason_chars"; fi
