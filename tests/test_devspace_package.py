@@ -17,16 +17,12 @@ def load_package() -> dict:
 
 CONFIG_SOURCE = PACKAGE_ROOT / "files/devspace/config.jsonc"
 
-# Matches the template's guarded var so the fallback branch can be emulated.
-GUARDED_VAR = re.compile(r"\{% if .*? %\}.*?\{% else %\}(?P<fallback>.*?)\{% endif %\}")
 
-
-def load_config_without_var() -> dict:
-    """Render the template the way it looks while public_base_url is unset."""
+def load_tracked_config() -> dict:
+    """Parse the tracked template, leaving the render-time var in place."""
     text = CONFIG_SOURCE.read_text(encoding="utf-8")
     # The file uses whole-line comments only; strip them to parse it as JSON.
-    text = re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE)
-    return json.loads(GUARDED_VAR.sub(lambda match: match.group("fallback"), text))
+    return json.loads(re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE))
 
 
 def test_package_installs_devspace_and_mints_the_owner_token() -> None:
@@ -61,7 +57,7 @@ def test_owner_password_stays_a_live_local_secret() -> None:
     package = load_package()
     tracked_paths = [target.get("path", "") for target in package["targets"].values()]
     assert not any("auth.json" in path for path in tracked_paths)
-    assert "ownerToken" not in json.dumps(load_config_without_var())
+    assert "ownerToken" not in json.dumps(load_tracked_config())
 
     script = (PACKAGE_ROOT / "scripts/mint_owner_token.sh").read_text(encoding="utf-8")
     # The hook reports where the secret landed instead of echoing it.
@@ -81,7 +77,7 @@ def test_config_target_renders_through_the_jinja_preset() -> None:
 
 
 def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
-    config = load_config_without_var()
+    config = load_tracked_config()
 
     assert config["configVersion"] == 1
     assert config["skills"]["agentDir"] == "~/.agents"
@@ -89,10 +85,15 @@ def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
     assert config["workspaces"]["allowedRoots"] == ["~/Projects"]
 
 
-def test_public_base_url_stays_machine_local() -> None:
-    # No committed origin: it would otherwise be pushed to every other host.
-    assert "vars" not in load_package()
-    assert load_config_without_var()["server"]["publicBaseUrl"] is None
+def test_public_base_url_has_a_committed_default() -> None:
+    origin = load_package()["vars"]["devspace"]["public_base_url"]
+    assert origin.startswith("https://")
+
+    # The config interpolates the var, so the origin has exactly one home.
+    assert (
+        load_tracked_config()["server"]["publicBaseUrl"]
+        == "{{ vars.devspace.public_base_url }}"
+    )
 
 
 def test_app_groups_include_the_devspace_package() -> None:

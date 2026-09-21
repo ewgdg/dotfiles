@@ -54,19 +54,22 @@ does not create the tunnel: something has to forward to `127.0.0.1:7676` before 
 ChatGPT connector can be added. `trustProxy` only changes which client IP is
 recorded in logs.
 
-The origin is machine-local, so it is a template var rather than a committed
-value. Set it in the repo-local override file:
+The origin is a render-time var. DevSpace is installed on a single host, so the
+package commits it as the default:
 
 ```toml
-# ~/.config/dotman/repos/main/local.toml
 [vars.devspace]
 public_base_url = "https://devspace.xianzzz.com"
 ```
 
-That file is not tracked, so every machine carries its own origin and a push
-cannot overwrite another host's URL. While the var is undefined the template
-renders `publicBaseUrl` as `null`, which keeps the config valid for local-only
-use.
+A second host must override it in the untracked repo-local file rather than
+editing that default:
+
+```toml
+# ~/.config/dotman/repos/<repo>/local.toml
+[vars.devspace]
+public_base_url = "https://devspace.other.example"
+```
 
 ## Templating
 

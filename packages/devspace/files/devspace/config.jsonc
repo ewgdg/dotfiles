@@ -3,11 +3,10 @@
   "configVersion": 1,
 
   "server": {
-    // Public origin only, never with a trailing /mcp. Machine-local: set
-    // [vars.devspace] public_base_url in ~/.config/dotman/repos/main/local.toml.
-    // While that var is undefined this renders null, which keeps the file valid
-    // for local-only use; DevSpace does not create the tunnel itself.
-    "publicBaseUrl": {% if vars.devspace is defined and vars.devspace.public_base_url %}"{{ vars.devspace.public_base_url }}"{% else %}null{% endif %},
+    // Public origin only, never with a trailing /mcp. Rendered from the committed
+    // [vars.devspace] public_base_url default; override that var in the untracked
+    // ~/.config/dotman/repos/main/local.toml if another host needs its own origin.
+    "publicBaseUrl": "{{ vars.devspace.public_base_url }}",
     // Cloudflare terminates TLS and forwards CF-Connecting-IP. This only changes
     // which client IP is recorded in logs.
     "trustProxy": true
