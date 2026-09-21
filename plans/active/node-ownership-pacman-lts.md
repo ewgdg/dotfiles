@@ -73,7 +73,27 @@ Out of scope:
 
 ## Progress
 
-- [ ] Plan written.
+- [x] Plan written.
+- [x] Arch profile names `nodejs-lts-krypton`; the LTS tracker and its script are
+      gone.
+- [x] Both scripts implemented, with stub tests covering alias present/absent,
+      ABI match/mismatch, a failing rebuild, and a missing node.
+- [x] devspace unit runs the inherited system node and depends on `nodejs`.
+- [x] `dotman push nodejs -d` plans install → alias removal → ABI rebuild in that
+      order, and `dotman push linux/devspace -d` plans nodejs first.
+- [ ] First real push: confirm paru resolves the `nodejs` conflict unattended,
+      then that `node` is `/usr/bin/node` and devspace serves.
+
+## Validation Results
+
+- Touched test files: 14 passed.
+- Whole suite after the change: 25 failed, 202 passed, 1 skipped.
+- Baseline at the pre-change commit, same interpreter and sibling worktree
+  location: 25 failed, 198 passed, 1 skipped — the same 25 failures by file
+  (`json/plist/toml/goldendict manifest migration`, `journal_create`, `init`,
+  `faugus_launcher_config`, `dotman_catalog`), all from the pre-existing
+  `gitignore must be a boolean, got list` mismatch between this repo and the
+  dotman checkout. The extra four passes are the tests added here.
 
 ## Decisions
 
