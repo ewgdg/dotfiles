@@ -50,6 +50,27 @@ def run_sourced(script: str) -> str:
     return completed.stdout
 
 
+def command_less_sudo_caller_code(prompt: str, sudo_args: list[str]) -> str:
+    """Code for a caller process that spawns a command-less sudo-ish child.
+
+    The chain has to be made of real processes: the helper reads the invocation
+    from its parent (the placeholder sudo), and with no command there, the only
+    name left for the request is the caller's own command line, which is this
+    process.
+    """
+    helper_code = (
+        "import subprocess\n"
+        f"raise SystemExit(subprocess.run([{str(HELPER)!r}, {prompt!r}]).returncode)\n"
+    )
+    # The interpreter is named explicitly: a process whose argv[0] is a display
+    # name cannot trust its own sys.executable for that.
+    return (
+        "import subprocess\n"
+        f"raise SystemExit(subprocess.run(['sudo', '-', *{sudo_args!r}], executable={sys.executable!r},"
+        f" input={helper_code!r}.encode()).returncode)\n"
+    )
+
+
 def row(output: str, label: str) -> str | None:
     for line in output.splitlines():
         if line.startswith(label):
@@ -103,6 +124,51 @@ def test_command_row_is_capped_to_the_dialog_budget() -> None:
     assert command.endswith("…")
 
 
+def test_trigger_row_names_the_caller_when_sudo_runs_no_command(tmp_path: Path) -> None:
+    caller = tmp_path / "c.py"
+    caller.write_text(command_less_sudo_caller_code(STOCK_PROMPT, ["-A", "-v"]), encoding="utf-8")
+
+    # "sudo -v" authorises nothing, so the caller's own command line is the only
+    # description of the work that is about to need the password.
+    completed = subprocess.run(
+        ["paru", str(caller), "-S", "--noconfirm", "shellcheck"],
+        executable=sys.executable,
+        capture_output=True,
+    )
+
+    output = completed.stdout.decode()
+    assert row(output, "Command") is None
+    trigger = row(output, "Triggered")
+    assert trigger is not None, output
+    assert trigger.startswith("paru ")
+    assert trigger.endswith("-S --noconfirm shellcheck")
+
+
+def test_trigger_row_stays_hidden_when_the_caller_is_only_a_shell() -> None:
+    code = command_less_sudo_caller_code(STOCK_PROMPT, ["-A", "-v"])
+
+    # A bare shell's argv is its own path: it names no command, and reading the
+    # wrong file for an empty pid (the kernel command line) must not leak here.
+    completed = subprocess.run(
+        ["/bin/sh"], executable=sys.executable, input=code.encode(), capture_output=True
+    )
+
+    output = completed.stdout.decode()
+    assert row(output, "Requester") is not None, output
+    assert row(output, "Command") is None
+    assert row(output, "Triggered") is None, output
+
+
+def test_trigger_row_stays_hidden_when_sudo_was_given_a_command() -> None:
+    completed = run_as_child_of_sudo(STOCK_PROMPT, ["-A", "/usr/bin/true"])
+
+    output = completed.stdout.decode()
+    assert row(output, "Command") == "/usr/bin/true"
+    # The triggering caller is pytest's own command line here; it must not push
+    # the authorised command out of a dialog that cannot scroll.
+    assert row(output, "Triggered") is None, output
+
+
 def test_flattened_ps_output_finds_the_command_after_the_prompt() -> None:
     flattened = (
         "sudo -A -p Agent needs elevated privileges. Reason: install build dependency"
@@ -119,6 +185,18 @@ def test_flattened_ps_output_without_a_prompt_colon_keeps_the_command() -> None:
     flattened = "sudo -A -p Password /usr/bin/true"
 
     assert run_sourced(f"parse_invocation flattened {flattened}").strip() == "/usr/bin/true"
+
+
+def test_caller_command_ignores_missing_and_init_parents() -> None:
+    stubs = textwrap.dedent(
+        """
+        parent_pid() { case $1 in 4242) printf '1' ;; 1) printf '' ;; esac; }
+        caller_command "$(parent_pid 4242)"
+        caller_command "$(parent_pid 1)"
+        """
+    )
+
+    assert run_sourced(stubs).strip() == ""
 
 
 def test_reparented_caller_falls_back_to_the_cgroup_scope() -> None:
