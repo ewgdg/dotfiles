@@ -17,8 +17,8 @@ path = "~/.config/systemd/user/devspace.service"
 chmod = "644"
 
 [targets.f_cloudflared_config]
-source = "files/cloudflared/config.yml"
-path = "~/.cloudflared/config.yml"
+source = "files/cloudflared/devspace.yml"
+path = "~/.cloudflared/devspace.yml"
 chmod = "600"
 preset = "jinja-patch-editor"
 

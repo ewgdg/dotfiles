@@ -15,7 +15,7 @@ Type=exec
 #
 # No ordering against network-online.target: that is a system target and this is a
 # user unit. Restart covers a network that is not up yet.
-ExecStart=/usr/bin/cloudflared --no-autoupdate --config %h/.cloudflared/config.yml tunnel run devspace
+ExecStart=/usr/bin/cloudflared --no-autoupdate --config %h/.cloudflared/devspace.yml tunnel run devspace
 Restart=on-failure
 RestartSec=5s
 

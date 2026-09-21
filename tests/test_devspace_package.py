@@ -154,8 +154,8 @@ def test_linux_package_ships_the_tunnel_that_publishes_the_service() -> None:
     # the service they publish rather than behind variables in a generic package.
     assert "linux/cloudflared" in package["depends"]
     assert package["targets"]["f_cloudflared_config"] == {
-        "source": "files/cloudflared/config.yml",
-        "path": "~/.cloudflared/config.yml",
+        "source": "files/cloudflared/devspace.yml",
+        "path": "~/.cloudflared/devspace.yml",
         "chmod": "600",
         "preset": "jinja-patch-editor",
     }
@@ -172,7 +172,7 @@ def test_linux_package_ships_the_tunnel_that_publishes_the_service() -> None:
 
 def test_tunnel_ingress_follows_the_devspace_origin() -> None:
     config = (
-        REPO_ROOT / "packages/linux/devspace/files/cloudflared/config.yml"
+        REPO_ROOT / "packages/linux/devspace/files/cloudflared/devspace.yml"
     ).read_text(encoding="utf-8")
 
     # Derived from the same var DevSpace advertises for OAuth discovery, so the
@@ -193,6 +193,9 @@ def test_tunnel_unit_runs_by_name_without_upstreams_service_installer() -> None:
     ).read_text(encoding="utf-8")
 
     assert "tunnel run devspace" in unit
+    # A tunnel-named config, not cloudflared's shared default, so a second tunnel
+    # cannot take this one's place.
+    assert "--config %h/.cloudflared/devspace.yml" in unit
     assert not re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-", unit)
     # pacman owns the binary; upstream's installer would add a root-owned daily timer
     # running cloudflared update and restart the service behind pacman's back.

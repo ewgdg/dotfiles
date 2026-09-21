@@ -1,0 +1,18 @@
+# Ingress for the tunnel that publishes DevSpace. Named after its tunnel rather than
+# using cloudflared's default config.yml, so a second tunnel on this host gets its
+# own file and unit instead of competing for one path. The unit passes this path
+# explicitly, so the default is never consulted.
+#
+# The tunnel itself is selected by name on the unit's command line, so no tunnel UUID
+# is tracked: cloudflared resolves the name and reads its own credentials from
+# ~/.cloudflared.
+#
+# hostname comes from [vars.devspace] public_base_url, the origin DevSpace advertises
+# for OAuth discovery; the two must not drift. local_service is DevSpace's default
+# port, so it moves if that port does.
+#
+# The catch-all rule is mandatory in any ingress list.
+ingress:
+  - hostname: {{ vars.devspace.public_base_url | replace('https://', '') }}
+    service: http://127.0.0.1:7676
+  - service: http_status:404
