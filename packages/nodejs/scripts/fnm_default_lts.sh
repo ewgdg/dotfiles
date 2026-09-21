@@ -35,6 +35,19 @@ if [ "${action}" = "probe" ]; then
   exit 0
 fi
 
+# Directory of the fnm tree currently backing the default alias. Fails rather than
+# returning a partial path, because a bad value here would repoint live shell
+# links at something meaningless.
+node_dir() {
+  exec_path="$(fnm exec --using=default -- node -e 'process.stdout.write(process.execPath)' 2>/dev/null || true)"
+  resolved="$(readlink -f "${exec_path}" 2>/dev/null || true)"
+  case "${resolved}" in
+    */bin/node) dirname "$(dirname "${resolved}")" ;;
+    *) return 1 ;;
+  esac
+}
+
+previous_dir="$(node_dir || true)"
 previous_major="${current%%.*}"
 fnm install "${latest}"
 fnm default "${latest}"
@@ -43,4 +56,26 @@ current_major="$(fnm exec --using=default -- node --version | cut -d. -f1)"
 if [ "${previous_major}" != "${current_major}" ]; then
   echo "node major ${previous_major:-none} -> ${current_major}: rebuilding global native modules" >&2
   fnm exec --using=default -- npm rebuild -g
+fi
+
+# Keep one node tree per LTS line. Each tree is roughly 200 MB, so a move that
+# leaves the old one behind accumulates fast. Live shells resolve node through
+# their fnm multishell link, which points into the tree being removed, so those
+# links are repointed first and the shells keep working.
+new_dir="$(node_dir || true)"
+
+if [ -d "${previous_dir}" ] && [ -d "${new_dir}" ] && [ "${previous_dir}" != "${new_dir}" ]; then
+  multishell_root="${FNM_MULTISHELL_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/fnm_multishells}"
+  for link in "${multishell_root}"/*; do
+    [ -L "${link}" ] || continue
+    [ "$(readlink -f "${link}")" = "${previous_dir}" ] || continue
+    ln -sfn "${new_dir}" "${link}"
+    echo "repointed ${link} to ${new_dir}" >&2
+  done
+
+  if fnm uninstall "${current}" >/dev/null 2>&1; then
+    echo "removed the replaced node ${current}" >&2
+  else
+    echo "kept the replaced node ${current}: fnm could not remove it" >&2
+  fi
 fi

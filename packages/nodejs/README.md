@@ -15,6 +15,21 @@ The probe resolves the latest LTS and compares it with the installed default, so
 a push installs a newer LTS when one exists. When the network is unavailable the
 probe keeps the installed default instead of forcing churn.
 
+## One node tree at a time
+
+Each fnm node tree is roughly 200 MB, and a newer LTS — including a patch release
+— installs a new one, so the replaced tree is removed in the same run. Live
+shells resolve node through their fnm multishell link, which points into the tree
+being removed, so those links are repointed at the new tree first and the shells
+keep working. If fnm refuses the removal, the script reports it and leaves the
+tree in place.
+
+Set `FNM_MULTISHELL_ROOT` to override where those links are looked up; it
+defaults to `$XDG_RUNTIME_DIR/fnm_multishells`.
+
+Removal only happens when both trees resolve to real directories, so a failed
+lookup cannot repoint live links at a path that does not exist.
+
 ## Node majors and native modules
 
 A native module is built for the ABI of one node major, so the node that installs
