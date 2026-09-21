@@ -11,6 +11,13 @@ mints the OAuth owner password on first push.
 writes `~/.devspace/config.jsonc`. The `devspace_owner_token` target then writes
 `~/.devspace/auth.json` when it is missing.
 
+On Linux the server is a user service, and the unit lives in
+`packages/linux/devspace`: this package installs the CLI and its configuration,
+that one ships `~/.config/systemd/user/devspace.service` and enables it. It
+depends on this package, so `dotman push linux/devspace` installs both — and a
+full `dotman push` covers both anyway, because the host group pulls `apps/ai`
+and `apps/linux`. Pushing this package alone leaves no service running.
+
 That owner password is what ChatGPT asks for on the connector approval page:
 
 ```sh
@@ -18,7 +25,8 @@ cat ~/.devspace/auth.json
 ```
 
 It is a live-local secret. The file is never tracked and the hook reports only
-the path, never the value. Start the server with `devspace serve`.
+the path, never the value. Start the server with `devspace serve`, or let the
+Linux unit from `packages/linux/devspace` do it.
 
 Run `devspace init` only if you want DevSpace's interactive setup instead; it
 rewrites `config.jsonc` from its answers, so the repo copy has to be pushed again
