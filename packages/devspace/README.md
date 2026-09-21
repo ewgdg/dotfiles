@@ -55,21 +55,25 @@ ChatGPT connector can be added. `trustProxy` only changes which client IP is
 recorded in logs.
 
 The origin is a render-time var. DevSpace is installed on a single host, so the
-package commits it as the default:
+package commits the tunnel origin as the default:
 
 ```toml
 [vars.devspace]
 public_base_url = "https://devspace.xianzzz.com"
 ```
 
-A second host must override it in the untracked repo-local file rather than
-editing that default:
+Setting it empty renders `publicBaseUrl` as `null`, which is DevSpace's
+local-only mode: the server then serves `127.0.0.1:7676` and advertises no public
+origin, and only clients on this machine can complete OAuth. A second host
+overrides the var in the untracked `~/.config/dotman/repos/<repo>/local.toml`
+instead of editing that default.
 
-```toml
-# ~/.config/dotman/repos/<repo>/local.toml
-[vars.devspace]
-public_base_url = "https://devspace.other.example"
-```
+## Service
+
+`packages/linux/devspace` installs `/etc/systemd/system/devspace.service` and
+enables it, so the server is up from boot without an interactive session.
+DevSpace needs no graphical session, and user units would stop at logout because
+this account has no systemd lingering enabled.
 
 ## Templating
 

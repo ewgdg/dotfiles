@@ -94,18 +94,50 @@ def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
     assert config["workspaces"]["allowedRoots"] == ["~/Projects"]
 
 
-def test_public_base_url_defaults_to_local_only() -> None:
-    # Private by default: no push can expose the server without an explicit edit.
-    assert load_package()["vars"]["devspace"]["public_base_url"] == ""
-    assert render_config()["server"]["publicBaseUrl"] is None
-
-    # Setting the var is the opt-in, and the rendered value stays a JSON string.
+def test_public_base_url_defaults_to_the_tunnel_origin() -> None:
     origin = "https://devspace.xianzzz.com"
+    assert load_package()["vars"]["devspace"]["public_base_url"] == origin
     assert render_config(origin)["server"]["publicBaseUrl"] == origin
 
+    # An empty var still expresses DevSpace's local-only origin as null.
+    assert render_config()["server"]["publicBaseUrl"] is None
 
-def test_app_groups_include_the_devspace_package() -> None:
+
+def test_linux_package_ships_the_systemd_unit() -> None:
+    with (REPO_ROOT / "packages/linux/devspace/package.toml").open("rb") as package_file:
+        package = tomllib.load(package_file)
+
+    assert package["id"] == "linux/devspace"
+    assert package["depends"] == ["devspace"]
+    assert package["targets"] == {
+        "f_etc_systemd_system_devspace_service": {
+            "source": "files/etc/systemd/system/devspace.service",
+            "path": "/etc/systemd/system/devspace.service",
+            "chmod": "644",
+            "preset": "jinja-patch-editor",
+        }
+    }
+    assert package["hooks"] == {
+        "post_push": ["{{ ENSURE_SYSTEMD }} system devspace.service"]
+    }
+
+    unit = (
+        REPO_ROOT / "packages/linux/devspace/files/etc/systemd/system/devspace.service"
+    ).read_text(encoding="utf-8")
+    # A system service does not inherit HOME or the shell PATH, and node comes from
+    # the stable fnm alias so a node upgrade cannot break the unit.
+    assert "Environment=HOME=/home/{{ vars.host.user }}" in unit
+    assert ".local/share/fnm/aliases/default/bin" in unit
+    assert "ExecStart=/home/{{ vars.host.user }}/.npm/bin/devspace serve" in unit
+    assert "WantedBy=multi-user.target" in unit
+    assert "Restart=on-failure" in unit
+
+
+def test_app_groups_include_the_devspace_packages() -> None:
     with (REPO_ROOT / "groups/apps/ai.toml").open("rb") as group_file:
         ai_group = tomllib.load(group_file)
+    with (REPO_ROOT / "groups/apps/linux.toml").open("rb") as group_file:
+        linux_group = tomllib.load(group_file)
 
     assert "devspace" in ai_group["members"]
+    assert "linux/devspace" in linux_group["members"]

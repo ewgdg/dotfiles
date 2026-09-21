@@ -1,0 +1,17 @@
+id = "linux/devspace"
+description = "Systemd service for the DevSpace MCP server"
+
+depends = [
+  "devspace",
+]
+
+[targets.f_etc_systemd_system_devspace_service]
+source = "files/etc/systemd/system/devspace.service"
+path = "/etc/systemd/system/devspace.service"
+chmod = "644"
+preset = "jinja-patch-editor"
+
+[hooks]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} system devspace.service',
+]
