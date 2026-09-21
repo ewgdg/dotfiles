@@ -6,9 +6,8 @@ depends = [
   # The service runs on the system node and the shared global npm prefix, so node
   # installation and the ABI rebuild are planned before the unit is enabled.
   "nodejs",
-  # The public connector is part of bringing this service up on this host. The edge
-  # sits here rather than on packages/devspace, which is shared with hosts that have
-  # no tunnel.
+  # The client that runs the tunnel publishing this service. The edge sits here rather
+  # than on packages/devspace, which is shared with hosts that have no tunnel.
   "linux/cloudflared",
 ]
 
@@ -17,7 +16,31 @@ source = "files/config/systemd/user/devspace.service"
 path = "~/.config/systemd/user/devspace.service"
 chmod = "644"
 
+[targets.f_cloudflared_config]
+source = "files/cloudflared/config.yml"
+path = "~/.cloudflared/config.yml"
+chmod = "600"
+preset = "jinja-patch-editor"
+
+# cert.pem and <uuid>.json come from `cloudflared tunnel login` and a tunnel
+# creation — a browser flow and an account call, neither of which a package can
+# perform. The probe reports them missing and the hook fails with what to run,
+# rather than letting the unit loop on a credential error that looks like a network
+# problem.
+[targets.cloudflared_tunnel_credentials]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" probe'
+
+[targets.cloudflared_tunnel_credentials.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" apply'
+
+[targets.f_config_systemd_user_cloudflared_service]
+source = "files/config/systemd/user/cloudflared.service"
+path = "~/.config/systemd/user/cloudflared.service"
+chmod = "644"
+
 [hooks]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user devspace.service',
+  '{{ ENSURE_SYSTEMD }} user cloudflared.service',
 ]

@@ -1,47 +1,13 @@
 id = "linux/cloudflared"
-description = "Cloudflare Tunnel client and user service"
+description = "Cloudflare Tunnel client"
 
-# What a tunnel publishes is host-specific, so this package stays generic and the
-# host profile that selects it supplies these. Empty means the host has not
-# configured one, which the credentials probe reports rather than leaving the unit
-# to restart on a service that cannot run.
-[vars.cloudflared]
-tunnel_name = ""
-hostname = ""
-local_service = ""
-
+# Install only. A tunnel is a concrete thing — which hostname it publishes and which
+# local service sits behind it — so its unit and ingress config belong to the package
+# that owns the published service. A second tunnel adds its own package depending on
+# this one rather than being threaded through variables here.
 [targets.cloudflared_installed]
 sync_policy = "push-only"
 probe = "{{ PROBE_PACKAGES_INSTALLED }} cloudflared"
 
 [targets.cloudflared_installed.hooks]
 pre_push = "{{ INSTALL }} cloudflared"
-
-[targets.f_cloudflared_config]
-source = "files/cloudflared/config.yml"
-path = "~/.cloudflared/config.yml"
-chmod = "600"
-preset = "jinja-patch-editor"
-
-# cert.pem and <uuid>.json come from `cloudflared tunnel login` and a tunnel
-# creation — a browser flow and an account call, neither of which a package can
-# perform. The probe reports them missing and the hook fails with what to run,
-# rather than letting the service loop on a credential error that looks like a
-# network problem. The tunnel name is host-specific, so it is passed in.
-[targets.cloudflared_tunnel_credentials]
-sync_policy = "push-only"
-probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" probe "{{ vars.cloudflared.tunnel_name }}"'
-
-[targets.cloudflared_tunnel_credentials.hooks]
-pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" apply "{{ vars.cloudflared.tunnel_name }}"'
-
-[targets.f_config_systemd_user_cloudflared_service]
-source = "files/config/systemd/user/cloudflared.service"
-path = "~/.config/systemd/user/cloudflared.service"
-chmod = "644"
-preset = "jinja-patch-editor"
-
-[hooks]
-post_push = [
-  '{{ ENSURE_SYSTEMD }} user cloudflared.service',
-]

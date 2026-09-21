@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 import tomllib
 
@@ -113,17 +115,12 @@ def test_linux_package_ships_the_user_systemd_unit() -> None:
     # cloudflared is the public connector, pulled in at the Linux layer so hosts
     # without a tunnel keep packages/devspace alone.
     assert package["depends"] == ["devspace", "nodejs", "linux/cloudflared"]
-    assert package["targets"] == {
-        "f_config_systemd_user_devspace_service": {
-            "source": "files/config/systemd/user/devspace.service",
-            "path": "~/.config/systemd/user/devspace.service",
-            "chmod": "644",
-        }
+    # The tunnel targets this package also ships are asserted separately.
+    assert package["targets"]["f_config_systemd_user_devspace_service"] == {
+        "source": "files/config/systemd/user/devspace.service",
+        "path": "~/.config/systemd/user/devspace.service",
+        "chmod": "644",
     }
-    assert package["hooks"] == {
-        "post_push": ["{{ ENSURE_SYSTEMD }} user devspace.service"]
-    }
-
     unit = (
         REPO_ROOT
         / "packages/linux/devspace/files/config/systemd/user/devspace.service"
@@ -149,14 +146,98 @@ def test_app_groups_include_the_devspace_packages() -> None:
     assert "linux/devspace" in linux_group["members"]
 
 
-def test_host_profile_points_the_tunnel_at_the_devspace_origin() -> None:
-    with (REPO_ROOT / "packages/devspace/package.toml").open("rb") as package_file:
-        origin = tomllib.load(package_file)["vars"]["devspace"]["public_base_url"]
-    with (REPO_ROOT / "profiles/host/linux-niri.toml").open("rb") as profile_file:
-        tunnel = tomllib.load(profile_file)["vars"]["cloudflared"]
+def test_linux_package_ships_the_tunnel_that_publishes_the_service() -> None:
+    with (REPO_ROOT / "packages/linux/devspace/package.toml").open("rb") as package_file:
+        package = tomllib.load(package_file)
 
-    # DevSpace advertises this origin for OAuth discovery, so whatever publishes it
-    # has to answer on the same hostname. packages/linux/cloudflared stays generic, so
-    # this is the only place that ties the two together.
-    assert tunnel["hostname"] == origin.removeprefix("https://")
-    assert tunnel["local_service"].endswith(":7676")
+    # The client is a dependency; the unit and ingress are concrete, so they live with
+    # the service they publish rather than behind variables in a generic package.
+    assert "linux/cloudflared" in package["depends"]
+    assert package["targets"]["f_cloudflared_config"] == {
+        "source": "files/cloudflared/config.yml",
+        "path": "~/.cloudflared/config.yml",
+        "chmod": "600",
+        "preset": "jinja-patch-editor",
+    }
+    assert package["targets"]["f_config_systemd_user_cloudflared_service"] == {
+        "source": "files/config/systemd/user/cloudflared.service",
+        "path": "~/.config/systemd/user/cloudflared.service",
+        "chmod": "644",
+    }
+    assert package["hooks"]["post_push"] == [
+        "{{ ENSURE_SYSTEMD }} user devspace.service",
+        "{{ ENSURE_SYSTEMD }} user cloudflared.service",
+    ]
+
+
+def test_tunnel_ingress_follows_the_devspace_origin() -> None:
+    config = (
+        REPO_ROOT / "packages/linux/devspace/files/cloudflared/config.yml"
+    ).read_text(encoding="utf-8")
+
+    # Derived from the same var DevSpace advertises for OAuth discovery, so the
+    # hostname cannot drift from the origin clients authenticate against.
+    assert (
+        "hostname: {{ vars.devspace.public_base_url | replace('https://', '') }}"
+        in config
+    )
+    assert "service: http://127.0.0.1:7676" in config
+    # Every ingress list needs a catch-all as its last rule.
+    assert config.rstrip().endswith("http_status:404")
+
+
+def test_tunnel_unit_runs_by_name_without_upstreams_service_installer() -> None:
+    unit = (
+        REPO_ROOT
+        / "packages/linux/devspace/files/config/systemd/user/cloudflared.service"
+    ).read_text(encoding="utf-8")
+
+    assert "tunnel run devspace" in unit
+    assert not re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-", unit)
+    # pacman owns the binary; upstream's installer would add a root-owned daily timer
+    # running cloudflared update and restart the service behind pacman's back.
+    assert "service install" not in unit
+    assert "--no-autoupdate" in unit
+    assert "WantedBy=default.target" in unit
+    assert "User=" not in unit
+
+
+def run_credentials_script(home: Path, action: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    return subprocess.run(
+        [
+            "sh",
+            str(REPO_ROOT / "packages/linux/devspace/scripts/check_tunnel_credentials.sh"),
+            action,
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_tunnel_credentials_are_reported_and_fail_the_push(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    (home / ".cloudflared").mkdir(parents=True)
+
+    probe = run_credentials_script(home, "probe")
+    assert probe.returncode == 0
+    assert "cert.pem" in probe.stderr
+
+    # Logging in is a browser flow, so the apply path fails loudly with what to run
+    # instead of letting the unit restart forever on a credential error.
+    applied = run_credentials_script(home, "apply")
+    assert applied.returncode == 1
+    assert "cloudflared tunnel login" in applied.stderr
+
+
+def test_tunnel_credentials_present_need_no_action(tmp_path: Path) -> None:
+    cloudflared_dir = tmp_path / "home/.cloudflared"
+    cloudflared_dir.mkdir(parents=True)
+    (cloudflared_dir / "cert.pem").write_text("secret\n", encoding="utf-8")
+    (cloudflared_dir / "a765117a-57a9-42bc-af1e-b7d48827345f.json").write_text(
+        "{}\n", encoding="utf-8"
+    )
+
+    assert run_credentials_script(tmp_path / "home", "probe").returncode == 100
