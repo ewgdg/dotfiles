@@ -60,8 +60,9 @@ fi
 
 # Keep one node tree per LTS line. Each tree is roughly 200 MB, so a move that
 # leaves the old one behind accumulates fast. Live shells resolve node through
-# their fnm multishell link, which points into the tree being removed, so those
-# links are repointed first and the shells keep working.
+# their own fnm multishell link, which points into the tree being removed. fnm
+# only repoints the link of the shell it runs in, so uninstalling leaves every
+# other shell dangling; those links are repointed here before the removal.
 new_dir="$(node_dir || true)"
 
 if [ -d "${previous_dir}" ] && [ -d "${new_dir}" ] && [ "${previous_dir}" != "${new_dir}" ]; then
@@ -73,6 +74,8 @@ if [ -d "${previous_dir}" ] && [ -d "${new_dir}" ] && [ "${previous_dir}" != "${
     echo "repointed ${link} to ${new_dir}" >&2
   done
 
+  # Order matters: fnm uninstall also removes the aliases that point at the
+  # version, so the default alias must already point at the new tree (set above).
   if fnm uninstall "${current}" >/dev/null 2>&1; then
     echo "removed the replaced node ${current}" >&2
   else
