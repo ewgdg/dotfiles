@@ -1,0 +1,42 @@
+id = "linux/cloudflared"
+description = "Cloudflare Tunnel exposing the DevSpace MCP server"
+
+depends = [
+  # The tunnel exists to publish this service, and the dependency orders the push
+  # so the origin is running before the connector is enabled.
+  "linux/devspace",
+]
+
+[targets.cloudflared_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} cloudflared"
+
+[targets.cloudflared_installed.hooks]
+pre_push = "{{ INSTALL }} cloudflared"
+
+[targets.f_cloudflared_config]
+source = "files/cloudflared/config.yml"
+path = "~/.cloudflared/config.yml"
+chmod = "600"
+
+# cert.pem and <uuid>.json come from `cloudflared tunnel login` and
+# `cloudflared tunnel create` — a browser flow and an account API call, neither of
+# which a package can perform. The probe reports them missing and the hook fails
+# with the commands to run, rather than letting the service loop on a credential
+# error that looks like a network problem.
+[targets.cloudflared_tunnel_credentials]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" probe'
+
+[targets.cloudflared_tunnel_credentials.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" apply'
+
+[targets.f_config_systemd_user_cloudflared_service]
+source = "files/config/systemd/user/cloudflared.service"
+path = "~/.config/systemd/user/cloudflared.service"
+chmod = "644"
+
+[hooks]
+post_push = [
+  '{{ ENSURE_SYSTEMD }} user cloudflared.service',
+]

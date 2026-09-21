@@ -1,0 +1,13 @@
+# Ingress only. The tunnel itself is selected by name on the unit's command line,
+# so no tunnel UUID is tracked anywhere in this repo: cloudflared resolves the
+# name and reads its own credentials from ~/.cloudflared.
+#
+# hostname must stay equal to [vars.devspace] public_base_url in packages/devspace.
+# That origin is what DevSpace advertises for OAuth discovery, so a mismatch here
+# produces a connector that reaches the tunnel and then fails to authenticate.
+#
+# The catch-all rule is mandatory in any ingress list.
+ingress:
+  - hostname: devspace.xianzzz.com
+    service: http://127.0.0.1:7676
+  - service: http_status:404
