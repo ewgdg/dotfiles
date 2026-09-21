@@ -20,10 +20,12 @@ probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" probe'
 [targets.devspace_owner_token.hooks]
 pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" apply'
 
-# Copied verbatim: config.jsonc carries comments and `dotman transform json`
-# rejects JSONC, so no render/capture step can be used here. The repo copy is
-# therefore the source of truth and a push overwrites live edits.
+# The source is a Jinja template because config.jsonc carries comments and
+# dotman transform json rejects JSONC. The machine-local origin var follows the
+# packages/niri pattern: no package default, value set in
+# ~/.config/dotman/repos/<repo>/local.toml.
 [targets.f_devspace_config]
 source = "files/devspace/config.jsonc"
 path = "~/.devspace/config.jsonc"
 chmod = "600"
+preset = "jinja-patch-editor"

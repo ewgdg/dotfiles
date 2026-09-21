@@ -3,9 +3,11 @@
   "configVersion": 1,
 
   "server": {
-    // Public origin only, never with a trailing /mcp. DevSpace does not create
-    // tunnels; this must match the HTTPS endpoint that forwards to 127.0.0.1:7676.
-    "publicBaseUrl": "https://devspace.xianzzz.com",
+    // Public origin only, never with a trailing /mcp. Machine-local: set
+    // [vars.devspace] public_base_url in ~/.config/dotman/repos/main/local.toml.
+    // While that var is undefined this renders null, which keeps the file valid
+    // for local-only use; DevSpace does not create the tunnel itself.
+    "publicBaseUrl": {% if vars.devspace is defined and vars.devspace.public_base_url %}"{{ vars.devspace.public_base_url }}"{% else %}null{% endif %},
     // Cloudflare terminates TLS and forwards CF-Connecting-IP. This only changes
     // which client IP is recorded in logs.
     "trustProxy": true

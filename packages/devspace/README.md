@@ -28,7 +28,7 @@ afterwards.
 
 | Path | Owner |
 | --- | --- |
-| `~/.devspace/config.jsonc` | this package, copied verbatim |
+| `~/.devspace/config.jsonc` | this package, rendered from a Jinja template |
 | `~/.devspace/auth.json` | live-local secret, minted once by the hook |
 | `~/.devspace/skills/`, `~/.devspace/worktrees/` | DevSpace managed |
 | `~/.local/share/devspace` | DevSpace state (`storage.stateDir`) |
@@ -54,16 +54,26 @@ does not create the tunnel: something has to forward to `127.0.0.1:7676` before 
 ChatGPT connector can be added. `trustProxy` only changes which client IP is
 recorded in logs.
 
-The origin in this package is host-specific. Do not change it live with
-`devspace config set publicBaseUrl`: the next push overwrites `config.jsonc` with
-this copy, so record the value here instead.
+The origin is machine-local, so it is a template var rather than a committed
+value. Set it in the repo-local override file:
 
-## Why this target has no render or capture step
+```toml
+# ~/.config/dotman/repos/main/local.toml
+[vars.devspace]
+public_base_url = "https://devspace.xianzzz.com"
+```
 
-`config.jsonc` is JSONC, and `dotman transform json` rejects commented input, so
-no selector-based render/capture can run against it. The target is a verbatim
-copy: repo content is authoritative and live edits are overwritten on push. Move
-any live change you want to keep back into `files/devspace/config.jsonc`.
+That file is not tracked, so every machine carries its own origin and a push
+cannot overwrite another host's URL. While the var is undefined the template
+renders `publicBaseUrl` as `null`, which keeps the config valid for local-only
+use.
+
+## Templating
+
+The tracked config is a Jinja source, and the target uses
+`preset = "jinja-patch-editor"` to render it. The preset is used instead of a
+selector transform because `config.jsonc` is JSONC and `dotman transform json`
+rejects commented input.
 
 ## Security boundary
 
