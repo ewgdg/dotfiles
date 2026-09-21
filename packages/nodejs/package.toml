@@ -17,14 +17,13 @@ pre_push = [
   "{{ INSTALL }} bun fnm",
 ]
 
-# The devspace service runs under `fnm exec --using=default`, so this probes that
-# exact capability instead of fnm's on-disk layout; any failure means action is
-# needed. Installing the fnm binary does not install a node version or an alias.
-[targets.fnm_default_node_installed]
+# fnm's default node tracks the current LTS: it is the runtime for interactive
+# shells, global CLIs, and the devspace service, so it is the one place node is
+# chosen. The script also rebuilds global native modules when crossing a node
+# major, which would otherwise invalidate every installed native binding.
+[targets.fnm_default_node_on_lts]
 sync_policy = "push-only"
-probe = 'fnm exec --using=default -- node --version >/dev/null 2>&1 && exit 100; exit 0'
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" probe'
 
-[targets.fnm_default_node_installed.hooks]
-# fnm install has no --default flag, and ls-remote appends the codename, for
-# example "v24.21.0 (Krypton)".
-pre_push = 'version="$(fnm ls-remote --lts --latest | cut -d" " -f1)" && fnm install "$version" && fnm default "$version"'
+[targets.fnm_default_node_on_lts.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" apply'

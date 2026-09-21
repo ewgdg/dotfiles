@@ -35,20 +35,28 @@ def test_nodejs_package_installs_pnpm_with_each_os_node_toolchain() -> None:
     assert "pnpm" in mac_profile["vars"]["NODEJS_INSTALL_PACKAGES"].split()
 
 
-def test_nodejs_package_installs_an_fnm_default_node() -> None:
+def test_nodejs_package_tracks_the_lts_as_the_fnm_default() -> None:
     package = tomllib.loads(NODE_PACKAGE_PATH.read_text(encoding="utf-8"))
 
-    target = package["targets"]["fnm_default_node_installed"]
+    target = package["targets"]["fnm_default_node_on_lts"]
     assert target["sync_policy"] == "push-only"
-    # Probes the capability the devspace unit depends on, not fnm's on-disk layout.
     assert (
         target["probe"]
-        == 'fnm exec --using=default -- node --version >/dev/null 2>&1 && exit 100; exit 0'
+        == 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" probe'
     )
     assert target["hooks"]["pre_push"] == (
-        'version="$(fnm ls-remote --lts --latest | cut -d" " -f1)" '
-        '&& fnm install "$version" && fnm default "$version"'
+        'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" apply'
     )
+
+    script = (REPO_ROOT / "packages/nodejs/scripts/fnm_default_lts.sh").read_text(
+        encoding="utf-8"
+    )
+    # Crossing a node major invalidates every installed native binding, so the
+    # apply path must rebuild the global packages through the new default node.
+    assert "fnm exec --using=default -- npm rebuild -g" in script
+    assert 'fnm default "${latest}"' in script
+    # An unavailable network keeps the installed default instead of forcing churn.
+    assert "could not resolve the latest LTS; keeping" in script
 
 
 def test_core_env_exports_pnpm_home_and_adds_its_bin_directory(tmp_path: Path) -> None:
