@@ -29,12 +29,9 @@ if [ "${action}" = "probe" ]; then
   exit 0
 fi
 
-# fnm uninstall also drops the aliases that point at the version, so removing the
-# tree is what clears the alias. A project that needs this version again gets it
-# back with fnm use --install-if-missing.
-if fnm uninstall "${default_version}" >/dev/null 2>&1; then
-  echo "removed the fnm default ${default_version} and its alias" >&2
-else
-  fnm unalias default >/dev/null 2>&1 || true
-  echo "removed the fnm default alias; kept the ${default_version} tree" >&2
-fi
+# The alias is the whole problem: it is what fnm env points shells at. The version
+# tree is inert without it, so it stays installed and a project that pins this
+# version keeps working. Reclaim its ~200 MB with fnm uninstall only if nothing
+# needs it.
+fnm unalias default
+echo "removed the fnm default alias; ${default_version} stays installed" >&2

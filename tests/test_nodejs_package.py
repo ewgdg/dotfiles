@@ -133,15 +133,19 @@ def test_fnm_default_alias_is_removed_only_while_it_exists(tmp_path: Path) -> No
         "fnm_default_alias_removed.sh", "probe", tmp_path, {"fnm": fnm_stub}, label="probe"
     )
     assert probe.returncode == 0
-    assert "uninstall" not in probe_calls.read_text(encoding="utf-8")
+    probe_log = probe_calls.read_text(encoding="utf-8")
+    assert "unalias" not in probe_log
+    assert "uninstall" not in probe_log
 
     applied, apply_calls = run_nodejs_script(
         "fnm_default_alias_removed.sh", "apply", tmp_path, {"fnm": fnm_stub}, label="apply"
     )
     assert applied.returncode == 0
-    # fnm uninstall also drops the aliases pointing at the version, so removing the
-    # tree is what clears the alias that shadows the system node.
-    assert "uninstall v22.23.1" in apply_calls.read_text(encoding="utf-8")
+    # Only the alias goes: it is what fnm env points shells at, and the version
+    # tree is inert without it, so a project pinning this version keeps it.
+    apply_log = apply_calls.read_text(encoding="utf-8")
+    assert "unalias default" in apply_log
+    assert "uninstall" not in apply_log
 
     no_alias = '#!/bin/sh\necho "$@" >> "$CALLS"\nexit 1\n'
     current, _ = run_nodejs_script(

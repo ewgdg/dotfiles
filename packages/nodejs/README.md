@@ -9,10 +9,11 @@ The **system node** is the ambient runtime: an Arch LTS package named in
 prefix, since `~/.npmrc` sets `prefix=${HOME}/.npm` for every node on the machine.
 
 **fnm is kept for project-local versions only.** Its `default` alias is what makes
-it the ambient runtime, so `fnm_default_alias_removed` takes it away. `fnm env`
-then leaves each shell's multishell link dangling, node resolution falls through
-to `/usr/bin/node`, and `fnm use` still repoints the link for a project that needs
-a different version.
+it the ambient runtime, so `fnm_default_alias_removed` removes the alias and leaves
+the installed version alone: a tree nothing points at is inert, and a project
+pinning that version keeps it. `fnm env` then leaves each shell's multishell link
+dangling, node resolution falls through to `/usr/bin/node`, and `fnm use` still
+repoints the link for a project that needs a different version.
 
 Moving LTS lines is deliberate — name the next `nodejs-lts-<codename>` in the
 profile. Arch keeps every LTS line as its own package, so pacman never forces the

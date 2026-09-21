@@ -46,8 +46,8 @@ Out of scope:
 1. `profiles/os/arch.toml`: `NODEJS_INSTALL_PACKAGES = "nodejs-lts-krypton npm
    pnpm"`.
 2. `packages/nodejs/scripts/fnm_default_alias_removed.sh` (probe|apply): probe
-   exits 0 while `fnm default` reports a version; apply removes the alias and
-   uninstalls the tree it pointed at.
+   exits 0 while `fnm default` reports a version; apply removes the alias only,
+   leaving the version tree for any project that pins it.
 3. `packages/nodejs/scripts/npm_globals_abi.sh` (probe|apply): compares
    `process.versions.modules` with the ABI recorded in
    `~/.local/state/dotfiles/nodejs/npm-globals-abi`; apply runs
@@ -107,6 +107,9 @@ Out of scope:
   unrelated to the ABI, and a probe that never returns 100 would rebuild on every
   push.
 - fnm keeps its place for project versions; only the `default` alias goes away.
+- The alias is removed, not the version tree. The alias is what fnm env points
+  shells at, and an unaliased tree is inert; uninstalling it would only force a
+  200 MB re-download for a project that pins that version.
 - The devspace service is not restarted when node changes. Verified: `fnm exec`
   puts the alias bin on PATH, but with the system node the service simply
   inherits it, and children resolve through the same runtime. A stale runtime
