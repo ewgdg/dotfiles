@@ -3,10 +3,10 @@
   "configVersion": 1,
 
   "server": {
-    // Public origin only, never with a trailing /mcp. Rendered from the committed
-    // [vars.devspace] public_base_url default; override that var in the untracked
-    // ~/.config/dotman/repos/main/local.toml if another host needs its own origin.
-    "publicBaseUrl": "{{ vars.devspace.public_base_url }}",
+    // Public origin only, never with a trailing /mcp. Empty means local-only: the
+    // key renders null, DevSpace advertises no public origin, and remote clients
+    // cannot complete OAuth discovery until [vars.devspace] public_base_url is set.
+    "publicBaseUrl": {% if vars.devspace.public_base_url %}"{{ vars.devspace.public_base_url }}"{% else %}null{% endif %},
     // Cloudflare terminates TLS and forwards CF-Connecting-IP. This only changes
     // which client IP is recorded in logs.
     "trustProxy": true

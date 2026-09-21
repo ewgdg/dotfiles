@@ -17,12 +17,21 @@ def load_package() -> dict:
 
 CONFIG_SOURCE = PACKAGE_ROOT / "files/devspace/config.jsonc"
 
+# The template guards publicBaseUrl so an empty origin renders null rather than an
+# invalid empty string. These helpers emulate the two branches of that guard.
+GUARDED_VAR = re.compile(r"\{% if .*? %\}(?P<set>.*?)\{% else %\}(?P<unset>.*?)\{% endif %\}")
 
-def load_tracked_config() -> dict:
-    """Parse the tracked template, leaving the render-time var in place."""
+
+def render_config(public_base_url: str = "") -> dict:
     text = CONFIG_SOURCE.read_text(encoding="utf-8")
     # The file uses whole-line comments only; strip them to parse it as JSON.
-    return json.loads(re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE))
+    text = re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE)
+
+    def substitute(match: re.Match[str]) -> str:
+        branch = match.group("set") if public_base_url else match.group("unset")
+        return branch.replace("{{ vars.devspace.public_base_url }}", public_base_url)
+
+    return json.loads(GUARDED_VAR.sub(substitute, text))
 
 
 def test_package_installs_devspace_and_mints_the_owner_token() -> None:
@@ -57,7 +66,7 @@ def test_owner_password_stays_a_live_local_secret() -> None:
     package = load_package()
     tracked_paths = [target.get("path", "") for target in package["targets"].values()]
     assert not any("auth.json" in path for path in tracked_paths)
-    assert "ownerToken" not in json.dumps(load_tracked_config())
+    assert "ownerToken" not in json.dumps(render_config())
 
     script = (PACKAGE_ROOT / "scripts/mint_owner_token.sh").read_text(encoding="utf-8")
     # The hook reports where the secret landed instead of echoing it.
@@ -77,7 +86,7 @@ def test_config_target_renders_through_the_jinja_preset() -> None:
 
 
 def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
-    config = load_tracked_config()
+    config = render_config()
 
     assert config["configVersion"] == 1
     assert config["skills"]["agentDir"] == "~/.agents"
@@ -85,15 +94,14 @@ def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
     assert config["workspaces"]["allowedRoots"] == ["~/Projects"]
 
 
-def test_public_base_url_has_a_committed_default() -> None:
-    origin = load_package()["vars"]["devspace"]["public_base_url"]
-    assert origin.startswith("https://")
+def test_public_base_url_defaults_to_local_only() -> None:
+    # Private by default: no push can expose the server without an explicit edit.
+    assert load_package()["vars"]["devspace"]["public_base_url"] == ""
+    assert render_config()["server"]["publicBaseUrl"] is None
 
-    # The config interpolates the var, so the origin has exactly one home.
-    assert (
-        load_tracked_config()["server"]["publicBaseUrl"]
-        == "{{ vars.devspace.public_base_url }}"
-    )
+    # Setting the var is the opt-in, and the rendered value stays a JSON string.
+    origin = "https://devspace.xianzzz.com"
+    assert render_config(origin)["server"]["publicBaseUrl"] == origin
 
 
 def test_app_groups_include_the_devspace_package() -> None:

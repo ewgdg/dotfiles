@@ -6,11 +6,11 @@ depends = [
   "nodejs",
 ]
 
-# DevSpace runs on one host, so the tunnel origin is committed as the package
-# default. A second host must override [vars.devspace] public_base_url in the
-# untracked ~/.config/dotman/repos/<repo>/local.toml instead of editing this.
+# DevSpace starts local-only: an empty origin renders the config key as null and
+# the server keeps serving 127.0.0.1:7676. Set a tunnel origin here to expose it,
+# or override per host in ~/.config/dotman/repos/<repo>/local.toml.
 [vars.devspace]
-public_base_url = "https://devspace.xianzzz.com"
+public_base_url = ""
 
 [targets.devspace_install]
 sync_policy = "push-only"
