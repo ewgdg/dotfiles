@@ -103,33 +103,34 @@ def test_public_base_url_defaults_to_the_tunnel_origin() -> None:
     assert render_config()["server"]["publicBaseUrl"] is None
 
 
-def test_linux_package_ships_the_systemd_unit() -> None:
+def test_linux_package_ships_the_user_systemd_unit() -> None:
     with (REPO_ROOT / "packages/linux/devspace/package.toml").open("rb") as package_file:
         package = tomllib.load(package_file)
 
     assert package["id"] == "linux/devspace"
     assert package["depends"] == ["devspace"]
     assert package["targets"] == {
-        "f_etc_systemd_system_devspace_service": {
-            "source": "files/etc/systemd/system/devspace.service",
-            "path": "/etc/systemd/system/devspace.service",
+        "f_config_systemd_user_devspace_service": {
+            "source": "files/config/systemd/user/devspace.service",
+            "path": "~/.config/systemd/user/devspace.service",
             "chmod": "644",
-            "preset": "jinja-patch-editor",
         }
     }
     assert package["hooks"] == {
-        "post_push": ["{{ ENSURE_SYSTEMD }} system devspace.service"]
+        "post_push": ["{{ ENSURE_SYSTEMD }} user devspace.service"]
     }
 
     unit = (
-        REPO_ROOT / "packages/linux/devspace/files/etc/systemd/system/devspace.service"
+        REPO_ROOT
+        / "packages/linux/devspace/files/config/systemd/user/devspace.service"
     ).read_text(encoding="utf-8")
-    # A system service does not inherit HOME or the shell PATH, and node comes from
-    # the stable fnm alias so a node upgrade cannot break the unit.
-    assert "Environment=HOME=/home/{{ vars.host.user }}" in unit
-    assert ".local/share/fnm/aliases/default/bin" in unit
-    assert "ExecStart=/home/{{ vars.host.user }}/.npm/bin/devspace serve" in unit
-    assert "WantedBy=multi-user.target" in unit
+    # User scope, delegating node selection to fnm: the native better-sqlite3
+    # binding is built for the ABI of the node that ran npm, and the inherited
+    # /usr/bin/node is a different major than the fnm default used by the shells.
+    assert "Environment=PATH=" not in unit
+    assert "ExecStart=fnm exec --using=default -- %h/.npm/bin/devspace serve" in unit
+    assert "WantedBy=default.target" in unit
+    assert "User=" not in unit
     assert "Restart=on-failure" in unit
 
 

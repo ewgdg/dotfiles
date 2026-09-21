@@ -70,10 +70,24 @@ instead of editing that default.
 
 ## Service
 
-`packages/linux/devspace` installs `/etc/systemd/system/devspace.service` and
-enables it, so the server is up from boot without an interactive session.
-DevSpace needs no graphical session, and user units would stop at logout because
-this account has no systemd lingering enabled.
+`packages/linux/devspace` installs `~/.config/systemd/user/devspace.service` and
+enables it. User scope matches the rest of this repo and needs no elevation, and
+greetd autologins this account into niri at boot, so the user manager is always
+present and the service starts without anyone logging in.
+
+The unit starts the server with `fnm exec --using=default`, so the runtime is
+whatever fnm's default node is. That matters because DevSpace depends on
+`better-sqlite3`, whose native binding is built for the ABI of the node that ran
+`npm`: this repo's shells use fnm (v22.23.1, ABI 127), while the inherited
+`/usr/bin/node` is 26.x (ABI 147) and cannot load that binding at all — `serve`
+fails outright with `NODE_MODULE_VERSION` mismatch rather than degrading.
+
+Because the binding is ABI-bound, changing the fnm default node means rebuilding
+DevSpace so the two agree:
+
+```sh
+npm rebuild -g better-sqlite3
+```
 
 ## Templating
 
