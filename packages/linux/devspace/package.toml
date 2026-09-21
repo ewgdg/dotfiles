@@ -6,6 +6,10 @@ depends = [
   # The service runs on the system node and the shared global npm prefix, so node
   # installation and the ABI rebuild are planned before the unit is enabled.
   "nodejs",
+  # The public connector is part of bringing this service up on this host. The edge
+  # sits here rather than on packages/devspace, which is shared with hosts that have
+  # no tunnel.
+  "linux/cloudflared",
 ]
 
 [targets.f_config_systemd_user_devspace_service]

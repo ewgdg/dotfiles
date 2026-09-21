@@ -110,7 +110,9 @@ def test_linux_package_ships_the_user_systemd_unit() -> None:
     assert package["id"] == "linux/devspace"
     # nodejs is a real dependency: the unit runs on the system node and the shared
     # global npm prefix, so node installation and the ABI rebuild come first.
-    assert package["depends"] == ["devspace", "nodejs"]
+    # cloudflared is the public connector, pulled in at the Linux layer so hosts
+    # without a tunnel keep packages/devspace alone.
+    assert package["depends"] == ["devspace", "nodejs", "linux/cloudflared"]
     assert package["targets"] == {
         "f_config_systemd_user_devspace_service": {
             "source": "files/config/systemd/user/devspace.service",

@@ -30,9 +30,9 @@ def test_package_wires_the_tunnel_targets() -> None:
         package = tomllib.load(package_file)
 
     assert package["id"] == "linux/cloudflared"
-    # The tunnel publishes devspace, and the dependency orders the push so the
-    # origin exists before the connector is enabled.
-    assert package["depends"] == ["linux/devspace"]
+    # The edge lives in linux/devspace, which selects this package; declaring it
+    # here as well would make the two mutually dependent.
+    assert "depends" not in package
     assert package["targets"]["cloudflared_installed"] == {
         "sync_policy": "push-only",
         "probe": "{{ PROBE_PACKAGES_INSTALLED }} cloudflared",
