@@ -75,18 +75,25 @@ enables it. User scope matches the rest of this repo and needs no elevation, and
 greetd autologins this account into niri at boot, so the user manager is always
 present and the service starts without anyone logging in.
 
-The unit starts the server with `fnm exec --using=default`, so the runtime is
-whatever fnm's default node is. That matters because DevSpace depends on
-`better-sqlite3`, whose native binding is built for the ABI of the node that ran
-`npm`: this repo's shells use fnm (v22.23.1, ABI 127), while the inherited
-`/usr/bin/node` is 26.x (ABI 147) and cannot load that binding at all — `serve`
-fails outright with `NODE_MODULE_VERSION` mismatch rather than degrading.
+The unit starts `%h/.npm/bin/devspace serve` on the node it inherits from the user
+manager — the system node, which `packages/nodejs` explains is the ambient runtime
+here. There is no `fnm exec` and no `Environment=PATH`: the manager's PATH already
+carries `~/.npm/bin` and `/usr/bin`, and `Environment=` would not expand `$PATH`
+anyway.
 
-Because the binding is ABI-bound, changing the fnm default node means rebuilding
-DevSpace so the two agree:
+That matters because DevSpace depends on `better-sqlite3`, whose native binding is
+built for the ABI of the node that ran `npm`. The `npm_globals_match_node_abi`
+target in `packages/nodejs` keeps that tree in step with the installed node, so
+`serve` never starts against a stale binding — under a mismatched ABI it fails
+outright with `NODE_MODULE_VERSION` rather than degrading.
+
+Moving the system node to another LTS line leaves a running service on the old
+runtime. It keeps working, because bindings already loaded stay in memory, but a
+lazily imported binding such as `node-pty` would fail. Restart it after a line
+move:
 
 ```sh
-npm rebuild -g better-sqlite3
+systemctl --user restart devspace
 ```
 
 ## Templating

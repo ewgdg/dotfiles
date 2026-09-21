@@ -4,5 +4,10 @@ includes = ["runtime/linux"]
 INSTALL = "sh \"$DOTMAN_REPO_ROOT/scripts/install_arch_packages.sh\""
 PROBE_PACKAGES_INSTALLED = "sh \"$DOTMAN_REPO_ROOT/scripts/probe_arch_packages_installed.sh\""
 INSTALL_CUSTOM_PACKAGE = "sh \"$DOTMAN_REPO_ROOT/scripts/install_arch_custom_package.sh\""
-NODEJS_INSTALL_PACKAGES = "nodejs npm pnpm"
+# The LTS line, not Arch's `nodejs`: the system node is the ambient runtime and
+# owns the shared global npm prefix, and packages/linux/devspace asserts
+# `>=20.12 <27` — Arch's current line reaches 27 on pacman's schedule with no
+# supported way to hold it back. Moving lines is deliberate: name the next
+# nodejs-lts-<codename> here.
+NODEJS_INSTALL_PACKAGES = "nodejs-lts-krypton npm pnpm"
 RUSTUP_EXTRA_TARGETS = "i686-unknown-linux-gnu"

@@ -108,7 +108,9 @@ def test_linux_package_ships_the_user_systemd_unit() -> None:
         package = tomllib.load(package_file)
 
     assert package["id"] == "linux/devspace"
-    assert package["depends"] == ["devspace"]
+    # nodejs is a real dependency: the unit runs on the system node and the shared
+    # global npm prefix, so node installation and the ABI rebuild come first.
+    assert package["depends"] == ["devspace", "nodejs"]
     assert package["targets"] == {
         "f_config_systemd_user_devspace_service": {
             "source": "files/config/systemd/user/devspace.service",
@@ -124,11 +126,12 @@ def test_linux_package_ships_the_user_systemd_unit() -> None:
         REPO_ROOT
         / "packages/linux/devspace/files/config/systemd/user/devspace.service"
     ).read_text(encoding="utf-8")
-    # User scope, delegating node selection to fnm: the native better-sqlite3
-    # binding is built for the ABI of the node that ran npm, and the inherited
-    # /usr/bin/node is a different major than the fnm default used by the shells.
+    # User scope, on the node inherited from the user manager. Pinning PATH is
+    # pointless: Environment= does not expand $PATH, and the manager's PATH already
+    # carries ~/.npm/bin and /usr/bin.
     assert "Environment=PATH=" not in unit
-    assert "ExecStart=fnm exec --using=default -- %h/.npm/bin/devspace serve" in unit
+    assert "ExecStart=%h/.npm/bin/devspace serve" in unit
+    assert "fnm" not in unit
     assert "WantedBy=default.target" in unit
     assert "User=" not in unit
     assert "Restart=on-failure" in unit

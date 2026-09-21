@@ -5,13 +5,12 @@ StartLimitBurst=3
 
 [Service]
 Type=exec
-# Run under fnm's default node instead of the inherited PATH's node. DevSpace
-# installs better-sqlite3 for the ABI of the node that runs npm, and the
-# interactive shells here use fnm (v22.23.1, ABI 127) while the inherited
-# /usr/bin/node is 26.x (ABI 147) and cannot load that binding. Delegating to fnm
-# keeps version resolution in fnm rather than hardcoding its on-disk layout; it
-# adds no multishell entry and fails loudly if the default alias is missing.
-ExecStart=fnm exec --using=default -- %h/.npm/bin/devspace serve
+# Run on the node inherited from the user manager, which is the system node:
+# packages/nodejs keeps the global npm prefix built for that node's ABI, and
+# better-sqlite3 refuses to load under any other one. The manager's PATH already
+# carries %h/.npm/bin and /usr/bin, so no Environment=PATH is needed — and
+# Environment= would not expand $PATH anyway.
+ExecStart=%h/.npm/bin/devspace serve
 Restart=on-failure
 RestartSec=5
 

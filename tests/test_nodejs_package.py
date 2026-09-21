@@ -8,6 +8,7 @@ import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NODE_PACKAGE_PATH = REPO_ROOT / "packages/nodejs/package.toml"
+NODEJS_SCRIPTS = REPO_ROOT / "packages/nodejs/scripts"
 CORE_ENV_PATH = REPO_ROOT / "packages/shell/files/env.core.sh"
 
 
@@ -35,35 +36,189 @@ def test_nodejs_package_installs_pnpm_with_each_os_node_toolchain() -> None:
     assert "pnpm" in mac_profile["vars"]["NODEJS_INSTALL_PACKAGES"].split()
 
 
-def test_nodejs_package_tracks_the_lts_as_the_fnm_default() -> None:
+def run_nodejs_script(
+    script_name: str,
+    action: str,
+    tmp_path: Path,
+    stubs: dict[str, str],
+    *,
+    label: str = "run",
+    extra_env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], Path]:
+    """Run a package script with stub commands first on PATH.
+
+    The stub bin directory and call log are per-label, while HOME and
+    XDG_STATE_HOME are shared across calls in one test so recorded state persists.
+    """
+    run_dir = tmp_path / label
+    bin_dir = run_dir / "bin"
+    bin_dir.mkdir(parents=True)
+    calls = run_dir / "calls.log"
+
+    for name, body in stubs.items():
+        stub = bin_dir / name
+        stub.write_text(body, encoding="utf-8")
+        stub.chmod(0o755)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{bin_dir}:/usr/bin:/bin",
+            "HOME": str(tmp_path / "home"),
+            "XDG_STATE_HOME": str(tmp_path / "state"),
+            "CALLS": str(calls),
+        }
+    )
+    env.pop("FNM_DIR", None)
+    if extra_env:
+        env.update(extra_env)
+
+    completed = subprocess.run(
+        ["sh", str(NODEJS_SCRIPTS / script_name), action],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    return completed, calls
+
+
+def test_nodejs_package_wires_the_node_ownership_targets() -> None:
     package = tomllib.loads(NODE_PACKAGE_PATH.read_text(encoding="utf-8"))
 
-    target = package["targets"]["fnm_default_node_on_lts"]
-    assert target["sync_policy"] == "push-only"
-    assert (
-        target["probe"]
-        == 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" probe'
+    assert package["targets"]["fnm_default_alias_removed"] == {
+        "sync_policy": "push-only",
+        "probe": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" probe',
+        "hooks": {
+            "pre_push": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" apply'
+        },
+    }
+    assert package["targets"]["npm_globals_match_node_abi"] == {
+        "sync_policy": "push-only",
+        "probe": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" probe',
+        "hooks": {"pre_push": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" apply'},
+    }
+    # Declaration order is the execution order, and the rebuild has to run under
+    # the node the install target just put in place.
+    assert list(package["targets"]) == [
+        "f_npmrc",
+        "nodejs_toolchain_installed",
+        "fnm_default_alias_removed",
+        "npm_globals_match_node_abi",
+    ]
+
+
+def test_nodejs_package_names_the_lts_line_in_the_profile() -> None:
+    arch_profile = tomllib.loads(
+        (REPO_ROOT / "profiles/os/arch.toml").read_text(encoding="utf-8")
     )
-    assert target["hooks"]["pre_push"] == (
-        'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" apply'
+    packages = arch_profile["vars"]["NODEJS_INSTALL_PACKAGES"].split()
+
+    # Arch's own nodejs tracks the current line, which reaches devspace's upper
+    # bound on pacman's schedule; the LTS package is the one that can be held.
+    assert "nodejs-lts-krypton" in packages
+    assert "nodejs" not in packages
+    # The LTS line is named in the repo rather than resolved from the network at
+    # push time, so moving lines is a reviewable change.
+    assert not (NODEJS_SCRIPTS / "fnm_default_lts.sh").exists()
+
+
+def test_fnm_default_alias_is_removed_only_while_it_exists(tmp_path: Path) -> None:
+    fnm_stub = (
+        "#!/bin/sh\n"
+        'echo "$@" >> "$CALLS"\n'
+        'if [ "$1" = default ]; then echo v22.23.1; fi\n'
     )
 
-    script = (REPO_ROOT / "packages/nodejs/scripts/fnm_default_lts.sh").read_text(
-        encoding="utf-8"
+    probe, probe_calls = run_nodejs_script(
+        "fnm_default_alias_removed.sh", "probe", tmp_path, {"fnm": fnm_stub}, label="probe"
     )
-    # Crossing a node major invalidates every installed native binding, so the
-    # apply path must rebuild the global packages through the new default node.
-    assert "fnm exec --using=default -- npm rebuild -g" in script
-    assert 'fnm default "${latest}"' in script
-    # An unavailable network keeps the installed default instead of forcing churn.
-    assert "could not resolve the latest LTS; keeping" in script
-    # Each node tree is ~200 MB, so the replaced one is removed. That is safe only
-    # because fnm env links each shell through the default alias; relinking a shell
-    # link directly at a version tree would sever that hop and stop the shell from
-    # following later fnm default moves.
-    assert 'fnm uninstall "${current}"' in script
-    assert "ln -sfn" not in script
-    assert "fnm_multishells" not in script
+    assert probe.returncode == 0
+    assert "uninstall" not in probe_calls.read_text(encoding="utf-8")
+
+    applied, apply_calls = run_nodejs_script(
+        "fnm_default_alias_removed.sh", "apply", tmp_path, {"fnm": fnm_stub}, label="apply"
+    )
+    assert applied.returncode == 0
+    # fnm uninstall also drops the aliases pointing at the version, so removing the
+    # tree is what clears the alias that shadows the system node.
+    assert "uninstall v22.23.1" in apply_calls.read_text(encoding="utf-8")
+
+    no_alias = '#!/bin/sh\necho "$@" >> "$CALLS"\nexit 1\n'
+    current, _ = run_nodejs_script(
+        "fnm_default_alias_removed.sh", "probe", tmp_path, {"fnm": no_alias}, label="none"
+    )
+    assert current.returncode == 100
+
+
+def test_global_npm_packages_rebuild_when_the_node_abi_moves(tmp_path: Path) -> None:
+    abi_file = tmp_path / "abi"
+    abi_file.write_text("137\n", encoding="utf-8")
+    node_stub = (
+        "#!/bin/sh\n"
+        'echo "$@" >> "$CALLS"\n'
+        'if [ "$1" = -p ]; then cat "$ABI_FILE"; fi\n'
+    )
+    npm_stub = '#!/bin/sh\necho "$@" >> "$CALLS"\n'
+    stubs = {"node": node_stub, "npm": npm_stub}
+    extra_env = {"ABI_FILE": str(abi_file)}
+    stamp = tmp_path / "state/dotfiles/nodejs/npm-globals-abi"
+
+    # Nothing recorded yet, so the shared prefix cannot be trusted.
+    probe, probe_calls = run_nodejs_script(
+        "npm_globals_abi.sh", "probe", tmp_path, stubs, label="p1", extra_env=extra_env
+    )
+    assert probe.returncode == 0
+    assert "rebuild" not in probe_calls.read_text(encoding="utf-8")
+
+    applied, apply_calls = run_nodejs_script(
+        "npm_globals_abi.sh", "apply", tmp_path, stubs, label="a1", extra_env=extra_env
+    )
+    assert applied.returncode == 0
+    assert "rebuild -g" in apply_calls.read_text(encoding="utf-8")
+    assert stamp.read_text(encoding="utf-8").strip() == "137"
+
+    current, _ = run_nodejs_script(
+        "npm_globals_abi.sh", "probe", tmp_path, stubs, label="p2", extra_env=extra_env
+    )
+    assert current.returncode == 100
+
+    # A new LTS line moves the ABI, which invalidates every binding in the prefix.
+    abi_file.write_text("147\n", encoding="utf-8")
+    moved, _ = run_nodejs_script(
+        "npm_globals_abi.sh", "probe", tmp_path, stubs, label="p3", extra_env=extra_env
+    )
+    assert moved.returncode == 0
+
+    # A failing rebuild must not be recorded as current, or the next push would
+    # skip it.
+    failing_npm = '#!/bin/sh\necho "$@" >> "$CALLS"\nexit 1\n'
+    failed, _ = run_nodejs_script(
+        "npm_globals_abi.sh",
+        "apply",
+        tmp_path,
+        {"node": node_stub, "npm": failing_npm},
+        label="a2",
+        extra_env=extra_env,
+    )
+    assert failed.returncode != 0
+    assert stamp.read_text(encoding="utf-8").strip() == "137"
+
+
+def test_global_npm_rebuild_is_skipped_without_a_node(tmp_path: Path) -> None:
+    npm_stub = '#!/bin/sh\necho "$@" >> "$CALLS"\n'
+    node_stub = '#!/bin/sh\necho "$@" >> "$CALLS"\nexit 1\n'
+
+    completed, calls = run_nodejs_script(
+        "npm_globals_abi.sh",
+        "probe",
+        tmp_path,
+        {"node": node_stub, "npm": npm_stub},
+        label="probe",
+    )
+
+    # Installing node is the install target's job; a rebuild here would only fail.
+    assert completed.returncode == 100
+    assert not calls.exists() or "rebuild" not in calls.read_text(encoding="utf-8")
 
 
 def test_core_env_exports_pnpm_home_and_adds_its_bin_directory(tmp_path: Path) -> None:

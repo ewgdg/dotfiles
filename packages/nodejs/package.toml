@@ -1,5 +1,5 @@
 id = "nodejs"
-description = "Node.js user configuration and toolchain bootstrap"
+description = "Node.js runtime packages, global npm state, and user configuration"
 
 [targets.f_npmrc]
 source = "files/npmrc"
@@ -17,13 +17,22 @@ pre_push = [
   "{{ INSTALL }} bun fnm",
 ]
 
-# fnm's default node tracks the current LTS: it is the runtime for interactive
-# shells, global CLIs, and the devspace service, so it is the one place node is
-# chosen. The script also rebuilds global native modules when crossing a node
-# major, which would otherwise invalidate every installed native binding.
-[targets.fnm_default_node_on_lts]
+# The system node owns the ambient runtime and the shared global npm prefix; fnm
+# is kept for project-local versions only. Its default alias is what makes fnm the
+# ambient runtime, so it is removed rather than left in place.
+[targets.fnm_default_alias_removed]
 sync_policy = "push-only"
-probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" probe'
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" probe'
 
-[targets.fnm_default_node_on_lts.hooks]
-pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_lts.sh" apply'
+[targets.fnm_default_alias_removed.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" apply'
+
+# Global npm packages carry native bindings compiled for one node ABI, so moving
+# the system node to another LTS line invalidates all of them. Declared after the
+# install target so the rebuild runs under the node that is now installed.
+[targets.npm_globals_match_node_abi]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" probe'
+
+[targets.npm_globals_match_node_abi.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" apply'
