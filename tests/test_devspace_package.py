@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+import tomllib
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_ROOT = REPO_ROOT / "packages/devspace"
+
+
+def load_package() -> dict:
+    with (PACKAGE_ROOT / "package.toml").open("rb") as package_file:
+        return tomllib.load(package_file)
+
+
+def load_managed_config() -> dict:
+    text = (PACKAGE_ROOT / "files/devspace/config.jsonc").read_text(encoding="utf-8")
+    # The file uses whole-line comments only; strip them to parse it as JSON.
+    return json.loads(re.sub(r"^\s*//.*$", "", text, flags=re.MULTILINE))
+
+
+def test_package_installs_devspace_and_mints_the_owner_token() -> None:
+    package = load_package()
+
+    assert package["id"] == "devspace"
+    assert package["description"] == "DevSpace MCP coding harness for ChatGPT"
+    assert package["depends"] == ["agents", "nodejs"]
+    assert package["targets"] == {
+        "devspace_install": {
+            "sync_policy": "push-only",
+            "probe": 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/devspace" ] && "$npm_prefix/bin/devspace" version >/dev/null 2>&1; then exit 100; fi; exit 0',
+            "hooks": {"pre_push": "{{ NPM_INSTALL }} @waishnav/devspace"},
+        },
+        "devspace_owner_token": {
+            "sync_policy": "push-only",
+            "probe": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" probe',
+            "hooks": {
+                "pre_push": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" apply'
+            },
+        },
+        "f_devspace_config": {
+            "source": "files/devspace/config.jsonc",
+            "path": "~/.devspace/config.jsonc",
+            "chmod": "600",
+        },
+    }
+
+
+def test_owner_password_stays_a_live_local_secret() -> None:
+    package = load_package()
+    tracked_paths = [target.get("path", "") for target in package["targets"].values()]
+    assert not any("auth.json" in path for path in tracked_paths)
+    assert "ownerToken" not in json.dumps(load_managed_config())
+
+    script = (PACKAGE_ROOT / "scripts/mint_owner_token.sh").read_text(encoding="utf-8")
+    # The hook reports where the secret landed instead of echoing it.
+    assert "Read it when ChatGPT asks for approval: cat ${auth_path}" in script
+    assert 'echo "${token}"' not in script
+    assert 'printf \'{"ownerToken":"%s"}' in script
+
+
+def test_config_target_stays_a_verbatim_copy() -> None:
+    target = load_package()["targets"]["f_devspace_config"]
+
+    # dotman transform json fails on JSONC comments, so a render/capture pair
+    # here would break the push.
+    assert "render" not in target
+    assert "capture" not in target
+    assert (PACKAGE_ROOT / target["source"]).is_file()
+
+
+def test_managed_config_pins_instructions_to_the_shared_agents_dir() -> None:
+    config = load_managed_config()
+
+    assert config["configVersion"] == 1
+    assert config["skills"]["agentDir"] == "~/.agents"
+    assert config["server"]["trustProxy"] is True
+    assert config["server"]["publicBaseUrl"].startswith("https://")
+    assert config["workspaces"]["allowedRoots"] == ["~/Projects"]
+
+
+def test_app_groups_include_the_devspace_package() -> None:
+    with (REPO_ROOT / "groups/apps/ai.toml").open("rb") as group_file:
+        ai_group = tomllib.load(group_file)
+
+    assert "devspace" in ai_group["members"]

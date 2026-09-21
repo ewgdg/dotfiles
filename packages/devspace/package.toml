@@ -1,0 +1,29 @@
+id = "devspace"
+description = "DevSpace MCP coding harness for ChatGPT"
+
+depends = [
+  "agents",
+  "nodejs",
+]
+
+[targets.devspace_install]
+sync_policy = "push-only"
+probe = 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/devspace" ] && "$npm_prefix/bin/devspace" version >/dev/null 2>&1; then exit 100; fi; exit 0'
+
+[targets.devspace_install.hooks]
+pre_push = "{{ NPM_INSTALL }} @waishnav/devspace"
+
+[targets.devspace_owner_token]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" probe'
+
+[targets.devspace_owner_token.hooks]
+pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/mint_owner_token.sh" apply'
+
+# Copied verbatim: config.jsonc carries comments and `dotman transform json`
+# rejects JSONC, so no render/capture step can be used here. The repo copy is
+# therefore the source of truth and a push overwrites live edits.
+[targets.f_devspace_config]
+source = "files/devspace/config.jsonc"
+path = "~/.devspace/config.jsonc"
+chmod = "600"

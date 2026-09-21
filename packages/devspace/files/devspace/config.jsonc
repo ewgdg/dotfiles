@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Waishnav/devspace/main/schema/v1/devspace.schema.json",
+  "configVersion": 1,
+
+  "server": {
+    // Public origin only, never with a trailing /mcp. DevSpace does not create
+    // tunnels; this must match the HTTPS endpoint that forwards to 127.0.0.1:7676.
+    "publicBaseUrl": "https://devspace.xianzzz.com",
+    // Cloudflare terminates TLS and forwards CF-Connecting-IP. This only changes
+    // which client IP is recorded in logs.
+    "trustProxy": true
+  },
+
+  "workspaces": {
+    // Roots the ChatGPT connector may open. Keep narrow: anything under a listed
+    // root is readable and writable by the connected client.
+    "allowedRoots": ["~/Projects"]
+  },
+
+  "skills": {
+    // Instructions are read from <agentDir>/AGENTS.md, so this loads
+    // ~/.agents/AGENTS.md and discovers skills from ~/.agents/skills. Pinned away
+    // from the default (~/.codex) so this package depends on `agents` alone
+    // instead of on the codex instruction symlink that resolves to the same file.
+    "agentDir": "~/.agents"
+  }
+}
