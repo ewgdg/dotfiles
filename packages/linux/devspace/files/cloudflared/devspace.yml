@@ -3,6 +3,11 @@
 # own file and unit instead of competing for one path. The unit passes this path
 # explicitly, so the default is never consulted.
 #
+# Pass it explicitly yourself too: without --config, cloudflared looks for
+# config.yml/config.yaml in ~/.cloudflared, /etc/cloudflared, then
+# /usr/local/etc/cloudflared, and a flagless run that finds none silently proxies to
+# port 8080 instead of this service.
+#
 # The tunnel itself is selected by name on the unit's command line, so no tunnel UUID
 # is tracked: cloudflared resolves the name and reads its own credentials from
 # ~/.cloudflared.
