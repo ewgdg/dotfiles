@@ -1,6 +1,8 @@
 [vars]
 UV_RUN = "uv run --project \"$DOTMAN_REPO_ROOT\""
-NPM_INSTALL = "npm install --no-audit --no-fund --loglevel=error -g"
+# Keep npm's default log level: it reports warn-level diagnostics such as
+# EBADENGINE, which is how a node line move shows up in these global installs.
+NPM_INSTALL = "npm install --no-audit --no-fund -g"
 RUSTUP_EXTRA_TARGETS = ""
 XML_TRANSFORM = "dotman transform xml"
 TOML_TRANSFORM = "dotman transform toml"
