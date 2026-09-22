@@ -62,6 +62,11 @@ does not create the tunnel: something has to forward to `127.0.0.1:7676` before 
 ChatGPT connector can be added. `trustProxy` only changes which client IP is
 recorded in logs.
 
+On Linux the tunnel unit guards itself with `ConditionPathExists` on
+`~/.cloudflared/cert.pem` and the tunnel's `<uuid>.json`, so a host that has not
+logged in still pushes cleanly and just has no public URL. Setup steps are in
+`packages/linux/cloudflared`.
+
 The origin is a render-time var. DevSpace is installed on a single host, so the
 package commits the tunnel origin as the default:
 

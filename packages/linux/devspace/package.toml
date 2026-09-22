@@ -22,18 +22,6 @@ path = "~/.cloudflared/devspace.yml"
 chmod = "600"
 preset = "jinja-patch-editor"
 
-# cert.pem and <uuid>.json come from `cloudflared tunnel login` and a tunnel
-# creation — a browser flow and an account call, neither of which a package can
-# perform. The probe reports them missing and the hook fails with what to run,
-# rather than letting the unit loop on a credential error that looks like a network
-# problem.
-[targets.cloudflared_tunnel_credentials]
-sync_policy = "push-only"
-probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" probe'
-
-[targets.cloudflared_tunnel_credentials.hooks]
-pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/check_tunnel_credentials.sh" apply'
-
 [targets.f_config_systemd_user_cloudflared_devspace_service]
 source = "files/config/systemd/user/cloudflared-devspace.service"
 path = "~/.config/systemd/user/cloudflared-devspace.service"
