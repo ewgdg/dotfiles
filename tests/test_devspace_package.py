@@ -205,6 +205,11 @@ def test_tunnel_unit_runs_by_name_without_upstreams_service_installer() -> None:
     # A tunnel-named config, not cloudflared's shared default, so a second tunnel
     # cannot take this one's place.
     assert "--config %h/.cloudflared/devspace.yml" in unit
+    # Guarded on the credentials: a host that has not run cloudflared tunnel login skips
+    # the unit instead of failing it, which is what leaves a start-limit-hit state that
+    # a later push has to reset before the unit can start.
+    assert "ConditionPathExists=%h/.cloudflared/cert.pem" in unit
+    assert "ConditionPathExistsGlob=%h/.cloudflared/*.json" in unit
     assert not re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-", unit)
     # pacman owns the binary; upstream's installer would add a root-owned daily timer
     # running cloudflared update and restart the service behind pacman's back.

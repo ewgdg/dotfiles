@@ -1,5 +1,13 @@
 [Unit]
 Description=Cloudflare Tunnel publishing the DevSpace MCP server
+# Skipped rather than failed when the tunnel has not been set up yet: without
+# credentials cloudflared exits, and systemd's default start limit then leaves the unit
+# in a failed state that the next push has to reset before it can start again.
+#
+# Both files, and no UUID: cloudflared resolves the tunnel name through the API using
+# cert.pem, then loads that tunnel's own credentials by ID from <uuid>.json.
+ConditionPathExists=%h/.cloudflared/cert.pem
+ConditionPathExistsGlob=%h/.cloudflared/*.json
 
 [Service]
 # exec rather than upstream's notify: readiness reporting buys nothing here and exec
