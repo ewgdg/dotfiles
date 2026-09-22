@@ -12,3 +12,7 @@ path = "~/.config/chromium-flags.conf"
 [targets.f_config_electron_flags_conf]
 source = "files/config/electron-flags.conf"
 path = "~/.config/electron-flags.conf"
+
+[targets.f_local_share_applications_chatgpt_web_desktop]
+source = "files/local/share/applications/chatgpt-web.desktop"
+path = "~/.local/share/applications/chatgpt-web.desktop"

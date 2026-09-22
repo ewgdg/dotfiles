@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ChatGPT Web
+Comment=ChatGPT in a Chrome app window
+Exec=google-chrome-stable --app=https://chatgpt.com
+Icon=chatgpt
+StartupWMClass=chrome-chatgpt.com__-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;WebBrowser;
