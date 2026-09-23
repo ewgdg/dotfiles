@@ -1,6 +1,11 @@
 {
   "configVersion": 1,
   "publicBaseUrl": {% if vars.devspace.public_base_url %}"{{ vars.devspace.public_base_url }}"{% else %}null{% endif %},
-  "allowedRoots": ["~/Projects"],
+  "allowedRoots": [
+    "~/Projects",
+    "~/sandbox",
+    "~/.agents",
+    "~/tmp"
+  ],
   "agentDir": "~/.agents"
 }
