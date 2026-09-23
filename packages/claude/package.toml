@@ -39,15 +39,10 @@ chmod = "755"
 source = "files/claude/hooks"
 path = "~/.claude/hooks"
 
-[targets.d_claude_agents]
-source = "files/claude/agents"
-path = "~/.claude/agents"
+# Claude Code reads skills from ~/.claude/skills; share the agent-neutral set.
+[targets.claude_skills_link]
+sync_policy = "push-only"
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.claude/skills" "~/.agents/skills"'
 
-[targets.d_claude_commands]
-source = "files/claude/commands"
-path = "~/.claude/commands"
-
-[targets.d_claude_skills]
-source = "files/claude/skills"
-path = "~/.claude/skills"
-disabled = true
+[targets.claude_skills_link.hooks]
+pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.claude/skills" "~/.agents/skills"'
