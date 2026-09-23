@@ -9,9 +9,6 @@
       "PlanModeExit"
     ]
   },
-  "skillOverrides": {
-    "claude-api": "off"
-  },
   "hooks": {
     "SessionStart": [
       {
