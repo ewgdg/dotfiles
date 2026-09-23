@@ -2,8 +2,12 @@ id = "claude"
 depends = ["agents"]
 
 [vars.claude]
-# Interactive model and effort choices are live-local preferences.
-settings_selectors = ["model", "effortLevel"]
+# Interactive model, effort, and per-model choices are live-local preferences.
+settings_selectors = ["model", "effortLevel", "modelSettings"]
+# ~/.claude.json is mostly machine state, so it is synced by allowlist.
+# Only user-scope MCP servers (top-level mcpServers) are portable; local-scope
+# servers live under machine-specific projects["/abs/path"] keys.
+claude_json_selectors = ["mcpServers"]
 
 [targets.claude_global_instructions]
 sync_policy = "push-only"
@@ -24,6 +28,15 @@ path = "~/.claude/settings.json"
 chmod = "600"
 render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors {{ vars.claude.settings_selectors|shell_args }}'
 capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors {{ vars.claude.settings_selectors|shell_args }}'
+
+# Capture keeps only the allowlist; render keeps all live state and overlays the
+# allowlist from the repo. Put MCP secrets in env vars, never in this file.
+[targets.f_claude_json]
+source = "files/claude.json"
+path = "~/.claude.json"
+chmod = "600"
+render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type remove --selectors {{ vars.claude.claude_json_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type retain --selectors {{ vars.claude.claude_json_selectors|shell_args }}'
 
 [targets.f_claude_statusline_js]
 source = "files/claude/statusline.js"
