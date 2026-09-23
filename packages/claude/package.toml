@@ -12,15 +12,11 @@ probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.cla
 [targets.claude_global_instructions.hooks]
 pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.claude/rules/global.md" "~/.agents/AGENTS.md"'
 
-# Shared global instructions live in ~/.claude/rules/global.md. An extra
-# ~/.claude/CLAUDE.md would double-load the same file, so it must stay
-# absent unless Claude-only global instructions are needed.
-[targets.claude_global_claude_md_absent]
-sync_policy = "push-only"
-probe = 'if [ -e "$HOME/.claude/CLAUDE.md" ]; then exit 0; else exit 100; fi'
-
-[targets.claude_global_claude_md_absent.hooks]
-pre_push = 'if [ -e "$HOME/.claude/CLAUDE.md" ]; then trash-put "$HOME/.claude/CLAUDE.md"; fi'
+# Global CLAUDE.md stays tracked but empty. Shared global instructions live in
+# ~/.claude/rules/global.md (symlinked to ~/.agents/AGENTS.md).
+[targets.f_claude_global_md]
+source = "files/claude/CLAUDE.md"
+path = "~/.claude/CLAUDE.md"
 
 [targets.f_claude_settings_json]
 source = "files/claude/settings.json"
