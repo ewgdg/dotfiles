@@ -24,7 +24,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "node \"$HOME/.claude/statusline.js\""
+    "command": "node \"$HOME/.claude/statusline.js\"",
+    "refreshInterval": 60
   },
   "subagentStatusLine": {
     "type": "command",
