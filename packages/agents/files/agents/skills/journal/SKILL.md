@@ -62,7 +62,6 @@ Write plain prose without bullets. Put each independent idea on its own physical
 The body is Markdown and must render correctly in common Markdown renderers.
 Wrap code, identifiers, keys, paths, commands, JSON, and error text in inline code (e.g. `$ref`, `#/$defs/x`, `<path>`); use a fenced block for multi-line snippets.
 Use `$…$` / `$$…$$` only for intentional math; a literal `$` in prose goes in inline code or is escaped as `\$`.
-Never leave bare `<...>`, `[[...]]`, `#word`, or `*`/`_` markup characters in prose: renderers commonly read `<tag>` as HTML and `#word` as a tag.
 
 Each entry must preserve its essential meaning inline. Do not rely on temporary files, scratch directories, local-only paths, external session artifacts, or "see file X" references for essential meaning. References are allowed only to durable notes/files inside the vault, or when a path itself is the durable subject of the memory.
 
