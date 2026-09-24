@@ -50,10 +50,12 @@ path = "~/.claude/subagent-statusline.js"
 source = "files/claude/hooks"
 path = "~/.claude/hooks"
 
-# Claude Code reads skills from ~/.claude/skills; share the agent-neutral set.
+# Claude Code owns ~/.claude/skills (it syncs account skills into synced/), so
+# link each agent-neutral skill into it instead of replacing the directory.
+# post_push links skills that the same push adds and prunes ones it removes.
 [targets.claude_skills_link]
 sync_policy = "push-only"
-probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.claude/skills" "~/.agents/skills"'
+probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_child_symlinks.sh" probe "~/.claude/skills" "~/.agents/skills"'
 
 [targets.claude_skills_link.hooks]
-pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.claude/skills" "~/.agents/skills"'
+post_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_child_symlinks.sh" apply "~/.claude/skills" "~/.agents/skills"'
