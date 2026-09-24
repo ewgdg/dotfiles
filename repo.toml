@@ -1,7 +1,7 @@
 default_command_elevation = "intercept"
 
 [ignore]
-gitignore = ["push", "pull"]
+gitignore = true
 patterns = [
     "*.archived",
     "*.bak",
