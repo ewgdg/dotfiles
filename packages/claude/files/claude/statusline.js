@@ -123,6 +123,12 @@ function normalizeInput(input, fallbackDirectory = process.cwd()) {
     }
     return classifyOptional(quota.used_percentage, (value) => finiteNumber(value) !== undefined);
   };
+  const quotaResetsAt = (quota) => {
+    if (quota === MISSING || quota === FAILED) {
+      return MISSING;
+    }
+    return classifyOptional(quota.resets_at, (value) => finiteNumber(value) !== undefined);
+  };
 
   return {
     currentDirectory,
@@ -136,6 +142,8 @@ function normalizeInput(input, fallbackDirectory = process.cwd()) {
       : calculateCacheHitState(currentUsage),
     fiveHourUsedPercentage: quotaPercentage(fiveHour),
     sevenDayUsedPercentage: quotaPercentage(sevenDay),
+    fiveHourResetsAt: quotaResetsAt(fiveHour),
+    sevenDayResetsAt: quotaResetsAt(sevenDay),
   };
 }
 
@@ -147,6 +155,25 @@ function formatContextWindowSize(size) {
     return `${Math.round(size / 1_000)}k`;
   }
   return String(size);
+}
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
+
+// Show the two largest units, rounded down: 3d4h, 20h5m, 47m.
+function formatTimeUntilReset(seconds) {
+  const remainingSeconds = Math.max(0, seconds);
+  const days = Math.floor(remainingSeconds / SECONDS_PER_DAY);
+  const hours = Math.floor((remainingSeconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+  const minutes = Math.floor((remainingSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  if (days > 0) {
+    return `${days}d${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h${minutes}m`;
+  }
+  return `${minutes}m`;
 }
 
 function readGitBranchState(currentDirectory, spawn = spawnSync) {
@@ -227,7 +254,19 @@ function contextColor(contextPercentage) {
   return COLORS.green;
 }
 
-function remainingQuotaSegment(label, usedPercentage) {
+// The time until reset replaces the window name, because it is what the user acts on.
+function quotaLabel(windowLabel, resetsAt, nowMilliseconds) {
+  if (valueIsMissing(resetsAt)) {
+    return windowLabel;
+  }
+  if (valueIsFailed(resetsAt)) {
+    return '?';
+  }
+  return formatTimeUntilReset(resetsAt - nowMilliseconds / 1_000);
+}
+
+function remainingQuotaSegment(windowLabel, usedPercentage, resetsAt, nowMilliseconds) {
+  const label = quotaLabel(windowLabel, resetsAt, nowMilliseconds);
   if (valueIsMissing(usedPercentage)) {
     return '';
   }
@@ -333,7 +372,7 @@ function renderCacheHitSegment(cacheHitPercentage) {
   );
 }
 
-function renderStatusline(status, gitBranch) {
+function renderStatusline(status, gitBranch, nowMilliseconds = Date.now()) {
   const safeStatus = isObject(status) ? status : {};
   const firstLine = [
     renderPathSegment(safeStatus.currentDirectory),
@@ -345,11 +384,11 @@ function renderStatusline(status, gitBranch) {
     safeSegment(() => renderContextSegment(safeStatus), () => `${COLORS.yellow}?${COLORS.reset}`),
     safeSegment(() => renderCacheHitSegment(safeStatus.cacheHitPercentage), () => `${COLORS.blue}CH:?${COLORS.reset}`),
     safeSegment(
-      () => remainingQuotaSegment('5h', safeStatus.fiveHourUsedPercentage),
+      () => remainingQuotaSegment('5h', safeStatus.fiveHourUsedPercentage, safeStatus.fiveHourResetsAt, nowMilliseconds),
       () => `${COLORS.yellow}5h:?${COLORS.reset}`,
     ),
     safeSegment(
-      () => remainingQuotaSegment('7d', safeStatus.sevenDayUsedPercentage),
+      () => remainingQuotaSegment('7d', safeStatus.sevenDayUsedPercentage, safeStatus.sevenDayResetsAt, nowMilliseconds),
       () => `${COLORS.yellow}7d:?${COLORS.reset}`,
     ),
   ].filter(Boolean);
@@ -405,6 +444,7 @@ module.exports = {
   buildStatusline,
   calculateCacheHit,
   formatContextWindowSize,
+  formatTimeUntilReset,
   normalizeInput,
   readGitBranch,
   renderStatusline,

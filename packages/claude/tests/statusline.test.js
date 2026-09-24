@@ -12,6 +12,7 @@ const {
   COLORS,
   calculateCacheHit,
   formatContextWindowSize,
+  formatTimeUntilReset,
   normalizeInput,
   readGitBranch,
   renderStatusline,
@@ -85,6 +86,42 @@ test('renders context, model, quotas, and a branch', () => {
       + ` ${COLORS.green}5h:65%${COLORS.reset}`
       + ` ${COLORS.red}7d:5%${COLORS.reset}`,
   );
+});
+
+test('formats time until reset with the two largest units', () => {
+  assert.equal(formatTimeUntilReset(3 * 86_400 + 4 * 3_600 + 59 * 60), '3d4h');
+  assert.equal(formatTimeUntilReset(20 * 3_600 + 5 * 60 + 59), '20h5m');
+  assert.equal(formatTimeUntilReset(47 * 60 + 30), '47m');
+  assert.equal(formatTimeUntilReset(-10), '0m');
+});
+
+test('labels quotas with the time until reset when the reset time is known', () => {
+  const nowMilliseconds = 1_000_000 * 1_000;
+  const normalized = normalizeInput({
+    rate_limits: {
+      five_hour: { used_percentage: 35, resets_at: 1_000_000 + 2 * 3_600 + 13 * 60 },
+      seven_day: { used_percentage: 85, resets_at: 1_000_000 + 3 * 86_400 + 4 * 3_600 },
+    },
+  });
+
+  const output = renderStatusline(normalized, undefined, nowMilliseconds);
+
+  assert.ok(output.includes(`${COLORS.green}2h13m:65%`), output);
+  assert.ok(output.includes(`${COLORS.yellow}3d4h:15%`), output);
+});
+
+test('falls back to the window label when the reset time is absent or invalid', () => {
+  const normalized = normalizeInput({
+    rate_limits: {
+      five_hour: { used_percentage: 35 },
+      seven_day: { used_percentage: 85, resets_at: 'soon' },
+    },
+  });
+
+  const output = renderStatusline(normalized);
+
+  assert.match(output, /5h:65%/);
+  assert.match(output, /\?:15%/);
 });
 
 test('omits absent segments without JavaScript sentinel values', () => {
