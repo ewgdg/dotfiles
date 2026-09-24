@@ -10,41 +10,8 @@ mode=$1
 destination_spec=$2
 target_spec=$3
 
-expand_home_path() {
-  path_spec=$1
-
-  case $path_spec in
-    "")
-      echo "managed symlink path must not be empty" >&2
-      exit 2
-      ;;
-    "~")
-      expanded=$HOME
-      ;;
-    "~/"*)
-      expanded=$HOME/${path_spec#??}
-      ;;
-    '$HOME')
-      expanded=$HOME
-      ;;
-    '$HOME/'*)
-      expanded=$HOME/${path_spec#\$HOME/}
-      ;;
-    '${HOME}')
-      expanded=$HOME
-      ;;
-    '${HOME}/'*)
-      expanded=$HOME/${path_spec#\$\{HOME\}/}
-      ;;
-    /*)
-      expanded=$path_spec
-      ;;
-    *)
-      echo "managed symlink path must be absolute or HOME-based: $path_spec" >&2
-      exit 2
-      ;;
-  esac
-}
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$script_dir/home_path.sh"
 
 expand_home_path "$destination_spec"
 destination=$expanded
