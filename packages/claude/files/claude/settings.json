@@ -5,8 +5,7 @@
   "permissions": {
     "allow": [],
     "deny": [
-      "PlanModeEnter",
-      "PlanModeExit"
+      "EnterPlanMode"
     ]
   },
   "hooks": {
