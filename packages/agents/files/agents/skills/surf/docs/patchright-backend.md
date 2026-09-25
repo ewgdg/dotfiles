@@ -23,6 +23,8 @@ Chrome-extension behavior depends on the installed browser and profile; verify [
 
 ## Cookies and shutdown
 
-[Cookie import](cookie-import.md) refreshes configured login state only before starting an inactive profile. Patchright excludes its `--password-store=basic` and `--use-mock-keychain` defaults so imported Linux v11 cookies use Chrome's real OS password store/keychain.
+[Cookie import](cookie-import.md) refreshes configured login state only before starting an inactive profile. Patchright excludes its `--password-store=basic` and `--use-mock-keychain` defaults so imported cookies decrypt with Chrome's real OS password store (Linux) or Keychain (macOS).
+
+Chrome starts without a window and every thread window opens in the background, so Surf does not take focus; `Thread(name).focus()` raises one on request.
 
 Closing the final user-visible page requests bridge shutdown after the close response; background workers do not count. Chrome may independently close the persistent context, causing the bridge to exit. Subsequent startup repeats lifecycle checks. Handle interrupted actions through the [recovery workflow](../SKILL.md#recovery).

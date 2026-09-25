@@ -45,7 +45,8 @@
   },
   "voiceFeaturesOnly": false,
   "prompt": {
-    "heavySystemPromptOverwrite": true
+    "heavySystemPromptOverwrite": true,
+    "currentTimeReminderMinutes": 0
   },
   "voice": {
     "v3Voice": "cove",

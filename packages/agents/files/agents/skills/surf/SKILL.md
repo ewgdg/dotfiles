@@ -11,7 +11,7 @@ Run Python through `scripts/run.py`. Named browser threads persist between calls
 
 ## Prepare
 
-Set `SURF_SKILL` to the absolute directory containing this installed `SKILL.md`, not the working directory. Requires Python 3, `uv`, and Google Chrome; the launcher manages Python dependencies.
+Set `SURF_SKILL` to the absolute directory containing this installed `SKILL.md`, not the working directory. Runs on Linux and macOS; Windows is unsupported. Requires Python 3, `uv`, and Google Chrome; the launcher manages Python dependencies.
 
 The launcher installs the runtime pinned by this skill. If it reports a missing or invalid pin, the skill is incorrectly installed; report that instead of working around it. For dependency failures, read [launcher setup](docs/launcher.md).
 
@@ -94,8 +94,11 @@ from surf_agent import Thread
 thread = Thread("research-42")
 thread.fill("@e12", "browser skills")  # ref from the observed snapshot
 thread.press("Enter")
+thread.wait(url="*/search*")  # confirm the effect instead of sleeping
 thread.emit(thread.snapshot())
 ```
+
+Confirm an action's effect with `wait(text)`, `wait(gone=...)` or `wait(url=...)` rather than a fixed sleep. Read one region with `thread.text("@e5")` or `thread.text("main")` instead of the whole body. When a call fails, branch on `error.code` ([codes](docs/python-api.md#errors)): `intercepted` names the covering element, `outcome_unknown` means the action may already have happened.
 
 Actions and observations are silent; print only useful results. `snapshot().text` is complete. `emit(snapshot)` outputs a numbered observation with explicit BEGIN/END boundaries: full text first, then useful diffs; `full=True` forces full output. Multiple emissions appear in order in the same script output, not separate agent turns. End the script when the next action requires a decision. Read [snapshot semantics](docs/python-api.md#snapshot-output) for the format, baselines or custom sinks.
 
@@ -109,7 +112,7 @@ For action signatures and administrative operations, read [Python API](docs/pyth
 
 ## Login and human unblock
 
-For existing Chrome login state, read [cookie import](docs/cookie-import.md) before configuring access. For extension-based login, read [1Password setup](docs/1password-setup.md) once and [autofill](docs/1password-autofill.md) when logging in.
+When a site asks for login that the user's normal Chrome already has, offer to import that site's cookies; on consent, follow [import for one site](docs/cookie-import.md#import-for-one-site). Never import without asking. For other cookie configuration, read [cookie import](docs/cookie-import.md) first. For extension-based login, read [1Password setup](docs/1password-setup.md) once and [autofill](docs/1password-autofill.md) when logging in.
 
 When blocked, ask the user to complete the blocker in the Surf Agent window and confirm when done. Preserve the page and wait for that confirmation, then inspect it using the same thread. Reopening the URL may destroy completed human work.
 
