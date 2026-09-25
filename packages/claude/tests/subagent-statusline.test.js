@@ -63,13 +63,13 @@ test('renders identity, description, model, and context from the payload', (t) =
   });
 });
 
-test('names an unnamed subagent by its agent type and marks inherited effort', (t) => {
+test('names an unnamed subagent by its agent type and marks auto effort', (t) => {
   const row = renderedRow({
     transcript_path: createSession(t, { a1: 'Explore' }),
     tasks: [{ id: 'a1', description: 'Probe', model: 'claude-opus-5-5', tokenCount: 8_894, contextWindowSize: 200_000 }],
   });
 
-  assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•inherit · 4%/200k');
+  assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•auto · 4%/200k');
 });
 
 test('shows a numeric effort budget as written', (t) => {

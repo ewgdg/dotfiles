@@ -24,7 +24,7 @@ The task's `tokenCount` (its current context size) over its `contextWindowSize`,
 _Avoid_: token-sample recovery, cumulative token spend
 
 **Subagent model label**:
-The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written when set explicitly; Claude Code omits it when the subagent inherits the session's effort, which is displayed as `•inherit`.
+The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written. Subagents inherit the session's effort live, and Claude Code sends it whenever the session or subagent level is explicit; it omits it only when the session is on auto, which is displayed as `•auto` because each subagent's model then resolves its own level.
 _Avoid_: prettified model name, inferred model family
 
 **Status-row colors**:

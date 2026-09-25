@@ -6,8 +6,9 @@ const { COLORS, colored, contextColor, formatContextWindowSize } = require('./st
 
 const TERMINAL_ESCAPE_PATTERN = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b./g;
 const CONTROL_CHARACTER_PATTERN = /\p{Cc}+/gu;
-// Claude Code omits a task's effort when it inherits the session's effort.
-const INHERITED_EFFORT_LABEL = 'inherit';
+// Subagents inherit the session's effort live. Claude Code sends it when the session level is explicit and
+// omits it only when the session is on auto, where each subagent's model resolves its own level.
+const AUTO_EFFORT_LABEL = 'auto';
 
 // Collapses model-written text into one plain line.
 function plainText(value) {
@@ -42,7 +43,7 @@ function renderTask(task, agentType) {
   if (identity === undefined) return undefined;
 
   const model = plainText(task.model);
-  const effort = task.effort === undefined ? INHERITED_EFFORT_LABEL : plainText(String(task.effort));
+  const effort = task.effort === undefined ? AUTO_EFFORT_LABEL : plainText(String(task.effort));
   const windowSize = Number.isFinite(task.contextWindowSize) && task.contextWindowSize > 0 ? task.contextWindowSize : undefined;
 
   const segments = [colored(identity, COLORS.cyan), plainText(task.description)];
