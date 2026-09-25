@@ -5,447 +5,173 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 
 const COLORS = Object.freeze({
-  hint: '[90m',
-  cyan: '[96m',
-  green: '[92m',
-  yellow: '[93m',
-  blue: '[94m',
-  red: '[91m',
-  reset: '[0m',
+  hint: '\x1b[90m',
+  cyan: '\x1b[96m',
+  green: '\x1b[92m',
+  yellow: '\x1b[93m',
+  blue: '\x1b[94m',
+  red: '\x1b[91m',
+  reset: '\x1b[0m',
 });
 
+const CONTEXT_WARNING_PERCENTAGE = 70;
+const CONTEXT_CRITICAL_PERCENTAGE = 85;
+const QUOTA_WARNING_REMAINING_PERCENTAGE = 30;
+const QUOTA_CRITICAL_REMAINING_PERCENTAGE = 10;
+const BRANCH_MAX_CHARACTERS = 25;
 const GIT_TIMEOUT_MS = 500;
-const GIT_MAX_BUFFER_BYTES = 1024 * 1024;
-
-function isObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-const MISSING = Symbol('missing');
-const FAILED = Symbol('failed');
-
-function finiteNumber(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
-function clampedPercentage(value) {
-  const number = finiteNumber(value);
-  return number === undefined ? undefined : Math.min(100, Math.max(0, number));
-}
-
-function classifyOptional(value, predicate) {
-  if (value === undefined || value === null) {
-    return MISSING;
-  }
-  return predicate(value) ? value : FAILED;
-}
-
-function nonEmptyString(value) {
-  return typeof value === 'string' && value.trim() !== '';
-}
-
-function tokenCount(usage, field) {
-  const value = usage[field];
-  if (value === undefined || value === null) {
-    return 0;
-  }
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
-    ? value
-    : undefined;
-}
-
-function calculateCacheHitState(usage) {
-  const inputTokens = tokenCount(usage, 'input_tokens');
-  const cacheCreationTokens = tokenCount(usage, 'cache_creation_input_tokens');
-  const cacheReadTokens = tokenCount(usage, 'cache_read_input_tokens');
-  if ([inputTokens, cacheCreationTokens, cacheReadTokens].includes(undefined)) {
-    return FAILED;
-  }
-
-  const totalTokens = inputTokens + cacheCreationTokens + cacheReadTokens;
-  if (totalTokens <= 0) {
-    return MISSING;
-  }
-
-  return Math.round(Math.min(100, Math.max(0, (cacheReadTokens / totalTokens) * 100)));
-}
-
-function calculateCacheHit(usage) {
-  if (!isObject(usage)) {
-    return undefined;
-  }
-  const cacheHit = calculateCacheHitState(usage);
-  return typeof cacheHit === 'number' ? cacheHit : undefined;
-}
-
-function normalizeInput(input, fallbackDirectory = process.cwd()) {
-  const payload = isObject(input) ? input : {};
-  const workspaceState = classifyOptional(payload.workspace, isObject);
-  const modelState = classifyOptional(payload.model, isObject);
-  const outputStyleState = classifyOptional(payload.output_style, isObject);
-  const contextWindowState = classifyOptional(payload.context_window, isObject);
-  const effortState = classifyOptional(payload.effort, isObject);
-  const rateLimitsState = classifyOptional(payload.rate_limits, isObject);
-
-  const workspace = workspaceState === MISSING ? {} : workspaceState;
-  const model = modelState === MISSING ? {} : modelState;
-  const outputStyle = outputStyleState === MISSING ? {} : outputStyleState;
-  const contextWindow = contextWindowState === MISSING ? {} : contextWindowState;
-  const effort = effortState === MISSING ? {} : effortState;
-  const rateLimits = rateLimitsState === MISSING ? {} : rateLimitsState;
-
-  const directory = workspaceState === FAILED
-    ? FAILED
-    : classifyOptional(workspace.current_dir, nonEmptyString);
-  const currentDirectory = directory === MISSING
-    ? classifyOptional(fallbackDirectory, nonEmptyString)
-    : directory;
-
-  const contextPercentage = contextWindowState === FAILED
-    ? FAILED
-    : classifyOptional(contextWindow.used_percentage, (value) => finiteNumber(value) !== undefined);
-  const contextWindowSize = contextWindowState === FAILED
-    ? FAILED
-    : classifyOptional(contextWindow.context_window_size, (value) => finiteNumber(value) !== undefined && value > 0);
-  const currentUsage = contextWindowState === FAILED
-    ? FAILED
-    : classifyOptional(contextWindow.current_usage, isObject);
-
-  const fiveHour = rateLimitsState === FAILED
-    ? FAILED
-    : classifyOptional(rateLimits.five_hour, isObject);
-  const sevenDay = rateLimitsState === FAILED
-    ? FAILED
-    : classifyOptional(rateLimits.seven_day, isObject);
-  const quotaPercentage = (quota) => {
-    if (quota === MISSING || quota === FAILED) {
-      return quota;
-    }
-    return classifyOptional(quota.used_percentage, (value) => finiteNumber(value) !== undefined);
-  };
-  const quotaResetsAt = (quota) => {
-    if (quota === MISSING || quota === FAILED) {
-      return MISSING;
-    }
-    return classifyOptional(quota.resets_at, (value) => finiteNumber(value) !== undefined);
-  };
-
-  return {
-    currentDirectory,
-    modelName: modelState === FAILED ? FAILED : classifyOptional(model.display_name, nonEmptyString),
-    outputStyle: outputStyleState === FAILED ? FAILED : classifyOptional(outputStyle.name, nonEmptyString),
-    effortLevel: effortState === FAILED ? FAILED : classifyOptional(effort.level, nonEmptyString),
-    contextWindowSize,
-    contextPercentage,
-    cacheHitPercentage: currentUsage === MISSING || currentUsage === FAILED
-      ? currentUsage
-      : calculateCacheHitState(currentUsage),
-    fiveHourUsedPercentage: quotaPercentage(fiveHour),
-    sevenDayUsedPercentage: quotaPercentage(sevenDay),
-    fiveHourResetsAt: quotaResetsAt(fiveHour),
-    sevenDayResetsAt: quotaResetsAt(sevenDay),
-  };
-}
-
-function formatContextWindowSize(size) {
-  if (size >= 1_000_000) {
-    return `${(size / 1_000_000).toFixed(1)}m`;
-  }
-  if (size >= 1_000) {
-    return `${Math.round(size / 1_000)}k`;
-  }
-  return String(size);
-}
+// `git symbolic-ref --quiet` exit codes: 1 means detached HEAD, 128 means not a repository.
+const GIT_DETACHED_HEAD_STATUS = 1;
 
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
 const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 
+function finiteNumber(value) {
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+function colored(text, color) {
+  return `${color}${text}${COLORS.reset}`;
+}
+
+function clampPercentage(value) {
+  return Math.min(100, Math.max(0, value));
+}
+
+function contextColor(percentage) {
+  const rounded = Math.round(percentage);
+  if (rounded >= CONTEXT_CRITICAL_PERCENTAGE) return COLORS.red;
+  if (rounded >= CONTEXT_WARNING_PERCENTAGE) return COLORS.yellow;
+  return COLORS.green;
+}
+
+function formatContextWindowSize(size) {
+  if (size >= 1_000_000) return `${(size / 1_000_000).toFixed(1)}m`;
+  if (size >= 1_000) return `${Math.round(size / 1_000)}k`;
+  return String(size);
+}
+
 // Show the two largest units, rounded down: 3d4h, 20h5m, 47m.
 function formatTimeUntilReset(seconds) {
-  const remainingSeconds = Math.max(0, seconds);
-  const days = Math.floor(remainingSeconds / SECONDS_PER_DAY);
-  const hours = Math.floor((remainingSeconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
-  const minutes = Math.floor((remainingSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-  if (days > 0) {
-    return `${days}d${hours}h`;
-  }
-  if (hours > 0) {
-    return `${hours}h${minutes}m`;
-  }
+  const remaining = Math.max(0, seconds);
+  const days = Math.floor(remaining / SECONDS_PER_DAY);
+  const hours = Math.floor((remaining % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+  const minutes = Math.floor((remaining % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  if (days > 0) return `${days}d${hours}h`;
+  if (hours > 0) return `${hours}h${minutes}m`;
   return `${minutes}m`;
 }
 
-function readGitBranchState(currentDirectory, spawn = spawnSync) {
-  const options = {
-    cwd: currentDirectory,
+function abbreviateHomeDirectory(directory, homeDirectory = os.homedir()) {
+  if (directory === homeDirectory) return '~';
+  return directory.startsWith(`${homeDirectory}/`) ? `~${directory.slice(homeDirectory.length)}` : directory;
+}
+
+// Returns the branch, the short commit for a detached HEAD, undefined outside a repository, or '?' on failure.
+function readGitBranch(directory) {
+  const git = (...args) => spawnSync('git', args, {
+    cwd: directory,
     encoding: 'utf8',
     env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
-    maxBuffer: GIT_MAX_BUFFER_BYTES,
-    shell: false,
     timeout: GIT_TIMEOUT_MS,
-    windowsHide: true,
-  };
+  });
 
-  try {
-    const symbolicRef = spawn('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], options);
-    if (!symbolicRef.error && symbolicRef.status === 0) {
-      const branch = symbolicRef.stdout.trim();
-      return branch === '' ? FAILED : branch;
-    }
+  const symbolicRef = git('symbolic-ref', '--quiet', '--short', 'HEAD');
+  if (symbolicRef.error) return '?';
+  if (symbolicRef.status === 0) return symbolicRef.stdout.trim();
+  if (symbolicRef.status !== GIT_DETACHED_HEAD_STATUS) return undefined;
 
-    if (symbolicRef.error) {
-      return FAILED;
-    }
-
-    if (symbolicRef.status === 128) {
-      const repositoryCheck = spawn('git', ['rev-parse', '--is-inside-work-tree'], options);
-      return !repositoryCheck.error && repositoryCheck.status === 128 ? MISSING : FAILED;
-    }
-
-    if (symbolicRef.status !== 1) {
-      return FAILED;
-    }
-
-    const detachedHead = spawn('git', ['rev-parse', '--short', 'HEAD'], options);
-    if (detachedHead.error || detachedHead.status !== 0) {
-      return FAILED;
-    }
-    const branch = detachedHead.stdout.trim();
-    return branch === '' ? FAILED : branch;
-  } catch {
-    return FAILED;
-  }
+  const shortCommit = git('rev-parse', '--short', 'HEAD');
+  return !shortCommit.error && shortCommit.status === 0 ? shortCommit.stdout.trim() : '?';
 }
 
-function readGitBranch(currentDirectory, spawn = spawnSync) {
-  const branch = readGitBranchState(currentDirectory, spawn);
-  return typeof branch === 'string' ? branch : undefined;
+// Share of the latest request's input served from the prompt cache.
+function cacheHitPercentage(usage) {
+  const cacheRead = finiteNumber(usage?.cache_read_input_tokens) ?? 0;
+  const total = (finiteNumber(usage?.input_tokens) ?? 0)
+    + (finiteNumber(usage?.cache_creation_input_tokens) ?? 0)
+    + cacheRead;
+  return total > 0 ? Math.round(clampPercentage((cacheRead / total) * 100)) : undefined;
 }
 
-function truncateBranch(branch) {
-  return Array.from(branch).slice(0, 25).join('');
+function pathSegment(directory) {
+  return colored(directory === undefined ? '?' : abbreviateHomeDirectory(directory), COLORS.hint);
 }
 
-function valueIsMissing(value) {
-  return value === MISSING || value === undefined || value === null;
+function gitSegment(branch) {
+  if (branch === undefined) return '';
+  return colored(`[${Array.from(branch).slice(0, BRANCH_MAX_CHARACTERS).join('')}]`, COLORS.green);
 }
 
-function valueIsFailed(value) {
-  return value === FAILED;
+function modelSegment(input) {
+  const modelName = nonEmptyString(input.model?.display_name);
+  if (modelName === undefined) return '';
+  const outputStyle = nonEmptyString(input.output_style?.name);
+  const effortLevel = nonEmptyString(input.effort?.level);
+  const styleSuffix = outputStyle === undefined || outputStyle === 'default' ? '' : `:${outputStyle}`;
+  const effortSuffix = effortLevel === undefined ? '' : `•${effortLevel}`;
+  return colored(`${modelName.replace(/^Claude /, '')}${styleSuffix}${effortSuffix}`, COLORS.blue);
 }
 
-function safeSegment(render, fallback) {
-  try {
-    return render();
-  } catch {
-    return fallback();
-  }
+// Uses the reported percentage as-is; before the first response only the capacity is known.
+function contextSegment(contextWindow) {
+  const percentage = finiteNumber(contextWindow?.used_percentage);
+  const size = finiteNumber(contextWindow?.context_window_size);
+  if (percentage === undefined && size === undefined) return '';
+  const used = percentage === undefined ? '?' : `${clampPercentage(percentage).toFixed(1)}%`;
+  const capacity = size === undefined ? '?' : formatContextWindowSize(size);
+  return colored(`${used}/${capacity}`, percentage === undefined ? COLORS.yellow : contextColor(percentage));
 }
 
-function contextColor(contextPercentage) {
-  const roundedPercentage = Math.round(contextPercentage);
-  if (roundedPercentage >= 85) {
-    return COLORS.red;
-  }
-  if (roundedPercentage >= 70) {
-    return COLORS.yellow;
-  }
+function cacheHitSegment(usage) {
+  const percentage = cacheHitPercentage(usage);
+  return percentage === undefined ? '' : colored(`CH:${percentage}%`, COLORS.blue);
+}
+
+function quotaColor(remainingPercentage) {
+  if (remainingPercentage < QUOTA_CRITICAL_REMAINING_PERCENTAGE) return COLORS.red;
+  if (remainingPercentage < QUOTA_WARNING_REMAINING_PERCENTAGE) return COLORS.yellow;
   return COLORS.green;
 }
 
 // The time until reset replaces the window name, because it is what the user acts on.
-function quotaLabel(windowLabel, resetsAt, nowMilliseconds) {
-  if (valueIsMissing(resetsAt)) {
-    return windowLabel;
-  }
-  if (valueIsFailed(resetsAt)) {
-    return '?';
-  }
-  return formatTimeUntilReset(resetsAt - nowMilliseconds / 1_000);
+function quotaSegment(windowLabel, quota, nowMilliseconds) {
+  const usedPercentage = finiteNumber(quota?.used_percentage);
+  if (usedPercentage === undefined) return '';
+  const resetsAt = finiteNumber(quota.resets_at);
+  const label = resetsAt === undefined ? windowLabel : formatTimeUntilReset(resetsAt - nowMilliseconds / 1_000);
+  const remaining = 100 - Math.round(clampPercentage(usedPercentage));
+  return colored(`${label}:${remaining}%`, quotaColor(remaining));
 }
 
-function remainingQuotaSegment(windowLabel, usedPercentage, resetsAt, nowMilliseconds) {
-  const label = quotaLabel(windowLabel, resetsAt, nowMilliseconds);
-  if (valueIsMissing(usedPercentage)) {
-    return '';
-  }
-  if (valueIsFailed(usedPercentage)) {
-    return `${COLORS.yellow}${label}:?${COLORS.reset}`;
-  }
-
-  const remaining = 100 - Math.round(clampedPercentage(usedPercentage));
-  let color = COLORS.green;
-  if (remaining < 10) {
-    color = COLORS.red;
-  } else if (remaining < 30) {
-    color = COLORS.yellow;
-  }
-  return `${color}${label}:${remaining}%${COLORS.reset}`;
-}
-
-function abbreviateHomeDirectory(directory, homeDirectory = os.homedir()) {
-  if (directory === homeDirectory) {
-    return '~';
-  }
-  return directory.startsWith(`${homeDirectory}/`) ? `~${directory.slice(homeDirectory.length)}` : directory;
-}
-
-function renderPathSegment(directory) {
-  return safeSegment(
-    () => {
-      const displayDirectory = valueIsFailed(directory) || valueIsMissing(directory)
-        ? '?'
-        : abbreviateHomeDirectory(directory);
-      return `${COLORS.hint}${displayDirectory}${COLORS.reset}`;
-    },
-    () => `${COLORS.hint}?${COLORS.reset}`,
-  );
-}
-
-function renderGitSegment(gitBranch) {
-  if (valueIsMissing(gitBranch)) {
-    return '';
-  }
-  return safeSegment(
-    () => `${COLORS.green}[${valueIsFailed(gitBranch) ? '?' : truncateBranch(gitBranch)}]${COLORS.reset}`,
-    () => `${COLORS.green}[?]${COLORS.reset}`,
-  );
-}
-
-function renderModelSegment(status) {
-  if (valueIsMissing(status.modelName)) {
-    return '';
-  }
-  return safeSegment(
-    () => {
-      let modelLabel = valueIsFailed(status.modelName) ? '?' : status.modelName.replace(/^Claude /, '');
-      if (valueIsFailed(status.outputStyle)) {
-        modelLabel += ':?';
-      } else if (!valueIsMissing(status.outputStyle) && status.outputStyle !== 'default') {
-        modelLabel += `:${status.outputStyle}`;
-      }
-      if (valueIsFailed(status.effortLevel)) {
-        modelLabel += '•?';
-      } else if (!valueIsMissing(status.effortLevel)) {
-        modelLabel += `•${status.effortLevel}`;
-      }
-      return `${COLORS.blue}${modelLabel}${COLORS.reset}`;
-    },
-    () => `${COLORS.blue}?${COLORS.reset}`,
-  );
-}
-
-function renderContextSegment(status) {
-  const percentageMissing = valueIsMissing(status.contextPercentage);
-  const capacityMissing = valueIsMissing(status.contextWindowSize);
-  if (percentageMissing && capacityMissing) {
-    return '';
-  }
-  return safeSegment(
-    () => {
-      const failedPercentage = valueIsFailed(status.contextPercentage);
-      const percentage = failedPercentage ? undefined : clampedPercentage(status.contextPercentage);
-      const value = percentageMissing || failedPercentage ? '?' : `${percentage.toFixed(1)}%`;
-      const total = valueIsFailed(status.contextWindowSize) || capacityMissing
-        ? '/?'
-        : `/${formatContextWindowSize(status.contextWindowSize)}`;
-      const color = failedPercentage || percentageMissing ? COLORS.yellow : contextColor(percentage);
-      return `${color}${value}${total}${COLORS.reset}`;
-    },
-    () => `${COLORS.yellow}?${COLORS.reset}`,
-  );
-}
-
-function renderCacheHitSegment(cacheHitPercentage) {
-  if (valueIsMissing(cacheHitPercentage)) {
-    return '';
-  }
-  return safeSegment(
-    () => {
-      const value = valueIsFailed(cacheHitPercentage)
-        ? '?'
-        : `${Math.round(clampedPercentage(cacheHitPercentage))}%`;
-      return `${COLORS.blue}CH:${value}${COLORS.reset}`;
-    },
-    () => `${COLORS.blue}CH:?${COLORS.reset}`,
-  );
-}
-
-function renderStatusline(status, gitBranch, nowMilliseconds = Date.now()) {
-  const safeStatus = isObject(status) ? status : {};
+function renderStatusline(input, { gitBranch, nowMilliseconds = Date.now() } = {}) {
   const firstLine = [
-    renderPathSegment(safeStatus.currentDirectory),
-    renderGitSegment(gitBranch),
+    pathSegment(nonEmptyString(input.workspace?.current_dir)),
+    gitSegment(gitBranch),
   ].filter(Boolean).join(' ');
 
-  const secondLineSegments = [
-    safeSegment(() => renderModelSegment(safeStatus), () => `${COLORS.blue}?${COLORS.reset}`),
-    safeSegment(() => renderContextSegment(safeStatus), () => `${COLORS.yellow}?${COLORS.reset}`),
-    safeSegment(() => renderCacheHitSegment(safeStatus.cacheHitPercentage), () => `${COLORS.blue}CH:?${COLORS.reset}`),
-    safeSegment(
-      () => remainingQuotaSegment('5h', safeStatus.fiveHourUsedPercentage, safeStatus.fiveHourResetsAt, nowMilliseconds),
-      () => `${COLORS.yellow}5h:?${COLORS.reset}`,
-    ),
-    safeSegment(
-      () => remainingQuotaSegment('7d', safeStatus.sevenDayUsedPercentage, safeStatus.sevenDayResetsAt, nowMilliseconds),
-      () => `${COLORS.yellow}7d:?${COLORS.reset}`,
-    ),
-  ].filter(Boolean);
+  const secondLine = [
+    modelSegment(input),
+    contextSegment(input.context_window),
+    cacheHitSegment(input.context_window?.current_usage),
+    quotaSegment('5h', input.rate_limits?.five_hour, nowMilliseconds),
+    quotaSegment('7d', input.rate_limits?.seven_day, nowMilliseconds),
+  ].filter(Boolean).join(' ');
 
-  const secondLine = secondLineSegments.length > 0 ? ` ${secondLineSegments.join(' ')}` : '';
-  return `${firstLine}\n${secondLine}`;
-}
-
-function buildStatusline(input, options = {}) {
-  const normalized = normalizeInput(input, options.fallbackDirectory ?? process.cwd());
-  const gitBranch = options.gitBranch === undefined
-    ? readGitBranchState(normalized.currentDirectory, options.spawnGit)
-    : options.gitBranch;
-  return renderStatusline(normalized, gitBranch);
-}
-
-function fallbackStatusline() {
-  return `${COLORS.hint}?${COLORS.reset}`;
-}
-
-function parseInput(rawInput) {
-  try {
-    return rawInput.trim() === '' ? {} : JSON.parse(rawInput);
-  } catch {
-    return {};
-  }
+  return `${firstLine}\n${secondLine === '' ? '' : ` ${secondLine}`}`;
 }
 
 function main() {
-  let rawInput = '';
-  try {
-    rawInput = fs.readFileSync(0, 'utf8');
-  } catch {
-    // Render the default state when stdin is temporarily unavailable.
-  }
-  process.stdout.write(buildStatusline(parseInput(rawInput)));
+  const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const directory = nonEmptyString(input.workspace?.current_dir) ?? process.cwd();
+  process.stdout.write(renderStatusline(input, { gitBranch: readGitBranch(directory) }));
 }
 
-if (require.main === module) {
-  try {
-    main();
-  } catch {
-    try {
-      process.stdout.write(fallbackStatusline());
-    } catch {
-      process.exitCode = 1;
-    }
-  }
-}
+if (require.main === module) main();
 
-module.exports = {
-  COLORS,
-  buildStatusline,
-  calculateCacheHit,
-  formatContextWindowSize,
-  formatTimeUntilReset,
-  normalizeInput,
-  readGitBranch,
-  renderStatusline,
-};
+module.exports = { COLORS, colored, contextColor, formatContextWindowSize, renderStatusline };

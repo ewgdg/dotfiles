@@ -10,209 +10,143 @@ const test = require('node:test');
 const subagentStatuslinePath = path.join(__dirname, '..', 'files', 'claude', 'subagent-statusline.js');
 const COLORS = Object.freeze({ cyan: '\x1b[96m', green: '\x1b[92m', yellow: '\x1b[93m', blue: '\x1b[94m', red: '\x1b[91m', reset: '\x1b[0m' });
 
-function runStatusline(input) {
-  return spawnSync(process.execPath, [subagentStatuslinePath], {
-    encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input),
-  });
-}
-
-function runStatuslineWithTranscript(task, entries) {
-  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
-  const sessionDirectory = path.join(projectDirectory, 'session');
-  const subagentsDirectory = path.join(sessionDirectory, 'subagents');
-  fs.mkdirSync(subagentsDirectory, { recursive: true });
-  const transcriptPath = path.join(projectDirectory, 'session.jsonl');
-  fs.writeFileSync(transcriptPath, '');
-  fs.writeFileSync(
-    path.join(subagentsDirectory, `agent-${task.id}.jsonl`),
-    `${entries.map(JSON.stringify).join('\n')}\n`,
-  );
-  try {
-    return runStatusline({ transcript_path: transcriptPath, tasks: [task] });
-  } finally {
-    fs.rmSync(projectDirectory, { recursive: true, force: true });
-  }
-}
-
-function runStatuslineWithoutSubagentTranscript(task) {
-  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
-  const transcriptPath = path.join(projectDirectory, 'session.jsonl');
-  fs.writeFileSync(transcriptPath, '');
-  try {
-    return runStatusline({ transcript_path: transcriptPath, tasks: [task] });
-  } finally {
-    fs.rmSync(projectDirectory, { recursive: true, force: true });
-  }
-}
-
 function stripAnsi(value) {
   return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-test('renders name, description, tokens, supplied model, and context in order', () => {
-  const result = runStatusline({
-    columns: 1,
+// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.jsonl.
+function createSession(t, transcripts = {}, agentTypes = {}) {
+  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
+  t.after(() => fs.rmSync(projectDirectory, { recursive: true, force: true }));
+  const subagentsDirectory = path.join(projectDirectory, 'session', 'subagents');
+  fs.mkdirSync(subagentsDirectory, { recursive: true });
+  for (const [taskId, lines] of Object.entries(transcripts)) {
+    fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.jsonl`), `${lines.join('\n')}\n`);
+  }
+  for (const [taskId, agentType] of Object.entries(agentTypes)) {
+    fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.meta.json`), JSON.stringify({ agentType }));
+  }
+  const transcriptPath = path.join(projectDirectory, 'session.jsonl');
+  fs.writeFileSync(transcriptPath, '');
+  return transcriptPath;
+}
+
+function assistantEntry({ model = 'claude-opus-5-5', effort, inputTokens = 0, cacheReadTokens = 0 } = {}) {
+  return JSON.stringify({
+    type: 'assistant',
+    effort,
+    message: { model, usage: { input_tokens: inputTokens, cache_read_input_tokens: cacheReadTokens, output_tokens: 50 } },
+  });
+}
+
+function run(input) {
+  const result = spawnSync(process.execPath, [subagentStatuslinePath], {
+    encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input),
+  });
+  const rows = result.stdout.trim() === '' ? [] : result.stdout.trim().split('\n').map(JSON.parse);
+  return { ...result, rows };
+}
+
+function renderedRow(input) {
+  const { status, stderr, rows } = run(input);
+  assert.equal(status, 0, stderr);
+  assert.equal(rows.length, 1);
+  return rows[0];
+}
+
+test('renders identity, description, model, and context from the payload', (t) => {
+  const row = renderedRow({
+    transcript_path: createSession(t),
     tasks: [{
-      id: 'agent-1', name: 'researcher', description: 'Investigate auth', tokenCount: 50_000,
-      model: 'claude-opus-4-8', contextWindowSize: 200_000, status: 'running',
+      id: 'a1', name: 'researcher', description: 'Investigate auth', tokenCount: 50_000,
+      model: 'claude-opus-5-5', effort: 'high', contextWindowSize: 200_000,
     }],
   });
-  const content = [
-    `${COLORS.cyan}researcher${COLORS.reset}`,
-    'Investigate auth',
-    '50.0k tokens',
-    `${COLORS.blue}claude-opus-4-8${COLORS.reset}`,
-    `${COLORS.green}25%/200k${COLORS.reset}`,
-  ].join(' · ');
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, `${JSON.stringify({ id: 'agent-1', content })}\n`);
-});
-
-test('keeps Claude Code’s default row until a nameless task has persisted identity data', () => {
-  const result = runStatusline({
-    tasks: [
-      { id: 'named', name: '   ', label: 'Ignore label', type: 'local_agent', description: '  ', status: 'failed' },
-      { id: 'described', name: 'worker', description: 'Review auth', label: 'Ignore label', type: 'remote_agent' },
-    ],
-  });
-  const rows = result.stdout.trimEnd().split('\n').map(JSON.parse);
-
-  assert.deepEqual(rows, [
-    { id: 'described', content: `${COLORS.cyan}worker${COLORS.reset} · Review auth` },
-  ]);
-});
-
-test('uses the supplied task model until the subagent transcript provides effort', () => {
-  const result = runStatuslineWithoutSubagentTranscript({
-    id: 'pending', name: 'worker', model: 'gpt-5.6-sol', tokenCount: 50_000,
-  });
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), {
-    id: 'pending',
-    content: `${COLORS.cyan}worker${COLORS.reset} · 50.0k tokens · ${COLORS.blue}gpt-5.6-sol${COLORS.reset}`,
+  assert.deepEqual(row, {
+    id: 'a1',
+    content: [
+      `${COLORS.cyan}researcher${COLORS.reset}`,
+      'Investigate auth',
+      `${COLORS.blue}claude-opus-5-5•high${COLORS.reset}`,
+      `${COLORS.green}25%/200k${COLORS.reset}`,
+    ].join(' · '),
   });
 });
 
-test('uses the persisted agent subtype when task.name is unavailable', () => {
-  const result = runStatuslineWithTranscript(
-    { id: 'plan', name: '   ' },
-    [{ attributionAgent: 'Plan' }],
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), {
-    id: 'plan', content: `${COLORS.cyan}Plan${COLORS.reset}`,
-  });
-});
-
-test('reads transcript records that cross stream chunk boundaries', () => {
-  const result = runStatuslineWithTranscript(
-    { id: 'explorer', name: '' },
-    [{ attributionAgent: 'Explore', padding: 'x'.repeat(70_000) }],
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), {
-    id: 'explorer', content: `${COLORS.cyan}Explore${COLORS.reset}`,
-  });
-});
-
-test('formats valid tokenCount values without tokenSamples', () => {
-  const result = runStatusline({
-    tasks: [
-      { id: 'zero', name: 'zero', tokenCount: 0, tokenSamples: [99_999] },
-      { id: 'small', name: 'small', tokenCount: 999 },
-      { id: 'thousand', name: 'thousand', tokenCount: 1_000 },
-      { id: 'million', name: 'million', tokenCount: 1_234_567 },
-      { id: 'invalid', name: 'invalid', tokenCount: -1 },
-    ],
-  });
-  const rows = result.stdout.trimEnd().split('\n').map(JSON.parse);
-
-  assert.deepEqual(rows.map(({ content }) => stripAnsi(content)), [
-    'zero · 0 tokens', 'small · 999 tokens', 'thousand · 1.0k tokens', 'million · 1.2m tokens', 'invalid',
-  ]);
-});
-
-test('uses persisted subagent API usage when Claude Code reports zero progress tokens', () => {
-  const result = runStatuslineWithTranscript(
-    { id: 'spent', name: 'worker', tokenCount: 0, contextWindowSize: 200_000 },
-    [
-      { message: { role: 'assistant', usage: { input_tokens: 100, cache_creation_input_tokens: 200, cache_read_input_tokens: 300, output_tokens: 400 } } },
-      { message: { role: 'assistant', usage: { input_tokens: 500, cache_creation_input_tokens: 600, cache_read_input_tokens: 700, output_tokens: 800 } } },
-    ],
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(
-    JSON.parse(result.stdout).content,
-    `${COLORS.cyan}worker${COLORS.reset} · 3.6k tokens · ${COLORS.green}1%/200k${COLORS.reset}`,
-  );
-});
-
-test('uses the latest transcript model and effort pair', () => {
-  const result = runStatuslineWithTranscript(
-    { id: 'paired', name: 'worker', model: 'task-model' },
-    [
-      { type: 'assistant', message: { role: 'assistant', model: 'gpt-5.6-sol', usage: {} }, effort: 'low' },
-      { type: 'assistant', message: { role: 'assistant', model: 'unpaired-model', usage: {} }, effort: '' },
-      { type: 'assistant', message: { role: 'assistant', model: 'gpt-5.6-terra', usage: {} }, effort: 'medium' },
-    ],
-  );
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), {
-    id: 'paired',
-    content: `${COLORS.cyan}worker${COLORS.reset} · ${COLORS.blue}gpt-5.6-terra•medium${COLORS.reset}`,
-  });
-});
-
-test('derives rounded, clamped context only from valid tokenCount and capacity', () => {
-  const result = runStatusline({
-    tasks: [
-      { id: 'zero', name: 'zero', tokenCount: 0, contextWindowSize: 200_000 },
-      { id: 'warning', name: 'warning', tokenCount: 141_000, contextWindowSize: 200_000 },
-      { id: 'critical', name: 'critical', tokenCount: 250_000, contextWindowSize: 200_000 },
-      { id: 'invalid-count', name: 'invalid-count', tokenCount: -1, contextWindowSize: 200_000 },
-      { id: 'invalid-capacity', name: 'invalid-capacity', tokenCount: 1, contextWindowSize: 0 },
-    ],
-  });
-  const rows = Object.fromEntries(result.stdout.trimEnd().split('\n').map((line) => {
-    const row = JSON.parse(line); return [row.id, row.content];
-  }));
-
-  assert.equal(rows.zero, `${COLORS.cyan}zero${COLORS.reset} · 0 tokens · ${COLORS.green}0%/200k${COLORS.reset}`);
-  assert.equal(rows.warning, `${COLORS.cyan}warning${COLORS.reset} · 141.0k tokens · ${COLORS.yellow}71%/200k${COLORS.reset}`);
-  assert.equal(rows.critical, `${COLORS.cyan}critical${COLORS.reset} · 250.0k tokens · ${COLORS.red}100%/200k${COLORS.reset}`);
-  assert.equal(rows['invalid-count'], `${COLORS.cyan}invalid-count${COLORS.reset}`);
-  assert.equal(rows['invalid-capacity'], `${COLORS.cyan}invalid-capacity${COLORS.reset} · 1 tokens`);
-});
-
-test('sanitizes description and model while preserving supplied model text', () => {
-  const result = runStatusline({
-    tasks: [{ id: 'escaped', name: 'name\n', description: 'line "\x1b[31mone\x1b[0m"\nline two', model: 'opus\x1b[31m-v2' }],
+test('fills agent type from subagent metadata and inherited effort from the latest transcript entry', (t) => {
+  const transcriptPath = createSession(t, {
+    a1: [JSON.stringify({ type: 'user', message: { content: 'go' } }), assistantEntry({ effort: 'medium' })],
+  }, { a1: 'Explore' });
+  const row = renderedRow({
+    transcript_path: transcriptPath,
+    tasks: [{ id: 'a1', description: 'Probe', model: 'claude-opus-5-5', tokenCount: 8_894, contextWindowSize: 200_000 }],
   });
 
-  assert.deepEqual(JSON.parse(result.stdout), {
-    id: 'escaped',
-    content: `${COLORS.cyan}name${COLORS.reset} · line "one" line two · ${COLORS.blue}opus-v2${COLORS.reset}`,
+  assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•medium · 4%/200k');
+});
+
+test('prefers effort set on the task over the transcript', (t) => {
+  const transcriptPath = createSession(t, { a1: [assistantEntry({ effort: 'medium' })] });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'max' }] });
+
+  assert.equal(stripAnsi(row.content), 'r · m•max');
+});
+
+test('uses transcript context usage when Claude Code reports zero tokens', (t) => {
+  // Gateway-backed subagents have reported tokenCount 0 despite persisting API usage.
+  const transcriptPath = createSession(t, {
+    a1: [assistantEntry({ inputTokens: 1_000, cacheReadTokens: 9_000 }), assistantEntry({ inputTokens: 2_000, cacheReadTokens: 52_000 })],
   });
+  const row = renderedRow({
+    transcript_path: transcriptPath,
+    tasks: [{ id: 'a1', name: 'r', tokenCount: 0, contextWindowSize: 272_000 }],
+  });
+
+  assert.match(stripAnsi(row.content), / · 20%\/272k$/);
 });
 
-test('fails malformed top-level input without partial stdout', () => {
-  for (const input of ['{not-json', '[]', '{}', '{"tasks":{}}']) {
-    const result = runStatusline(input);
-    assert.notEqual(result.status, 0, input);
-    assert.equal(result.stdout, '', input);
-    assert.equal(result.stderr, 'subagent-statusline: invalid input\n', input);
-  }
+test('reads only the transcript tail, skipping a line cut by the tail window', (t) => {
+  const hugeToolResult = JSON.stringify({ type: 'user', message: { content: 'x'.repeat(2 * 1024 * 1024) } });
+  const transcriptPath = createSession(t, {
+    a1: [assistantEntry({ effort: 'high' }), hugeToolResult, assistantEntry({ effort: 'low' })],
+  });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
+
+  assert.equal(stripAnsi(row.content), 'r · m•low');
 });
 
-test('emits one escaped JSON line per task with a valid string id', () => {
-  const result = runStatusline({ tasks: [{ id: 'a"b', name: 'worker' }, null, {}, { id: '   ', name: 'blank id' }, { id: 42, name: 'numeric id' }] });
+test('keeps the default row until the subagent has an identity', (t) => {
+  const { status, rows } = run({ transcript_path: createSession(t), tasks: [{ id: 'a1', description: 'Starting' }] });
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), { id: 'a"b', content: `${COLORS.cyan}worker${COLORS.reset}` });
+  assert.equal(status, 0);
+  assert.deepEqual(rows, []);
+});
+
+test('flattens control characters in model-written text', (t) => {
+  const row = renderedRow({
+    transcript_path: createSession(t),
+    tasks: [{ id: 'a1', name: 'r', description: 'line one\n\x1b[31mline two\x07' }],
+  });
+
+  assert.equal(stripAnsi(row.content), 'r · line one line two');
+});
+
+test('colors context pressure', (t) => {
+  const transcriptPath = createSession(t);
+  const contextSegment = (tokenCount) => renderedRow({
+    transcript_path: transcriptPath,
+    tasks: [{ id: 'a1', name: 'r', tokenCount, contextWindowSize: 100 }],
+  }).content.split(' · ').at(-1);
+
+  assert.equal(contextSegment(69), `${COLORS.green}69%/100${COLORS.reset}`);
+  assert.equal(contextSegment(70), `${COLORS.yellow}70%/100${COLORS.reset}`);
+  assert.equal(contextSegment(85), `${COLORS.red}85%/100${COLORS.reset}`);
+});
+
+test('fails on malformed input without partial output', () => {
+  const result = run('{not-json');
+
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, '');
 });

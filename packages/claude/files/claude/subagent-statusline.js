@@ -2,188 +2,121 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { open } = require('node:fs/promises');
-const { COLORS } = require('./statusline.js');
+const { COLORS, colored, contextColor, formatContextWindowSize } = require('./statusline.js');
 
+// Every subagent assistant entry carries model, effort, and usage, so the newest one sits near the end.
+// Bounding the read keeps each refresh cheap no matter how long the transcript grows.
+const TRANSCRIPT_TAIL_BYTES = 1024 * 1024;
 const TERMINAL_ESCAPE_PATTERN = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b./g;
 const CONTROL_CHARACTER_PATTERN = /\p{Cc}+/gu;
-const CONTEXT_WARNING_PERCENTAGE = 70;
-const CONTEXT_CRITICAL_PERCENTAGE = 85;
+const CONTEXT_USAGE_FIELDS = ['input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens'];
 
-function nonEmptyString(value) {
-  return typeof value === 'string' && value.trim() !== '';
-}
-
-function normalizedText(value) {
+// Collapses model-written text into one plain line.
+function plainText(value) {
   if (typeof value !== 'string') return undefined;
-  const normalized = value
+  const text = value
     .replace(TERMINAL_ESCAPE_PATTERN, '')
     .replace(CONTROL_CHARACTER_PATTERN, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return normalized === '' ? undefined : normalized;
+  return text === '' ? undefined : text;
 }
 
-function color(text, ansiColor) {
-  return `${ansiColor}${text}${COLORS.reset}`;
+function positiveNumber(value) {
+  return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
-function contextColor(percentage) {
-  if (percentage >= CONTEXT_CRITICAL_PERCENTAGE) return COLORS.red;
-  if (percentage >= CONTEXT_WARNING_PERCENTAGE) return COLORS.yellow;
-  return COLORS.green;
+function readFileOrUndefined(read) {
+  try {
+    return read();
+  } catch (error) {
+    // Claude Code writes a subagent's files only after it starts.
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  }
 }
 
-function validTokenCount(value) {
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
+function readTail(filePath, byteCount) {
+  const fileDescriptor = fs.openSync(filePath, 'r');
+  try {
+    const { size } = fs.fstatSync(fileDescriptor);
+    const start = Math.max(0, size - byteCount);
+    const buffer = Buffer.alloc(size - start);
+    fs.readSync(fileDescriptor, buffer, 0, buffer.length, start);
+    const lines = buffer.toString('utf8').split('\n');
+    // A tail that starts mid-file begins with a cut line.
+    return start > 0 ? lines.slice(1) : lines;
+  } finally {
+    fs.closeSync(fileDescriptor);
+  }
 }
 
-function subagentFilePath(input, task, suffix) {
-  if (typeof input.transcript_path !== 'string' || !nonEmptyString(task.id)) return undefined;
+function parseJsonLine(line) {
+  try {
+    return JSON.parse(line);
+  } catch {
+    // The transcript is append-only, so the final line may still be half-written.
+    return undefined;
+  }
+}
 
-  const filename = `agent-${task.id}${suffix}`;
-  if (path.basename(filename) !== filename) return undefined;
+function latestAssistantEntry(transcriptPath) {
+  const lines = readFileOrUndefined(() => readTail(transcriptPath, TRANSCRIPT_TAIL_BYTES)) ?? [];
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const entry = parseJsonLine(lines[index]);
+    if (entry?.type === 'assistant' && entry.message !== undefined) return entry;
+  }
+  return undefined;
+}
 
+function contextTokens(usage) {
+  const total = CONTEXT_USAGE_FIELDS.reduce((sum, field) => sum + (positiveNumber(usage?.[field]) ?? 0), 0);
+  return positiveNumber(total);
+}
+
+function subagentFiles(sessionTranscriptPath, taskId) {
   const sessionDirectory = path.join(
-    path.dirname(input.transcript_path),
-    path.basename(input.transcript_path, path.extname(input.transcript_path)),
+    path.dirname(sessionTranscriptPath),
+    path.basename(sessionTranscriptPath, path.extname(sessionTranscriptPath)),
   );
-  return path.join(sessionDirectory, 'subagents', filename);
+  const base = path.join(sessionDirectory, 'subagents', `agent-${path.basename(taskId)}`);
+  return { transcript: `${base}.jsonl`, meta: `${base}.meta.json` };
 }
 
-async function forEachTranscriptLine(transcriptPath, visit) {
-  const transcript = await open(transcriptPath);
-  for await (const line of transcript.readLines()) {
-    visit(line);
-  }
+function readSubagentState(sessionTranscriptPath, taskId) {
+  const files = subagentFiles(sessionTranscriptPath, taskId);
+  const meta = readFileOrUndefined(() => JSON.parse(fs.readFileSync(files.meta, 'utf8')));
+  return { agentType: meta?.agentType, latestEntry: latestAssistantEntry(files.transcript) };
 }
 
-async function persistedSubagentData(input, task) {
-  // Gateway-backed subagents can report zero live progress despite persisting API usage.
-  const transcriptPath = subagentFilePath(input, task, '.jsonl');
-  if (transcriptPath === undefined) return undefined;
-
-  let totalTokens = 0;
-  let contextTokens;
-  let agentType;
-  let modelAndEffort;
-  let foundUsage = false;
-  try {
-    await forEachTranscriptLine(transcriptPath, (line) => {
-      try {
-        const entry = JSON.parse(line);
-        agentType ??= normalizedText(entry.attributionAgent);
-        const model = normalizedText(entry?.message?.model);
-        const effort = normalizedText(entry.effort);
-        if (entry.type === 'assistant' && model !== undefined && effort !== undefined) {
-          modelAndEffort = { model, effort };
-        }
-        const usage = entry?.message?.usage;
-        let currentContextTokens = 0;
-        let hasCurrentContext = false;
-        for (const field of ['input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens']) {
-          const value = validTokenCount(usage?.[field]);
-          if (value !== undefined) {
-            totalTokens += value;
-            foundUsage = true;
-            if (field !== 'output_tokens') {
-              currentContextTokens += value;
-              hasCurrentContext = true;
-            }
-          }
-        }
-        if (hasCurrentContext && currentContextTokens > 0) contextTokens = currentContextTokens;
-      } catch {
-        // The transcript is append-only and may be read while its final line is incomplete.
-      }
-    });
-  } catch {
-    return undefined;
-  }
-  return foundUsage || agentType !== undefined || modelAndEffort !== undefined
-    ? { agentType, modelAndEffort, totalTokens: foundUsage ? totalTokens : undefined, contextTokens }
-    : undefined;
-}
-
-function formatTokenCount(count) {
-  if (count < 1_000) return `${count} tokens`;
-  if (count < 1_000_000) return `${(count / 1_000).toFixed(1)}k tokens`;
-  return `${(count / 1_000_000).toFixed(1)}m tokens`;
-}
-
-function formatContextWindowSize(size) {
-  if (size >= 1_000_000) return `${(size / 1_000_000).toFixed(1)}m`;
-  if (size >= 1_000) return `${Math.round(size / 1_000)}k`;
-  return String(size);
-}
-
-function contextPercentage(tokenCount, contextWindowSize) {
-  if (tokenCount === undefined || !Number.isFinite(contextWindowSize) || contextWindowSize <= 0) {
-    return undefined;
-  }
-  return Math.min(100, Math.max(0, Math.round((tokenCount / contextWindowSize) * 100)));
-}
-
-async function renderTask(input, task) {
-  const taskName = normalizedText(task.name);
-  const persistedData = await persistedSubagentData(input, task);
-  const identity = taskName ?? persistedData?.agentType;
+function renderTask(task, { agentType, latestEntry }) {
+  const identity = plainText(task.name) ?? plainText(agentType);
+  // Without an identity, leave the row to Claude Code's default rendering.
   if (identity === undefined) return undefined;
-  const description = normalizedText(task.description);
-  const reportedTokenCount = validTokenCount(task.tokenCount);
-  const tokenSpend = persistedData?.totalTokens ?? reportedTokenCount;
-  const modelAndEffort = persistedData?.modelAndEffort;
-  const model = modelAndEffort?.model ?? normalizedText(task.model);
-  const percentage = contextPercentage(persistedData?.contextTokens ?? reportedTokenCount, task.contextWindowSize);
-  const segments = [color(identity, COLORS.cyan)];
 
-  if (description !== undefined) segments.push(description);
-  if (tokenSpend !== undefined) segments.push(formatTokenCount(tokenSpend));
-  if (model !== undefined) {
-    const modelLabel = modelAndEffort === undefined ? model : `${model}•${modelAndEffort.effort}`;
-    segments.push(color(modelLabel, COLORS.blue));
-  }
-  if (percentage !== undefined) {
-    segments.push(color(`${percentage}%/${formatContextWindowSize(task.contextWindowSize)}`, contextColor(percentage)));
-  }
+  const model = plainText(task.model) ?? plainText(latestEntry?.message?.model);
+  // Task effort is present only when set explicitly; inherited effort is visible only in the transcript.
+  const effort = plainText(String(task.effort ?? latestEntry?.effort ?? ''));
+  // Gateway-backed subagents have reported tokenCount 0 despite persisting API usage.
+  const tokens = positiveNumber(task.tokenCount) ?? contextTokens(latestEntry?.message?.usage) ?? task.tokenCount;
+  const windowSize = positiveNumber(task.contextWindowSize);
 
-  return segments.join(' · ');
+  const segments = [colored(identity, COLORS.cyan), plainText(task.description)];
+  if (model !== undefined) segments.push(colored(effort === undefined ? model : `${model}•${effort}`, COLORS.blue));
+  if (Number.isFinite(tokens) && windowSize !== undefined) {
+    const percentage = Math.min(100, Math.max(0, Math.round((tokens / windowSize) * 100)));
+    segments.push(colored(`${percentage}%/${formatContextWindowSize(windowSize)}`, contextColor(percentage)));
+  }
+  return segments.filter(Boolean).join(' · ');
 }
 
-function parseInput(rawInput) {
-  let input;
-  try {
-    input = JSON.parse(rawInput);
-  } catch {
-    return undefined;
-  }
-  if (input === null || typeof input !== 'object' || Array.isArray(input) || !Array.isArray(input.tasks)) {
-    return undefined;
-  }
-  return input;
+function main() {
+  const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const rows = input.tasks.flatMap((task) => {
+    const content = renderTask(task, readSubagentState(input.transcript_path, task.id));
+    return content === undefined ? [] : [JSON.stringify({ id: task.id, content })];
+  });
+  if (rows.length > 0) process.stdout.write(`${rows.join('\n')}\n`);
 }
 
-async function main() {
-  const input = parseInput(fs.readFileSync(0, 'utf8'));
-  if (input === undefined) {
-    process.stderr.write('subagent-statusline: invalid input\n');
-    process.exitCode = 1;
-    return;
-  }
-
-  const rows = await Promise.all(
-    input.tasks
-      .filter((task) => task !== null && typeof task === 'object' && nonEmptyString(task.id))
-      .map(async (task) => {
-        const content = await renderTask(input, task);
-      return content === undefined ? undefined : JSON.stringify({ id: task.id, content });
-      }),
-  );
-  const output = rows.filter((row) => row !== undefined).join('\n');
-  if (output !== '') process.stdout.write(`${output}\n`);
-}
-
-main().catch(() => {
-  process.stderr.write('subagent-statusline: failed to render\n');
-  process.exitCode = 1;
-});
+main();

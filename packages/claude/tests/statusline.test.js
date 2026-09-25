@@ -8,15 +8,18 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const statuslinePath = path.join(__dirname, '..', 'files', 'claude', 'statusline.js');
-const {
-  COLORS,
-  calculateCacheHit,
-  formatContextWindowSize,
-  formatTimeUntilReset,
-  normalizeInput,
-  readGitBranch,
-  renderStatusline,
-} = require(statuslinePath);
+const { COLORS, renderStatusline } = require(statuslinePath);
+
+const NOW_MILLISECONDS = 1_790_000_000_000;
+const NOW_SECONDS = NOW_MILLISECONDS / 1_000;
+
+function stripAnsi(value) {
+  return value.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function render(input, gitBranch) {
+  return stripAnsi(renderStatusline(input, { gitBranch, nowMilliseconds: NOW_MILLISECONDS }));
+}
 
 function createTempDirectory(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-statusline-'));
@@ -24,159 +27,89 @@ function createTempDirectory(t) {
   return directory;
 }
 
-test('uses the API context percentage directly, including zero', () => {
-  const normalized = normalizeInput({
+function runCli(input, cwd) {
+  return spawnSync(process.execPath, [statuslinePath], { cwd, encoding: 'utf8', input: JSON.stringify(input) });
+}
+
+function git(cwd, ...args) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+}
+
+test('renders location, model, context, cache hit, and quotas', () => {
+  const output = render({
+    workspace: { current_dir: path.join(os.homedir(), 'project') },
+    model: { display_name: 'Claude Opus 5.5 (1M context)' },
+    output_style: { name: 'explanatory' },
+    effort: { level: 'high' },
+    context_window: {
+      context_window_size: 1_000_000,
+      used_percentage: 7,
+      current_usage: { input_tokens: 2, cache_creation_input_tokens: 1_192, cache_read_input_tokens: 65_082 },
+    },
+    rate_limits: {
+      five_hour: { used_percentage: 3, resets_at: NOW_SECONDS + 3 * 3_600 + 37 * 60 },
+      seven_day: { used_percentage: 20, resets_at: NOW_SECONDS + 4 * 86_400 + 12 * 3_600 },
+    },
+  }, 'main');
+
+  assert.equal(output, '~/project [main]\n Opus 5.5 (1M context):explanatory•high 7.0%/1.0m CH:98% 3h37m:97% 4d12h:80%');
+});
+
+test('uses the reported context percentage, including zero, instead of recalculating it', () => {
+  const output = render({
     context_window: {
       context_window_size: 272_000,
       used_percentage: 0,
-      current_usage: {
-        input_tokens: 2_000,
-        cache_creation_input_tokens: 10_000,
-        cache_read_input_tokens: 124_000,
-      },
+      current_usage: { input_tokens: 2_000, cache_creation_input_tokens: 10_000, cache_read_input_tokens: 124_000 },
     },
   });
 
-  assert.equal(normalized.contextPercentage, 0);
-  assert.equal(normalized.contextWindowSize, 272_000);
+  assert.match(output, / 0\.0%\/272k /);
 });
 
-test('renders every available context value independently', () => {
-  assert.match(renderStatusline({ contextPercentage: 72.34, contextWindowSize: 200_000 }), /72\.3%\/200k/);
-  assert.match(renderStatusline({ contextWindowSize: 200_000 }), /\?\/200k/);
-  assert.match(renderStatusline({ contextPercentage: 0 }), /0\.0%\/\?/);
-  assert.doesNotMatch(renderStatusline({}), /%\/|\?\/\?/);
+test('marks whichever context value is unknown', () => {
+  assert.match(render({ context_window: { context_window_size: 272_000 } }), /\?\/272k/);
+  assert.match(render({ context_window: { used_percentage: 26 } }), /26\.0%\/\?/);
+  assert.doesNotMatch(render({}), /%|\//);
 });
 
-test('calculates cache hit only from valid non-negative token counts', () => {
-  assert.equal(calculateCacheHit({ input_tokens: 100, cache_read_input_tokens: 900 }), 90);
-  assert.equal(calculateCacheHit({ input_tokens: 0, cache_read_input_tokens: 0 }), undefined);
-  assert.equal(calculateCacheHit({ input_tokens: -1, cache_read_input_tokens: 1 }), undefined);
-  assert.equal(calculateCacheHit({ input_tokens: '1', cache_read_input_tokens: 1 }), undefined);
-  assert.equal(calculateCacheHit(undefined), undefined);
-});
-
-test('formats context-window sizes', () => {
-  assert.equal(formatContextWindowSize(999), '999');
-  assert.equal(formatContextWindowSize(1_000), '1k');
-  assert.equal(formatContextWindowSize(199_900), '200k');
-  assert.equal(formatContextWindowSize(1_000_000), '1.0m');
-  assert.equal(formatContextWindowSize(1_250_000), '1.3m');
-});
-
-test('renders context, model, quotas, and a branch', () => {
-  const output = renderStatusline({
-    currentDirectory: '/workspace/project',
-    modelName: 'Claude Opus 4.8',
-    outputStyle: 'concise',
-    effortLevel: 'high',
-    contextPercentage: 72.34,
-    contextWindowSize: 200_000,
-    cacheHitPercentage: 81,
-    fiveHourUsedPercentage: 35,
-    sevenDayUsedPercentage: 95,
-  }, 'feature/a-very-long-branch-name');
-
-  assert.equal(output,
-    `${COLORS.hint}/workspace/project${COLORS.reset}`
-      + ` ${COLORS.green}[feature/a-very-long-branc]${COLORS.reset}\n`
-      + ` ${COLORS.blue}Opus 4.8:concise•high${COLORS.reset}`
-      + ` ${COLORS.yellow}72.3%/200k${COLORS.reset}`
-      + ` ${COLORS.blue}CH:81%${COLORS.reset}`
-      + ` ${COLORS.green}5h:65%${COLORS.reset}`
-      + ` ${COLORS.red}7d:5%${COLORS.reset}`,
+test('colors context pressure', () => {
+  const contextSegment = (usedPercentage) => renderStatusline(
+    { context_window: { context_window_size: 200_000, used_percentage: usedPercentage } },
+    { nowMilliseconds: NOW_MILLISECONDS },
   );
+
+  assert.ok(contextSegment(69).includes(`${COLORS.green}69.0%`));
+  assert.ok(contextSegment(70).includes(`${COLORS.yellow}70.0%`));
+  assert.ok(contextSegment(85).includes(`${COLORS.red}85.0%`));
 });
 
-test('formats time until reset with the two largest units', () => {
-  assert.equal(formatTimeUntilReset(3 * 86_400 + 4 * 3_600 + 59 * 60), '3d4h');
-  assert.equal(formatTimeUntilReset(20 * 3_600 + 5 * 60 + 59), '20h5m');
-  assert.equal(formatTimeUntilReset(47 * 60 + 30), '47m');
-  assert.equal(formatTimeUntilReset(-10), '0m');
+test('labels quotas with the window name when the reset time is unknown', () => {
+  const output = render({ rate_limits: { five_hour: { used_percentage: 95 }, seven_day: { used_percentage: 75, resets_at: 'soon' } } });
+
+  assert.match(output, /5h:5% 7d:25%$/);
 });
 
-test('labels quotas with the time until reset when the reset time is known', () => {
-  const nowMilliseconds = 1_000_000 * 1_000;
-  const normalized = normalizeInput({
-    rate_limits: {
-      five_hour: { used_percentage: 35, resets_at: 1_000_000 + 2 * 3_600 + 13 * 60 },
-      seven_day: { used_percentage: 85, resets_at: 1_000_000 + 3 * 86_400 + 4 * 3_600 },
-    },
-  });
-
-  const output = renderStatusline(normalized, undefined, nowMilliseconds);
-
-  assert.ok(output.includes(`${COLORS.green}2h13m:65%`), output);
-  assert.ok(output.includes(`${COLORS.yellow}3d4h:15%`), output);
+test('omits segments that Claude Code did not report', () => {
+  assert.equal(render({ workspace: { current_dir: '/srv/app' } }), '/srv/app\n');
 });
 
-test('falls back to the window label when the reset time is absent or invalid', () => {
-  const normalized = normalizeInput({
-    rate_limits: {
-      five_hour: { used_percentage: 35 },
-      seven_day: { used_percentage: 85, resets_at: 'soon' },
-    },
-  });
+test('CLI shows the branch, or the short commit when HEAD is detached', (t) => {
+  const repository = createTempDirectory(t);
+  git(repository, 'init', '--quiet', '--initial-branch', 'feature/statusline');
 
-  const output = renderStatusline(normalized);
+  assert.match(stripAnsi(runCli({ workspace: { current_dir: repository } }, repository).stdout), /\[feature\/statusline\]/);
 
-  assert.match(output, /5h:65%/);
-  assert.match(output, /\?:15%/);
+  git(repository, '-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '--quiet', '--allow-empty', '-m', 'init');
+  git(repository, 'checkout', '--quiet', '--detach');
+  assert.match(stripAnsi(runCli({ workspace: { current_dir: repository } }, repository).stdout), /\[[0-9a-f]{7,}\]/);
 });
 
-test('omits absent segments without JavaScript sentinel values', () => {
-  const output = renderStatusline({ currentDirectory: '/fallback' });
-
-  assert.equal(output, `${COLORS.hint}/fallback${COLORS.reset}\n`);
-  assert.doesNotMatch(output, /null|undefined|NaN|Infinity/);
-});
-
-test('reads symbolic and detached Git branches without shell interpolation', () => {
-  const calls = [];
-  const symbolicSpawn = (...arguments_) => {
-    calls.push(arguments_);
-    return { status: 0, stdout: 'main\n' };
-  };
-
-  assert.equal(readGitBranch('/workspace', symbolicSpawn), 'main');
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'git');
-  assert.deepEqual(calls[0][1], ['symbolic-ref', '--quiet', '--short', 'HEAD']);
-  assert.equal(calls[0][2].shell, false);
-  assert.equal(calls[0][2].env.GIT_OPTIONAL_LOCKS, '0');
-
-  const detachedSpawn = (command, arguments_) => {
-    if (arguments_[0] === 'symbolic-ref') return { status: 1, stdout: '' };
-    return { status: 0, stdout: 'abc1234\n' };
-  };
-  assert.equal(readGitBranch('/workspace', detachedSpawn), 'abc1234');
-});
-
-test('CLI displays the reported zero instead of recovering current usage', (t) => {
-  const workingDirectory = createTempDirectory(t);
-  const result = spawnSync(process.execPath, [statuslinePath], {
-    cwd: workingDirectory,
-    encoding: 'utf8',
-    env: { ...process.env, PATH: '' },
-    input: JSON.stringify({
-      workspace: { current_dir: workingDirectory },
-      context_window: {
-        context_window_size: 272_000,
-        used_percentage: 0,
-        current_usage: { input_tokens: 2_000, cache_creation_input_tokens: 10_000, cache_read_input_tokens: 124_000 },
-      },
-    }),
-  });
+test('CLI omits the branch outside a Git repository', (t) => {
+  const directory = createTempDirectory(t);
+  const result = runCli({ workspace: { current_dir: directory } }, directory);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /0\.0%\/272k/);
-  assert.doesNotMatch(result.stdout, /50\.0%\/272k/);
-});
-
-test('CLI tolerates malformed JSON without invalid output', (t) => {
-  const workingDirectory = createTempDirectory(t);
-  const result = spawnSync(process.execPath, [statuslinePath], { cwd: workingDirectory, encoding: 'utf8', input: '{not-json' });
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, `${COLORS.hint}${workingDirectory}${COLORS.reset}\n`);
+  assert.equal(stripAnsi(result.stdout), `${directory}\n`);
 });
