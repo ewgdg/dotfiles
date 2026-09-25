@@ -24,7 +24,8 @@ path = "~/.pi/agent"
 patterns = [
   # Runtime state and caches stay local; everything else under ~/.pi/agent is config worth backing up.
   "auth.json",
-  "codex-accounts.json",
+  "*-accounts.json",
+  "crashes.json",
   "git/",
   "npm/",
   "run-history.jsonl",
