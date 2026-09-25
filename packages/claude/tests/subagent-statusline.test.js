@@ -14,29 +14,18 @@ function stripAnsi(value) {
   return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.jsonl.
-function createSession(t, transcripts = {}, agentTypes = {}) {
+// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.meta.json.
+function createSession(t, agentTypes = {}) {
   const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
   t.after(() => fs.rmSync(projectDirectory, { recursive: true, force: true }));
   const subagentsDirectory = path.join(projectDirectory, 'session', 'subagents');
   fs.mkdirSync(subagentsDirectory, { recursive: true });
-  for (const [taskId, lines] of Object.entries(transcripts)) {
-    fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.jsonl`), `${lines.join('\n')}\n`);
-  }
   for (const [taskId, agentType] of Object.entries(agentTypes)) {
     fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.meta.json`), JSON.stringify({ agentType }));
   }
   const transcriptPath = path.join(projectDirectory, 'session.jsonl');
   fs.writeFileSync(transcriptPath, '');
   return transcriptPath;
-}
-
-function assistantEntry({ model = 'claude-opus-5-5', effort, inputTokens = 0, cacheReadTokens = 0 } = {}) {
-  return JSON.stringify({
-    type: 'assistant',
-    effort,
-    message: { model, usage: { input_tokens: inputTokens, cache_read_input_tokens: cacheReadTokens, output_tokens: 50 } },
-  });
 }
 
 function run(input) {
@@ -74,46 +63,19 @@ test('renders identity, description, model, and context from the payload', (t) =
   });
 });
 
-test('fills agent type from subagent metadata and inherited effort from the latest transcript entry', (t) => {
-  const transcriptPath = createSession(t, {
-    a1: [JSON.stringify({ type: 'user', message: { content: 'go' } }), assistantEntry({ effort: 'medium' })],
-  }, { a1: 'Explore' });
+test('names an unnamed subagent by its agent type and marks inherited effort', (t) => {
   const row = renderedRow({
-    transcript_path: transcriptPath,
+    transcript_path: createSession(t, { a1: 'Explore' }),
     tasks: [{ id: 'a1', description: 'Probe', model: 'claude-opus-5-5', tokenCount: 8_894, contextWindowSize: 200_000 }],
   });
 
-  assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•medium · 4%/200k');
+  assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•inherit · 4%/200k');
 });
 
-test('prefers effort set on the task over the transcript', (t) => {
-  const transcriptPath = createSession(t, { a1: [assistantEntry({ effort: 'medium' })] });
-  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'max' }] });
+test('shows a numeric effort budget as written', (t) => {
+  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 16_000 }] });
 
-  assert.equal(stripAnsi(row.content), 'r · m•max');
-});
-
-test('uses transcript context usage when Claude Code reports zero tokens', (t) => {
-  // Gateway-backed subagents have reported tokenCount 0 despite persisting API usage.
-  const transcriptPath = createSession(t, {
-    a1: [assistantEntry({ inputTokens: 1_000, cacheReadTokens: 9_000 }), assistantEntry({ inputTokens: 2_000, cacheReadTokens: 52_000 })],
-  });
-  const row = renderedRow({
-    transcript_path: transcriptPath,
-    tasks: [{ id: 'a1', name: 'r', tokenCount: 0, contextWindowSize: 272_000 }],
-  });
-
-  assert.match(stripAnsi(row.content), / · 20%\/272k$/);
-});
-
-test('reads only the transcript tail, skipping a line cut by the tail window', (t) => {
-  const hugeToolResult = JSON.stringify({ type: 'user', message: { content: 'x'.repeat(2 * 1024 * 1024) } });
-  const transcriptPath = createSession(t, {
-    a1: [assistantEntry({ effort: 'high' }), hugeToolResult, assistantEntry({ effort: 'low' })],
-  });
-  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
-
-  assert.equal(stripAnsi(row.content), 'r · m•low');
+  assert.equal(stripAnsi(row.content), 'r · m•16000');
 });
 
 test('keeps the default row until the subagent has an identity', (t) => {

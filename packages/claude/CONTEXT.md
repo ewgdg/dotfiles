@@ -15,20 +15,16 @@ The complete row for a Claude Code subagent: identity, description, model label,
 The second segment of a Claude Code subagent status row. It is the task's `description` when supplied; it is otherwise absent.
 _Avoid_: task label, task type
 
-**Transcript tail**:
-The last 1 MiB of a subagent transcript. The renderer reads only this window and takes the newest assistant entry in it; it never scans the whole transcript.
-_Avoid_: transcript scan, token spend
-
 **Primary context indicator**:
 The API-reported proportion of a context window in use. A reported zero is displayed as `0%`; when usage is unavailable but capacity is known, it is displayed as `?/200k`; when usage is known but capacity is unavailable, it is displayed as `26%/?`; when both are unavailable, the segment is absent. Values are not recalculated from other usage fields.
 _Avoid_: calculated context percentage, recovered percentage
 
 **Subagent context percentage**:
-The task's `tokenCount` (its current context size) over its `contextWindowSize`, displayed as `4%/200k`. When `tokenCount` is zero, which gateway-backed subagents have reported despite persisting usage, the input usage of the newest entry in the transcript tail is used instead.
+The task's `tokenCount` (its current context size) over its `contextWindowSize`, displayed as `4%/200k`. It is displayed only when both values are present and valid.
 _Avoid_: token-sample recovery, cumulative token spend
 
 **Subagent model label**:
-The task's `model`, displayed verbatim, followed by `•<effort>` when known. Effort is the task's `effort` when set explicitly; Claude Code omits it for inherited effort, so the newest entry in the transcript tail supplies it.
+The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written when set explicitly; Claude Code omits it when the subagent inherits the session's effort, which is displayed as `•inherit`.
 _Avoid_: prettified model name, inferred model family
 
 **Status-row colors**:

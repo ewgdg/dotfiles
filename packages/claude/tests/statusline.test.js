@@ -27,8 +27,8 @@ function createTempDirectory(t) {
   return directory;
 }
 
-function runCli(input, cwd) {
-  return spawnSync(process.execPath, [statuslinePath], { cwd, encoding: 'utf8', input: JSON.stringify(input) });
+function runCli(input, cwd, env = process.env) {
+  return spawnSync(process.execPath, [statuslinePath], { cwd, env, encoding: 'utf8', input: JSON.stringify(input) });
 }
 
 function git(cwd, ...args) {
@@ -112,4 +112,15 @@ test('CLI omits the branch outside a Git repository', (t) => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(stripAnsi(result.stdout), `${directory}\n`);
+});
+
+test('CLI marks the branch unknown when Git fails inside a repository', (t) => {
+  const repository = createTempDirectory(t);
+  git(repository, 'init', '--quiet');
+  const brokenConfig = path.join(repository, 'broken.gitconfig');
+  fs.writeFileSync(brokenConfig, '[unterminated\n');
+  const result = runCli({ workspace: { current_dir: repository } }, repository, { ...process.env, GIT_CONFIG_GLOBAL: brokenConfig });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(stripAnsi(result.stdout), /\[\?\]/);
 });

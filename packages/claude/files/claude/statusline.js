@@ -20,7 +20,7 @@ const QUOTA_WARNING_REMAINING_PERCENTAGE = 30;
 const QUOTA_CRITICAL_REMAINING_PERCENTAGE = 10;
 const BRANCH_MAX_CHARACTERS = 25;
 const GIT_TIMEOUT_MS = 500;
-// `git symbolic-ref --quiet` exit codes: 1 means detached HEAD, 128 means not a repository.
+// `git symbolic-ref --quiet` exits 1 for a detached HEAD.
 const GIT_DETACHED_HEAD_STATUS = 1;
 
 const SECONDS_PER_MINUTE = 60;
@@ -77,14 +77,18 @@ function readGitBranch(directory) {
   const git = (...args) => spawnSync('git', args, {
     cwd: directory,
     encoding: 'utf8',
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+    // LC_ALL=C keeps the stderr match below independent of the user's locale.
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', LC_ALL: 'C' },
     timeout: GIT_TIMEOUT_MS,
   });
 
   const symbolicRef = git('symbolic-ref', '--quiet', '--short', 'HEAD');
   if (symbolicRef.error) return '?';
   if (symbolicRef.status === 0) return symbolicRef.stdout.trim();
-  if (symbolicRef.status !== GIT_DETACHED_HEAD_STATUS) return undefined;
+  if (symbolicRef.status !== GIT_DETACHED_HEAD_STATUS) {
+    // Exit 128 also covers real failures such as untrusted repositories; only a missing repository hides the segment.
+    return symbolicRef.stderr.includes('not a git repository') ? undefined : '?';
+  }
 
   const shortCommit = git('rev-parse', '--short', 'HEAD');
   return !shortCommit.error && shortCommit.status === 0 ? shortCommit.stdout.trim() : '?';
