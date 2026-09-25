@@ -17,4 +17,5 @@ skip_markers = [".dotman-skip"]
 [hooks]
 guard_push = [
     'sh "$DOTMAN_REPO_ROOT/scripts/check_core_env.sh"',
+    'sh "$DOTMAN_REPO_ROOT/scripts/check_macos_toolchain.sh"',
 ]
