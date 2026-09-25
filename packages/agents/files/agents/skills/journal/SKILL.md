@@ -16,7 +16,7 @@ Discover current journal filesystem directory with the helper:
 journal_dir="$(~/.agents/skills/journal/run.sh print-path)"
 ```
 
-`print-path` asks Obsidian CLI for the vault base path, then appends `JOURNAL_VAULT_RELATIVE_DIR` (default: `Streams/Journals`). If Obsidian path discovery fails, it falls back to `$HOME/projects/knowledgebase/<journal-relative-dir>`.
+`print-path` reads the vault path from Obsidian's vault registry (`obsidian.json`), then appends `JOURNAL_VAULT_RELATIVE_DIR` (default: `Streams/Journals`). It fails if the registry has no single vault named `OBSIDIAN_JOURNAL_VAULT` (default: `knowledgebase`).
 
 For memory recall/search, use normal file tools such as `rg`/`read` against `journal_dir`; do not create a new journal entry for recall.
 
@@ -90,3 +90,5 @@ EOF
 QuickAdd's non-opening `Agent Journal` choice owns note creation and the vault's journal-day boundary. Its dedicated template writes agent metadata during creation. The helper validates `--importance` as a number from 1 to 3, defaults to `1`, then prints the created path so later refinement can use normal file tools.
 
 Path return rule: `create` prints the full absolute path of the created journal file.
+
+Retry rule: exit status `3` means the entry was not created (usually another agent took the same millisecond name); rerun the same `create` command. Other non-zero statuses are real errors.

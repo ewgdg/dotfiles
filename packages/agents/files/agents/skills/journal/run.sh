@@ -16,8 +16,9 @@ Optional env:
   JOURNAL_VAULT_RELATIVE_DIR  Journal dir inside vault (default: Streams/Journals)
   JOURNAL_IMPORTANCE          Default importance if --importance omitted (default: 1)
   JOURNAL_QUICKADD_CHOICE     QuickAdd choice used for agent entries (default: Agent Journal)
-  JOURNAL_CREATE_PATH_RETRIES Attempts to wait for the created note to appear (default: 10)
-  JOURNAL_CREATE_PATH_SLEEP   Delay between path lookup attempts (default: 0.5)
+  JOURNAL_CREATE_WAIT_SECONDS Max seconds to wait for the created note to appear (default: 5)
+
+Exit status 3 from create means the journal was not created (e.g. name collision); retrying is safe.
 USAGE
 }
 
@@ -25,22 +26,35 @@ vault="${OBSIDIAN_JOURNAL_VAULT:-knowledgebase}"
 journal_vault_relative_dir="${JOURNAL_VAULT_RELATIVE_DIR:-Streams/Journals}"
 quickadd_choice="${JOURNAL_QUICKADD_CHOICE:-Agent Journal}"
 
-strip_obsidian_eval_prefix() {
-  sed -E 's/^=>[[:space:]]*//' | tr -d '\r' | sed -E 's/^"(.*)"$/\1/'
-}
-
 discover_vault_path() {
-  local discovered=""
-  local code="const adapter = app.vault.adapter; const basePath = adapter.getBasePath?.() ?? adapter.basePath ?? ''; basePath;"
-  # Keep caller stdin for journal body; obsidian CLI may otherwise consume piped stdin before create_journal can read it.
-  if discovered="$(obsidian vault="$vault" eval code="$code" </dev/null 2>/dev/null | strip_obsidian_eval_prefix | tail -n 1)"; then
-    if [[ -n "$discovered" && "$discovered" != "undefined" && "$discovered" != "null" ]]; then
-      printf '%s\n' "$discovered"
-      return
-    fi
-  fi
+  # Read Obsidian's vault registry directly: `obsidian` CLI stdout is intermittently empty
+  # (the per-call Electron client can exit before flushing), so it cannot be relied on.
+  python3 - "$vault" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
 
-  printf '%s\n' "$HOME/projects/knowledgebase"
+vault_name = sys.argv[1]
+home = Path.home()
+registry_candidates = [
+    Path(os.environ.get("XDG_CONFIG_HOME", home / ".config")) / "obsidian/obsidian.json",
+    home / "Library/Application Support/obsidian/obsidian.json",
+    Path(os.environ.get("APPDATA", home / "AppData/Roaming")) / "obsidian/obsidian.json",
+]
+registry = next((path for path in registry_candidates if path.is_file()), None)
+if registry is None:
+    sys.exit("Obsidian vault registry (obsidian.json) not found.")
+
+vault_paths = [
+    entry["path"]
+    for entry in json.loads(registry.read_text(encoding="utf-8"))["vaults"].values()
+    if Path(entry["path"]).name == vault_name
+]
+if len(vault_paths) != 1:
+    sys.exit(f"Expected one Obsidian vault named {vault_name!r} in {registry}, found {len(vault_paths)}.")
+print(vault_paths[0])
+PY
 }
 
 resolve_journal_dir() {
@@ -60,67 +74,25 @@ quote_yaml_string_scalar() {
   python3 -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' "$1"
 }
 
-snapshot_journal_paths() {
-  local journal_dir="$1"
-  [[ -d "$journal_dir" ]] || return 0
-  find "$journal_dir" -maxdepth 1 -type f -name '*.md' ! -name 'Journals.md' -print0
-}
-
-wait_for_created_journal_path() {
-  local journal_dir="$1"
-  local -n known_paths="$2"
-  local retries="${JOURNAL_CREATE_PATH_RETRIES:-10}"
-  local sleep_seconds="${JOURNAL_CREATE_PATH_SLEEP:-0.5}"
-  local path=""
-  local -a created_paths=()
-
-  for ((attempt = 1; attempt <= retries; attempt++)); do
-    created_paths=()
-    while IFS= read -r -d '' path; do
-      if [[ -z "${known_paths[$path]+present}" ]]; then
-        created_paths+=("$path")
-      fi
-    done < <(snapshot_journal_paths "$journal_dir")
-
-    if [[ ${#created_paths[@]} -eq 1 ]]; then
-      printf '%s\n' "${created_paths[0]}"
-      return 0
-    fi
-    if [[ ${#created_paths[@]} -gt 1 ]]; then
-      printf 'Multiple journal files appeared during creation; refusing to guess which one belongs to this run.\n' >&2
-      return 1
-    fi
-    sleep "$sleep_seconds"
-  done
-
-  return 1
-}
-
-format_created_filename() {
-  local vault_path="$1"
-  local journal_dir="$2"
-  local created_vault_path="$3"
-
-  python3 - "$vault_path" "$journal_dir" "$created_vault_path" <<'PY'
-from pathlib import Path
+wait_for_own_journal() {
+  # The path alone is not proof: when two callers request the same name, Obsidian keeps the first and
+  # aborts the other, so each caller must see its own body in the file (frontmatter may be reformatted).
+  python3 - "$1" "$2" "${JOURNAL_CREATE_WAIT_SECONDS:-5}" <<'PY'
 import sys
+import time
+from pathlib import Path
 
-vault_path = Path(sys.argv[1]).expanduser().resolve()
-journal_dir = Path(sys.argv[2]).expanduser().resolve()
-created_vault_path = Path(sys.argv[3])
-created_path = (created_vault_path if created_vault_path.is_absolute() else vault_path / created_vault_path).resolve()
-
-try:
-    relative_path = created_path.relative_to(journal_dir)
-except ValueError:
-    print(f"Created journal path is not under journal dir: {created_path} not under {journal_dir}", file=sys.stderr)
-    raise SystemExit(1)
-
-if len(relative_path.parts) != 1:
-    print(f"Created journal path is not directly inside journal dir: {relative_path}", file=sys.stderr)
-    raise SystemExit(1)
-
-print(str(created_path))
+journal_path, journal_body, wait_seconds = sys.argv[1:]
+deadline = time.monotonic() + float(wait_seconds)
+while time.monotonic() < deadline:
+    try:
+        content = Path(journal_path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        content = ""
+    if journal_body.strip() in content:
+        sys.exit(0)
+    time.sleep(0.1)
+sys.exit(1)
 PY
 }
 
@@ -205,11 +177,14 @@ create_journal() {
   fi
 
   local journal_dir="$(resolve_journal_dir "$vault_path")"
-  local -A existing_journal_paths=()
-  local existing_path=""
-  while IFS= read -r -d '' existing_path; do
-    existing_journal_paths["$existing_path"]=1
-  done < <(snapshot_journal_paths "$journal_dir")
+  # The helper picks the note name so it knows the path without listing the folder or trusting CLI
+  # output; the Journal choices' file-name script aborts when the name is already reserved.
+  local journal_name="$(python3 -c 'from datetime import datetime; now = datetime.now(); print(now.strftime("%Y-%m-%d-%H%M%S") + f"{now.microsecond // 1000:03d}")')"
+  local journal_path="$journal_dir/$journal_name.md"
+  if [[ -e "$journal_path" ]]; then
+    printf 'Journal already exists: %s\n' "$journal_path" >&2
+    exit 3
+  fi
   local quickadd_output=""
   # Agent Journal writes these values into YAML; quote string scalars before QuickAdd substitutes them.
   local highlight_yaml_scalar="$(quote_yaml_string_scalar "$highlight")"
@@ -220,19 +195,20 @@ create_journal() {
     value-Highlight="$highlight_yaml_scalar" \
     value-Importance="$importance" \
     value-Author="$author_yaml_scalar" \
-    value-Journal="$journal" 2>&1)"; then
+    value-Journal="$journal" \
+    value-JournalName="$journal_name" 2>&1)"; then
     printf '%s\n' "$quickadd_output" >&2
     exit 1
   fi
 
-  local after_path=""
-  if ! after_path="$(wait_for_created_journal_path "$journal_dir" existing_journal_paths)"; then
-    printf '%s\n' "$quickadd_output" >&2
-    printf 'Could not identify newly created journal path.\n' >&2
-    exit 1
+  if ! wait_for_own_journal "$journal_path" "$journal"; then
+    # CLI output may be empty even on failure, so the file content is the success signal.
+    [[ -n "$quickadd_output" ]] && printf '%s\n' "$quickadd_output" >&2
+    printf 'Journal was not created: %s (safe to retry)\n' "$journal_path" >&2
+    exit 3
   fi
 
-  format_created_filename "$vault_path" "$journal_dir" "$after_path"
+  printf '%s\n' "$journal_path"
 }
 
 if [[ $# -lt 1 ]]; then
@@ -242,6 +218,8 @@ fi
 
 command="$1"
 shift
+# Assigned separately: a failing `$(...)` used as a command argument would not trigger `set -e`.
+vault_path=""
 
 case "$command" in
   print-path)
@@ -249,10 +227,12 @@ case "$command" in
       usage
       exit 2
     fi
-    resolve_journal_dir "$(discover_vault_path)"
+    vault_path="$(discover_vault_path)"
+    resolve_journal_dir "$vault_path"
     ;;
   create)
-    create_journal "$(discover_vault_path)" "$@"
+    vault_path="$(discover_vault_path)"
+    create_journal "$vault_path" "$@"
     ;;
   --help|-h)
     usage
