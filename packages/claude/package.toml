@@ -3,7 +3,7 @@ depends = ["agents"]
 
 [vars.claude]
 # Interactive model, effort, and per-model choices are live-local preferences.
-settings_selectors = ["model", "effortLevel", "modelSettings"]
+settings_selectors = ["model", "modelSettings"]
 # ~/.claude.json is mostly machine state, so it is synced by allowlist.
 # Only user-scope MCP servers (top-level mcpServers) are portable; local-scope
 # servers live under machine-specific projects["/abs/path"] keys.
