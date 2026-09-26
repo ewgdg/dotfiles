@@ -24,7 +24,7 @@ The task's `tokenCount` (its current context size) over its `contextWindowSize`,
 _Avoid_: token-sample recovery, cumulative token spend
 
 **Subagent model label**:
-The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written. Claude Code sends it only when the session was started with `--effort`; a level set with `/effort` is saved per model under `modelSettings` and omitted from the payload, even though the subagent runs at it. A missing effort is therefore read from `modelSettings[<model>].effortLevel` in `settings.json` under `CLAUDE_CONFIG_DIR` (default `~/.claude`), and shown as `•auto` only when none is saved.
+The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written when the payload has it, which is only when the level is set for that subagent or the session was started with `--effort`. A level set with `/effort` or in any settings layer is omitted, so the effort is read from the latest response in the subagent's transcript (`<session>/subagents/agent-<id>.jsonl`), scanning complete lines backward from the end and at most 1 MiB per refresh. It shows `•auto` until the first response is written.
 _Avoid_: prettified model name, inferred model family
 
 **Status-row colors**:

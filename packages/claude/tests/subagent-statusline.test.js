@@ -14,8 +14,12 @@ function stripAnsi(value) {
   return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.meta.json.
-function createSession(t, agentTypes = {}) {
+function jsonLines(entries) {
+  return entries.map((entry) => `${JSON.stringify(entry)}\n`).join('');
+}
+
+// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.{meta.json,jsonl}.
+function createSession(t, agentTypes = {}, subagentTranscripts = {}) {
   const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
   t.after(() => fs.rmSync(projectDirectory, { recursive: true, force: true }));
   const subagentsDirectory = path.join(projectDirectory, 'session', 'subagents');
@@ -23,33 +27,24 @@ function createSession(t, agentTypes = {}) {
   for (const [taskId, agentType] of Object.entries(agentTypes)) {
     fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.meta.json`), JSON.stringify({ agentType }));
   }
+  for (const [taskId, transcript] of Object.entries(subagentTranscripts)) {
+    fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.jsonl`), transcript);
+  }
   const transcriptPath = path.join(projectDirectory, 'session.jsonl');
   fs.writeFileSync(transcriptPath, '');
   return transcriptPath;
 }
 
-// Isolates every run from the real ~/.claude; tests opt into saved settings with createConfig.
-const emptyConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-config-'));
-test.after(() => fs.rmSync(emptyConfigDirectory, { recursive: true, force: true }));
-
-function createConfig(t, settings) {
-  const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-config-'));
-  t.after(() => fs.rmSync(configDirectory, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(configDirectory, 'settings.json'), JSON.stringify(settings));
-  return configDirectory;
-}
-
-function run(input, configDirectory = emptyConfigDirectory) {
+function run(input) {
   const result = spawnSync(process.execPath, [subagentStatuslinePath], {
-    encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input),
-    env: { ...process.env, CLAUDE_CONFIG_DIR: configDirectory },
+    encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input), timeout: 10_000,
   });
   const rows = result.stdout.trim() === '' ? [] : result.stdout.trim().split('\n').map(JSON.parse);
   return { ...result, rows };
 }
 
-function renderedRow(input, configDirectory) {
-  const { status, stderr, rows } = run(input, configDirectory);
+function renderedRow(input) {
+  const { status, stderr, rows } = run(input);
   assert.equal(status, 0, stderr);
   assert.equal(rows.length, 1);
   return rows[0];
@@ -84,27 +79,61 @@ test('names an unnamed subagent by its agent type and marks auto effort', (t) =>
   assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•auto · 4%/200k');
 });
 
-test('shows the saved per-model effort when the payload omits it', (t) => {
-  const configDirectory = createConfig(t, {
-    modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' }, 'claude-sonnet-5': { effortLevel: 'low' } },
+test('shows the latest effort the subagent ran at when the payload omits it', (t) => {
+  const transcriptPath = createSession(t, {}, {
+    a1: jsonLines([
+      { type: 'assistant', effort: 'low' },
+      { type: 'user' },
+      { type: 'assistant', effort: 'high' },
+      { type: 'user' },
+      { type: 'attachment' },
+    ]),
   });
-  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'claude-sonnet-5' }] }, configDirectory);
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
 
-  assert.equal(stripAnsi(row.content), 'r · claude-sonnet-5•low');
+  assert.equal(stripAnsi(row.content), 'r · m•high');
 });
 
-test('prefers the payload effort over the saved per-model effort', (t) => {
-  const configDirectory = createConfig(t, { modelSettings: { m: { effortLevel: 'high' } } });
-  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'low' }] }, configDirectory);
+test('prefers the payload effort over the transcript', (t) => {
+  const transcriptPath = createSession(t, {}, { a1: jsonLines([{ type: 'assistant', effort: 'high' }]) });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'low' }] });
 
   assert.equal(stripAnsi(row.content), 'r · m•low');
 });
 
-test('marks auto effort when the subagent model has no saved effort', (t) => {
-  const configDirectory = createConfig(t, { modelSettings: { 'claude-fable-5-1': {}, other: { effortLevel: 'high' } } });
-  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'claude-fable-5-1' }] }, configDirectory);
+test('marks auto effort before the subagent first responds', (t) => {
+  const transcriptPath = createSession(t, {}, { a1: jsonLines([{ type: 'user' }]) });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
 
-  assert.equal(stripAnsi(row.content), 'r · claude-fable-5-1•auto');
+  assert.equal(stripAnsi(row.content), 'r · m•auto');
+});
+
+test('ignores a partially written last line', (t) => {
+  const transcriptPath = createSession(t, {}, {
+    a1: `${jsonLines([{ type: 'assistant', effort: 'low' }])}{"type":"assistant","effort":"hi`,
+  });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
+
+  assert.equal(stripAnsi(row.content), 'r · m•low');
+});
+
+test('stops at the start of a transcript that begins with a line break', (t) => {
+  const transcriptPath = createSession(t, {}, { a1: `\n${jsonLines([{ type: 'user' }])}` });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
+
+  assert.equal(stripAnsi(row.content), 'r · m•auto');
+});
+
+test('finds the latest effort behind a large tool result', (t) => {
+  const transcriptPath = createSession(t, {}, {
+    a1: jsonLines([
+      { type: 'assistant', effort: 'medium' },
+      { type: 'user', content: 'é'.repeat(150_000) },
+    ]),
+  });
+  const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
+
+  assert.equal(stripAnsi(row.content), 'r · m•medium');
 });
 
 test('shows a numeric effort budget as written', (t) => {
