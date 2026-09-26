@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "00421fba414b15964b35e606c4972e19688e138f",
+      "skillFolderHash": "a65bfb8b091259f294c3b5e7eedaa2d609499850",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-09-26T06:53:44.885Z"
+      "updatedAt": "2026-09-26T07:26:13.480Z"
     },
     "grill-with-docs": {
       "source": "mattpocock/skills",
