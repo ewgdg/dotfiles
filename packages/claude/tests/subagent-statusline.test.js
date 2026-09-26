@@ -28,16 +28,28 @@ function createSession(t, agentTypes = {}) {
   return transcriptPath;
 }
 
-function run(input) {
+// Isolates every run from the real ~/.claude; tests opt into saved settings with createConfig.
+const emptyConfigDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-config-'));
+test.after(() => fs.rmSync(emptyConfigDirectory, { recursive: true, force: true }));
+
+function createConfig(t, settings) {
+  const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-config-'));
+  t.after(() => fs.rmSync(configDirectory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(configDirectory, 'settings.json'), JSON.stringify(settings));
+  return configDirectory;
+}
+
+function run(input, configDirectory = emptyConfigDirectory) {
   const result = spawnSync(process.execPath, [subagentStatuslinePath], {
     encoding: 'utf8', input: typeof input === 'string' ? input : JSON.stringify(input),
+    env: { ...process.env, CLAUDE_CONFIG_DIR: configDirectory },
   });
   const rows = result.stdout.trim() === '' ? [] : result.stdout.trim().split('\n').map(JSON.parse);
   return { ...result, rows };
 }
 
-function renderedRow(input) {
-  const { status, stderr, rows } = run(input);
+function renderedRow(input, configDirectory) {
+  const { status, stderr, rows } = run(input, configDirectory);
   assert.equal(status, 0, stderr);
   assert.equal(rows.length, 1);
   return rows[0];
@@ -70,6 +82,29 @@ test('names an unnamed subagent by its agent type and marks auto effort', (t) =>
   });
 
   assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•auto · 4%/200k');
+});
+
+test('shows the saved per-model effort when the payload omits it', (t) => {
+  const configDirectory = createConfig(t, {
+    modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' }, 'claude-sonnet-5': { effortLevel: 'low' } },
+  });
+  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'claude-sonnet-5' }] }, configDirectory);
+
+  assert.equal(stripAnsi(row.content), 'r · claude-sonnet-5•low');
+});
+
+test('prefers the payload effort over the saved per-model effort', (t) => {
+  const configDirectory = createConfig(t, { modelSettings: { m: { effortLevel: 'high' } } });
+  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'low' }] }, configDirectory);
+
+  assert.equal(stripAnsi(row.content), 'r · m•low');
+});
+
+test('marks auto effort when the subagent model has no saved effort', (t) => {
+  const configDirectory = createConfig(t, { modelSettings: { 'claude-fable-5-1': {}, other: { effortLevel: 'high' } } });
+  const row = renderedRow({ transcript_path: createSession(t), tasks: [{ id: 'a1', name: 'r', model: 'claude-fable-5-1' }] }, configDirectory);
+
+  assert.equal(stripAnsi(row.content), 'r · claude-fable-5-1•auto');
 });
 
 test('shows a numeric effort budget as written', (t) => {

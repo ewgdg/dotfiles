@@ -1,13 +1,14 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { COLORS, colored, contextColor, formatContextWindowSize } = require('./statusline.js');
 
 const TERMINAL_ESCAPE_PATTERN = /\x1b\][^\x07]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b./g;
 const CONTROL_CHARACTER_PATTERN = /\p{Cc}+/gu;
-// Subagents inherit the session's effort live. Claude Code sends it when the session level is explicit and
-// omits it only when the session is on auto, where each subagent's model resolves its own level.
+// Claude Code sends a task's effort only when the session was started with `--effort`. A level set with
+// `/effort` is saved per model under `modelSettings`, which the payload omits, so it is resolved from settings.
 const AUTO_EFFORT_LABEL = 'auto';
 
 // Collapses model-written text into one plain line.
@@ -37,13 +38,23 @@ function readAgentType(sessionTranscriptPath, taskId) {
   }
 }
 
-function renderTask(task, agentType) {
+function readSavedModelSettings() {
+  const configDirectory = process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
+  try {
+    return JSON.parse(fs.readFileSync(path.join(configDirectory, 'settings.json'), 'utf8')).modelSettings ?? {};
+  } catch (error) {
+    if (error.code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
+function renderTask(task, agentType, savedModelSettings) {
   const identity = plainText(task.name) ?? plainText(agentType);
   // Without an identity, leave the row to Claude Code's default rendering.
   if (identity === undefined) return undefined;
 
   const model = plainText(task.model);
-  const effort = task.effort === undefined ? AUTO_EFFORT_LABEL : plainText(String(task.effort));
+  const effort = plainText(String(task.effort ?? savedModelSettings[task.model]?.effortLevel ?? AUTO_EFFORT_LABEL));
   const windowSize = Number.isFinite(task.contextWindowSize) && task.contextWindowSize > 0 ? task.contextWindowSize : undefined;
 
   const segments = [colored(identity, COLORS.cyan), plainText(task.description)];
@@ -57,9 +68,10 @@ function renderTask(task, agentType) {
 
 function main() {
   const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const savedModelSettings = readSavedModelSettings();
   const rows = input.tasks.flatMap((task) => {
     const agentType = task.name === undefined ? readAgentType(input.transcript_path, task.id) : undefined;
-    const content = renderTask(task, agentType);
+    const content = renderTask(task, agentType, savedModelSettings);
     return content === undefined ? [] : [JSON.stringify({ id: task.id, content })];
   });
   if (rows.length > 0) process.stdout.write(`${rows.join('\n')}\n`);
