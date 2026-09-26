@@ -1,0 +1,13 @@
+id = "paseo"
+description = "Paseo coding-agent orchestration CLI and daemon"
+
+depends = [
+  "nodejs",
+]
+
+[targets.paseo_install]
+sync_policy = "push-only"
+probe = 'if command -v paseo >/dev/null 2>&1; then exit 100; fi; exit 0'
+
+[targets.paseo_install.hooks]
+pre_push = "{{ NPM_INSTALL }} @getpaseo/cli"
