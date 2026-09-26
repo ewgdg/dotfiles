@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md",
-      "skillFolderHash": "df27d649f2d6cfcd196d434f3cbda26162ffcf73",
+      "skillFolderHash": "00421fba414b15964b35e606c4972e19688e138f",
       "installedAt": "2026-06-24T02:59:13.555Z",
-      "updatedAt": "2026-09-25T06:01:59.237Z"
+      "updatedAt": "2026-09-26T06:53:44.885Z"
     },
     "grill-with-docs": {
       "source": "mattpocock/skills",
@@ -268,9 +268,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
       "skillPath": "skills/surf-google-search/SKILL.md",
-      "skillFolderHash": "2462970e8a3ff08f6d4b7a7e995d2808270045e7",
+      "skillFolderHash": "49f26553911a418d2c4581bec658e6e3e8cecccf",
       "installedAt": "2026-08-09T19:48:28.257Z",
-      "updatedAt": "2026-09-17T02:24:47.592Z"
+      "updatedAt": "2026-09-26T06:53:46.327Z"
     },
     "show-me": {
       "source": "humanlayer/skills",
