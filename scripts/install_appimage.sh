@@ -49,6 +49,12 @@ install_desktop_entry() {
         exit 65
     fi
 
+    # Drop entries written for this AppImage earlier, so an upstream rename of
+    # its desktop file does not leave a duplicate launcher behind.
+    find_desktop_entry | while IFS= read -r previous_entry; do
+        rm -f -- "$previous_entry"
+    done
+
     # Point Exec at the stable AppImage path, keeping upstream arguments.
     mkdir -p "$applications_dir"
     sed \
