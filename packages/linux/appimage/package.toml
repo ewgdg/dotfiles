@@ -3,12 +3,18 @@ description = "AppMan (rootless AM) AppImage manager with zsync delta updates"
 
 # Fetch the script directly instead of AM-INSTALLER, which appends PATH lines to
 # ~/.zshrc and ~/.bashrc. appman updates itself on `appman -u` (topgrade's appman step).
+# The zsh-completion-off marker pre-declines appman's first-run prompt to append
+# completion lines to ~/.zshrc (owned by the shell package); left unanswered, that
+# prompt consumes answers piped to a later `appman -i`.
 [targets.appman_installed]
 sync_policy = "push-only"
 probe = '[ -x "$HOME/.local/bin/appman" ] && exit 100 || exit 0'
 
 [targets.appman_installed.hooks]
-pre_push = 'mkdir -p "$HOME/.local/bin" && curl -fsSLo "$HOME/.local/bin/appman" https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER && chmod +x "$HOME/.local/bin/appman"'
+pre_push = [
+  'mkdir -p "$HOME/.local/bin" && curl -fsSLo "$HOME/.local/bin/appman" https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER && chmod +x "$HOME/.local/bin/appman"',
+  'mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/AM" && touch "${XDG_DATA_HOME:-$HOME/.local/share}/AM/zsh-completion-off"',
+]
 
 # A relative path resolves against $HOME, keeping this file portable.
 [targets.f_config_appman_appman_config]

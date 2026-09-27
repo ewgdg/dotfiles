@@ -5,6 +5,7 @@
 ## What this package does
 
 - Downloads the `appman` script to `~/.local/bin/appman`.
+- Declines appman's zsh completion, which would append lines to `~/.zshrc`.
 - Tracks `~/.config/appman/appman-config`, which sets the apps directory to `~/Applications`.
 - Installs `appimageupdatetool` through appman so updates use zsync deltas.
 - topgrade's `appman` step runs `appman -u`, which updates apps and appman itself.
