@@ -1,19 +1,18 @@
 id = "linux/appimage"
 description = "soar portable app manager for AppImages, with zsync delta updates"
 
-depends = [
-  "rustup",
-  "topgrade",
-]
-
-# cargo builds soar without its optional `self` feature, so cargo stays the only
-# updater of the executable (topgrade's Cargo step).
+# Upstream's install script puts the release binary in ~/.local/bin, where topgrade's
+# soar step can run `soar self update`. A failed download piped to sh still exits 0,
+# so the second command fails the push if nothing was installed.
 [targets.soar_installed]
 sync_policy = "push-only"
-probe = '[ -x "${CARGO_HOME:-$HOME/.cargo}/bin/soar" ] && exit 100 || exit 0'
+probe = '[ -x "$HOME/.local/bin/soar" ] && exit 100 || exit 0'
 
 [targets.soar_installed.hooks]
-pre_push = "cargo install --locked soar-cli"
+pre_push = [
+  'curl -fsSL https://raw.githubusercontent.com/pkgforge/soar/main/install.sh | sh',
+  '[ -x "$HOME/.local/bin/soar" ]',
+]
 
 # Declared after soar_installed so soar exists when post_push applies the list.
 # Two-way sync: soar writes resolved versions back into this file for url and forge
@@ -23,8 +22,4 @@ source = "files/config/soar/packages.toml"
 path = "~/.config/soar/packages.toml"
 
 [targets.f_config_soar_packages_toml.hooks]
-post_push = '"${CARGO_HOME:-$HOME/.cargo}/bin/soar" apply --yes'
-
-[targets.f_config_topgrade_d_soar_toml]
-source = "files/config/topgrade.d/soar.toml"
-path = "~/.config/topgrade.d/soar.toml"
+post_push = '"$HOME/.local/bin/soar" apply --yes'
