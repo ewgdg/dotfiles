@@ -52,7 +52,7 @@ path = "~/.claude/hooks"
 
 # User-authored Claude Code subagents. Nothing else writes here, so the whole
 # directory is managed. The agent-neutral ~/.agents/agents use pi's format and
-# are not linked in. .gitkeep only keeps the empty directory in git.
+# are not linked in. The source directory may be absent until the first agent.
 [targets.d_claude_agents]
 source = "files/claude/agents"
 path = "~/.claude/agents"
