@@ -7,7 +7,7 @@ sync_policy = "push-only"
 # official AppImage updates itself in place (delta downloads), so we only install
 # it once; the AUR builds either lag upstream or fight pacman with their updater.
 # Homebrew resolves `paseo` to the cask.
-probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --link-command paseo{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
+probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name paseo --link-command{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
 
 [targets.paseo_install.hooks]
-pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --link-command paseo https://github.com/getpaseo/paseo/releases/latest/download/Paseo-x86_64.AppImage{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
+pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name paseo --url https://github.com/getpaseo/paseo/releases/latest/download/Paseo-x86_64.AppImage --link-command{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'

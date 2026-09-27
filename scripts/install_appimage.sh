@@ -8,22 +8,15 @@
 set -eu
 
 usage() {
-    printf 'usage: %s [--link-command] <name> <url>\n' "${0##*/}" >&2
+    printf 'usage: %s --name <name> --url <url> [--link-command]\n' "${0##*/}" >&2
     exit 64
 }
 
-link_command=false
-if [ "${1:-}" = --link-command ]; then
-    link_command=true
-    shift
-fi
-[ "$#" -eq 2 ] || usage
-name=$1
-url=$2
-
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$script_dir/appimage_paths.sh"
-set_appimage_paths "$name"
+parse_appimage_args "$@"
+[ -n "$url" ] || usage
+set_appimage_paths
 
 download_appimage() {
     mkdir -p "$appimage_dir"
@@ -42,30 +35,16 @@ extract_metadata() {
     )
 }
 
-install_desktop_entry() {
+# Sets $source_entry and $icon_files (relative to $icon_root), failing before
+# anything installed is touched.
+locate_metadata() {
     source_entry=$(find "$extract_dir/squashfs-root" -maxdepth 1 -name '*.desktop')
     if [ "$(printf '%s\n' "$source_entry" | grep -c .)" -ne 1 ]; then
         printf 'error: expected one top-level desktop entry in %s\n' "$appimage_path" >&2
         exit 65
     fi
 
-    # Drop entries written for this AppImage earlier, so an upstream rename of
-    # its desktop file does not leave a duplicate launcher behind.
-    find_desktop_entry | while IFS= read -r previous_entry; do
-        rm -f -- "$previous_entry"
-    done
-
-    # Point Exec at the stable AppImage path, keeping upstream arguments.
-    mkdir -p "$applications_dir"
-    sed \
-        -e "s|^Exec=[^ ]*|Exec=\"$appimage_path\"|" \
-        -e "s|^TryExec=.*|TryExec=$appimage_path|" \
-        "$source_entry" >"$applications_dir/${source_entry##*/}"
-
     icon_name=$(sed -n 's/^Icon=//p' "$source_entry" | head -n 1)
-}
-
-install_icons() {
     icon_root=$extract_dir/squashfs-root/usr/share/icons
     icon_files=""
     if [ -n "$icon_name" ] && [ -d "$icon_root" ]; then
@@ -76,7 +55,32 @@ install_icons() {
         printf 'error: no usr/share/icons/*/apps/%s.* in %s\n' "$icon_name" "$appimage_path" >&2
         exit 65
     fi
+}
+
+# Removes what the previous integration recorded, so an upstream rename of the
+# desktop entry or icon leaves nothing stale behind.
+remove_recorded_files() {
+    [ -f "$record_path" ] || return 0
+    while IFS= read -r recorded_file; do
+        rm -f -- "$recorded_file"
+    done <"$record_path"
+}
+
+install_desktop_entry() {
+    desktop_entry=$applications_dir/${source_entry##*/}
+    # Point Exec at the stable AppImage path, keeping upstream arguments.
+    mkdir -p "$applications_dir"
+    sed \
+        -e "s|^Exec=[^ ]*|Exec=\"$appimage_path\"|" \
+        -e "s|^TryExec=.*|TryExec=$appimage_path|" \
+        "$source_entry" >"$desktop_entry"
+    printf '%s\n' "$desktop_entry" >>"$record_path.part"
+}
+
+install_icons() {
+    mkdir -p "$icons_dir"
     (cd "$icon_root" && printf '%s\n' "$icon_files" | xargs cp -L --parents -t "$icons_dir")
+    printf '%s\n' "$icon_files" | sed "s|^\./|$icons_dir/|" >>"$record_path.part"
 }
 
 [ -x "$appimage_path" ] || download_appimage
@@ -84,9 +88,14 @@ install_icons() {
 extract_dir=$(mktemp -d)
 trap 'rm -rf "$extract_dir"' EXIT
 extract_metadata
+locate_metadata
+
+mkdir -p "$record_dir"
+: >"$record_path.part"
+remove_recorded_files
 install_desktop_entry
-mkdir -p "$icons_dir"
 install_icons
+mv "$record_path.part" "$record_path"
 
 # Registers MimeType handlers such as x-scheme-handler links.
 update-desktop-database "$applications_dir"

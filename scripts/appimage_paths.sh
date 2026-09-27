@@ -1,24 +1,50 @@
-# Shared by AppImage helpers; sourced, not executed.
+# Shared by AppImage helpers; sourced, not executed. Callers define usage().
 
 appimage_dir=$HOME/Applications
 applications_dir=${XDG_DATA_HOME:-$HOME/.local/share}/applications
 icons_dir=${XDG_DATA_HOME:-$HOME/.local/share}/icons
 command_dir=$HOME/.local/bin
+# Per-AppImage list of installed desktop entry (first line) and icons, so
+# probes and re-integration never scan the shared applications/icons dirs.
+record_dir=${XDG_STATE_HOME:-$HOME/.local/state}/appimages
 
-# Sets $appimage_path and $command_path for AppImage <name>.
+# Sets $name, $url, and $link_command from --name, --url, --link-command.
+parse_appimage_args() {
+  name=""
+  url=""
+  link_command=false
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --name)
+        [ "$#" -ge 2 ] || usage
+        name=$2
+        shift 2
+        ;;
+      --url)
+        [ "$#" -ge 2 ] || usage
+        url=$2
+        shift 2
+        ;;
+      --link-command)
+        link_command=true
+        shift
+        ;;
+      *)
+        usage
+        ;;
+    esac
+  done
+}
+
+# Sets $appimage_path, $command_path, and $record_path for $name.
 set_appimage_paths() {
-  case $1 in
+  case $name in
     "" | *[!a-z0-9._-]*)
-      printf 'invalid AppImage name (use a-z 0-9 . _ -): %s\n' "$1" >&2
+      printf 'invalid AppImage name (use a-z 0-9 . _ -): %s\n' "$name" >&2
       exit 64
       ;;
   esac
-  appimage_path=$appimage_dir/$1.AppImage
-  command_path=$command_dir/$1
-}
-
-# Prints the installed desktop entry that launches $appimage_path. The entry
-# keeps the AppImage's own file name so window-to-launcher matching still works.
-find_desktop_entry() {
-  grep -slF "Exec=\"$appimage_path\"" "$applications_dir"/*.desktop
+  appimage_path=$appimage_dir/$name.AppImage
+  command_path=$command_dir/$name
+  record_path=$record_dir/$name.files
 }

@@ -46,8 +46,10 @@ Use package-manager checks for:
 - Homebrew packages managed through `{{ INSTALL }}`
 
 Use `{{ PROBE_APPIMAGE_INSTALLED }}` / `{{ APPIMAGE_INSTALL }}` (Linux) for AppImages that update themselves:
-install once to `~/Applications/<name>.AppImage`, add the desktop entry and icons, and optionally link a command with `--link-command`.
+pass `--name <name>` to both, `--url <url>` to install, and `--link-command` to both when the app should get `~/.local/bin/<name>`.
+Install puts the file at `~/Applications/<name>.AppImage`, adds the desktop entry and icons, and records them in `~/.local/state/appimages/<name>.files`. The probe and re-integration read that record instead of scanning shared directories.
 Never re-download from a probe; the app owns later updates. Repacking or external updaters would fight the app's own updater.
+Renaming `<name>` makes a new install; remove the old one's recorded files, AppImage, and command link.
 
 Use package-local probes for custom or tool-managed installs:
 
