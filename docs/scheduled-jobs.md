@@ -30,7 +30,9 @@ Example:
 ```conf
 # Package is managed through systemd timers elsewhere.
 # Do not extract packaged cron jobs, or scheduled work can run twice.
-NoExtract = /etc/cron.daily/example /etc/cron.hourly/example
+NoExtract = etc/cron.daily/example etc/cron.hourly/example
 ```
+
+Paths match entries inside the package archive, so omit the leading slash (`etc/...`, not `/etc/...`); a leading slash silently matches nothing.
 
 Before removing a `NoExtract` rule, check for managed systemd timers for the same job and disable one scheduler first.
