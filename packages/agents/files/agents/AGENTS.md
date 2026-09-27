@@ -97,7 +97,7 @@
 ## Git
 
 - use semantic commit messages
-- prefer local worktree dirs in `./.worktrees/` when user asks for worktree
+- prefer a local worktree dir in `./.worktrees/` if unspecified when a worktree is needed
 - Prefer rebasing followed by a fast-forward merge.
 
 ### Implementation commits
