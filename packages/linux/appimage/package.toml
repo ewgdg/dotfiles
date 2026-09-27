@@ -1,11 +1,11 @@
-id = "linux/appmanager"
-description = "AppManager AppImage installer and updater"
+id = "linux/appimage"
+description = "AppImage manager with zsync delta updates (AppManager)"
 
 # Install only. AppManager keeps AppImages in ~/Applications and updates them with
 # zsync deltas when the AppImage embeds update info; which apps it holds is live state.
-[targets.appmanager_installed]
+[targets.appimage_manager_installed]
 sync_policy = "push-only"
 probe = "{{ PROBE_PACKAGES_INSTALLED }} appmanager"
 
-[targets.appmanager_installed.hooks]
+[targets.appimage_manager_installed.hooks]
 pre_push = "{{ INSTALL }} appmanager"

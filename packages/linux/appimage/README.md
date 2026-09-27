@@ -1,4 +1,4 @@
-# linux/appmanager
+# linux/appimage
 
 [AppManager](https://github.com/kem-a/AppManager) is a GTK4 app that installs, integrates, and updates AppImages without root.
 
