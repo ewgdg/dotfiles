@@ -1,13 +1,13 @@
 {
   "scope": {
-    "allProviders": "on",
+    "allProviders": "extras",
     "additionalProviders": []
   },
   "tools": {
     "webRun": true,
     "imageGeneration": true,
     "viewImageFallback": false,
-    "applyPatchOnly": false,
+    "applyPatchOnly": true,
     "viewImageOnly": false,
     "webRunOnly": true,
     "imageGenerationOnly": false,
@@ -45,7 +45,7 @@
   },
   "voiceFeaturesOnly": false,
   "prompt": {
-    "heavySystemPromptOverwrite": true,
+    "heavySystemPromptOverwrite": false,
     "currentTimeReminderMinutes": 0
   },
   "voice": {

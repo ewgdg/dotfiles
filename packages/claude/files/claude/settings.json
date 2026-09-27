@@ -6,7 +6,8 @@
     "allow": [],
     "deny": [
       "EnterPlanMode"
-    ]
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
     "SessionStart": [
@@ -22,6 +23,9 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "statusLine": {
     "type": "command",
     "command": "node \"$HOME/.claude/statusline.js\"",
@@ -35,5 +39,7 @@
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
-  "editorMode": "vim"
+  "editorMode": "vim",
+  "agentPushNotifEnabled": true,
+  "inputNeededNotifEnabled": true
 }

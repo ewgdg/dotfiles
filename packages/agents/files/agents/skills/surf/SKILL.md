@@ -1,6 +1,6 @@
 ---
 name: surf
-description: Real browser control for web research, documentation lookup, testing, screenshots, forms, page inspection, and debugging. Use when lightweight API tools are unavailable or rendered pages, authenticated sessions, or browser interaction are required.
+description: "Operate websites in a real browser for the user: act on a site (their account, a dashboard, a form, a support ticket), get past a login, read JavaScript-rendered pages, or test, screenshot and debug pages. Prefer direct APIs, CLIs and fetch tools when they reach the same result in fewer calls and tokens; switch here when they cannot, or when a fetch result is summarized unasked or otherwise lower fidelity than the task needs."
 ---
 
 # Surf
@@ -37,7 +37,7 @@ Choose one mode per task:
 - **Session** — the default for multi-step work: `run.py --new-session -` creates a session interpreter and reports its id, and later cells pass `--session ID`.
 - **Fresh interpreter** — `run.py FILE|-` starts a new interpreter for that call; suits a one-shot script. Import and initialize handles each time; write intermediate data to files when a later call needs it.
 
-A session is one Python process kept alive between calls, as in a notebook: each call is a cell. The first cell imports, binds `thread = Thread(name)` and opens the page; every later cell calls the bound `thread` and earlier helpers directly, with no import line. Create the session once and keep its id: `--new-session` prints it as the last stdout output of that call.
+A session is one Python process kept alive between calls, as in a notebook: each call is a cell. The first cell imports, binds `thread = Thread(name)` and opens the page; every later cell calls the bound `thread` and earlier helpers directly, with no import line. Create the session once and keep its id: `--new-session` prints it as the first stdout output of that call.
 
 ```bash
 python3 "$SURF_SKILL/scripts/run.py" --new-session --name research - <<'PY'
@@ -47,8 +47,8 @@ thread = Thread("research")
 thread.open("https://example.com")
 thread.emit(thread.snapshot())
 PY
+# --- BEGIN session metadata --- / session_id: research-1f3a9c02 / --- END session metadata --- …
 # … - link "Learn more" [ref=e6] …
-# … --- BEGIN session metadata --- / session_id: research-1f3a9c02 / --- END session metadata ---
 ```
 
 ```bash
@@ -76,6 +76,15 @@ If the call instead reports the interpreter was not stopped, it may still hold t
 
 Use a unique thread name per task. Surf owns a dedicated Chrome window/profile, separate from the user's main browser. `open()` creates the thread's window when missing; a fresh interpreter continues the task by rebuilding `Thread(name)` without navigating again.
 
+The user watches the Surf window, so clear overlays before working the page. When a snapshot after a page load shows a cookie banner, consent dialog, signup or app-install prompt, or other overlay covering content, dismiss it first and confirm with `wait(gone=...)`:
+
+- Cookie consent: choose among the banner's first-layer buttons: prefer "Reject all", then "Necessary only" or equivalent, else accept.
+- Other overlays: click its close or "No thanks" control, or press `Escape`.
+- A click failing with `error.code == "intercepted"` names the covering element: dismiss it, then retry.
+- Still covering after two dismiss attempts: hide the overlay and its backdrop with `thread.evaluate` (`display: none`; removing nodes can break framework-rendered pages), then undo the page locks it left: `overflow` on `html`/`body`, and `inert` or `aria-hidden` on the main content. A new snapshot should show that content, ready to click.
+
+An overlay that gates the task (login, captcha, paywall, age or terms confirmation) is a human decision: leave it in place and follow [Login and human unblock](#login-and-human-unblock).
+
 Inspect the snapshot before choosing targets: use a ref the snapshot printed, so a line `- searchbox "Search" [ref=e12]` is targeted as `@e12` ([target forms](docs/python-api.md#thread)). Batch deterministic actions in one cell until a new observation or human decision is needed:
 
 ```python
@@ -85,7 +94,7 @@ thread.wait(url="*/search*")  # confirm the effect instead of sleeping
 thread.emit(thread.snapshot())
 ```
 
-Confirm an action's effect with `wait(text)`, `wait(gone=...)` or `wait(url=...)` rather than a fixed sleep. Text conditions match the page's own text, where child elements can join without the space a snapshot name shows: for `option "Cloud Run run.googleapis.com"`, wait for `"Cloud Run"`, one child's text. Read one region by its snapshot ref, `thread.text("@e5")`, instead of the whole body; a CSS selector such as `"main"` matches HTML tags, which apps often replace with ARIA roles. When a call fails, branch on `error.code` ([codes](docs/python-api.md#errors)): `intercepted` names the covering element, `outcome_unknown` means the action may already have happened.
+Confirm an action's effect with `wait(text)`, `wait(gone=...)` or `wait(url=...)` rather than a fixed sleep. Text conditions match the page's own text, where child elements can join without the space a snapshot name shows: for `option "Cloud Run run.googleapis.com"`, wait for `"Cloud Run"`, one child's text. Read one region by its snapshot ref, `thread.text("@e5")`, and the whole page with `thread.text()`; a CSS selector such as `"main"` matches HTML tags, which apps often replace with ARIA roles. When a call fails, branch on `error.code` ([codes](docs/python-api.md#errors)): `intercepted` names the covering element, `outcome_unknown` means the action may already have happened.
 
 Actions and observations are silent; print only useful results. `snapshot().text` is complete. `emit(snapshot)` outputs a numbered observation with explicit BEGIN/END boundaries: full text first, then useful diffs; `emit(snapshot, full=True)` forces full output. Multiple emissions appear in order in the same script output, not separate agent turns. End the script when the next action requires a decision. Read [snapshot semantics](docs/python-api.md#snapshot-output) for the format, baselines or custom sinks.
 

@@ -71,9 +71,9 @@
 
 ## Testing
 
-- Write test cases first before bug fixes
+- Add tests only for valuable, regression-prone behavior, bug fixes included; skip low-value details.
+- Write such tests before the implementation and see them fail for the expected reason.
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
-- Avoid excessive testing of low-value details. Focus on important, regression-prone behavior.
 - Use bounded test timeouts appropriate to the operation; distinguish slow tests from hung tests.
 - If the full test suite takes long (>10s), do not run it as a whole until you are ready to finish and you should not run the full test suite if the blast radius is small.
 
