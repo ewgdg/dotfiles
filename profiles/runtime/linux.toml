@@ -1,5 +1,7 @@
 includes = ["runtime/core"]
 
 [vars]
-ENSURE_SYSTEMD     = "sh \"$DOTMAN_REPO_ROOT/scripts/ensure_systemd_service_enabled.sh\""
+APPIMAGE_INSTALL = "sh \"$DOTMAN_REPO_ROOT/scripts/install_appimage.sh\""
+PROBE_APPIMAGE_INSTALLED = "sh \"$DOTMAN_REPO_ROOT/scripts/probe_appimage_installed.sh\""
+ENSURE_SYSTEMD     ="sh \"$DOTMAN_REPO_ROOT/scripts/ensure_systemd_service_enabled.sh\""
 ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/enable_display_manager_systemd_unit.py"'

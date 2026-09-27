@@ -45,6 +45,10 @@ Use package-manager checks for:
 - Arch/AUR packages managed through `{{ INSTALL }}`
 - Homebrew packages managed through `{{ INSTALL }}`
 
+Use `{{ PROBE_APPIMAGE_INSTALLED }}` / `{{ APPIMAGE_INSTALL }}` (Linux) for AppImages that update themselves:
+install once to `~/Applications/<name>.AppImage`, add the desktop entry and icons, and optionally link a command with `--link-command`.
+Never re-download from a probe; the app owns later updates. Repacking or external updaters would fight the app's own updater.
+
 Use package-local probes for custom or tool-managed installs:
 
 - custom Git builds: compare installed Git hash with upstream `HEAD` when reliable
