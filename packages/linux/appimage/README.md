@@ -1,18 +1,25 @@
 # linux/appimage
 
-[AppManager](https://github.com/kem-a/AppManager) is a GTK4 app that installs, integrates, and updates AppImages without root.
+[AppMan](https://github.com/ivan-hc/AppMan) is the rootless mode of [AM](https://github.com/ivan-hc/AM): a CLI that installs AppImages by name from a 2,500+ app catalog and keeps them updated.
 
 ## What this package does
 
-- Installs `appmanager` from the AUR.
-- Does not track settings or the installed AppImages. Apps live in `~/Applications` and are live state.
+- Downloads the `appman` script to `~/.local/bin/appman`.
+- Tracks `~/.config/appman/appman-config`, which sets the apps directory to `~/Applications`.
+- Installs `appimageupdatetool` through appman so updates use zsync deltas.
+- topgrade's `appman` step runs `appman -u`, which updates apps and appman itself.
+
+## Adding an app
+
+- Add a probe target like `appimageupdatetool_installed`: probe `~/.local/bin/<app>`, install with `appman -i <app>`.
+- Some app scripts prompt (for example, to choose a build). Pipe the answer and keep the `[ -x ... ]` check, because appman exits 0 when an install aborts.
 
 ## Delta updates
 
-- Updates use zsync deltas only when an AppImage embeds update info. Otherwise it downloads the full file.
+- Deltas only apply when an AppImage embeds update info. Otherwise appman downloads the full file.
 - Check an app with `./App.AppImage --appimage-updateinformation`. Empty output means no delta.
 
 ## Uninstall residue
 
-- Removing an app deletes the AppImage, desktop entry, and icon, but not its `~/.config`, `~/.local/share`, or `~/.cache` data.
-- Use isolated portable mode for trial apps; it keeps `.home` and `.config` beside the AppImage so deleting the app removes everything.
+- `appman -R <app>` removes the app directory, launcher, desktop entry, and icon.
+- It leaves the app's own `~/.config`, `~/.local/share`, and `~/.cache` data.

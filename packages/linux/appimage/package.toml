@@ -1,11 +1,32 @@
 id = "linux/appimage"
-description = "AppImage manager with zsync delta updates (AppManager)"
+description = "AppMan (rootless AM) AppImage manager with zsync delta updates"
 
-# Install only. AppManager keeps AppImages in ~/Applications and updates them with
-# zsync deltas when the AppImage embeds update info; which apps it holds is live state.
-[targets.appimage_manager_installed]
+# Fetch the script directly instead of AM-INSTALLER, which appends PATH lines to
+# ~/.zshrc and ~/.bashrc. appman updates itself on `appman -u` (topgrade's appman step).
+[targets.appman_installed]
 sync_policy = "push-only"
-probe = "{{ PROBE_PACKAGES_INSTALLED }} appmanager"
+probe = '[ -x "$HOME/.local/bin/appman" ] && exit 100 || exit 0'
 
-[targets.appimage_manager_installed.hooks]
-pre_push = "{{ INSTALL }} appmanager"
+[targets.appman_installed.hooks]
+pre_push = 'mkdir -p "$HOME/.local/bin" && curl -fsSLo "$HOME/.local/bin/appman" https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER && chmod +x "$HOME/.local/bin/appman"'
+
+# A relative path resolves against $HOME, keeping this file portable.
+[targets.f_config_appman_appman_config]
+source = "files/config/appman/appman-config"
+path = "~/.config/appman/appman-config"
+
+# Required for zsync delta updates. Its install script asks which build to use:
+# 1 = pkgforge-dev Enhanced fork, upstream's recommendation. appman_location matches
+# the tracked config so appman never prompts for an apps directory (and swallows the
+# piped answer) if this hook runs before that file lands. appman exits 0 even when an
+# install aborts, so the second command fails the push if nothing was linked.
+# Declared after appman_installed so appman exists when this hook runs.
+[targets.appimageupdatetool_installed]
+sync_policy = "push-only"
+probe = '[ -x "$HOME/.local/bin/appimageupdatetool" ] && exit 100 || exit 0'
+
+[targets.appimageupdatetool_installed.hooks]
+pre_push = [
+  'printf "1\n" | appman_location=Applications "$HOME/.local/bin/appman" -i appimageupdatetool',
+  '[ -x "$HOME/.local/bin/appimageupdatetool" ]',
+]
