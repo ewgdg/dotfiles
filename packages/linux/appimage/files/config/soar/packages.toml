@@ -1,3 +1,0 @@
-# Declared soar packages; `dotman push` runs `soar apply` when this file changes.
-# Catalog: `soar search <name>`. Syntax: https://soar.qaidvoid.dev/declarative
-[packages]
