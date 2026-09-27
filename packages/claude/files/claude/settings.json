@@ -24,7 +24,7 @@
     ]
   },
   "worktree": {
-    "baseRef": "fresh"
+    "baseRef": "head"
   },
   "statusLine": {
     "type": "command",
@@ -40,6 +40,6 @@
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "editorMode": "vim",
-  "agentPushNotifEnabled": true,
-  "inputNeededNotifEnabled": true
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
 }
