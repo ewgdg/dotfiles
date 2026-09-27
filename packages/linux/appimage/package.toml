@@ -1,39 +1,21 @@
 id = "linux/appimage"
-description = "AppMan (rootless AM) AppImage manager with zsync delta updates"
+description = "soar portable app manager for AppImages, with zsync delta updates"
 
-# Fetch the script directly instead of AM-INSTALLER, which appends PATH lines to
-# ~/.zshrc and ~/.bashrc. appman updates itself on `appman -u` (topgrade's appman step).
-# The zsh-completion-off marker pre-declines appman's first-run prompt to append
-# completion lines to ~/.zshrc (owned by the shell package); left unanswered, that
-# prompt consumes answers piped to a later `appman -i`.
-[targets.appman_installed]
+# Official release binary in ~/.local/bin rather than AUR soar-bin: topgrade's soar step
+# runs `soar self update`, which replaces the running binary and cannot write /usr/bin.
+[targets.soar_installed]
 sync_policy = "push-only"
-probe = '[ -x "$HOME/.local/bin/appman" ] && exit 100 || exit 0'
+probe = '[ -x "$HOME/.local/bin/soar" ] && exit 100 || exit 0'
 
-[targets.appman_installed.hooks]
-pre_push = [
-  'mkdir -p "$HOME/.local/bin" && curl -fsSLo "$HOME/.local/bin/appman" https://raw.githubusercontent.com/ivan-hc/AM/main/APP-MANAGER && chmod +x "$HOME/.local/bin/appman"',
-  'mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/AM" && touch "${XDG_DATA_HOME:-$HOME/.local/share}/AM/zsh-completion-off"',
-]
+[targets.soar_installed.hooks]
+pre_push = 'mkdir -p "$HOME/.local/bin" && curl -fsSLo "$HOME/.local/bin/soar" "https://github.com/pkgforge/soar/releases/latest/download/soar-$(uname -m)-linux" && chmod +x "$HOME/.local/bin/soar"'
 
-# A relative path resolves against $HOME, keeping this file portable.
-[targets.f_config_appman_appman_config]
-source = "files/config/appman/appman-config"
-path = "~/.config/appman/appman-config"
+# Declared after soar_installed so soar exists when post_push applies the list.
+# Two-way sync: soar writes resolved versions back into this file for url and forge
+# packages, and pull brings those edits back to the repo.
+[targets.f_config_soar_packages_toml]
+source = "files/config/soar/packages.toml"
+path = "~/.config/soar/packages.toml"
 
-# Required for zsync delta updates. Its install script asks which build to use:
-# 2 = official AppImage/AppImageUpdate. Option 1, the pkgforge-dev Enhanced fork that
-# AM labels "recommended", is deprecated upstream. appman_location matches
-# the tracked config so appman never prompts for an apps directory (and swallows the
-# piped answer) if this hook runs before that file lands. appman exits 0 even when an
-# install aborts, so the second command fails the push if nothing was linked.
-# Declared after appman_installed so appman exists when this hook runs.
-[targets.appimageupdatetool_installed]
-sync_policy = "push-only"
-probe = '[ -x "$HOME/.local/bin/appimageupdatetool" ] && exit 100 || exit 0'
-
-[targets.appimageupdatetool_installed.hooks]
-pre_push = [
-  'printf "2\n" | appman_location=Applications "$HOME/.local/bin/appman" -i appimageupdatetool',
-  '[ -x "$HOME/.local/bin/appimageupdatetool" ]',
-]
+[targets.f_config_soar_packages_toml.hooks]
+post_push = '"$HOME/.local/bin/soar" apply --yes'
