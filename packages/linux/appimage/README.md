@@ -4,9 +4,9 @@
 
 ## What this package does
 
-- Downloads the soar release binary to `~/.local/bin/soar`.
+- Installs soar with `cargo install --locked soar-cli`. The cargo build has no `soar self` command, so topgrade's Cargo step alone updates the executable.
 - Tracks `~/.config/soar/packages.toml` and runs `soar apply --yes` after pushing it.
-- topgrade's `soar` step runs `soar sync`, `soar update`, and `soar self update`.
+- Adds a `topgrade.d` fragment: a `soar packages` command runs `soar sync && soar update`, replacing topgrade's built-in soar step, which also calls `soar self update`.
 - The shell package puts `~/.local/share/soar/bin` on `PATH`. Desktop entries use absolute paths and don't need it.
 
 ## Adding an app

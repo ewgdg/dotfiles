@@ -1,0 +1,7 @@
+[misc]
+# cargo owns the soar executable (topgrade's Cargo step). The built-in soar step also
+# runs `soar self update`, which the cargo build omits, so it would fail every run.
+disable = ["soar"]
+
+[commands]
+"soar packages" = "soar sync && soar update"
