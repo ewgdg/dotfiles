@@ -50,6 +50,13 @@ path = "~/.claude/subagent-statusline.js"
 source = "files/claude/hooks"
 path = "~/.claude/hooks"
 
+# User-authored Claude Code subagents. Nothing else writes here, so the whole
+# directory is managed. The agent-neutral ~/.agents/agents use pi's format and
+# are not linked in. .gitkeep only keeps the empty directory in git.
+[targets.d_claude_agents]
+source = "files/claude/agents"
+path = "~/.claude/agents"
+
 # Claude Code owns ~/.claude/skills (it syncs account skills into synced/), so
 # link each agent-neutral skill into it instead of replacing the directory.
 # post_push links skills that the same push adds and prunes ones it removes.
