@@ -75,8 +75,8 @@ if is_affirmative "${DOTFILES_SKIP_CORE_ENV_GUARD:-}"; then
   exit 0
 fi
 
-printf '%s\n' 'repo core env not loaded or stale in current shell.' >&2
-printf '%s\n' "Run \`. \"${repo_root}/activate.sh\"\` then retry." >&2
+# dotman shows only a guard's first output line, so that line carries the fix.
+printf '%s\n' "core env not loaded or stale in this shell; run \`. \"${repo_root}/activate.sh\"\` then retry" >&2
 printf '%s\n' 'Or set `DOTFILES_SKIP_CORE_ENV_GUARD=1` to bypass this guard intentionally.' >&2
 # Exit 1, not dotman's 100: a stale shell is a fix-and-retry failure that must
 # abort the push, not an intentional per-host omission that dotman dims.
