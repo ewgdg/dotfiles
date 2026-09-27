@@ -4,7 +4,9 @@
 
 ## What this package does
 
-- Installs the desktop app, which upstream recommends: `paseo-desktop-bin-edge` from the AUR on Arch (official `.deb`, includes betas), the `paseo` cask on macOS.
+- Installs the desktop app, which upstream recommends: the official AppImage on Linux, the `paseo` cask on macOS.
+- On Linux the AppImage lands at `~/Applications/paseo.AppImage` with a desktop entry, icons, and a `~/.local/bin/paseo` link (see `scripts/install_appimage.sh`). Paseo's own updater replaces that file in place with delta downloads, so dotman only installs it once; you confirm each update in the app.
+- AUR builds were rejected: the `.deb` repacks keep an updater that runs `dpkg` behind pacman, and `paseo-bin` lags upstream by days.
 - The desktop build bundles a matching `paseo` CLI and starts its own daemon, so there is no separate npm install.
 - Does not track `~/.paseo` yet. `config.json` sits beside logs, worktrees, and cached auth, so choose what to track after a first run.
 
@@ -14,6 +16,6 @@ Leave these off unless the change goes through the owning package:
 
 - `enableTerminalAgentHooks` rewrites `~/.claude/settings.json`, `~/.codex/hooks.json`, and adds an OpenCode plugin.
 - Installing Paseo skills copies `paseo-*` into `~/.agents/skills`, `~/.claude/skills`, and `~/.codex/skills`, and the daemon re-syncs them on every start.
-- The app's "Install CLI" action symlinks into `~/.local/bin` and edits `~/.zshrc`. Not needed: the package already puts `paseo` on `PATH`.
+- The app's "Install CLI" action symlinks into `~/.local/bin` and edits `~/.zshrc`. Not needed: the package already links `paseo` into `~/.local/bin`.
 
 State lives in `PASEO_HOME`, which defaults to `~/.paseo`.

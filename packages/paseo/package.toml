@@ -3,10 +3,11 @@ description = "Paseo desktop app, bundled CLI, and daemon"
 
 [targets.paseo_install]
 sync_policy = "push-only"
-# The desktop build bundles the matching `paseo` CLI and daemon. The AUR package
-# repackages the official .deb and links /usr/bin/paseo; it is the only non-git
-# AUR build and also tracks beta releases. Homebrew resolves `paseo` to the cask.
-probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} paseo-desktop-bin-edge{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
+# The desktop build bundles the matching `paseo` CLI and daemon. On Linux the
+# official AppImage updates itself in place (delta downloads), so we only install
+# it once; the AUR builds either lag upstream or fight pacman with their updater.
+# Homebrew resolves `paseo` to the cask.
+probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --link-command paseo{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
 
 [targets.paseo_install.hooks]
-pre_push = '{% if os == "linux" %}{{ INSTALL }} paseo-desktop-bin-edge{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
+pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --link-command paseo https://github.com/getpaseo/paseo/releases/latest/download/Paseo-x86_64.AppImage{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
