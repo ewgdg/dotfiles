@@ -1,13 +1,12 @@
 id = "paseo"
-description = "Paseo coding-agent orchestration CLI and daemon"
-
-depends = [
-  "nodejs",
-]
+description = "Paseo desktop app, bundled CLI, and daemon"
 
 [targets.paseo_install]
 sync_policy = "push-only"
-probe = 'if command -v paseo >/dev/null 2>&1; then exit 100; fi; exit 0'
+# The desktop build bundles the matching `paseo` CLI and daemon. The AUR package
+# repackages the official .deb and links /usr/bin/paseo; it is the only non-git
+# AUR build and also tracks beta releases. Homebrew resolves `paseo` to the cask.
+probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} paseo-desktop-bin-edge{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
 
 [targets.paseo_install.hooks]
-pre_push = "{{ NPM_INSTALL }} @getpaseo/cli"
+pre_push = '{% if os == "linux" %}{{ INSTALL }} paseo-desktop-bin-edge{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
