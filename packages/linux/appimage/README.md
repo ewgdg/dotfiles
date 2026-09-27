@@ -7,7 +7,7 @@
 - Installs soar with upstream's install script, which downloads the release binary to `~/.local/bin/soar`.
 - Tracks `~/.config/soar/packages.toml` and runs `soar apply --yes` after pushing it.
 - topgrade's `soar` step runs `soar sync`, `soar update`, and `soar self update`.
-- The shell package puts `~/.local/share/soar/bin` on `PATH`. Desktop entries use absolute paths and don't need it.
+- `~/.local/share/soar/bin` is not on `PATH`. Add it in `packages/shell/files/env.core.sh` before relying on soar CLI apps; desktop entries use absolute paths and don't need it.
 
 ## Adding an app
 
