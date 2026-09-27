@@ -22,7 +22,8 @@ source = "files/config/appman/appman-config"
 path = "~/.config/appman/appman-config"
 
 # Required for zsync delta updates. Its install script asks which build to use:
-# 1 = pkgforge-dev Enhanced fork, upstream's recommendation. appman_location matches
+# 2 = official AppImage/AppImageUpdate. Option 1, the pkgforge-dev Enhanced fork that
+# AM labels "recommended", is deprecated upstream. appman_location matches
 # the tracked config so appman never prompts for an apps directory (and swallows the
 # piped answer) if this hook runs before that file lands. appman exits 0 even when an
 # install aborts, so the second command fails the push if nothing was linked.
@@ -33,6 +34,6 @@ probe = '[ -x "$HOME/.local/bin/appimageupdatetool" ] && exit 100 || exit 0'
 
 [targets.appimageupdatetool_installed.hooks]
 pre_push = [
-  'printf "1\n" | appman_location=Applications "$HOME/.local/bin/appman" -i appimageupdatetool',
+  'printf "2\n" | appman_location=Applications "$HOME/.local/bin/appman" -i appimageupdatetool',
   '[ -x "$HOME/.local/bin/appimageupdatetool" ]',
 ]
