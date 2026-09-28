@@ -17,6 +17,7 @@ Use this skill only when the user or another skill explicitly requires a publish
 - `body.md` must contain only text safe to post publicly. No internal YAML frontmatter, hidden metadata, planning notes, or agent instructions.
 - If the repo does not belong to the user, do not post/create/update PRs or issues until user explicitly approves the draft.
 - Use `$personal-writing-style` to mimic user tone.
+- Preserve natural roughness when appropriate: short fragments, plain wording, user-like phrasing.
 - First paragraph is the main body, usually a summary.
 - Do not add a heading/header before the first paragraph.
 
