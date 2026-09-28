@@ -8,7 +8,8 @@
 - On Linux the AppImage lands at `~/Applications/paseo.AppImage` with a desktop entry, icons, and a `~/.local/bin/paseo` link (see `scripts/install_appimage.sh`). Paseo's own updater replaces that file in place with delta downloads, so dotman only installs it once; you confirm each update in the app.
 - AUR builds were rejected: the `.deb` repacks keep an updater that runs `dpkg` behind pacman, and `paseo-bin` lags upstream by days.
 - The desktop build bundles a matching `paseo` CLI and starts its own daemon, so there is no separate npm install.
-- Does not track `~/.paseo` yet. `config.json` sits beside logs, worktrees, and cached auth, so choose what to track after a first run.
+- Tracks `~/.paseo/config.json` only. The rest of `~/.paseo` is daemon identity (`daemon-keypair.json`, `server-id`, `push-tokens.json`, `cli-client-id`), runtime state, and logs.
+- The app and `paseo daemon config set` rewrite `config.json`, so capture changes with `dotman pull`. Keep secrets out of it: set a daemon password through `PASEO_PASSWORD`, not the file.
 
 ## Settings that touch other managed files
 

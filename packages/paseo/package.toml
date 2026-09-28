@@ -11,3 +11,10 @@ probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name paseo --lin
 
 [targets.paseo_install.hooks]
 pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name paseo --url https://github.com/getpaseo/paseo/releases/latest/download/Paseo-x86_64.AppImage --link-command{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
+
+# Only config.json: the rest of ~/.paseo is daemon identity (keypair, server id,
+# push tokens), runtime state, and logs.
+[targets.f_paseo_config_json]
+source = "files/paseo/config.json"
+path = "~/.paseo/config.json"
+chmod = "600"
