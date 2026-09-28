@@ -16,11 +16,7 @@ Use this skill only when the user or another skill explicitly requires a publish
 - Store publishable markdown body in `<tmp>/drafts/<slug>/body.md`.
 - `body.md` must contain only text safe to post publicly. No internal YAML frontmatter, hidden metadata, planning notes, or agent instructions.
 - If the repo does not belong to the user, do not post/create/update PRs or issues until user explicitly approves the draft.
-- Use concise style: compressed, direct, no filler, technical substance preserved.
 - Use `$personal-writing-style` to mimic user tone.
-- Avoid generated-text smell: no polished filler, no generic praise, no boilerplate transitions, no over-explaining, no symmetric essay structure.
-- Prefer concrete repo-specific facts, exact files/functions/errors, and direct ask/next step.
-- Preserve natural roughness when appropriate: short fragments, plain wording, user-like phrasing.
 - First paragraph is the main body, usually a summary.
 - Do not add a heading/header before the first paragraph.
 
@@ -47,7 +43,7 @@ Optional extra details, only if needed. Keep short. Use bullets over sections wh
 <details>
 <summary>Details</summary>
 
-Hide noisy logs, long examples, investigation notes, or extra evidence here.
+Optional, only when the reader needs it: noisy logs, long examples, investigation notes, or extra evidence.
 
 </details>
 ```
