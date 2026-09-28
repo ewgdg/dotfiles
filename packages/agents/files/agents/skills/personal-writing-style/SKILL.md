@@ -117,7 +117,6 @@ For journal entries, permanent notes, and investigation notes.
   - Use standard spelling, capitalization, and grammar.
   - The author's chat shorthand ("u", "dont", "bc", lowercase "i") and second-language slips stay out.
   - Roughness means spoken asides and blunt verdicts.
-  - In blog posts and repo docs, sentences are complete. The short verdict is the exception.
 - **Contractions:** prefer full forms: "I am", "it is", "does not". Contractions are rare.
 - **Punctuation:**
   - Use commas, periods, parentheses, and question marks.
