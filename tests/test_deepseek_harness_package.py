@@ -33,6 +33,13 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
                 "pre_push": "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
             },
         },
+        "dsh_tui_install": {
+            "sync_policy": "push-only",
+            "probe": 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh-tui" ] && "$npm_prefix/bin/dsh-tui" version >/dev/null 2>&1; then exit 100; fi; exit 0',
+            "hooks": {
+                "pre_push": "{{ NPM_INSTALL }} --legacy-peer-deps @deepseek-harness-tui/dsh-tui"
+            },
+        },
         "dsh_global_instructions": {
             "sync_policy": "push-only",
             "probe": 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"',
