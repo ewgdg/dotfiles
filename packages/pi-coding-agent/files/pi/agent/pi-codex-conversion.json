@@ -62,7 +62,7 @@
     "forwardReasoningSummaries": true,
     "refreshRealtimeAfterCompaction": false
   },
-  "executionMode": "code",
+  "executionMode": "normal",
   "notebook": {
     "maxHeapMiB": 4096,
     "plainCommandOutput": false
