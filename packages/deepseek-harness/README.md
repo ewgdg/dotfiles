@@ -6,6 +6,8 @@ On Linux, `linux/deepseek-harness` installs the `dsh` command, application-menu 
 
 DSH authenticates the browser with a token minted for each server process: the Web UI answers 401 on the bare port and only the `dsh web: <url>?token=...` line it prints at startup carries that token. The launcher therefore reads the URL from the server's own output instead of probing the port, and opens Chrome on it; Chrome keeps the resulting session cookie in its dedicated profile. Both modes write that output to `dsh.log` beside the profile, rewritten on each launch, and terminal mode also streams it to the terminal. A launch that never reports a URL fails with the log path, because a stale server or a suppressed `printUrl` leaves nothing to authenticate with.
 
+The package also installs the community [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) launcher (`dsh-tui`, alias `dst`), a terminal UI that runs as `dsh --profile dsh-tui` beside the Web UI. Its first launch initializes that profile with pnpm; `/update` or `dsh-tui update` upgrades it afterwards, so the profile under `~/.dsh/profiles/dsh-tui` stays unmanaged like the others.
+
 Configure providers through **Settings → Models** in the Web UI, then pull this package to capture the resulting settings. The onboarding acknowledgement, default model choice, agent preset, and permission preset stay live-local on each host.
 
 Credentials remain live-local in `~/.dsh/.credentials.yaml` and must not be added to this package. Keep authentication values out of custom provider `headers`; use credential references managed by DSH instead.

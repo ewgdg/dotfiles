@@ -22,6 +22,15 @@ probe = 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/d
 [targets.dsh_install.hooks]
 pre_push = "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
 
+[targets.dsh_tui_install]
+sync_policy = "push-only"
+probe = 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh-tui" ] && "$npm_prefix/bin/dsh-tui" version >/dev/null 2>&1; then exit 100; fi; exit 0'
+
+[targets.dsh_tui_install.hooks]
+# The global package is only a dependency-free launcher; the plugin itself runs from the dsh-tui profile.
+# Its peer ranges trail DSH release candidates, so skip global peer installation as upstream's reinstall guidance does.
+pre_push = "{{ NPM_INSTALL }} --legacy-peer-deps @deepseek-harness-tui/dsh-tui"
+
 [targets.dsh_global_instructions]
 sync_policy = "push-only"
 probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'
