@@ -14,9 +14,9 @@ All under `~/.t3/userdata/` (the `T3CODE_HOME` default):
 
 - `settings.json` — server settings. Stored sparse: only values that differ from defaults. Secrets (provider API keys, tokens) live in `secrets/`, not here.
 - `client-settings.json` — device preferences such as appearance and confirmations. Written in full, so pulls include defaults.
-- `keybindings.json` — keybinding rules. T3 Code appends any missing default bindings on startup, so the first pull after launching will grow this file.
+- `keybindings.json` — keybinding rules. T3 Code writes its defaults on first start and appends new ones on later starts, so pulls include defaults.
 
-The repo seeds are empty (`{}` / `[]`) so the files can be tracked before the app first runs. After changing settings in the app, capture them with `dotman pull`.
+Repo sources start absent; dotman plans no change while both sides are missing. After the app writes a file, capture it with `dotman pull`.
 
 ## Not tracked
 

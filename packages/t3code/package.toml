@@ -11,16 +11,19 @@ probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} t3code-bin{% elif 
 [targets.t3code_install.hooks]
 pre_push = '{% if os == "linux" %}{{ INSTALL }} t3code-bin{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
 
-# Seeds are empty on purpose: every setting decodes from a default, and T3 Code
-# backfills default keybindings into an empty array on startup.
+# Sources start absent until the app writes them and `dotman pull` captures
+# them; `type` is required while both repo and live files are missing.
 [targets.f_t3_userdata_settings_json]
 source = "files/t3/userdata/settings.json"
 path = "~/.t3/userdata/settings.json"
+type = "file"
 
 [targets.f_t3_userdata_client_settings_json]
 source = "files/t3/userdata/client-settings.json"
 path = "~/.t3/userdata/client-settings.json"
+type = "file"
 
 [targets.f_t3_userdata_keybindings_json]
 source = "files/t3/userdata/keybindings.json"
 path = "~/.t3/userdata/keybindings.json"
+type = "file"
