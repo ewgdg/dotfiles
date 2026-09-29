@@ -1,0 +1,26 @@
+id = "t3code"
+description = "T3 Code desktop app for driving local coding agents"
+
+[targets.t3code_install]
+sync_policy = "push-only"
+# Upstream publishes `t3code-bin` to the AUR from its own release workflow, so
+# it tracks releases and updates through pacman like the rest of the system.
+# Homebrew ships the desktop app as the `t3-code` cask.
+probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} t3code-bin{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} t3-code{% endif %}'
+
+[targets.t3code_install.hooks]
+pre_push = '{% if os == "linux" %}{{ INSTALL }} t3code-bin{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
+
+# Seeds are empty on purpose: every setting decodes from a default, and T3 Code
+# backfills default keybindings into an empty array on startup.
+[targets.f_t3_userdata_settings_json]
+source = "files/t3/userdata/settings.json"
+path = "~/.t3/userdata/settings.json"
+
+[targets.f_t3_userdata_client_settings_json]
+source = "files/t3/userdata/client-settings.json"
+path = "~/.t3/userdata/client-settings.json"
+
+[targets.f_t3_userdata_keybindings_json]
+source = "files/t3/userdata/keybindings.json"
+path = "~/.t3/userdata/keybindings.json"
