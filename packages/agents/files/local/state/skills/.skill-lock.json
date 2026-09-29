@@ -289,6 +289,15 @@
       "skillFolderHash": "335c1862a43da9d629abafdb79ca0c0de118be08",
       "installedAt": "2026-09-16T10:07:15.876Z",
       "updatedAt": "2026-09-16T10:07:15.876Z"
+    },
+    "life-decision-guide": {
+      "source": "eternity4719/howtolivebetter",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/eternity4719/howtolivebetter.git",
+      "skillPath": "skills/life-decision-guide/SKILL.md",
+      "skillFolderHash": "191cf7f106e7f1a6dabe08750fab060ce4453402",
+      "installedAt": "2026-09-28T10:02:02.808Z",
+      "updatedAt": "2026-09-28T10:02:02.808Z"
     }
   },
   "dismissed": {
