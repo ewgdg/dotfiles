@@ -3,13 +3,14 @@ description = "T3 Code desktop app for driving local coding agents"
 
 [targets.t3code_install]
 sync_policy = "push-only"
-# Upstream publishes `t3code-bin` to the AUR from its own release workflow, so
-# it tracks releases and updates through pacman like the rest of the system.
+# On Linux only the AppImage (or .deb) updates itself, with delta downloads;
+# the AUR build unpacks it into /opt, which disables the in-app updater. So we
+# install it once and the app replaces the file in place from then on.
 # Homebrew ships the desktop app as the `t3-code` cask.
-probe = '{% if os == "linux" %}{{ PROBE_PACKAGES_INSTALLED }} t3code-bin{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} t3-code{% endif %}'
+probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name t3code --link-command{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} t3-code{% endif %}'
 
 [targets.t3code_install.hooks]
-pre_push = '{% if os == "linux" %}{{ INSTALL }} t3code-bin{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
+pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_appimage_url.sh") && {{ APPIMAGE_INSTALL }} --name t3code --url "$url" --link-command{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
 
 # Sources start absent until the app writes them and `dotman pull` captures
 # them; `type` is required while both repo and live files are missing.
