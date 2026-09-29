@@ -10,6 +10,8 @@ The package also installs the community [dsh-TUI](https://github.com/ccch1mneyyy
 
 Configure providers through **Settings → Models** in the Web UI, then pull this package to capture the resulting settings. The onboarding acknowledgement, default model choice, agent preset, and permission preset stay live-local on each host.
 
+The tracked `opencode-go` route serves the OpenCode Go subscription from dsh's installed pi-ai catalog, so its models and their mixed wire protocols follow the installed dsh release. It reads the `OPENCODE_API_KEY` credential reference.
+
 Credentials remain live-local in `~/.dsh/.credentials.yaml` and must not be added to this package. Keep authentication values out of custom provider `headers`; use credential references managed by DSH instead.
 
 Generated profiles, sessions, storage, caches, and runtime files under `~/.dsh` are intentionally unmanaged.
