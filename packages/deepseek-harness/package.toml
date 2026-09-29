@@ -6,15 +6,6 @@ depends = [
   "agents",
 ]
 
-[vars.deepseek_harness]
-# Runtime UI, model, agent preset, and permission choices stay local instead of forcing one host's state globally.
-settings_selectors = [
-  "ui-onboarding",
-  "agent-default-model",
-  "agent-presets",
-  "permission",
-]
-
 [targets.dsh_install]
 sync_policy = "push-only"
 probe = 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh" ] && "$npm_prefix/bin/dsh" --version >/dev/null 2>&1; then exit 100; fi; exit 0'
@@ -38,9 +29,8 @@ probe = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" probe "~/.dsh
 [targets.dsh_global_instructions.hooks]
 pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.dsh/AGENTS.md" "~/.agents/AGENTS.md"'
 
-[targets.f_dsh_settings_yaml]
-source = "files/dsh/settings.yaml"
-path = "~/.dsh/settings.yaml"
-chmod = "600"
-render = '{{ YAML_RENDER }} --selector-type retain --selectors {{ vars.deepseek_harness.settings_selectors|shell_args }}'
-capture = '{{ YAML_CAPTURE }} --selector-type remove --selectors {{ vars.deepseek_harness.settings_selectors|shell_args }}'
+# DSH 0.2 applies the home patch over every profile, so the Web UI and dsh-TUI share tracked providers
+# while each profile's own cordis.patch.yml keeps live-local choices such as the default model.
+[targets.f_dsh_home_patch]
+source = "files/dsh/cordis.patch.yml"
+path = "~/.dsh/cordis.patch.yml"

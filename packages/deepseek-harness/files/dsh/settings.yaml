@@ -1,9 +1,0 @@
-llm-pi-ai:
-  providers:
-    # No models list: the installed pi-ai catalog supplies every model with its own wire protocol,
-    # which one hand-declared route could not do because OpenCode Go mixes three protocols.
-    opencode-go:
-      displayName: OpenCode Go
-      apiKeyEnv: OPENCODE_API_KEY
-ui-theme:
-  preference: dark
