@@ -8,7 +8,7 @@ import time
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DSH_LAUNCHER = (
-    REPO_ROOT / "packages/linux/deepseek-harness/files/local/bin/dsh"
+    REPO_ROOT / "packages/linux/deepseek-harness/files/local/bin/dsh-web"
 )
 AGENTS_ZSH = REPO_ROOT / "packages/shell/files/config/zsh/agents.zsh"
 

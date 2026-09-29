@@ -95,9 +95,11 @@ def test_linux_package_installs_dedicated_chrome_app_identity() -> None:
         "description": "Linux desktop integration for DeepSeek Harness",
         "depends": ["deepseek-harness"],
         "targets": {
-            "f_local_bin_dsh": {
-                "source": "files/local/bin/dsh",
-                "path": "~/.local/bin/dsh",
+            # The upstream CLI owns `dsh`; tools such as dsh-TUI call it for
+            # `--version`, `plugin`, and `--profile`, so the launcher takes its own name.
+            "f_local_bin_dsh_web": {
+                "source": "files/local/bin/dsh-web",
+                "path": "~/.local/bin/dsh-web",
                 "chmod": "755",
             },
             "f_local_share_applications_deepseek_harness_desktop": {
@@ -119,7 +121,7 @@ def test_linux_package_installs_dedicated_chrome_app_identity() -> None:
         },
     }
 
-    launcher = (LINUX_PACKAGE_ROOT / "files/local/bin/dsh").read_text(
+    launcher = (LINUX_PACKAGE_ROOT / "files/local/bin/dsh-web").read_text(
         encoding="utf-8"
     )
     assert '--class="deepseek-harness"' in launcher
@@ -135,7 +137,7 @@ def test_linux_package_installs_dedicated_chrome_app_identity() -> None:
         LINUX_PACKAGE_ROOT
         / "files/local/share/applications/deepseek-harness.desktop"
     ).read_text(encoding="utf-8")
-    assert "Exec=dsh --app" in desktop_entry
+    assert "Exec=dsh-web --app" in desktop_entry
     assert "Terminal=false" in desktop_entry
     assert "NoDisplay=" not in desktop_entry
     assert "Icon=deepseek-harness" in desktop_entry

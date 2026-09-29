@@ -5,9 +5,10 @@ depends = [
   "deepseek-harness",
 ]
 
-[targets.f_local_bin_dsh]
-source = "files/local/bin/dsh"
-path = "~/.local/bin/dsh"
+# Not `dsh`: the upstream CLI owns that name, and tools such as dsh-TUI call it for `--version`, `plugin`, and `--profile`.
+[targets.f_local_bin_dsh_web]
+source = "files/local/bin/dsh-web"
+path = "~/.local/bin/dsh-web"
 chmod = "755"
 
 [targets.f_local_share_applications_deepseek_harness_desktop]

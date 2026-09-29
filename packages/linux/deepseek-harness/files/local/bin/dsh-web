@@ -24,7 +24,7 @@ if [ "${1:-}" = "--app" ]; then
   shift
 fi
 if [ "$#" -ne 0 ]; then
-  printf 'usage: dsh [--app]\n' >&2
+  printf 'usage: dsh-web [--app]\n' >&2
   exit 2
 fi
 
