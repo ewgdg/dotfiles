@@ -2,8 +2,9 @@ id = "t3code"
 description = "T3 Code desktop app for driving local coding agents"
 
 [vars.t3code]
-# Onboarding completion is a per-machine timestamp, not a preference.
-client_settings_selectors = ["onboardingCompletedAt"]
+# Onboarding completion and dismissed update notices are per-machine state,
+# not preferences.
+client_settings_selectors = ["onboardingCompletedAt", "dismissedProviderUpdateNotificationKeys"]
 
 [targets.t3code_install]
 sync_policy = "push-only"

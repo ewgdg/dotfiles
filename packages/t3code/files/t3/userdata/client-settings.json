@@ -23,7 +23,6 @@
   "confirmThreadArchive": false,
   "confirmThreadDelete": true,
   "confirmThreadUnpin": false,
-  "dismissedProviderUpdateNotificationKeys": [],
   "diffFilesCollapsed": true,
   "diffIgnoreWhitespace": true,
   "diffLayout": "stacked",
