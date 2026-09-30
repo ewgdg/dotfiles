@@ -28,6 +28,7 @@ patterns = [
 source = "files/sunshine.conf"
 path = "~/.config/sunshine/sunshine.conf"
 preset = "jinja-patch-editor"
+render = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/select_render_gpu.py" render "$DOTMAN_REPO_PATH"'
 
 [targets.d_config_systemd_user_sunshine_service_d]
 source = "files/config/systemd/user/sunshine.service.d"

@@ -20,7 +20,7 @@ Run directly inside a running Niri session:
 - optional: avoid Noctalia reacting during output hotplug churn with `--suspend-niri-shell`
 - Niri Sunshine config uses `--headless`; the fixed output name is `sunshine`
 - optional local Niri build: set `vars.niri.bin` in dotman local vars (use `~` for home-relative paths); the rendered Sunshine command exports it as `NIRI_BIN`, and the prep script uses that binary for `niri msg`
-- optional host GPU pin: set `vars.niri.render_drm_device` to a stable DRM render-node path when Sunshine WLR capture and the chosen hardware encoder must stay on the same GPU
+- GPU pin: Niri renders on the auto-selected render GPU (`vars.render_gpu`), the same GPU Sunshine captures and encodes on; see `docs/render-gpu.md`
 - `uv run packages/linux/sunshine/files/config/sunshine/sunshine-prep-niri.py undo --dormant-headless`
 - optional manual full teardown: omit `--dormant-headless` to turn the virtual output off
 
@@ -84,8 +84,7 @@ output makes Niri auto-pick the dGPU, while a later headless or display-off boot
 can make Niri auto-pick the iGPU. Do not depend on that auto-selection for
 Sunshine.
 
-Set `vars.niri.render_drm_device` in host-local vars to pin Niri to the render
-node that matches Sunshine hardware encoding. Prefer stable
-`/dev/dri/by-path/pci-...-render` paths over `renderD*`, because render minor
-numbers can change between boots. The generic repo template leaves this unset
-unless a host opts in.
+`cfg/debug.kdl` always pins Niri with `render-drm-device` to the render GPU that
+`scripts/select_render_gpu.py` selects at push time, and `sunshine.conf` points
+`adapter_name` and `encoder` at the same GPU. See `docs/render-gpu.md` for the rule
+and the `vars.render_gpu.pci` override.

@@ -13,6 +13,7 @@ path = "~/.config/niri"
 [targets.d_config_niri.path_rules.debug_kdl]
 pattern = "cfg/debug.kdl"
 preset = "jinja-patch"
+render = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/select_render_gpu.py" render "$DOTMAN_REPO_PATH"'
 
 [targets.f_config_systemd_user_niri_shell_service]
 source = "files/config/systemd/user/niri-shell.service"

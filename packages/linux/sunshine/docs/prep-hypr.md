@@ -61,8 +61,8 @@ Width, height and fps fall back to `SUNSHINE_CLIENT_WIDTH/HEIGHT/FPS`.
 - Real DRM session on a hybrid host (AMD iGPU boot VGA + NVIDIA dGPU): aquamarine made the AMD
   GPU primary, so Hyprland rendered on radeonsi. Sunshine's NVIDIA dmabufs then failed to import
   (`eglCreateImageKHR ... createImageFromDmaBufs failed` in `hyprland.log`, `Failed to create buffer
-  from params` in Sunshine) and the stream never started. Fix: `vars.hyprland.drm_device` in
-  `packages/hyprland-experiment` pins `AQ_DRM_DEVICES` to the NVIDIA card. Lua `hl.env` runs before
+  from params` in Sunshine) and the stream never started. Fix: `drm_device.lua` in
+  `packages/hyprland-experiment` pins `AQ_DRM_DEVICES` to the render GPU (`docs/render-gpu.md`). Lua `hl.env` runs before
   the DRM backend starts, and the value must be a colon-free `/dev/dri/cardN` because
   `AQ_DRM_DEVICES` splits on `:`.
 - Monitor rules apply on the next rendered frame, not synchronously with `hyprctl eval`;

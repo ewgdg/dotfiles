@@ -12,6 +12,7 @@ path = "~/.config/hypr"
 [targets.d_config_hypr.path_rules.drm_device_lua]
 pattern = "drm_device.lua"
 preset = "jinja-patch"
+render = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/select_render_gpu.py" render "$DOTMAN_REPO_PATH"'
 
 [targets.f_config_xdg_desktop_portal_hyprland_portals_conf]
 source = "files/config/xdg-desktop-portal/hyprland-portals.conf"
