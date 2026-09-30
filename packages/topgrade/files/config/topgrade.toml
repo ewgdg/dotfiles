@@ -3,7 +3,8 @@ no_self_update = true
 ask_retry = true
 auto_retry = 0
 # antigravity: `antigravity --version` opens the app instead of printing a version, so topgrade fails to parse it.
-disable = ["containers", "antigravity"]
+# gcloud: the pacman package blocks `gcloud components update`; paru updates it instead.
+disable = ["containers", "antigravity", "gcloud"]
 
 [linux]
 arch_package_manager = "paru"
