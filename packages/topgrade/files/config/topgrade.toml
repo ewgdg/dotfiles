@@ -2,7 +2,8 @@
 no_self_update = true
 ask_retry = true
 auto_retry = 0
-disable = ["containers"]
+# antigravity: `antigravity --version` opens the app instead of printing a version, so topgrade fails to parse it.
+disable = ["containers", "antigravity"]
 
 [linux]
 arch_package_manager = "paru"
