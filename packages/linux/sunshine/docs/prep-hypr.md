@@ -50,11 +50,16 @@ Run once inside a real Hyprland session to decide the virtual-display capture ro
 
 - `packages/linux/sunshine/scripts/probe-hyprland-virtual-display.sh`
 
-It creates a temporary headless output, checks that it gets a size and renders (`grim`), then runs a throwaway Sunshine instance (own ports and state; the running service is untouched) with `capture = wlr` on that output and prints a verdict:
+It creates a temporary headless output, checks that it gets a size and renders (`grim`), removes it, and prints a verdict:
 
-- headless never gets a size → dummy plug + `capture = kms`
-- renders, but Sunshine wlr fails → portal capture with an auto-selecting `xdg-desktop-portal-hyprland` picker
-- wlr works → `capture = wlr` with a fixed `sunshine` headless output, like Niri
+- headless never gets a size, or does not render → dummy plug + `capture = kms`
+- headless renders → `capture = wlr` with a fixed `sunshine` headless output, like Niri
+
+### Findings (Hyprland 0.56.2, aquamarine 0.15.1, NVIDIA)
+
+- Sunshine `capture = wlr` works against Hyprland: it binds `zwlr_screencopy_manager_v1` and `zwp_linux_dmabuf_v1`, selects the headless output by `output_name`, and a Moonlight stream from it connected and decoded frames (tested in a nested Hyprland; the decoded picture itself was not inspected).
+- On Hyprland the output description is empty, so Sunshine logs `Selected monitor []`; that is not a failure.
+- Nested Hyprland (no DRM backend) cannot allocate headless buffers on NVIDIA: aquamarine's headless fallback format list tags formats with `DRM_FORMAT_INVALID` (0, i.e. `DRM_FORMAT_MOD_LINEAR`), and NVIDIA cannot render to linear buffers. A real DRM session takes headless formats from the DRM backend instead, the same path physical outputs use.
 
 ## Crashes and Cleanup
 

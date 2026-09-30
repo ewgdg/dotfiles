@@ -66,7 +66,7 @@ Constraints:
 
 - [x] Step 1 Lua config + fullscreen hook (verify-config ok; nested 0.56.2: 126/128 binds, 2 intentionally dropped; float fix passes for Mod+F maximize and Mod+Shift+F fullscreen)
 - [x] Step 2 probe script (`packages/linux/sunshine/scripts/probe-hyprland-virtual-display.sh`; steps 1-2 dry-run in nested Hyprland, Sunshine wlr step dry-run on niri) — awaiting real-session run
-- [ ] Step 3 capture route
+- [ ] Step 3 capture route — probe evidence (nested, no logout) points to `capture = wlr` + fixed `sunshine` headless output; awaiting go-ahead given headless-host lockout risk
 - [ ] Step 4 docs
 
 ## Surprises & Discoveries
@@ -95,6 +95,15 @@ Constraints:
   Hyprland still implements `zwlr_screencopy`, which is what Sunshine's wlr
   backend binds, so that failure may have been the headless output never
   rendering rather than the capture protocol.
+
+- Sunshine's startup encoder check uses dummy frames; it passes even for an
+  output that never renders, so it is not a capture test.
+- Nested headless allocation failure is an aquamarine bug: headless fallback
+  formats use `DRM_FORMAT_INVALID` (0 == `DRM_FORMAT_MOD_LINEAR`); NVIDIA cannot
+  render linear. A test-only `LD_PRELOAD` shim redirecting LINEAR-only
+  allocations let the nested headless output render; Sunshine wlr then streamed
+  it to Moonlight (connected, frames decoded). Evidence:
+  `~/.agents/artifacts/outputs/dotfiles/2026-09-29/hyprland-virtual-display-probe/`.
 
 ## Decisions
 
