@@ -64,8 +64,5 @@
   "fullscreenCopyOnSelect": false,
   "defaultTools": [
     "+codemode"
-  ],
-  "codemode": {
-    "mode": "only"
-  }
+  ]
 }
