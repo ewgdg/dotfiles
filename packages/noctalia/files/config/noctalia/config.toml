@@ -66,8 +66,8 @@ clipboard_auto_paste = "off"
 niri_overview_type_to_launch_enabled = true
 polkit_agent = true
 
-    [shell.launcher]
-    session_search = true
+    [shell.launcher.providers.session]
+    global = true
 
     [shell.panel]
     control_center_placement = "floating"
@@ -94,7 +94,7 @@ mirrored = false
 show_label = false
 
 [widget.network_tx]
-display = "graph"
+visualization = "graph"
 network_speed_compact = true
 
 [widget.privacy]
