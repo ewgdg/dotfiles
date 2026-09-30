@@ -11,12 +11,11 @@
 
 ## Settings
 
-Orca keeps everything in one file: `~/.config/Orca/profiles/local-default/orca-data.json` (`~/Library/Application Support/Orca/...` on macOS). Preferences live under `settings` (keybindings included) and `ui` (view options). The rest is app state: repos, worktree metadata, sessions, SSH targets, and caches.
+Orca keeps everything in one file: `~/.config/Orca/profiles/local-default/orca-data.json` (`~/Library/Application Support/Orca/...` on macOS). Preferences, keybindings included, live under `settings`. The rest is app state: repos, worktree metadata, UI layout, sessions, SSH targets, and caches.
 
-- The package syncs an allowlist, `vars.orca.synced_selectors`: appearance, keybindings, editor, terminal, workspace and git defaults, layout, agent defaults, and the sidebar, agents-panel, zoom, status-bar, and browser options from `ui`.
-- `dotman pull` saves only those paths. `dotman push` replaces only those paths and keeps every other live field.
-- Left out on purpose: secrets and signed-in accounts, machine and network values, usage history, migration markers, and panel widths and window bounds.
-- New upstream settings stay local until you add them to the list.
+- The package syncs `settings`, minus the paths in `vars.orca.local_state_selectors`: secrets and signed-in accounts, machine-specific values, and per-machine history.
+- `dotman pull` saves the rest of `settings`. `dotman push` overlays it and keeps every excluded live field.
+- New upstream settings sync automatically. Review pulls, and add any new secret or machine-specific field to the exclude list.
 - Home paths are stored as `~`.
 - Quit Orca before `dotman push`. The app keeps its state in memory and would write over the pushed file.
 - The repo file does not exist until the first `dotman pull` after Orca has run.
