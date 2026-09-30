@@ -4,7 +4,8 @@ Minimal Hyprland trial config drafted to mimic core Niri/Sway habits without por
 
 ## Tracked files
 
-- `~/.config/hypr/hyprland.conf`
+- `~/.config/hypr/hyprland.lua`
+- `~/.config/hypr/fullscreen_float_fix.lua`
 - `~/.config/xdg-desktop-portal/hyprland-portals.conf`
 - `~/.config/systemd/user/hyprland-shell.service`
 
@@ -14,8 +15,16 @@ Source package:
 
 ## Version target
 
-- Targets Arch stable Hyprland `0.54.x`, which still uses `hyprland.conf`.
-- Upstream Hyprland `0.55+` moves toward `hyprland.lua`; do not switch this host to `hyprland-git` until the package is ported.
+- Targets Hyprland `0.56.x` Lua config (`hyprland.lua`). Hyprland loads `hyprland.lua` in preference to a leftover `hyprland.conf`.
+- `hyprctl keyword` is rejected under Lua config; use `hyprctl eval '<lua>'` for runtime changes (e.g. `hyprctl eval 'hl.monitor({...})'`).
+- Validate edits without a session: `Hyprland --verify-config -c ~/.config/hypr/hyprland.lua`.
+
+## Fullscreen and floating windows
+
+- `Mod+F`/`Mod+M` (maximize) and `Mod+Shift+F` (fullscreen) are layout-handled on the scrolling layout: the window stays a column you can scroll away from and back to, like Niri.
+- Hyprland `0.56` mishandles floats over a layout-handled fullscreen window: a float opened after the fullscreen stays drawn above it after refocusing the fullscreen window, and a float that existed before stays hidden even when focused.
+- `fullscreen_float_fix.lua` works around it: focusing a float raises it over the fullscreen window; focusing the fullscreen window lowers all non-pinned floats on that workspace.
+- Remove the module once upstream fixes `ScrollingFullscreenHandler` / `FocusState::fullWindowFocus()` for layout-managed fullscreen.
 
 ## Intentional simplifications
 
@@ -28,6 +37,12 @@ Source package:
 - `hyprland-shell.service` starts Noctalia and waits for the tray host before graphical/autostart targets continue.
 - Noctalia launcher, lock, media, volume, and brightness actions use the v5 `noctalia msg ...` CLI.
 - Portal override prefers `xdg-desktop-portal-hyprland`, uses GTK portal for file chooser (path entry via `Ctrl+L`, `/`, and `~`), and uses KWallet for `org.freedesktop.impl.portal.Secret`.
+
+## Dropped in the 0.56 port
+
+- `Mod+Shift+Z` (workspace all-float): Hyprland 0.56 has no `workspaceopt allfloat` dispatcher.
+- Scrolling mode `R` (toggle center-vs-fit): upstream removed the `togglefit` layout message.
+- `misc:on_focus_under_fullscreen`: has no effect on layout-handled fullscreen; `fullscreen_float_fix.lua` covers the float case.
 
 ## Workspace map
 
@@ -52,6 +67,7 @@ Source package:
 - `Mod+S/N/A`: stash/notes/AI workspaces (`1`/`4`/`3`, matching Niri named workspace intent)
 - `Mod+P` or `Mod+O`: toggle special stash workspace
 - `Mod+Shift+P`: move focused window to special stash workspace
+- `Mod+Comma/Period`: jump to first/last column (scrolling focus does not wrap)
 - `Mod+R`: enter scrolling mode
 
 Scrolling mode (`Mod+R`):
@@ -62,7 +78,6 @@ Scrolling mode (`Mod+R`):
 - `Minus/Equal`: resize active column
 - `Backspace`: reset active column width to `0.5`
 - `F/A/V`: fit active/all/visible
-- `R`: toggle center-vs-fit focus behavior
 - `Return` or `Escape`: exit mode
 
 ## Related profile/group
@@ -82,7 +97,6 @@ Do not force `--mode headless` unless retesting proves Sunshine can capture Hypr
 
 ## Known TODOs left in config
 
-- Port to `hyprland.lua` once Arch stable moves to Hyprland `0.55+`.
 - Direct pinned-window summon / move-beside-pinned behavior.
 - Stronger maximize-on-open rules after observing Hyprland `hyprctl clients` values.
 - Fcitx / Steam toast special-case rules after observing class/title values.

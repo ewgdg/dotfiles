@@ -19,7 +19,7 @@ path = "~/.config/systemd/user/hyprland-shell.service"
 
 [hooks]
 # Hyprland config keybinds and portal setup expect these apps/services.
-# Arch stable is currently Hyprland 0.54.x; this package uses hyprland.conf syntax.
+# Config targets Hyprland 0.56+ Lua syntax (hyprland.lua).
 pre_push = [
   "{{ INSTALL }} hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk qt6-wayland",
 ]
