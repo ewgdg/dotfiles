@@ -11,7 +11,7 @@ window-rule {
 window-rule {
     // Keep utility windows floating.
     // Includes 1Password (and Quick Access) and GoldenDict.
-    match app-id=r#"(?i)^1password(-quickaccess)?$"#
+    match app-id=r#"^com\.onepassword\.OnePassword$"#
     // Open DMS windows as floating by default
     // match app-id=r#"org.quickshell$"#
     open-floating true

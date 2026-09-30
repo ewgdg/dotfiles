@@ -32,7 +32,7 @@ prompt_window_ids="$(
     niri msg -j windows 2>/dev/null \
         | jq -r '
             map(select(
-                (.app_id // "" | test("(?i)(org[.]kde[.]ksecretd|kwallet|1password(-quickaccess)?)"))
+                (.app_id // "" | test("(?i)(org[.]kde[.]ksecretd|kwallet|com[.]onepassword[.]onepassword)"))
                 or (.title // "" | test("(?i)(kwallet|wallet.*password|unlock.*wallet|1password|unlock)"))
             ))
             | .[].id

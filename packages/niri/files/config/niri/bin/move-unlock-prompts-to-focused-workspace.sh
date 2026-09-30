@@ -26,7 +26,7 @@ unlock_prompt_window_ids() {
     niri msg -j windows 2>/dev/null \
         | jq -r '
             map(select(
-                (.app_id // "" | test("(?i)(org[.]kde[.]ksecretd|kwallet|gcr-prompter|polkit|1password(-quickaccess)?|pinentry|ssh-askpass)"))
+                (.app_id // "" | test("(?i)(org[.]kde[.]ksecretd|kwallet|gcr-prompter|polkit|com[.]onepassword[.]onepassword|pinentry|ssh-askpass)"))
                 or (.title // "" | test("(?i)(unlock|password|authentication required|authenticate|kwallet|wallet|1password|passphrase|pinentry)"))
             ))
             | .[].id
