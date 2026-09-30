@@ -17,12 +17,16 @@ path = "~/.config/xdg-desktop-portal/hyprland-portals.conf"
 source = "files/config/systemd/user/hyprland-shell.service"
 path = "~/.config/systemd/user/hyprland-shell.service"
 
+# Config targets Hyprland 0.56+ Lua syntax (hyprland.lua); portal setup expects
+# the Hyprland and GTK portals.
+[targets.hyprland_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk qt6-wayland"
+
+[targets.hyprland_installed.hooks]
+pre_push = "{{ INSTALL }} hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk qt6-wayland"
+
 [hooks]
-# Hyprland config keybinds and portal setup expect these apps/services.
-# Config targets Hyprland 0.56+ Lua syntax (hyprland.lua).
-pre_push = [
-  "{{ INSTALL }} hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk qt6-wayland",
-]
 post_push = [
   "sh -c 'systemctl --user daemon-reload >/dev/null 2>&1 || true'",
 ]
