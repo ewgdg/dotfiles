@@ -15,12 +15,6 @@ window-rule {
     // Open DMS windows as floating by default
     // match app-id=r#"org.quickshell$"#
     open-floating true
-    focus-ring {
-        off
-    }
-    border {
-        off
-    }
 }
 
 window-rule {
