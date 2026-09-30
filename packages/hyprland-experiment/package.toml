@@ -18,9 +18,24 @@ render = '{{ UV_RUN }} "$DOTMAN_REPO_ROOT/scripts/select_render_gpu.py" render "
 source = "files/config/xdg-desktop-portal/hyprland-portals.conf"
 path = "~/.config/xdg-desktop-portal/hyprland-portals.conf"
 
+[targets.f_config_systemd_user_hyprland_service]
+source = "files/config/systemd/user/hyprland.service"
+path = "~/.config/systemd/user/hyprland.service"
+
 [targets.f_config_systemd_user_hyprland_shell_service]
 source = "files/config/systemd/user/hyprland-shell.service"
 path = "~/.config/systemd/user/hyprland-shell.service"
+
+[targets.f_usr_local_bin_hyprland_session]
+source = "files/usr/local/bin/hyprland-session"
+path = "/usr/local/bin/hyprland-session"
+chmod = "755"
+
+# Same file ID as the stock entry: session lookups (greetd-start-session, tuigreet) search
+# /usr/local/share before /usr/share, so session = "hyprland" launches hyprland-session.
+[targets.f_usr_local_share_wayland_sessions_hyprland_desktop]
+source = "files/usr/local/share/wayland-sessions/hyprland.desktop"
+path = "/usr/local/share/wayland-sessions/hyprland.desktop"
 
 # Config targets Hyprland 0.56+ Lua syntax (hyprland.lua); portal setup expects
 # the Hyprland and GTK portals.
@@ -34,4 +49,5 @@ pre_push = "{{ INSTALL }} hyprland xdg-desktop-portal-hyprland xdg-desktop-porta
 [hooks]
 post_push = [
   "sh -c 'systemctl --user daemon-reload >/dev/null 2>&1 || true'",
+  '{{ ENSURE_SYSTEMD }} user hyprland-shell.service',
 ]

@@ -44,19 +44,19 @@ for name, value in pairs(sessionEnv) do
 end
 
 -- Runtime display vars only exist after Hyprland starts. Import the whole session env
--- (like niri-session) before starting Noctalia so portals, user services, and
--- shell-spawned apps agree, and no hand-kept variable list goes stale. Noctalia, for one,
--- needs XDG_SESSION_ID to find its logind session for lock-on-suspend and brightness.
--- restart, not start: the systemd user manager outlives Hyprland, and a Noctalia from the
--- previous session can hang in shutdown while its unit still reads active, so `start`
--- would keep that stale shell and the new session gets no bar.
-local importEnvAndStartShell = "dbus-update-activation-environment --systemd --all; "
-    .. "systemctl --user restart hyprland-shell.service"
+-- (like niri-session) so portals, user services, and shell-spawned apps agree, and no
+-- hand-kept variable list goes stale.
+-- Then tell systemd hyprland.service is ready (its unit disables Hyprland's own, earlier
+-- READY=1), so hyprland-shell.service and graphical-session.target start only once the
+-- env and the Sunshine output exist. Outside hyprland-session there is no NOTIFY_SOCKET,
+-- so this step fails harmlessly.
+local importEnvAndNotifyReady = "dbus-update-activation-environment --systemd --all; "
+    .. "systemd-notify --ready"
 
 hl.on("hyprland.start", function()
-    -- No Lua API creates headless outputs. Chain it before the shell (exec_cmd is
+    -- No Lua API creates headless outputs. Chain it before readiness (exec_cmd is
     -- async) so bars and portals start against the final output set.
-    hl.exec_cmd("hyprctl output create headless " .. SUNSHINE_OUTPUT .. "; " .. importEnvAndStartShell)
+    hl.exec_cmd("hyprctl output create headless " .. SUNSHINE_OUTPUT .. "; " .. importEnvAndNotifyReady)
 
     -- Native autostart only.
     hl.exec_cmd("launch-desktop-app memos '^chrome-.*-Default[.]desktop$'")

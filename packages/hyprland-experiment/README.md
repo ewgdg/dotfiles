@@ -7,7 +7,10 @@ Minimal Hyprland trial config drafted to mimic core Niri/Sway habits without por
 - `~/.config/hypr/hyprland.lua`
 - `~/.config/hypr/drm_device.lua` (rendered with the selected render GPU)
 - `~/.config/xdg-desktop-portal/hyprland-portals.conf`
+- `~/.config/systemd/user/hyprland.service`
 - `~/.config/systemd/user/hyprland-shell.service`
+- `/usr/local/bin/hyprland-session`
+- `/usr/local/share/wayland-sessions/hyprland.desktop`
 
 Source package:
 
@@ -34,9 +37,6 @@ Source package:
 - Numeric workspaces replace Niri named workspaces.
 - Hyprland special workspace replaces Niri pin/stash helpers as the closest native behavior.
 - No Niri helper scripts are copied into this package.
-- Hyprland starts through the stock `hyprland.desktop` runtime session lookup; no wrapper is installed.
-- Hyprland config imports its whole session environment into D-Bus/systemd (like `niri-session`), then restarts `hyprland-shell.service` so a shell left from a previous session is replaced.
-- `hyprland-shell.service` starts Noctalia and waits for the tray host before graphical/autostart targets continue.
 - Noctalia launcher, lock, media, volume, and brightness actions use the v5 `noctalia msg ...` CLI.
 - Portal override prefers `xdg-desktop-portal-hyprland`, uses GTK portal for file chooser (path entry via `Ctrl+L`, `/`, and `~`), and uses KWallet for `org.freedesktop.impl.portal.Secret`.
 
@@ -81,6 +81,18 @@ Scrolling mode (`Mod+R`):
 - `Backspace`: reset active column width to `0.5`
 - `F/A/V`: fit active/all/visible
 - `Return` or `Escape`: exit mode
+
+## Session
+
+Hyprland runs as a systemd user session, mirroring `niri-session`:
+
+- The package's `/usr/local/share/wayland-sessions/hyprland.desktop` runs `/usr/local/bin/hyprland-session`. It overrides the stock `hyprland.desktop` (`Exec=start-hyprland`), because greetd's helper and tuigreet search `/usr/local/share` before `/usr/share`. Like `niri.desktop`, this needs no `session_command`.
+- `hyprland-session` re-execs through a login shell, imports the whole login environment into systemd and D-Bus, and waits on `hyprland.service`.
+- `hyprland.service` runs `start-hyprland` and is bound to `graphical-session.target`, so Sunshine, the tray proxy, and XDG autostart start with the session.
+- Readiness: the unit disables Hyprland's own `READY=1` (`HYPRLAND_NO_SD_NOTIFY=1`), which fires before the session env reaches systemd. `hyprland.lua` creates the Sunshine output, imports the env (`--all`), then runs `systemd-notify --ready`.
+- `hyprland-shell.service` (Noctalia) is bound to `hyprland.service` like `niri-shell.service`, and holds XDG autostart until its tray host is up.
+- On exit the launcher stops `graphical-session.target`, so session services stop with Hyprland instead of leaking into the next login.
+- If the `systemd-notify` step never runs (for example a broken `hyprland.lua`), systemd kills Hyprland after the default start timeout. SSH stays the way in.
 
 ## Related profile/group
 

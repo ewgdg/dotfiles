@@ -1,0 +1,20 @@
+[Unit]
+Description=Hyprland Wayland compositor
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+
+Wants=xdg-desktop-autostart.target
+Before=xdg-desktop-autostart.target
+
+[Service]
+Slice=session.slice
+Type=notify
+ExecStart=/usr/bin/start-hyprland
+# Hyprland's own READY=1 comes before its session env reaches systemd and before hyprland.lua
+# creates the Sunshine output, so bound units would start too early. hyprland.lua sends READY
+# from a child process once both are done, which needs NotifyAccess=all (start-hyprland also
+# forks Hyprland, so its PID is not the main PID).
+Environment=HYPRLAND_NO_SD_NOTIFY=1
+NotifyAccess=all

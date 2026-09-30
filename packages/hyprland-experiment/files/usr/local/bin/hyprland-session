@@ -1,0 +1,31 @@
+#!/bin/sh
+# Start Hyprland as a systemd user session, mirroring niri-session: import the whole login
+# environment, run hyprland.service (bound to graphical-session.target), and end the session
+# targets when Hyprland exits so session services such as Sunshine and Noctalia stop with it.
+
+set -u
+
+# Re-exec through a login shell so the session gets the same profile env as niri-session.
+if [ "${1:-}" != "--login-shell" ]; then
+    exec "$SHELL" -l -c 'exec "$0" --login-shell' "$0"
+fi
+
+if systemctl --user -q is-active hyprland.service; then
+    echo 'hyprland-session: a Hyprland session is already running.' >&2
+    exit 1
+fi
+
+systemctl --user reset-failed
+systemctl --user import-environment
+# Some D-Bus activated services do not use SystemdService= and read D-Bus's own env.
+dbus-update-activation-environment --all
+
+systemctl --user --wait start hyprland.service
+hyprland_status=$?
+
+# graphical-session.target does not stop on its own when the compositor exits.
+# replace-irreversibly keeps a later start job from cancelling the stop.
+systemctl --user stop --job-mode=replace-irreversibly graphical-session.target graphical-session-pre.target
+systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE
+
+exit "$hyprland_status"

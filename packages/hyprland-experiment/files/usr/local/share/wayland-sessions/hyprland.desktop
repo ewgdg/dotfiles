@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Hyprland (systemd session)
+Comment=Hyprland as a systemd user session via hyprland-session
+Exec=/usr/local/bin/hyprland-session
+Type=Application
+DesktopNames=Hyprland
+Keywords=tiling;wayland;compositor;
