@@ -25,6 +25,7 @@ Notes:
 import argparse
 import json
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -112,8 +113,31 @@ def which(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-def set_monitor_keyword(spec: str) -> None:
-    run_command(f"hyprctl keyword monitor '{spec}'", returncode_ok=True)
+def lua_literal(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    # JSON string escapes are valid Lua string escapes for these plain values.
+    return json.dumps(str(value))
+
+
+def set_monitor(
+    name: str,
+    mode: Optional[str] = None,
+    scale: Optional[float] = None,
+    disabled: bool = False,
+) -> None:
+    # Hyprland's Lua config rejects `hyprctl keyword`; runtime rules go through `eval`.
+    # hl.monitor merges into an existing rule for the same output, so `disabled` is
+    # always sent explicitly; otherwise an earlier disable would stick.
+    fields: Dict[str, Any] = {"output": name, "disabled": disabled}
+    if mode is not None:
+        fields.update(mode=mode, position="auto")
+    if scale is not None:
+        fields["scale"] = scale
+    body = ", ".join(f"{key} = {lua_literal(value)}" for key, value in fields.items())
+    run_command(f"hyprctl eval {shlex.quote(f'hl.monitor({{ {body} }})')}", returncode_ok=True)
 
 
 def hypr_json(subcmd: str) -> Optional[Any]:
@@ -249,9 +273,8 @@ def monitor_matches_current(name: str, width: int, height: int, fps: int) -> boo
 
 
 def try_set_monitor_mode(name: str, width: int, height: int, fps: int) -> bool:
-    spec = f"{name},{width}x{height}@{fps},auto,1"
     # hyprctl returns 0 even on some errors; verify by re-reading state
-    set_monitor_keyword(spec)
+    set_monitor(name, mode=f"{width}x{height}@{fps}", scale=1)
     return monitor_matches_current(name, width, height, fps)
 
 
@@ -289,7 +312,7 @@ def disable_other_monitors(selected: str) -> None:
         name = m.get("name")
         if not name or name == selected:
             continue
-        set_monitor_keyword(f"{name},disable")
+        set_monitor(name, disabled=True)
 
 
 def enable_runtime_inhibit() -> Optional[int]:
@@ -351,8 +374,7 @@ def do_action(
             # Compute scale (supports --scale auto heuristic)
             scale = compute_scale(scale_arg, width, height)
             # Set requested mode on the headless output
-            spec = f"{created_name},{width}x{height}@{fps},auto,{scale}"
-            set_monitor_keyword(spec)
+            set_monitor(created_name, mode=f"{width}x{height}@{fps}", scale=scale)
             if solo:
                 disable_other_monitors(created_name)
             debug_write(
@@ -401,7 +423,7 @@ def do_action(
 
         # Apply scale to selected monitor
         scale = compute_scale(scale_arg, width, height)
-        set_monitor_keyword(f"{selected},{width}x{height}@{fps},auto,{scale}")
+        set_monitor(selected, mode=f"{width}x{height}@{fps}", scale=scale)
         debug_write(f"INFO: Using monitor: {selected} at {width}x{height}@{fps}\n")
 
         if solo:
@@ -458,7 +480,7 @@ def restore_action(
     for m in mons:
         name = m.get("name") if isinstance(m, dict) else None
         if name and is_headless_name(name, monitor_to_disable):
-            set_monitor_keyword(f"{name},disable")
+            set_monitor(name, disabled=True)
 
     run_command("hyprctl reload", returncode_ok=True)
     debug_write("DEBUG: Ran hyprctl reload for clean-state restore\n")
