@@ -7,7 +7,9 @@ settings_selectors = ["model", "modelSettings"]
 # ~/.claude.json is mostly machine state, so it is synced by allowlist.
 # Only user-scope MCP servers (top-level mcpServers) are portable; local-scope
 # servers live under machine-specific projects["/abs/path"] keys.
-claude_json_selectors = ["mcpServers"]
+# claudeInChromeDefaultEnabled is the /chrome "enabled by default" preference;
+# the extension and its native host are still set up per machine.
+claude_json_selectors = ["mcpServers", "claudeInChromeDefaultEnabled"]
 
 [targets.claude_global_instructions]
 sync_policy = "push-only"
