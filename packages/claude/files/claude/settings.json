@@ -1,10 +1,10 @@
 {
-  "attribution": {
-    "commit": ""
-  },
   "env": {
     "DISABLE_ERROR_REPORTING": "1",
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1"
+  },
+  "attribution": {
+    "commit": ""
   },
   "permissions": {
     "allow": [],
@@ -39,12 +39,13 @@
     "type": "command",
     "command": "node \"$HOME/.claude/subagent-statusline.js\""
   },
-  "feedbackDrafts": "notify",
+  "feedbackDrafts": "off",
   "alwaysThinkingEnabled": true,
-  "autoCompactWindow": 250000,
+  "autoCompactWindow": 300000,
   "tui": "fullscreen",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
   "editorMode": "vim",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true

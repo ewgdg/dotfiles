@@ -76,6 +76,9 @@ enabled = true
 [plugins."unified-computer-use@openai-bundled"]
 enabled = true
 
+[plugins."code-review@openai-bundled"]
+enabled = true
+
 [desktop]
 followUpQueueMode = "queue"
 dock-icon-preference = "codex-system"
@@ -86,4 +89,3 @@ sansFontSize = 16
 selected-avatar-id = "codex"
 open-link-in-target-preference = "external-browser"
 toys-confetti-enabled = true
-

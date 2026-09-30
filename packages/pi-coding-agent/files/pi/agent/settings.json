@@ -26,9 +26,6 @@
     "opencode-go/muse-spark-1.3-contributor"
   ],
   "theme": "system",
-  "defaultTools": [
-    "+codemode"
-  ],
   "pi-openai-controls": {
     "web_search": {
       "mode": "live"
@@ -64,5 +61,11 @@
     "-skills/code-review/SKILL.md",
     "-skills/implement/SKILL.md"
   ],
-  "fullscreenCopyOnSelect": false
+  "fullscreenCopyOnSelect": false,
+  "defaultTools": [
+    "+codemode"
+  ],
+  "codemode": {
+    "mode": "only"
+  }
 }
