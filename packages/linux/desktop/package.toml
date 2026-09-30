@@ -21,10 +21,15 @@ path = "~/.config/mimeapps.list"
 source = "files/config/systemd/user/network-virtual-mic.service"
 path = "~/.config/systemd/user/network-virtual-mic.service"
 
+[targets.f_config_systemd_user_graphical_session_env_cleanup_service]
+source = "files/config/systemd/user/graphical-session-env-cleanup.service"
+path = "~/.config/systemd/user/graphical-session-env-cleanup.service"
+
 [hooks]
 pre_push = [
   "{{ INSTALL }} wl-clipboard",
 ]
 post_push = [
   '{{ ENSURE_SYSTEMD }} user network-virtual-mic.service',
+  '{{ ENSURE_SYSTEMD }} user graphical-session-env-cleanup.service',
 ]

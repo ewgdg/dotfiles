@@ -82,3 +82,11 @@ ffmpeg -re -stream_loop -1 -i sample.wav \
 
 - This is plain network audio. Use it on a trusted LAN or over a VPN.
 - The service only removes the sink and source modules if it created them. If you pre-create those names elsewhere, they are left alone.
+
+# Graphical session env cleanup
+
+`~/.config/systemd/user/graphical-session-env-cleanup.service` unsets `XDG_SESSION_ID`, `XDG_SEAT`, and `XDG_VTNR` from the systemd user environment when `graphical-session.target` stops.
+
+- Session launchers (`niri-session`, a Hyprland session script) import the whole login env so the compositor unit can take the seat and Noctalia can find its logind session, but they leave these per-login vars behind after logout.
+- It hooks the target, not the compositor unit: the target stops on logout, while a manual `systemctl --user restart niri.service` keeps it active, so the restarted compositor still has `XDG_SESSION_ID`.
+- Assumes one graphical login per user at a time, like `graphical-session.target` itself. Other users have their own user manager and are unaffected.

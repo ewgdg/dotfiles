@@ -1,0 +1,16 @@
+[Unit]
+Description=Drop session-specific login vars when the graphical session ends
+# Session launchers (niri-session, hyprland-session) import the whole login env, which
+# includes these per-login vars, and do not unset them on logout. graphical-session.target
+# stops only on logout, not when the compositor unit is restarted by hand, so a restarted
+# compositor still finds XDG_SESSION_ID to take the seat.
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=true
+ExecStop=systemctl --user unset-environment XDG_SESSION_ID XDG_SEAT XDG_VTNR
+
+[Install]
+WantedBy=graphical-session.target
