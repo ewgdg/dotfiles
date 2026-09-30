@@ -91,9 +91,11 @@ For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `m
 ## Sunshine
 
 `packages/linux/sunshine` renders one Jinja template at `packages/linux/sunshine/files/sunshine.conf` to `~/.config/sunshine/sunshine.conf`.
-Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config uses `capture = kms` and shared KMS prep args (`--solo --scale dpi-auto --inhibit`) with `sunshine-prep-hyprland.py`, leaving output mode at the script's detected-output default. The inhibitor is only rendered for KMS capture to avoid DPMS error spam when outputs idle mid-stream.
+Because this profile sets `vars.desktop.session = "hyprland"`, the rendered config matches Niri: `capture = wlr`, `output_name = sunshine`, and `sunshine-prep-hyprland.py` with `--headless` / `undo --dormant-headless`.
 
-Do not force `--mode headless` unless retesting proves Sunshine can capture Hyprland headless outputs on this machine.
+- `hyprland.lua` creates the fixed `sunshine` headless output at startup (`1920x1080@60`, scale `1`); the prep script resizes it per stream and parks it at 60 Hz afterwards.
+- On a headless host this output is the only display, so Sunshine is the only way in: keep SSH working before switching the login session to Hyprland.
+- Details and checks: `packages/linux/sunshine/docs/prep-hypr.md`.
 
 ## Known TODOs left in config
 

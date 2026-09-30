@@ -17,7 +17,12 @@ local launcherWindows = 'noctalia msg panel-toggle launcher "/win "'
 ---- SESSION / ENVIRONMENT ----
 ------------------------------
 
--- No static monitor rules. Sunshine/runtime monitor control decides output state.
+-- Fixed Sunshine virtual output, like Niri's `output "sunshine" { create-virtual }`.
+-- Sunshine captures it with `capture = wlr` / `output_name = sunshine`; its prep script
+-- resizes it per stream and parks it between streams instead of removing it.
+local SUNSHINE_OUTPUT = "sunshine"
+hl.monitor({ output = SUNSHINE_OUTPUT, mode = "1920x1080@60", position = "auto", scale = 1 })
+-- No other static monitor rules. Sunshine/runtime monitor control decides output state.
 -- Use `hyprctl reload config-only`; a full reload or compositor restart may re-probe outputs.
 
 local sessionEnv = {
@@ -47,7 +52,9 @@ local importEnvAndStartShell = "if command -v dbus-update-activation-environment
     .. "systemctl --user start hyprland-shell.service"
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd(importEnvAndStartShell)
+    -- No Lua API creates headless outputs. Chain it before the shell (exec_cmd is
+    -- async) so bars and portals start against the final output set.
+    hl.exec_cmd("hyprctl output create headless " .. SUNSHINE_OUTPUT .. "; " .. importEnvAndStartShell)
 
     -- Native autostart only.
     hl.exec_cmd("launch-desktop-app memos '^chrome-.*-Default[.]desktop$'")
