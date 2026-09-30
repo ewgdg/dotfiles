@@ -17,6 +17,8 @@ local launcherWindows = 'noctalia msg panel-toggle launcher "/win "'
 ---- SESSION / ENVIRONMENT ----
 ------------------------------
 
+require("drm_device")
+
 -- Fixed Sunshine virtual output, like Niri's `output "sunshine" { create-virtual }`.
 -- Sunshine captures it with `capture = wlr` / `output_name = sunshine`; its prep script
 -- resizes it per stream and parks it between streams instead of removing it.

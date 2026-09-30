@@ -58,5 +58,12 @@ Width, height and fps fall back to `SUNSHINE_CLIENT_WIDTH/HEIGHT/FPS`.
   headless fallback format list tags formats with `DRM_FORMAT_INVALID` (0, i.e.
   `DRM_FORMAT_MOD_LINEAR`), and NVIDIA cannot render to linear buffers. A real DRM session takes
   headless formats from the DRM backend instead, the same path physical outputs use.
+- Real DRM session on a hybrid host (AMD iGPU boot VGA + NVIDIA dGPU): aquamarine made the AMD
+  GPU primary, so Hyprland rendered on radeonsi. Sunshine's NVIDIA dmabufs then failed to import
+  (`eglCreateImageKHR ... createImageFromDmaBufs failed` in `hyprland.log`, `Failed to create buffer
+  from params` in Sunshine) and the stream never started. Fix: `vars.hyprland.drm_device` in
+  `packages/hyprland-experiment` pins `AQ_DRM_DEVICES` to the NVIDIA card. Lua `hl.env` runs before
+  the DRM backend starts, and the value must be a colon-free `/dev/dri/cardN` because
+  `AQ_DRM_DEVICES` splits on `:`.
 - Monitor rules apply on the next rendered frame, not synchronously with `hyprctl eval`;
   the script polls for the new mode.

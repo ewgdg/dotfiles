@@ -9,6 +9,10 @@ depends = [
 source = "files/config/hypr"
 path = "~/.config/hypr"
 
+[targets.d_config_hypr.path_rules.drm_device_lua]
+pattern = "drm_device.lua"
+preset = "jinja-patch"
+
 [targets.f_config_xdg_desktop_portal_hyprland_portals_conf]
 source = "files/config/xdg-desktop-portal/hyprland-portals.conf"
 path = "~/.config/xdg-desktop-portal/hyprland-portals.conf"

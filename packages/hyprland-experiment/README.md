@@ -6,6 +6,7 @@ Minimal Hyprland trial config drafted to mimic core Niri/Sway habits without por
 
 - `~/.config/hypr/hyprland.lua`
 - `~/.config/hypr/fullscreen_float_fix.lua`
+- `~/.config/hypr/drm_device.lua` (Jinja-rendered)
 - `~/.config/xdg-desktop-portal/hyprland-portals.conf`
 - `~/.config/systemd/user/hyprland-shell.service`
 
@@ -108,6 +109,14 @@ Because this profile sets `vars.desktop.session = "hyprland"`, the rendered conf
 
 - `hyprland.lua` creates the fixed `sunshine` headless output at startup (`1920x1080@60`, scale `1`); the prep script resizes it per stream and parks it at 60 Hz afterwards.
 - On a headless host this output is the only display, so Sunshine is the only way in: keep SSH working before switching the login session to Hyprland.
+- On a hybrid-GPU host, pin Hyprland to the GPU Sunshine encodes on. `drm_device.lua` (rendered with Jinja) reads a stable KMS card node from host-local vars and sets `AQ_DRM_DEVICES` to its resolved `/dev/dri/cardN`:
+
+  ```toml
+  [vars.hyprland]
+  drm_device = "/dev/dri/by-path/pci-0000:01:00.0-card"
+  ```
+
+  Without it aquamarine makes the boot-VGA GPU primary. On this host that is the AMD iGPU, which cannot import Sunshine's NVIDIA screencopy buffers, so every stream fails.
 - Details and checks: `packages/linux/sunshine/docs/prep-hypr.md`.
 
 ## Known TODOs left in config
