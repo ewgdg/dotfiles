@@ -55,6 +55,20 @@ case "${scope}" in
     ;;
 esac
 
+start_unit() {
+  # Starting a unit pulls in its BindsTo= units. When one is inactive (for example
+  # niri.service while another compositor runs the session), leave the unit enabled but
+  # stopped; it starts with that unit via WantedBy= instead.
+  local bound_unit
+  for bound_unit in $("${systemctl_query_command[@]}" show --property=BindsTo --value "${unit_name}"); do
+    if ! "${systemctl_query_command[@]}" --quiet is-active "${bound_unit}"; then
+      echo "Not starting ${unit_name}: it binds to ${bound_unit}, which is not active." >&2
+      return 0
+    fi
+  done
+  "${systemctl_start_command[@]}"
+}
+
 if [[ "${reload_before_precheck}" == "true" ]] && ! "${systemctl_query_command[@]}" daemon-reload >/dev/null 2>&1; then
   echo "${manager_unreachable_message}" >&2
   exit 0
@@ -63,7 +77,7 @@ fi
 if "${systemctl_query_command[@]}" --quiet is-enabled "${unit_name}" >/dev/null 2>&1; then
   echo "${unit_name} is already enabled."
   if [[ "${auto_start}" == "true" ]]; then
-    "${systemctl_start_command[@]}"
+    start_unit
   fi
   exit 0
 fi
@@ -90,5 +104,5 @@ fi
 "${systemctl_enable_command[@]}"
 
 if [[ "${auto_start}" == "true" ]]; then
-  "${systemctl_start_command[@]}"
+  start_unit
 fi
