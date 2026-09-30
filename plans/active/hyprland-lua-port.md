@@ -65,7 +65,7 @@ Constraints:
 ## Progress
 
 - [x] Step 1 Lua config + fullscreen hook (verify-config ok; nested 0.56.2: 126/128 binds, 2 intentionally dropped; float fix passes for Mod+F maximize and Mod+Shift+F fullscreen)
-- [ ] Step 2 probe script
+- [x] Step 2 probe script (`packages/linux/sunshine/scripts/probe-hyprland-virtual-display.sh`; steps 1-2 dry-run in nested Hyprland, Sunshine wlr step dry-run on niri) — awaiting real-session run
 - [ ] Step 3 capture route
 - [ ] Step 4 docs
 
@@ -79,6 +79,13 @@ Constraints:
   own focus listener recomputes the flags after Lua listeners run.
 - `hyprctl keyword` is rejected under a Lua config ("Use eval").
 - `hl.animation` needs `bezier = "..."` (not `curve`); `--verify-config` catches it.
+- Monitor rules apply in the render pre-check (`MonitorRuleManager`), so the
+  never-rendering nested session cannot validate monitor changes; a headless
+  output whose buffers fail to allocate likewise never picks up its mode.
+- Sunshine prep script used `hyprctl keyword monitor`, which is a silent no-op
+  under Lua; switched to `hyprctl eval 'hl.monitor({...})'`.
+- grim 1.5 prefers `ext_image_copy_capture`, so grim success does not prove
+  Sunshine's `zwlr_screencopy` path; the probe runs a throwaway Sunshine.
 - Lua `hl.bind` ignores the `mouse` option; `hl.dsp.window.drag()`/`resize()`
   handle button release themselves (`releasePending`).
 - Headless output GBM allocation fails in the nested session on NVIDIA

@@ -38,10 +38,23 @@
 ## Notes
 
 - Headless outputs require Hyprland with `hyprctl output create headless` support.
-- Sunshine `wlr` capture is not a reliable workaround here because modern Hyprland is no longer wlroots-based. Keep Hyprland Sunshine on `capture = kms` unless a new tested backend replaces it.
+- Monitor changes go through `hyprctl eval 'hl.monitor({...})'`; Hyprland's Lua config (0.56+) rejects `hyprctl keyword`. `hl.monitor` merges into an existing rule for the same output, so the script always sends `disabled` explicitly.
+- Hyprland is not wlroots-based but still implements `zwlr_screencopy`, which Sunshine `capture = wlr` uses. Whether a headless output actually renders on this NVIDIA machine is unverified; keep `capture = kms` until the probe below passes.
 - No layout snapshots are stored; restore is best-effort.
 - If a mode is not supported, the script verifies via `hyprctl -j monitors` and tries alternatives.
 - The script changes runtime state only; it does not modify Hyprland config files.
+
+## Virtual display probe
+
+Run once inside a real Hyprland session to decide the virtual-display capture route:
+
+- `packages/linux/sunshine/scripts/probe-hyprland-virtual-display.sh`
+
+It creates a temporary headless output, checks that it gets a size and renders (`grim`), then runs a throwaway Sunshine instance (own ports and state; the running service is untouched) with `capture = wlr` on that output and prints a verdict:
+
+- headless never gets a size → dummy plug + `capture = kms`
+- renders, but Sunshine wlr fails → portal capture with an auto-selecting `xdg-desktop-portal-hyprland` picker
+- wlr works → `capture = wlr` with a fixed `sunshine` headless output, like Niri
 
 ## Crashes and Cleanup
 
