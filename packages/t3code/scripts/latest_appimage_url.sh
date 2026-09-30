@@ -3,21 +3,21 @@
 # Usage: latest_appimage_url.sh <cpu-arch>
 #
 # Prints the download URL of the latest AppImage for <cpu-arch> (dotman's
-# `cpu_arch`, i.e. `uname -m`). Release assets carry the version in their name
-# and upstream publishes no unversioned alias, so read it from the
+# normalized `cpu_arch`: `x86_64` or `arm64`). Release assets carry the version
+# in their name and upstream publishes no unversioned alias, so read it from the
 # electron-updater manifest, the same file the app updates from.
 
 set -eu
 
 release_base=https://github.com/pingdotgg/t3code/releases/latest/download
 
-# electron-builder names arm64 builds `arm64` and gives them their own manifest.
+# electron-builder gives arm64 builds their own manifest.
 case "${1:?usage: latest_appimage_url.sh <cpu-arch>}" in
 x86_64)
     manifest=latest-linux.yml
     asset_arch=x86_64
     ;;
-aarch64 | arm64)
+arm64)
     manifest=latest-linux-arm64.yml
     asset_arch=arm64
     ;;
