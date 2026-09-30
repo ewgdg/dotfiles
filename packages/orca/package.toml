@@ -1,0 +1,17 @@
+id = "orca"
+description = "Orca desktop app for running coding agents in parallel worktrees"
+
+[targets.orca_install]
+sync_policy = "push-only"
+# The official AppImage updates itself in place, so we only install it once.
+# No command link: running the AppImage opens the GUI; the app's own
+# "Install CLI" action links its bundled `orca-ide` launcher into ~/.local/bin.
+# Homebrew's core `orca` cask is plotly's Orca, so install upstream's tap cask by
+# its full name. The probe uses the bare token because `brew list` only sees
+# installed casks, and the tap cask installs as `orca`.
+probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name orca{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} orca{% endif %}'
+
+[targets.orca_install.hooks]
+# Upstream names the x86_64 build without an arch suffix. Other CPUs map to
+# `orca-linux-<cpu_arch>`, which exists for arm64 and fails at download for the rest.
+pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name orca --url https://github.com/stablyai/orca/releases/latest/download/{% if cpu_arch == "x86_64" %}orca-linux{% else %}orca-linux-{{ cpu_arch }}{% endif %}.AppImage{% elif os == "darwin" %}{{ INSTALL }} stablyai/orca/orca{% endif %}'
