@@ -17,7 +17,7 @@ guard_push = [
   '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/validate_greetd_start_session.py" --session "{{ vars.desktop.session }}" {% if vars.desktop.session_command %}--session-command "{{ vars.desktop.session_command }}" {% endif %}--helper "$DOTMAN_PACKAGE_ROOT/files/usr/local/bin/greetd-start-session"',
 ]
 pre_push = [
-  "{{ INSTALL }} greetd greetd-tuigreet-fork-bin",
+  "{{ INSTALL }} greetd greetd-tuigreet",
 ]
 
 [hooks.post_push]

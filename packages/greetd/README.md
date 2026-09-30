@@ -75,7 +75,7 @@ parser.
 
 `greetd` package hooks:
 
-- install `greetd` and `greetd-tuigreet-fork-bin`
+- install `greetd` and `greetd-tuigreet`
 - call shared `{{ ENABLE_DISPLAY_MANAGER_SYSTEMD_UNIT }}` helper for
   `greetd.service`
 
