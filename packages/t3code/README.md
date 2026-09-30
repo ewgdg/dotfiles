@@ -4,9 +4,9 @@
 
 ## What this package does
 
-- Installs the desktop app: the official x86_64 AppImage on Linux, the `t3-code` cask on macOS.
+- Installs the desktop app: the official AppImage for the host CPU (`cpu_arch`: x86_64 or aarch64) on Linux, the `t3-code` cask on macOS.
 - On Linux the AppImage lands at `~/Applications/t3code.AppImage` with a desktop entry, icons, and a `~/.local/bin/t3code` link (see `scripts/install_appimage.sh`). The app's updater checks every few minutes and replaces that file in place with delta downloads, so dotman only installs it once.
-- Release asset names carry the version and there is no unversioned alias, so `scripts/latest_appimage_url.sh` reads the current file name from the release's `latest-linux.yml`, the manifest the app itself updates from.
+- Release asset names carry the version and there is no unversioned alias, so `scripts/latest_appimage_url.sh` reads the current file name from the release's per-arch manifest (`latest-linux.yml` or `latest-linux-arm64.yml`), the manifest the app itself updates from.
 - The AUR `t3code-bin` was rejected: it is current, but it unpacks the AppImage into `/opt`, which turns off the in-app updater and remote "Update server" from other clients, leaving updates to whenever pacman runs.
 - The standalone `t3` CLI (`curl … | sh` into `~/.local/bin`) is not installed. The desktop app runs its own server; install the CLI only for headless hosts or `t3 app`.
 

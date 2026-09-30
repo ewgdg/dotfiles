@@ -4,7 +4,7 @@
 
 ## What this package does
 
-- Installs the desktop app, which upstream recommends: the official AppImage on Linux, the `paseo` cask on macOS.
+- Installs the desktop app, which upstream recommends: the official AppImage for the host CPU (`cpu_arch`) on Linux (upstream ships x86_64 only), the `paseo` cask on macOS.
 - On Linux the AppImage lands at `~/Applications/paseo.AppImage` with a desktop entry, icons, and a `~/.local/bin/paseo` link (see `scripts/install_appimage.sh`). Paseo's own updater replaces that file in place with delta downloads, so dotman only installs it once; you confirm each update in the app.
 - AUR builds were rejected: the `.deb` repacks keep an updater that runs `dpkg` behind pacman, and `paseo-bin` lags upstream by days.
 - The desktop build bundles a matching `paseo` CLI and starts its own daemon, so there is no separate npm install.

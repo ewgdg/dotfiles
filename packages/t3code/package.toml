@@ -10,7 +10,7 @@ sync_policy = "push-only"
 probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name t3code --link-command{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} t3-code{% endif %}'
 
 [targets.t3code_install.hooks]
-pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_appimage_url.sh") && {{ APPIMAGE_INSTALL }} --name t3code --url "$url" --link-command{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
+pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_appimage_url.sh" {{ cpu_arch }}) && {{ APPIMAGE_INSTALL }} --name t3code --url "$url" --link-command{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
 
 # Sources start absent until the app writes them and `dotman pull` captures
 # them; `type` is required while both repo and live files are missing.

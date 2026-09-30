@@ -6,11 +6,12 @@ sync_policy = "push-only"
 # The desktop build bundles the matching `paseo` CLI and daemon. On Linux the
 # official AppImage updates itself in place (delta downloads), so we only install
 # it once; the AUR builds either lag upstream or fight pacman with their updater.
-# Homebrew resolves `paseo` to the cask.
+# Homebrew resolves `paseo` to the cask. Upstream ships only an x86_64
+# AppImage, so other CPUs fail at download instead of getting the wrong build.
 probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name paseo --link-command{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} paseo{% endif %}'
 
 [targets.paseo_install.hooks]
-pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name paseo --url https://github.com/getpaseo/paseo/releases/latest/download/Paseo-x86_64.AppImage --link-command{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
+pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name paseo --url https://github.com/getpaseo/paseo/releases/latest/download/Paseo-{{ cpu_arch }}.AppImage --link-command{% elif os == "darwin" %}{{ INSTALL }} paseo{% endif %}'
 
 # Only config.json: the rest of ~/.paseo is daemon identity (keypair, server id,
 # push tokens), runtime state, and logs.
