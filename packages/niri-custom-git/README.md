@@ -10,10 +10,11 @@ upstream has advanced, or the histories have diverged. An installed commit
 that is ahead of upstream is kept.
 
 Topgrade loads the package's `~/.config/topgrade.d/niri-custom-git.toml` and
-runs `dotman push --yes niri-custom-git` as **Niri custom build**. The `--yes`
-flag skips dotman's confirmation prompt, and the narrow selector does not push
-the Niri configuration package. Package installation can still request `sudo`
-authentication.
+runs `dotman --unattended push niri-custom-git` as **Niri custom build**. The global `--unattended`
+flag skips dotman's review and confirmation, and the narrow selector does not push
+the Niri configuration package. Unattended dotman never prompts for `sudo`: the
+install reuses the sudo ticket from Topgrade's earlier system step and fails with
+`sudo authentication unavailable in unattended mode` once that ticket has expired.
 
 For a manual build from the repository root:
 
