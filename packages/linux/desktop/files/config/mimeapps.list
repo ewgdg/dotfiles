@@ -6,6 +6,7 @@ application/x-yaml=nvim.desktop;
 text/markdown=nvim.desktop;
 text/plain=nvim.desktop;
 text/x-cmake=nvim.desktop;
+x-scheme-handler/t3code=com.t3tools.T3Code.desktop;
 
 [Default Applications]
 application/json=nvim.desktop;
@@ -44,3 +45,4 @@ x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 inode/directory=org.gnome.Nautilus.desktop
 x-scheme-handler/codex=chatgpt.desktop
 x-scheme-handler/antigravity=antigravity.desktop
+x-scheme-handler/t3code=com.t3tools.T3Code.desktop
