@@ -5,7 +5,6 @@ Minimal Hyprland trial config drafted to mimic core Niri/Sway habits without por
 ## Tracked files
 
 - `~/.config/hypr/hyprland.lua`
-- `~/.config/hypr/fullscreen_float_fix.lua`
 - `~/.config/hypr/drm_device.lua` (rendered with the selected render GPU)
 - `~/.config/xdg-desktop-portal/hyprland-portals.conf`
 - `~/.config/systemd/user/hyprland-shell.service`
@@ -23,9 +22,11 @@ Source package:
 ## Fullscreen and floating windows
 
 - `Mod+F`/`Mod+M` (maximize) and `Mod+Shift+F` (fullscreen) are layout-handled on the scrolling layout: the window stays a column you can scroll away from and back to, like Niri.
-- Hyprland `0.56` mishandles floats over a layout-handled fullscreen window: a float opened after the fullscreen stays drawn above it after refocusing the fullscreen window, and a float that existed before stays hidden even when focused.
-- `fullscreen_float_fix.lua` works around it: focusing a float raises it over the fullscreen window; focusing the fullscreen window lowers all non-pinned floats on that workspace.
-- Remove the module once upstream fixes `ScrollingFullscreenHandler` / `FocusState::fullWindowFocus()` for layout-managed fullscreen.
+- **Failed exam (Hyprland `0.56.2`, still present on upstream `main` in 2026-09):** floats that already exist on the workspace when a window is maximized or fullscreened go under it permanently. Focusing such a float only flashes it before it drops back.
+  - Cause: `CScrollingFullscreenHandler::setNoMembersAboveFullscreen()` records those floats in `hiddenFloatingWindowsUnderFSWindow` and re-hides them on every layout recalculation. Nothing removes a float from that set, and focus raises are overwritten by the next recalculation.
+  - Maximize and fullscreen share the path. On a scrolling workspace no config option or dispatcher flag avoids it, and Lua cannot reach the set, so a Lua workaround (`fullscreen_float_fix.lua`) was tried and removed.
+  - Only fix: patch Hyprland to drop a float from the set when it gets focus.
+- Hyprland stays a trial until it passes this; Niri remains the daily session.
 
 ## Intentional simplifications
 
@@ -43,7 +44,7 @@ Source package:
 
 - `Mod+Shift+Z` (workspace all-float): Hyprland 0.56 has no `workspaceopt allfloat` dispatcher.
 - Scrolling mode `R` (toggle center-vs-fit): upstream removed the `togglefit` layout message.
-- `misc:on_focus_under_fullscreen`: has no effect on layout-handled fullscreen; `fullscreen_float_fix.lua` covers the float case.
+- `misc:on_focus_under_fullscreen`: has no effect on layout-handled fullscreen.
 
 ## Workspace map
 

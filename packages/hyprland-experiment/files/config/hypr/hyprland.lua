@@ -146,8 +146,6 @@ hl.animation({ leaf = "fade", enabled = true, speed = 2, bezier = "default" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 2, bezier = "default", style = "slidevert" })
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2, bezier = "default", style = "slidevert" })
 
-require("fullscreen_float_fix").setup()
-
 ---------------
 ---- INPUT ----
 ---------------
