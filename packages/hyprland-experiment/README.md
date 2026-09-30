@@ -86,7 +86,20 @@ Use the Hyprland-specific host binding when you want Hyprland plus matching Suns
 
 - `main:host/linux-hyprland-meta@host/linux-hyprland`
 
-For a narrower push, track `main:hyprland-experiment@host/linux-hyprland` and `main:linux/sunshine@host/linux-hyprland`.
+### Trial on a Niri host
+
+To try Hyprland without retracking the Niri host group, keep `main:host/linux-niri-meta@host/linux-niri` tracked and switch the session locally:
+
+- Add to `~/.config/dotman/repos/main/local.toml`:
+
+  ```toml
+  [vars.desktop]
+  session = "hyprland"
+  ```
+
+  Only `packages/greetd` (autologin session) and `packages/linux/sunshine` read `vars.desktop.session`. Confirm the override with `dotman info var desktop.session`.
+- Track `main:hyprland-experiment@host/linux-niri`, then `dotman push` twice. The first push installs Hyprland; greetd's guard skips greetd until `hyprland.desktop` exists. The second push points autologin at Hyprland.
+- Go back: remove the override and `dotman push`. The Niri config stays deployed throughout.
 
 ## Sunshine
 
