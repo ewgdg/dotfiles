@@ -43,6 +43,9 @@ pre_action_fade_seconds = 5
     locked_timeout = 60.0
     timeout = 660.0
 
+[lockscreen]
+transition = []
+
 [notification]
 filter_order = [ "filter" ]
 
@@ -94,8 +97,8 @@ mirrored = false
 show_label = false
 
 [widget.network_tx]
-visualization = "graph"
 network_speed_compact = true
+visualization = "graph"
 
 [widget.privacy]
 hide_inactive = true
