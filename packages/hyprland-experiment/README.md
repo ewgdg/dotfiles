@@ -34,7 +34,7 @@ Source package:
 - Hyprland special workspace replaces Niri pin/stash helpers as the closest native behavior.
 - No Niri helper scripts are copied into this package.
 - Hyprland starts through the stock `hyprland.desktop` runtime session lookup; no wrapper is installed.
-- Hyprland config imports runtime Wayland/Hyprland variables into D-Bus/systemd, then starts `hyprland-shell.service`.
+- Hyprland config imports its whole session environment into D-Bus/systemd (like `niri-session`), then restarts `hyprland-shell.service` so a shell left from a previous session is replaced.
 - `hyprland-shell.service` starts Noctalia and waits for the tray host before graphical/autostart targets continue.
 - Noctalia launcher, lock, media, volume, and brightness actions use the v5 `noctalia msg ...` CLI.
 - Portal override prefers `xdg-desktop-portal-hyprland`, uses GTK portal for file chooser (path entry via `Ctrl+L`, `/`, and `~`), and uses KWallet for `org.freedesktop.impl.portal.Secret`.

@@ -43,15 +43,15 @@ for name, value in pairs(sessionEnv) do
     hl.env(name, value)
 end
 
--- Runtime display vars only exist after Hyprland starts. Import them before
--- starting Noctalia so portals, user services, and shell-spawned apps agree.
-local importedEnv = "WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE "
-    .. "XDG_SESSION_DESKTOP XCURSOR_THEME QT_QPA_PLATFORMTHEME QS_ICON_THEME QT_IM_MODULE QT_IM_MODULES "
-    .. "XMODIFIERS SDL_IM_MODULE"
-local importEnvAndStartShell = "if command -v dbus-update-activation-environment >/dev/null 2>&1; then "
-    .. "dbus-update-activation-environment --systemd " .. importedEnv .. "; "
-    .. "else systemctl --user import-environment " .. importedEnv .. "; fi; "
-    .. "systemctl --user start hyprland-shell.service"
+-- Runtime display vars only exist after Hyprland starts. Import the whole session env
+-- (like niri-session) before starting Noctalia so portals, user services, and
+-- shell-spawned apps agree, and no hand-kept variable list goes stale. Noctalia, for one,
+-- needs XDG_SESSION_ID to find its logind session for lock-on-suspend and brightness.
+-- restart, not start: the systemd user manager outlives Hyprland, and a Noctalia from the
+-- previous session can hang in shutdown while its unit still reads active, so `start`
+-- would keep that stale shell and the new session gets no bar.
+local importEnvAndStartShell = "dbus-update-activation-environment --systemd --all; "
+    .. "systemctl --user restart hyprland-shell.service"
 
 hl.on("hyprland.start", function()
     -- No Lua API creates headless outputs. Chain it before the shell (exec_cmd is
