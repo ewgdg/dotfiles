@@ -1,6 +1,58 @@
 id = "orca"
 description = "Orca desktop app for running coding agents in parallel worktrees"
 
+[vars.orca]
+# The first profile Orca creates; other profiles get generated IDs.
+data_file = '{% if os == "darwin" %}~/Library/Application Support{% else %}~/.config{% endif %}/Orca/profiles/local-default/orca-data.json'
+# orca-data.json is the whole app state. Only `settings` is portable, minus
+# these live-local fields: capture drops them and render keeps the live values.
+local_state_selectors = [
+  # Every top-level key except `settings`: repos, worktrees, UI, sessions, caches.
+  're:^(?!settings$)[^.]+$',
+  # One-time migration, default-applied, and already-shown markers.
+  're:^settings\.[A-Za-z]+(Defaulted[A-Za-z]*|Migrated[A-Za-z]*|Prompted|Shown|Dismissed)$',
+  "settings.dismissedSkillFreshnessNudges",
+  "settings.tabSwitchKeybindingSeed",
+  # Secrets and signed-in accounts.
+  "settings.opencodeSessionCookie",
+  "settings.opencodeWorkspaceId",
+  "settings.opencodeGoApiKey",
+  "settings.minimaxGroupId",
+  "settings.codexManagedAccounts",
+  "settings.activeCodexManagedAccountId",
+  "settings.activeCodexManagedAccountIdsByRuntime",
+  "settings.claudeManagedAccounts",
+  "settings.activeClaudeManagedAccountId",
+  "settings.activeClaudeManagedAccountIdsByRuntime",
+  "settings.telemetry",
+  # Machine, network, and host-specific values.
+  "settings.machineName",
+  "settings.hostSettingOverrides",
+  "settings.activeRuntimeEnvironmentId",
+  "settings.terminalDefaultShell",
+  "settings.terminalDefaultShellArgs",
+  "settings.httpProxyUrl",
+  "settings.httpProxyBypassRules",
+  "settings.androidSdkPath",
+  "settings.mobileEmulatorDefaultDeviceUdid",
+  "settings.mobilePairingCustomAddress",
+  "settings.mobilePairingCustomAddresses",
+  "settings.devPluginPaths",
+  "settings.pluginConsents",
+  "settings.codexSessionSourceHome",
+  "settings.browserSshWorkspaceRoutingDisabledTargetIds",
+  "settings.browserSshWorkspaceRoutingProbeSkippedTargetIds",
+  # Usage history and selections tied to local repos.
+  "settings.workspaceDirHistory",
+  "settings.terminalScopeHistoryByWorktree",
+  "settings.floatingTerminalCwd",
+  "settings.floatingTerminalTrustedCwds",
+  "settings.defaultRepoSelection",
+  "settings.defaultLinearTeamSelection",
+  "settings.githubProjects",
+  "settings.gitlabProjects",
+]
+
 [targets.orca_install]
 sync_policy = "push-only"
 # The official AppImage updates itself in place, so we only install it once.
@@ -15,3 +67,14 @@ probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name orca{% elif
 # Upstream names the x86_64 build without an arch suffix. Other CPUs map to
 # `orca-linux-<cpu_arch>`, which exists for arm64 and fails at download for the rest.
 pre_push = '{% if os == "linux" %}{{ APPIMAGE_INSTALL }} --name orca --url https://github.com/stablyai/orca/releases/latest/download/{% if cpu_arch == "x86_64" %}orca-linux{% else %}orca-linux-{{ cpu_arch }}{% endif %}.AppImage{% elif os == "darwin" %}{{ INSTALL }} stablyai/orca/orca{% endif %}'
+
+# The source starts absent until Orca writes the file and `dotman pull` captures
+# it; `type` is required while both sides are missing. Orca holds this state in
+# memory and rewrites the file, so push only while the app is closed.
+[targets.f_orca_data_json]
+source = "files/orca/orca-data.json"
+path = "{{ vars.orca.data_file }}"
+type = "file"
+chmod = "600"
+render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors {{ vars.orca.local_state_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors {{ vars.orca.local_state_selectors|shell_args }}'

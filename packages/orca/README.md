@@ -9,6 +9,15 @@
 - Does not link a command. Use the app's "Install CLI" action; on Linux it links `~/.local/bin/orca-ide`, named to avoid GNOME Orca's `/usr/bin/orca`.
 - Homebrew's core `orca` cask is plotly's Orca, so macOS installs by the tap-qualified name.
 
-## Settings are not tracked
+## Settings
 
-Orca keeps settings under the `settings` key of `~/.config/Orca/profiles/<profileId>/orca-data.json`. That file also holds repos, worktree metadata, UI state, and a GitHub cache, and the profile ID differs per machine. Upstream is also preparing a SQLite store (`profile-state.db`) in the same directory. Some renderer preferences live in Electron Local Storage.
+Orca keeps everything in one file: `~/.config/Orca/profiles/local-default/orca-data.json` (`~/Library/Application Support/Orca/...` on macOS). The `settings` key holds preferences. The rest of the file is app state: repos, worktree metadata, UI, sessions, SSH targets, and caches.
+
+- The package tracks only `settings`, minus the fields listed in `vars.orca.local_state_selectors`: secrets and signed-in accounts, machine and network values, usage history, and one-time migration markers.
+- `dotman pull` saves only the tracked settings. `dotman push` overlays them and keeps every other live field.
+- Home paths are stored as `~`.
+- Quit Orca before `dotman push`. The app keeps its state in memory and would write over the pushed file.
+- The repo file does not exist until the first `dotman pull` after Orca has run.
+- Only the default `local-default` profile is tracked. Other profiles get generated IDs.
+- Upstream is preparing a SQLite store (`profile-state.db`) in the same folder. If settings move there, this target stops tracking them.
+- Review new fields on pull. Upstream adds settings often, and a new secret or machine-specific field needs a line in the selector list.
