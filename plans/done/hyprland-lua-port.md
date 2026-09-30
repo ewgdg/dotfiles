@@ -65,9 +65,9 @@ Constraints:
 ## Progress
 
 - [x] Step 1 Lua config + fullscreen hook (verify-config ok; nested 0.56.2: 126/128 binds, 2 intentionally dropped; float fix passes for Mod+F maximize and Mod+Shift+F fullscreen)
-- [x] Step 2 probe script (`packages/linux/sunshine/scripts/probe-hyprland-virtual-display.sh`; steps 1-2 dry-run in nested Hyprland, Sunshine wlr step dry-run on niri) — awaiting real-session run
-- [ ] Step 3 capture route — probe evidence (nested, no logout) points to `capture = wlr` + fixed `sunshine` headless output; awaiting go-ahead given headless-host lockout risk
-- [ ] Step 4 docs
+- [x] Step 2 probe — run nested (no logout) with a test-only GBM shim; decided the route. Probe script later removed as superseded by the fixed output + `grim -o sunshine` check.
+- [x] Step 3 capture route: `capture = wlr` + fixed `sunshine` headless output created in `hyprland.lua`; prep script `--headless` / `undo --dormant-headless` mirrors Niri (nested: do 2560x1440@120 -> scale 1.33 focused; dormant keeps mode at 60 Hz; plain undo disables)
+- [x] Step 4 docs (`packages/linux/sunshine/docs/prep-hypr.md`, package README)
 
 ## Surprises & Discoveries
 
@@ -113,4 +113,8 @@ Constraints:
 
 ## Outcomes & Retrospective
 
-(pending)
+- Config, fullscreen workaround and Sunshine route are in place; nothing ran in a real
+  Hyprland DRM session yet. First real login must confirm `sunshine` has a non-zero size
+  and `grim -o sunshine` works; keep SSH available because the host is headless.
+- `--solo` could not be validated nested (the nested WAYLAND-1 output ignores disable);
+  the headless template does not use it.
