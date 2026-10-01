@@ -38,6 +38,9 @@ patterns = [
   "skills/",
   "state/",
   "cache/",
+  # Built-in MCP OAuth tokens and server log.
+  "mcp-auth.json",
+  "mcp.log*",
   "*changelog.json",
   "pi-durable-subagents.json",
 ]
