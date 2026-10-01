@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=YouTube Music Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://music.youtube.com/"
+Icon=webapp-youtube-music
+StartupWMClass=chrome-music.youtube.com__-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;

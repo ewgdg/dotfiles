@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Claude Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://claude.ai/"
+Icon=webapp-claude
+StartupWMClass=chrome-claude.ai__-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;

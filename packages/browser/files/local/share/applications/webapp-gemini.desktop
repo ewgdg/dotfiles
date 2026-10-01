@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Gemini Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://gemini.google.com/"
+Icon=webapp-gemini
+StartupWMClass=chrome-gemini.google.com__-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;

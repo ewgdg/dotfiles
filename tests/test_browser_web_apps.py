@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
+import time
 
 import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WEB_APPS_SCRIPT = REPO_ROOT / "packages/browser/scripts/web_apps.py"
-EXPORTED_ICON_SIZES = (16, 32, 48, 128, 256)
-PROBE_ACTION_NEEDED = 0
-PROBE_NOOP = 100
+ICON_SIZE = 256
 
 # Mirrors ChatGPT's favicon: the only fill comes from embedded CSS, which
 # Qt-based shells ignore, so installing it as-is shows a blank icon. Its
@@ -25,35 +22,24 @@ CSS_FILLED_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" 
 """
 
 
-def run_web_apps(
-    command: str, spec_path: Path, data_home: Path, *arguments: str
+def run_add(
+    files_dir: Path, app_id: str, name: str, url: str, *arguments: str
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(WEB_APPS_SCRIPT), command, str(spec_path), *arguments],
-        env={**os.environ, "XDG_DATA_HOME": str(data_home)},
+        [sys.executable, str(WEB_APPS_SCRIPT), "add", "--files-dir", str(files_dir),
+         app_id, name, url, *arguments],
         capture_output=True,
         text=True,
         timeout=60,
     )
 
 
-def write_spec(tmp_path: Path, icon_source: Path | None) -> Path:
-    """Write a ChatGPT spec, with its committed icon copied next to it."""
-    spec_path = tmp_path / "web-apps.toml"
-    spec_path.write_text(
-        """
-[[apps]]
-id = "chatgpt"
-name = "ChatGPT Web"
-url = "https://chatgpt.com/"
-""",
-        encoding="utf-8",
-    )
-    if icon_source:
-        icons_dir = tmp_path / "icons"
-        icons_dir.mkdir(exist_ok=True)
-        shutil.copy(icon_source, icons_dir / f"chatgpt{icon_source.suffix}")
-    return spec_path
+def desktop_path(files_dir: Path, app_id: str) -> Path:
+    return files_dir / f"local/share/applications/webapp-{app_id}.desktop"
+
+
+def icon_path(files_dir: Path, app_id: str) -> Path:
+    return files_dir / f"local/share/icons/hicolor/{ICON_SIZE}x{ICON_SIZE}/apps/webapp-{app_id}.png"
 
 
 def icon_channel_maximum(icon_path: Path, channel: str) -> float:
@@ -103,13 +89,24 @@ def raster_png(tmp_path: Path) -> Path:
     return icon_path
 
 
+def icon_dimensions(icon_path: Path) -> str:
+    return subprocess.run(
+        ["magick", str(icon_path), "-format", "%wx%h", "info:"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
 def test_desktop_entry_matches_chrome_app_window_identity(
     tmp_path: Path, css_filled_svg: Path
 ) -> None:
-    data_home = tmp_path / "share"
-    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
+    files_dir = tmp_path / "files"
+    run_add(
+        files_dir, "chatgpt", "ChatGPT Web", "https://chatgpt.com/", "--icon", str(css_filled_svg)
+    ).check_returncode()
 
-    entry = (data_home / "applications/webapp-chatgpt.desktop").read_text(encoding="utf-8")
+    entry = desktop_path(files_dir, "chatgpt").read_text(encoding="utf-8")
 
     assert "Name=ChatGPT Web\n" in entry
     assert (
@@ -122,82 +119,43 @@ def test_desktop_entry_matches_chrome_app_window_identity(
 
 
 @pytest.mark.parametrize("icon_fixture", ["css_filled_svg", "raster_png"])
-def test_apply_installs_visible_png_icons_at_chrome_sizes(
+def test_add_writes_one_visible_png_icon(
     tmp_path: Path, icon_fixture: str, request: pytest.FixtureRequest
 ) -> None:
-    data_home = tmp_path / "share"
-    spec_path = write_spec(tmp_path, request.getfixturevalue(icon_fixture))
+    files_dir = tmp_path / "files"
 
-    run_web_apps("apply", spec_path, data_home).check_returncode()
+    run_add(
+        files_dir, "chatgpt", "ChatGPT Web", "https://chatgpt.com/",
+        "--icon", str(request.getfixturevalue(icon_fixture)),
+    ).check_returncode()
 
-    hicolor = data_home / "icons/hicolor"
-    assert not list(hicolor.rglob("*.svg"))
-    for size in EXPORTED_ICON_SIZES:
-        icon_path = hicolor / f"{size}x{size}/apps/webapp-chatgpt.png"
-        assert icon_is_visible(icon_path)
+    icons = list((files_dir / "local/share/icons").rglob("*.*"))
+    assert icons == [icon_path(files_dir, "chatgpt")]
+    assert icon_dimensions(icons[0]) == f"{ICON_SIZE}x{ICON_SIZE}"
+    assert icon_is_visible(icons[0])
+
+
+def test_regenerated_icon_is_byte_identical(tmp_path: Path, raster_png: Path) -> None:
+    """Icons are committed, so unchanged sources must not produce a git diff."""
+    files_dir = tmp_path / "files"
+    add_arguments = (files_dir, "chatgpt", "ChatGPT Web", "https://chatgpt.com/", "--icon", str(raster_png))
+    run_add(*add_arguments).check_returncode()
+    first_icon = icon_path(files_dir, "chatgpt").read_bytes()
+    time.sleep(1.1)
+
+    run_add(*add_arguments).check_returncode()
+
+    assert icon_path(files_dir, "chatgpt").read_bytes() == first_icon
 
 
 def test_svg_icons_render_dark_mode_variant(tmp_path: Path, css_filled_svg: Path) -> None:
-    data_home = tmp_path / "share"
+    files_dir = tmp_path / "files"
 
-    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
+    run_add(
+        files_dir, "chatgpt", "ChatGPT Web", "https://chatgpt.com/", "--icon", str(css_filled_svg)
+    ).check_returncode()
 
-    icon_path = data_home / "icons/hicolor/48x48/apps/webapp-chatgpt.png"
-    assert icon_channel_maximum(icon_path, "r") == 1
-
-
-def test_probe_reports_missing_then_current_state(
-    tmp_path: Path, css_filled_svg: Path
-) -> None:
-    data_home = tmp_path / "share"
-    spec_path = write_spec(tmp_path, css_filled_svg)
-
-    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_ACTION_NEEDED
-    run_web_apps("apply", spec_path, data_home).check_returncode()
-    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_NOOP
-
-
-def test_probe_detects_changed_icon_source(tmp_path: Path, css_filled_svg: Path) -> None:
-    data_home = tmp_path / "share"
-    spec_path = write_spec(tmp_path, css_filled_svg)
-    run_web_apps("apply", spec_path, data_home).check_returncode()
-
-    committed_icon = tmp_path / "icons/chatgpt.svg"
-    committed_icon.write_text(CSS_FILLED_SVG.replace("M4 4h16", "M2 2h20"), encoding="utf-8")
-
-    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_ACTION_NEEDED
-
-
-def test_probe_fails_hard_when_icon_source_is_missing(tmp_path: Path) -> None:
-    data_home = tmp_path / "share"
-
-    completed = run_web_apps("probe", write_spec(tmp_path, None), data_home)
-
-    assert completed.returncode not in (PROBE_ACTION_NEEDED, PROBE_NOOP)
-    assert "chatgpt" in completed.stderr
-
-
-def test_apply_removes_launchers_dropped_from_spec_only(
-    tmp_path: Path, css_filled_svg: Path
-) -> None:
-    data_home = tmp_path / "share"
-    spec_path = write_spec(tmp_path, css_filled_svg)
-    applications = data_home / "applications"
-    stale_icon = data_home / "icons/hicolor/48x48/apps/webapp-dropped.png"
-    unowned_entry = applications / "chrome-abc-Default.desktop"
-    run_web_apps("apply", spec_path, data_home).check_returncode()
-    (applications / "webapp-dropped.desktop").write_text("[Desktop Entry]\n", encoding="utf-8")
-    stale_icon.write_bytes(b"")
-    unowned_entry.write_text("[Desktop Entry]\n", encoding="utf-8")
-
-    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_ACTION_NEEDED
-    run_web_apps("apply", spec_path, data_home).check_returncode()
-
-    assert not (applications / "webapp-dropped.desktop").exists()
-    assert not stale_icon.exists()
-    assert unowned_entry.exists()
-    assert (applications / "webapp-chatgpt.desktop").exists()
-    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_NOOP
+    assert icon_channel_maximum(icon_path(files_dir, "chatgpt"), "r") == 1
 
 
 def write_manifest_site(site_dir: Path) -> str:
@@ -221,37 +179,23 @@ def write_manifest_site(site_dir: Path) -> str:
     return (site_dir / "index.html").as_uri()
 
 
-def write_site_spec(tmp_path: Path, url: str) -> Path:
-    spec_path = tmp_path / "web-apps.toml"
-    spec_path.write_text(
-        f"""
-[[apps]]
-id = "site"
-name = "Site Web"
-url = "{url}"
-""",
-        encoding="utf-8",
-    )
-    return spec_path
-
-
-def test_fetch_saves_largest_any_purpose_manifest_icon(tmp_path: Path) -> None:
+def test_add_without_icon_uses_largest_any_purpose_manifest_icon(tmp_path: Path) -> None:
+    files_dir = tmp_path / "files"
     url = write_manifest_site(tmp_path / "site")
 
-    completed = run_web_apps("fetch", write_site_spec(tmp_path, url), tmp_path / "share", "site")
+    run_add(files_dir, "site", "Site Web", url).check_returncode()
 
-    completed.check_returncode()
-    assert center_color(tmp_path / "icons/site.png") == "srgb(0,0,255)"
+    assert center_color(icon_path(files_dir, "site")) == "srgb(0,0,255)"
+    assert desktop_path(files_dir, "site").is_file()
 
 
-def test_fetch_fails_when_site_has_no_manifest(tmp_path: Path) -> None:
+def test_add_fails_without_writing_when_site_has_no_manifest(tmp_path: Path) -> None:
+    files_dir = tmp_path / "files"
     page = tmp_path / "index.html"
     page.write_text("<html><head></head></html>", encoding="utf-8")
 
-    completed = run_web_apps(
-        "fetch", write_site_spec(tmp_path, page.as_uri()), tmp_path / "share", "site"
-    )
+    completed = run_add(files_dir, "site", "Site Web", page.as_uri())
 
     assert completed.returncode != 0
     assert "icon" in completed.stderr
-    assert not (tmp_path / "icons").exists()
+    assert not files_dir.exists()

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Memos Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://memos.service.xianzzz.com/"
+Icon=webapp-memos
+StartupWMClass=chrome-memos.service.xianzzz.com__-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;
