@@ -18,7 +18,7 @@ spawn-sh-at-startup "autolock=0; if [ \"${AUTOLOGIN_SESSION:-0}\" = \"1\" ]; the
 // Optional: if Noctalia's polkit agent is disabled, start another polkit auth agent.
 // spawn-sh-at-startup "/usr/lib/polkit-kde-authentication-agent-1 &" // Polkit (KDE)
 
-spawn-at-startup "launch-desktop-app" "memos" "^chrome-.*-Default[.]desktop$"
+spawn-at-startup "launch-desktop-app" "memos" "^webapp-memos[.]desktop$"
 spawn-at-startup "obsidian"
 spawn-at-startup "chatgpt"
 // spawn-at-startup "launch-desktop-app" "Google AI Studio" "^chrome-.*-Default[.]desktop$"

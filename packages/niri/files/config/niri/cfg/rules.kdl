@@ -114,6 +114,8 @@ window-rule {
     // Keep note-taking apps on the dedicated notes workspace.
     match app-id=r#"(?i)\bobsidian\b"#
     match title=r#"(?i)\bmemos\b"#
+    // Memos `--app` web-app window; its title follows the page, so match app-id.
+    match app-id=r#"^chrome-memos\b"#
     open-on-workspace "notes"
 }
 
