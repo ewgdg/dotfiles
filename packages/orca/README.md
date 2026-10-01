@@ -11,13 +11,4 @@
 
 ## Settings
 
-Orca keeps everything in one file: `~/.config/Orca/profiles/local-default/orca-data.json` (`~/Library/Application Support/Orca/...` on macOS). Preferences, keybindings included, live under `settings`. The rest is app state: repos, worktree metadata, UI layout, sessions, SSH targets, and caches.
-
-- The package syncs `settings`, minus its `not:` paths in `vars.orca.synced_selectors`: secrets and signed-in accounts, machine-specific values, and per-machine history.
-- `dotman pull` saves the rest of `settings`. `dotman push` overlays it and keeps every excluded live field.
-- New upstream settings sync automatically. Review pulls, and add any new secret or machine-specific field to the exclude list.
-- Home paths are stored as `~`.
-- Quit Orca before `dotman push`. The app keeps its state in memory and would write over the pushed file.
-- The repo file does not exist until the first `dotman pull` after Orca has run.
-- Only the default `local-default` profile is tracked. Other profiles get generated IDs.
-- Upstream is preparing a SQLite store (`profile-state.db`) in the same folder. If settings move there, this target stops tracking them.
+Not synced. Orca stores settings as a JSON row in a SQLite database, `profiles/<id>/profile-state.db` under its config folder (`~/.config/orca` on Linux). Orca hash-checks each row, and a database file can't be swapped while it has WAL sidecars. The old `orca-data.json` is now only a compatibility export, and Orca refuses to start if that file was edited. Set preferences in the app.
