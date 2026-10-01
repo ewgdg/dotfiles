@@ -15,7 +15,8 @@ PROBE_ACTION_NEEDED = 0
 PROBE_NOOP = 100
 
 # Mirrors ChatGPT's favicon: the only fill comes from embedded CSS, which
-# Qt-based shells ignore, so installing it as-is shows a blank icon.
+# Qt-based shells ignore, so installing it as-is shows a blank icon. Its
+# dark-mode rule only applies in renderers that evaluate `@media`.
 CSS_FILLED_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
 <style>:root { fill: #000; } @media (prefers-color-scheme: dark) { :root { fill: #fff; } }</style>
 <path d="M4 4h16v16H4z"/>
@@ -35,9 +36,8 @@ def run_web_apps(
     )
 
 
-def write_spec(tmp_path: Path, icon_path: Path, icon_fill: str | None = None) -> Path:
+def write_spec(tmp_path: Path, icon_path: Path) -> Path:
     spec_path = tmp_path / "web-apps.toml"
-    icon_fill_line = f'icon_fill = "{icon_fill}"' if icon_fill else ""
     spec_path.write_text(
         f"""
 [[apps]]
@@ -45,7 +45,6 @@ id = "chatgpt"
 name = "ChatGPT Web"
 url = "https://chatgpt.com/"
 icon = "{icon_path.as_uri()}"
-{icon_fill_line}
 """,
         encoding="utf-8",
     )
@@ -75,10 +74,11 @@ def css_filled_svg(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def raster_png(tmp_path: Path, css_filled_svg: Path) -> Path:
+def raster_png(tmp_path: Path) -> Path:
     icon_path = tmp_path / "icon.png"
     subprocess.run(
-        ["rsvg-convert", "-w", "512", "-h", "512", "-o", str(icon_path), str(css_filled_svg)],
+        ["magick", "-size", "512x512", "xc:none", "-fill", "black",
+         "-draw", "rectangle 64,64 448,448", str(icon_path)],
         check=True,
     )
     return icon_path
@@ -161,14 +161,10 @@ def test_probe_detects_changed_spec(tmp_path: Path, css_filled_svg: Path, raster
     assert run_web_apps("probe", changed_icon_spec, data_home).returncode == PROBE_ACTION_NEEDED
 
 
-def test_icon_fill_recolours_theme_dependent_svg(tmp_path: Path, css_filled_svg: Path) -> None:
+def test_svg_icons_render_dark_mode_variant(tmp_path: Path, css_filled_svg: Path) -> None:
     data_home = tmp_path / "share"
-    spec_path = write_spec(tmp_path, css_filled_svg, icon_fill="#fff")
 
-    run_web_apps("apply", spec_path, data_home).check_returncode()
+    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
 
     icon_path = data_home / "icons/hicolor/48x48/apps/webapp-chatgpt.png"
     assert icon_channel_maximum(icon_path, "r") == 1
-    assert run_web_apps("probe", write_spec(tmp_path, css_filled_svg), data_home).returncode == (
-        PROBE_ACTION_NEEDED
-    )

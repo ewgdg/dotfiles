@@ -19,9 +19,9 @@ Chrome has no supported CLI for installing a web app into a personal profile, so
 
 ### Icons are rendered to PNG, never installed as SVG
 
-The desktop shell draws launcher icons, not Chrome. Qt-based shells such as Noctalia ignore CSS inside SVGs. ChatGPT's favicon gets its only fill from CSS, so installed as-is it shows blank. The script rasterizes SVGs with `rsvg-convert`, which applies that CSS, and resizes raster icons with `magick`. Chrome does the same: it exports PNGs only.
+The desktop shell draws launcher icons, not Chrome. Qt-based shells such as Noctalia ignore CSS inside SVGs. ChatGPT's favicon gets its only fill from CSS, so installed as-is it shows blank. Chrome itself exports PNGs only.
 
-librsvg ignores `@media` rules, so icons that switch colour with `prefers-color-scheme` render in their light variant. For a single-colour SVG, set `icon_fill` (e.g. `"#fff"`) to pick the colour that suits a dark launcher.
+The script renders SVGs with headless Chrome in dark mode, through a wrapper page that scales the SVG to the window, then resizes with `magick`. Raster icons go straight to `magick`. Chrome is used because standalone converters (librsvg, CairoSVG) apply the CSS but ignore `@media`, so icons with a `prefers-color-scheme: dark` variant come out in their light colours; ChatGPT's black logo nearly disappears on a dark launcher.
 
 ### Match windows by app-id, not title
 

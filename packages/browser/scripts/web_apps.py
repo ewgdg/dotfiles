@@ -30,7 +30,14 @@ OWNED_FILE_PREFIX = "webapp-"
 # Same sizes Chrome exports to hicolor when it installs a web app.
 ICON_SIZES = (16, 32, 48, 128, 256)
 ICON_SOURCE_KEY = "X-WebApp-Icon-Source"
-ICON_FILL_KEY = "X-WebApp-Icon-Fill"
+SVG_RENDER_SIZE = max(ICON_SIZES)
+CHROME_RENDER_TIMEOUT_SECONDS = 60
+# Scales the SVG to the screenshot window; on its own Chrome would draw it at
+# its intrinsic size and crop it.
+SVG_WRAPPER_HTML = """<!doctype html>
+<style>html, body { margin: 0; height: 100%; overflow: hidden; } img { display: block; width: 100%; height: 100%; object-fit: contain; }</style>
+<img src="icon.svg">
+"""
 # Some icon CDNs reject urllib's default user agent.
 DOWNLOAD_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Chrome/140 Safari/537.36"
 DOWNLOAD_TIMEOUT_SECONDS = 30
@@ -47,8 +54,6 @@ class WebApp:
     name: str
     url: str
     icon: str
-    # Overrides the fill of a single-colour SVG, e.g. to pick its dark variant.
-    icon_fill: str | None = None
 
 
 @dataclass(frozen=True)
@@ -127,9 +132,8 @@ def render_desktop_entry(app: WebApp) -> str:
             "Terminal=false",
             "StartupNotify=true",
             "Categories=Network;",
-            # Recorded so changed icon settings show up as a launcher change.
+            # Recorded so a changed icon URL shows up as a launcher change.
             f"{ICON_SOURCE_KEY}={app.icon}",
-            *([f"{ICON_FILL_KEY}={app.icon_fill}"] if app.icon_fill else []),
             "",
         ]
     )
@@ -158,41 +162,62 @@ def is_svg(image: bytes) -> bool:
     return b"<svg" in image[:1024]
 
 
-def render_png(image: bytes, size: int, output_path: Path, fill_stylesheet: Path | None) -> None:
-    """Rasterize into a square PNG.
+def rasterize_svg(svg: bytes) -> bytes:
+    """Render an SVG to PNG as Chrome draws it on a dark desktop.
 
-    Site SVGs are rasterized instead of installed because Qt-based shells
-    ignore CSS inside SVGs; ChatGPT's icon gets its only fill from CSS and
-    shows up blank. librsvg applies that CSS.
+    SVGs are not installed as-is because Qt-based shells ignore CSS inside
+    them; ChatGPT's icon gets its only fill from CSS and shows up blank.
+    librsvg and CairoSVG apply that CSS but ignore `@media`, so they miss the
+    `prefers-color-scheme: dark` variant that Chrome itself would pick.
     """
+    with tempfile.TemporaryDirectory() as scratch_dir:
+        scratch = Path(scratch_dir)
+        (scratch / "icon.svg").write_bytes(svg)
+        wrapper_page = scratch / "icon.html"
+        wrapper_page.write_text(SVG_WRAPPER_HTML, encoding="utf-8")
+        screenshot = scratch / "icon.png"
+        subprocess.run(
+            [
+                CHROME_COMMAND,
+                "--headless",
+                "--disable-gpu",
+                # Throwaway profile so rendering never touches the real one.
+                f"--user-data-dir={scratch / 'profile'}",
+                "--force-dark-mode",
+                "--force-device-scale-factor=1",
+                "--hide-scrollbars",
+                "--default-background-color=00000000",
+                f"--window-size={SVG_RENDER_SIZE},{SVG_RENDER_SIZE}",
+                f"--screenshot={screenshot}",
+                wrapper_page.as_uri(),
+            ],
+            capture_output=True,
+            check=True,
+            timeout=CHROME_RENDER_TIMEOUT_SECONDS,
+        )
+        return screenshot.read_bytes()
+
+
+def render_png(image: bytes, size: int, output_path: Path) -> None:
+    """Resize a raster image into a square PNG, padding with transparency."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    if is_svg(image):
-        command = ["rsvg-convert", "-w", str(size), "-h", str(size), "-a", "-o", str(output_path)]
-        if fill_stylesheet:
-            command += ["--stylesheet", str(fill_stylesheet)]
-    else:
-        geometry = f"{size}x{size}"
-        command = [
+    geometry = f"{size}x{size}"
+    subprocess.run(
+        [
             "magick", "-", "-resize", geometry,
             "-background", "none", "-gravity", "center", "-extent", geometry,
             f"png:{output_path}",
-        ]
-    subprocess.run(command, input=image, check=True)
+        ],
+        input=image,
+        check=True,
+    )
 
 
 def install_launcher(layout: InstallLayout, app: WebApp) -> None:
     image = download(app.icon)
-    if app.icon_fill and not is_svg(image):
-        raise ValueError(f"{app.id}: icon_fill needs an SVG icon")
-    with tempfile.TemporaryDirectory() as scratch_dir:
-        fill_stylesheet = None
-        if app.icon_fill:
-            fill_stylesheet = Path(scratch_dir, "fill.css")
-            # `!important` because user stylesheets lose to the SVG's own CSS;
-            # librsvg ignores `@media`, so dark-mode rules never apply otherwise.
-            fill_stylesheet.write_text(f"svg {{ fill: {app.icon_fill} !important; }}\n")
-        for size, icon_path in layout.icon_paths(app).items():
-            render_png(image, size, icon_path, fill_stylesheet)
+    raster_image = rasterize_svg(image) if is_svg(image) else image
+    for size, icon_path in layout.icon_paths(app).items():
+        render_png(raster_image, size, icon_path)
     # Written last so a failed icon render leaves the launcher out of date.
     layout.applications_dir.mkdir(parents=True, exist_ok=True)
     layout.desktop_path(app).write_text(render_desktop_entry(app), encoding="utf-8")
