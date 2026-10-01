@@ -26,3 +26,8 @@ id = "claude"
 name = "Claude Web"
 url = "https://claude.ai/"
 # Icon added by hand: claude.ai blocks scripted fetches.
+
+[[apps]]
+id = "youtube-music"
+name = "YouTube Music Web"
+url = "https://music.youtube.com/"
