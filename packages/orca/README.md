@@ -13,7 +13,7 @@
 
 Orca keeps everything in one file: `~/.config/Orca/profiles/local-default/orca-data.json` (`~/Library/Application Support/Orca/...` on macOS). Preferences, keybindings included, live under `settings`. The rest is app state: repos, worktree metadata, UI layout, sessions, SSH targets, and caches.
 
-- The package syncs `settings`, minus the paths in `vars.orca.local_state_selectors`: secrets and signed-in accounts, machine-specific values, and per-machine history.
+- The package syncs `settings`, minus its `not:` paths in `vars.orca.synced_selectors`: secrets and signed-in accounts, machine-specific values, and per-machine history.
 - `dotman pull` saves the rest of `settings`. `dotman push` overlays it and keeps every excluded live field.
 - New upstream settings sync automatically. Review pulls, and add any new secret or machine-specific field to the exclude list.
 - Home paths are stored as `~`.

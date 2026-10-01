@@ -5,22 +5,21 @@ description = "Orca desktop app for running coding agents in parallel worktrees"
 # The first profile Orca creates; other profiles get generated IDs.
 data_file = '{% if os == "darwin" %}~/Library/Application Support{% else %}~/.config{% endif %}/Orca/profiles/local-default/orca-data.json'
 # orca-data.json is the whole app state; only `settings` (keybindings included)
-# syncs. These paths are live-local: capture drops them and render keeps the
-# live values. Review pulls for new secret fields from upstream.
-local_state_selectors = [
-  # Every top-level key except `settings`: repos, worktrees, ui, sessions, caches.
-  're:^(?!settings$)[^.]+$',
+# syncs. The `not:` paths stay live-local: capture drops them and render keeps
+# the live values. Review pulls for new secret fields from upstream.
+synced_selectors = [
+  "settings",
   # Secrets and signed-in accounts.
-  're:^settings\..*ManagedAccount.*$',
-  're:^settings\.(opencode|minimax)[A-Z].*$',
-  "settings.telemetry",
-  "settings.agentDefaultEnv",
-  "settings.httpProxyUrl",
+  'not:re:^settings\..*ManagedAccount.*$',
+  'not:re:^settings\.(opencode|minimax)[A-Z].*$',
+  "not:settings.telemetry",
+  "not:settings.agentDefaultEnv",
+  "not:settings.httpProxyUrl",
   # Machine-specific values and per-machine history.
-  're:^settings\..*(History|ByWorktree).*$',
-  "settings.machineName",
-  "settings.terminalDefaultShell",
-  "settings.hostSettingOverrides",
+  'not:re:^settings\..*(History|ByWorktree).*$',
+  "not:settings.machineName",
+  "not:settings.terminalDefaultShell",
+  "not:settings.hostSettingOverrides",
 ]
 
 [targets.orca_install]
@@ -46,5 +45,5 @@ source = "files/orca/orca-data.json"
 path = "{{ vars.orca.data_file }}"
 type = "file"
 chmod = "600"
-render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors {{ vars.orca.local_state_selectors|shell_args }}'
-capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors {{ vars.orca.local_state_selectors|shell_args }}'
+render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type remove --selectors {{ vars.orca.synced_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type retain --selectors {{ vars.orca.synced_selectors|shell_args }}'
