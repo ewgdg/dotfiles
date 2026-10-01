@@ -91,6 +91,7 @@ window-rule {
     // ChatGPT `--app` web-app window; its title follows the page, so match app-id.
     match app-id=r#"chatgpt\.com"#
     match title=r#"(?i)^Google AI Studio\b"#
+    match app-id=r#"^Paseo$"#
     open-on-workspace "AI"
 }
 
