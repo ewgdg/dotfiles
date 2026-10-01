@@ -13,8 +13,10 @@ apply: write launchers, render icons, and remove launchers dropped from the spec
 from __future__ import annotations
 
 import argparse
-import os
 from dataclasses import dataclass
+from html.parser import HTMLParser
+import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -30,6 +32,7 @@ OWNED_FILE_PREFIX = "webapp-"
 # Same sizes Chrome exports to hicolor when it installs a web app.
 ICON_SIZES = (16, 32, 48, 128, 256)
 ICON_SOURCE_KEY = "X-WebApp-Icon-Source"
+MANIFEST_ICON_SOURCE = "manifest"
 SVG_RENDER_SIZE = max(ICON_SIZES)
 CHROME_RENDER_TIMEOUT_SECONDS = 60
 # Scales the SVG to the screenshot window; on its own Chrome would draw it at
@@ -53,7 +56,8 @@ class WebApp:
     id: str
     name: str
     url: str
-    icon: str
+    # Direct icon URL; overrides the icon discovered from the site's manifest.
+    icon: str | None = None
 
 
 @dataclass(frozen=True)
@@ -133,7 +137,7 @@ def render_desktop_entry(app: WebApp) -> str:
             "StartupNotify=true",
             "Categories=Network;",
             # Recorded so a changed icon URL shows up as a launcher change.
-            f"{ICON_SOURCE_KEY}={app.icon}",
+            f"{ICON_SOURCE_KEY}={app.icon or MANIFEST_ICON_SOURCE}",
             "",
         ]
     )
@@ -156,6 +160,48 @@ def download(url: str) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": DOWNLOAD_USER_AGENT})
     with urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response:
         return response.read()
+
+
+class ManifestLinkParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.manifest_href: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        rel_values = (attributes.get("rel") or "").lower().split()
+        if tag == "link" and "manifest" in rel_values and self.manifest_href is None:
+            self.manifest_href = attributes.get("href")
+
+
+def manifest_icon_rank(icon: dict) -> tuple[bool, int]:
+    """Rank like Chrome: SVG (or `sizes: any`) first, then the largest size."""
+    sizes = icon.get("sizes", "").lower().split()
+    is_scalable = "any" in sizes or icon.get("type") == "image/svg+xml" or icon["src"].endswith(".svg")
+    largest_edge = max(
+        (int(size.split("x")[0]) for size in sizes if "x" in size), default=0
+    )
+    return is_scalable, largest_edge
+
+
+def discover_manifest_icon_url(app: WebApp) -> str:
+    """Return the best launcher icon from the site's web app manifest."""
+    parser = ManifestLinkParser()
+    parser.feed(download(app.url).decode("utf-8", errors="replace"))
+    if not parser.manifest_href:
+        raise RuntimeError(f"{app.id}: {app.url} links no web app manifest; set `icon` in the spec")
+    manifest_url = urllib.parse.urljoin(app.url, parser.manifest_href)
+    manifest = json.loads(download(manifest_url))
+    # Maskable/monochrome-only icons are cropped or flat; launchers need `any`.
+    launcher_icons = [
+        icon
+        for icon in manifest.get("icons", [])
+        if "any" in icon.get("purpose", "any").split()
+    ]
+    if not launcher_icons:
+        raise RuntimeError(f"{app.id}: {manifest_url} has no `any` purpose icon; set `icon` in the spec")
+    best_icon = max(launcher_icons, key=manifest_icon_rank)
+    return urllib.parse.urljoin(manifest_url, best_icon["src"])
 
 
 def is_svg(image: bytes) -> bool:
@@ -214,7 +260,7 @@ def render_png(image: bytes, size: int, output_path: Path) -> None:
 
 
 def install_launcher(layout: InstallLayout, app: WebApp) -> None:
-    image = download(app.icon)
+    image = download(app.icon or discover_manifest_icon_url(app))
     raster_image = rasterize_svg(image) if is_svg(image) else image
     for size, icon_path in layout.icon_paths(app).items():
         render_png(raster_image, size, icon_path)
