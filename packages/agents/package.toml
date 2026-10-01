@@ -15,6 +15,7 @@ patterns = [
   "artifacts/",
   "skills/agent-web-context/references/",
   "skills/**/test/",
+  "skills/**/tests/",
   "tools/",
 ]
 
