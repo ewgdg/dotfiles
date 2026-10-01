@@ -35,8 +35,9 @@ def run_web_apps(
     )
 
 
-def write_spec(tmp_path: Path, icon_path: Path) -> Path:
+def write_spec(tmp_path: Path, icon_path: Path, icon_fill: str | None = None) -> Path:
     spec_path = tmp_path / "web-apps.toml"
+    icon_fill_line = f'icon_fill = "{icon_fill}"' if icon_fill else ""
     spec_path.write_text(
         f"""
 [[apps]]
@@ -44,20 +45,26 @@ id = "chatgpt"
 name = "ChatGPT Web"
 url = "https://chatgpt.com/"
 icon = "{icon_path.as_uri()}"
+{icon_fill_line}
 """,
         encoding="utf-8",
     )
     return spec_path
 
 
+def icon_channel_maximum(icon_path: Path, channel: str) -> float:
+    return float(
+        subprocess.run(
+            ["magick", str(icon_path), "-format", f"%[fx:maxima.{channel}]", "info:"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+
+
 def icon_is_visible(icon_path: Path) -> bool:
-    opaque = subprocess.run(
-        ["magick", str(icon_path), "-format", "%[fx:maxima.a]", "info:"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    return float(opaque) > 0
+    return icon_channel_maximum(icon_path, "a") > 0
 
 
 @pytest.fixture
@@ -152,3 +159,16 @@ def test_probe_detects_changed_spec(tmp_path: Path, css_filled_svg: Path, raster
     changed_icon_spec = write_spec(tmp_path, raster_png)
 
     assert run_web_apps("probe", changed_icon_spec, data_home).returncode == PROBE_ACTION_NEEDED
+
+
+def test_icon_fill_recolours_theme_dependent_svg(tmp_path: Path, css_filled_svg: Path) -> None:
+    data_home = tmp_path / "share"
+    spec_path = write_spec(tmp_path, css_filled_svg, icon_fill="#fff")
+
+    run_web_apps("apply", spec_path, data_home).check_returncode()
+
+    icon_path = data_home / "icons/hicolor/48x48/apps/webapp-chatgpt.png"
+    assert icon_channel_maximum(icon_path, "r") == 1
+    assert run_web_apps("probe", write_spec(tmp_path, css_filled_svg), data_home).returncode == (
+        PROBE_ACTION_NEEDED
+    )

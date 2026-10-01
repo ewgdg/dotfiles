@@ -1,11 +1,14 @@
 # Chrome `--app` launchers installed by scripts/web_apps.py.
 # `icon` must be a direct image URL (SVG or raster); it is rendered to PNGs.
+# Optional `icon_fill` recolours a single-colour SVG, e.g. its dark variant.
 
 [[apps]]
 id = "chatgpt"
 name = "ChatGPT Web"
 url = "https://chatgpt.com/"
 icon = "https://chatgpt.com/cdn/assets/favicon-l4nq08hd.svg"
+# White, matching the favicon's own dark-mode colour.
+icon_fill = "#fff"
 
 [[apps]]
 id = "gemini"
