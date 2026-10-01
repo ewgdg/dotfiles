@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize(
     "script_relative_path",
     [
+        "packages/browser/scripts/web_apps.py",
         "packages/goldendict/scripts/sync_goldendict_config.py",
         "packages/greetd/scripts/capture_greetd_config.py",
         "packages/greetd/scripts/render_greetd_config.py",

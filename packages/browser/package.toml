@@ -1,5 +1,5 @@
 id = "browser"
-description = "Chromium/Electron launch flags"
+description = "Chromium/Electron launch flags and Chrome web-app launchers"
 
 [targets.f_config_chrome_flags_conf]
 source = "files/config/chrome-flags.conf"
@@ -13,6 +13,9 @@ path = "~/.config/chromium-flags.conf"
 source = "files/config/electron-flags.conf"
 path = "~/.config/electron-flags.conf"
 
-[targets.f_local_share_applications_chatgpt_web_desktop]
-source = "files/local/share/applications/chatgpt-web.desktop"
-path = "~/.local/share/applications/chatgpt-web.desktop"
+[targets.web_apps_installed]
+sync_policy = "push-only"
+probe = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/web_apps.py" probe "$DOTMAN_PACKAGE_ROOT/web-apps.toml"'
+
+[targets.web_apps_installed.hooks]
+pre_push = '{{ UV_RUN }} "$DOTMAN_PACKAGE_ROOT/scripts/web_apps.py" apply "$DOTMAN_PACKAGE_ROOT/web-apps.toml"'
