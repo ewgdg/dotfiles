@@ -1,1 +1,1 @@
-members = ["agents", "agent-external-tools", "codex", "claude", "deepseek-harness", "pi-coding-agent", "devspace", "paseo", "orca", "t3code"]
+members = ["agents", "agent-external-tools", "codex", "claude", "deepseek-harness", "pi-coding-agent", "devspace", "paseo", "t3code"]
