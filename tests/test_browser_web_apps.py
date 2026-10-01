@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -25,10 +26,10 @@ CSS_FILLED_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" 
 
 
 def run_web_apps(
-    command: str, spec_path: Path, data_home: Path
+    command: str, spec_path: Path, data_home: Path, *arguments: str
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(WEB_APPS_SCRIPT), command, str(spec_path)],
+        [sys.executable, str(WEB_APPS_SCRIPT), command, str(spec_path), *arguments],
         env={**os.environ, "XDG_DATA_HOME": str(data_home)},
         capture_output=True,
         text=True,
@@ -36,18 +37,22 @@ def run_web_apps(
     )
 
 
-def write_spec(tmp_path: Path, icon_path: Path) -> Path:
+def write_spec(tmp_path: Path, icon_source: Path | None) -> Path:
+    """Write a ChatGPT spec, with its committed icon copied next to it."""
     spec_path = tmp_path / "web-apps.toml"
     spec_path.write_text(
-        f"""
+        """
 [[apps]]
 id = "chatgpt"
 name = "ChatGPT Web"
 url = "https://chatgpt.com/"
-icon = "{icon_path.as_uri()}"
 """,
         encoding="utf-8",
     )
+    if icon_source:
+        icons_dir = tmp_path / "icons"
+        icons_dir.mkdir(exist_ok=True)
+        shutil.copy(icon_source, icons_dir / f"chatgpt{icon_source.suffix}")
     return spec_path
 
 
@@ -66,16 +71,30 @@ def icon_is_visible(icon_path: Path) -> bool:
     return icon_channel_maximum(icon_path, "a") > 0
 
 
+def solid_png(path: Path, color: str) -> Path:
+    subprocess.run(["magick", "-size", "64x64", f"xc:{color}", str(path)], check=True)
+    return path
+
+
+def center_color(icon_path: Path) -> str:
+    return subprocess.run(
+        ["magick", str(icon_path), "-format", "%[pixel:p{24,24}]", "info:"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
 @pytest.fixture
 def css_filled_svg(tmp_path: Path) -> Path:
-    icon_path = tmp_path / "icon.svg"
+    icon_path = tmp_path / "source.svg"
     icon_path.write_text(CSS_FILLED_SVG, encoding="utf-8")
     return icon_path
 
 
 @pytest.fixture
 def raster_png(tmp_path: Path) -> Path:
-    icon_path = tmp_path / "icon.png"
+    icon_path = tmp_path / "source.png"
     subprocess.run(
         ["magick", "-size", "512x512", "xc:none", "-fill", "black",
          "-draw", "rectangle 64,64 448,448", str(icon_path)],
@@ -118,6 +137,15 @@ def test_apply_installs_visible_png_icons_at_chrome_sizes(
         assert icon_is_visible(icon_path)
 
 
+def test_svg_icons_render_dark_mode_variant(tmp_path: Path, css_filled_svg: Path) -> None:
+    data_home = tmp_path / "share"
+
+    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
+
+    icon_path = data_home / "icons/hicolor/48x48/apps/webapp-chatgpt.png"
+    assert icon_channel_maximum(icon_path, "r") == 1
+
+
 def test_probe_reports_missing_then_current_state(
     tmp_path: Path, css_filled_svg: Path
 ) -> None:
@@ -127,6 +155,26 @@ def test_probe_reports_missing_then_current_state(
     assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_ACTION_NEEDED
     run_web_apps("apply", spec_path, data_home).check_returncode()
     assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_NOOP
+
+
+def test_probe_detects_changed_icon_source(tmp_path: Path, css_filled_svg: Path) -> None:
+    data_home = tmp_path / "share"
+    spec_path = write_spec(tmp_path, css_filled_svg)
+    run_web_apps("apply", spec_path, data_home).check_returncode()
+
+    committed_icon = tmp_path / "icons/chatgpt.svg"
+    committed_icon.write_text(CSS_FILLED_SVG.replace("M4 4h16", "M2 2h20"), encoding="utf-8")
+
+    assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_ACTION_NEEDED
+
+
+def test_probe_fails_hard_when_icon_source_is_missing(tmp_path: Path) -> None:
+    data_home = tmp_path / "share"
+
+    completed = run_web_apps("probe", write_spec(tmp_path, None), data_home)
+
+    assert completed.returncode not in (PROBE_ACTION_NEEDED, PROBE_NOOP)
+    assert "chatgpt" in completed.stderr
 
 
 def test_apply_removes_launchers_dropped_from_spec_only(
@@ -152,29 +200,6 @@ def test_apply_removes_launchers_dropped_from_spec_only(
     assert run_web_apps("probe", spec_path, data_home).returncode == PROBE_NOOP
 
 
-def test_probe_detects_changed_spec(tmp_path: Path, css_filled_svg: Path, raster_png: Path) -> None:
-    data_home = tmp_path / "share"
-    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
-
-    changed_icon_spec = write_spec(tmp_path, raster_png)
-
-    assert run_web_apps("probe", changed_icon_spec, data_home).returncode == PROBE_ACTION_NEEDED
-
-
-def test_svg_icons_render_dark_mode_variant(tmp_path: Path, css_filled_svg: Path) -> None:
-    data_home = tmp_path / "share"
-
-    run_web_apps("apply", write_spec(tmp_path, css_filled_svg), data_home).check_returncode()
-
-    icon_path = data_home / "icons/hicolor/48x48/apps/webapp-chatgpt.png"
-    assert icon_channel_maximum(icon_path, "r") == 1
-
-
-def solid_png(path: Path, color: str) -> Path:
-    subprocess.run(["magick", "-size", "64x64", f"xc:{color}", str(path)], check=True)
-    return path
-
-
 def write_manifest_site(site_dir: Path) -> str:
     """Serve a page whose manifest lists icons coloured by how Chrome ranks them."""
     site_dir.mkdir()
@@ -196,7 +221,7 @@ def write_manifest_site(site_dir: Path) -> str:
     return (site_dir / "index.html").as_uri()
 
 
-def write_discovering_spec(tmp_path: Path, url: str, icon_line: str = "") -> Path:
+def write_site_spec(tmp_path: Path, url: str, icon_line: str = "") -> Path:
     spec_path = tmp_path / "web-apps.toml"
     spec_path.write_text(
         f"""
@@ -211,43 +236,33 @@ url = "{url}"
     return spec_path
 
 
-def installed_icon_color(data_home: Path) -> str:
-    return subprocess.run(
-        ["magick", str(data_home / "icons/hicolor/48x48/apps/webapp-site.png"),
-         "-format", "%[pixel:p{24,24}]", "info:"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-
-
-def test_icon_defaults_to_largest_any_purpose_manifest_icon(tmp_path: Path) -> None:
-    data_home = tmp_path / "share"
+def test_fetch_saves_largest_any_purpose_manifest_icon(tmp_path: Path) -> None:
     url = write_manifest_site(tmp_path / "site")
 
-    run_web_apps("apply", write_discovering_spec(tmp_path, url), data_home).check_returncode()
+    completed = run_web_apps("fetch", write_site_spec(tmp_path, url), tmp_path / "share", "site")
 
-    assert installed_icon_color(data_home) == "srgb(0,0,255)"
+    completed.check_returncode()
+    assert center_color(tmp_path / "icons/site.png") == "srgb(0,0,255)"
 
 
-def test_icon_url_overrides_manifest(tmp_path: Path) -> None:
-    data_home = tmp_path / "share"
+def test_fetch_icon_url_overrides_manifest(tmp_path: Path) -> None:
     url = write_manifest_site(tmp_path / "site")
     override = solid_png(tmp_path / "override.png", "yellow")
-    spec_path = write_discovering_spec(tmp_path, url, f'icon = "{override.as_uri()}"')
+    spec_path = write_site_spec(tmp_path, url, f'icon = "{override.as_uri()}"')
 
-    run_web_apps("apply", spec_path, data_home).check_returncode()
+    run_web_apps("fetch", spec_path, tmp_path / "share", "site").check_returncode()
 
-    assert installed_icon_color(data_home) == "srgb(255,255,0)"
+    assert center_color(tmp_path / "icons/site.png") == "srgb(255,255,0)"
 
 
-def test_apply_fails_when_site_has_no_manifest_and_no_icon(tmp_path: Path) -> None:
-    data_home = tmp_path / "share"
+def test_fetch_fails_when_site_has_no_manifest_and_no_icon(tmp_path: Path) -> None:
     page = tmp_path / "index.html"
     page.write_text("<html><head></head></html>", encoding="utf-8")
 
-    completed = run_web_apps("apply", write_discovering_spec(tmp_path, page.as_uri()), data_home)
+    completed = run_web_apps(
+        "fetch", write_site_spec(tmp_path, page.as_uri()), tmp_path / "share", "site"
+    )
 
     assert completed.returncode != 0
     assert "icon" in completed.stderr
-    assert not (data_home / "applications/webapp-site.desktop").exists()
+    assert not (tmp_path / "icons").exists()

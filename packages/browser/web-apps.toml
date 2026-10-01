@@ -1,8 +1,9 @@
 # Chrome `--app` launchers installed by scripts/web_apps.py.
 # Convention: `name` is the app's own name plus " Web", e.g. "Gemini Web",
 # so launchers stand apart from native apps.
-# Icons come from the site's web app manifest. Set `icon` to a direct image
-# URL (SVG or raster) only when the manifest can't be fetched or lacks one.
+# Each app needs a committed icon at icons/<id>.svg or icons/<id>.png; install
+# is offline. `scripts/web_apps.py fetch web-apps.toml <id>` downloads it from
+# the site's web app manifest, or from `icon` (a direct image URL) when set.
 
 [[apps]]
 id = "chatgpt"

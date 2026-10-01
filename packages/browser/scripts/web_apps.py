@@ -2,18 +2,22 @@
 """
 web_apps.py - Install Chrome `--app` launchers declared in a TOML spec.
 
-Each app gets `webapp-<id>.desktop` plus PNG icons in the user hicolor theme.
-Everything named `webapp-*` belongs to this script; launchers dropped from the
-spec are removed on apply.
+Each app gets `webapp-<id>.desktop` plus PNG icons in the user hicolor theme,
+rendered from the committed `icons/<id>.svg` or `icons/<id>.png` next to the
+spec. Installing never touches the network: bot-protected sites such as
+chatgpt.com and claude.ai reject scripted fetches. Everything named `webapp-*`
+belongs to this script; launchers dropped from the spec are removed on apply.
 
 probe: exit 0 when live launchers differ from the spec, 100 when current.
 apply: write launchers, render icons, and remove launchers dropped from the spec.
+fetch: download one app's icon into the icons directory, for committing.
 """
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import hashlib
 from html.parser import HTMLParser
 import json
 import os
@@ -31,9 +35,12 @@ CHROME_PROFILE_DIRECTORY = "Default"
 OWNED_FILE_PREFIX = "webapp-"
 # Same sizes Chrome exports to hicolor when it installs a web app.
 ICON_SIZES = (16, 32, 48, 128, 256)
-ICON_SOURCE_KEY = "X-WebApp-Icon-Source"
-MANIFEST_ICON_SOURCE = "manifest"
+ICON_SOURCE_SUFFIXES = (".svg", ".png")
+# Recorded in the launcher so an edited icon source shows up as a change.
+ICON_DIGEST_KEY = "X-WebApp-Icon-Digest"
 SVG_RENDER_SIZE = max(ICON_SIZES)
+# Fetched raster icons are shrunk to the largest installed size before committing.
+FETCHED_RASTER_MAX_SIZE = max(ICON_SIZES)
 CHROME_RENDER_TIMEOUT_SECONDS = 60
 # Scales the SVG to the screenshot window; on its own Chrome would draw it at
 # its intrinsic size and crop it.
@@ -56,7 +63,7 @@ class WebApp:
     id: str
     name: str
     url: str
-    # Direct icon URL; overrides the icon discovered from the site's manifest.
+    # Direct icon URL for `fetch`; overrides the icon in the site's manifest.
     icon: str | None = None
 
 
@@ -98,6 +105,22 @@ def load_web_apps(spec_path: Path) -> list[WebApp]:
     return [WebApp(**app) for app in spec["apps"]]
 
 
+def icons_dir_for(spec_path: Path) -> Path:
+    return spec_path.parent / "icons"
+
+
+def icon_source_path(icons_dir: Path, app: WebApp) -> Path:
+    candidates = [icons_dir / f"{app.id}{suffix}" for suffix in ICON_SOURCE_SUFFIXES]
+    existing = [path for path in candidates if path.is_file()]
+    if len(existing) != 1:
+        names = " or ".join(path.name for path in candidates)
+        raise RuntimeError(
+            f"{app.id}: expected exactly one icon source ({names}) in {icons_dir}; "
+            f"run `fetch` or add one"
+        )
+    return existing[0]
+
+
 def chrome_app_window_class(url: str) -> str:
     """Return the app_id Chrome gives `--app=<url>` windows.
 
@@ -116,7 +139,7 @@ def quote_exec_argument(argument: str) -> str:
     return '"' + argument.replace("%", "%%") + '"'
 
 
-def render_desktop_entry(app: WebApp) -> str:
+def render_desktop_entry(app: WebApp, icon_source: Path) -> str:
     exec_command = " ".join(
         [
             CHROME_COMMAND,
@@ -136,18 +159,17 @@ def render_desktop_entry(app: WebApp) -> str:
             "Terminal=false",
             "StartupNotify=true",
             "Categories=Network;",
-            # Recorded so a changed icon URL shows up as a launcher change.
-            f"{ICON_SOURCE_KEY}={app.icon or MANIFEST_ICON_SOURCE}",
+            f"{ICON_DIGEST_KEY}={hashlib.sha256(icon_source.read_bytes()).hexdigest()}",
             "",
         ]
     )
 
 
-def launcher_is_current(layout: InstallLayout, app: WebApp) -> bool:
+def launcher_is_current(layout: InstallLayout, app: WebApp, icon_source: Path) -> bool:
     desktop_path = layout.desktop_path(app)
     return (
         desktop_path.is_file()
-        and desktop_path.read_text(encoding="utf-8") == render_desktop_entry(app)
+        and desktop_path.read_text(encoding="utf-8") == render_desktop_entry(app, icon_source)
         and all(path.is_file() for path in layout.icon_paths(app).values())
     )
 
@@ -259,43 +281,70 @@ def render_png(image: bytes, size: int, output_path: Path) -> None:
     )
 
 
-def install_launcher(layout: InstallLayout, app: WebApp) -> None:
-    image = download(app.icon or discover_manifest_icon_url(app))
+def install_launcher(layout: InstallLayout, app: WebApp, icon_source: Path) -> None:
+    image = icon_source.read_bytes()
     raster_image = rasterize_svg(image) if is_svg(image) else image
     for size, icon_path in layout.icon_paths(app).items():
         render_png(raster_image, size, icon_path)
     # Written last so a failed icon render leaves the launcher out of date.
     layout.applications_dir.mkdir(parents=True, exist_ok=True)
-    layout.desktop_path(app).write_text(render_desktop_entry(app), encoding="utf-8")
+    layout.desktop_path(app).write_text(render_desktop_entry(app, icon_source), encoding="utf-8")
 
 
-def probe(layout: InstallLayout, apps: list[WebApp]) -> int:
-    is_current = all(launcher_is_current(layout, app) for app in apps) and not stale_files(
-        layout, apps
-    )
+def probe(layout: InstallLayout, apps: list[WebApp], icons_dir: Path) -> int:
+    is_current = all(
+        launcher_is_current(layout, app, icon_source_path(icons_dir, app)) for app in apps
+    ) and not stale_files(layout, apps)
     return PROBE_NOOP if is_current else PROBE_ACTION_NEEDED
 
 
-def apply(layout: InstallLayout, apps: list[WebApp]) -> int:
+def apply(layout: InstallLayout, apps: list[WebApp], icons_dir: Path) -> int:
     for app in apps:
-        if not launcher_is_current(layout, app):
-            install_launcher(layout, app)
+        icon_source = icon_source_path(icons_dir, app)
+        if not launcher_is_current(layout, app, icon_source):
+            install_launcher(layout, app, icon_source)
     for path in stale_files(layout, apps):
         path.unlink()
     return 0
 
 
+def fetch(apps: list[WebApp], icons_dir: Path, app_id: str) -> int:
+    """Save an app's icon as its committed source: SVG as-is, rasters shrunk."""
+    app = next(app for app in apps if app.id == app_id)
+    image = download(app.icon or discover_manifest_icon_url(app))
+    icons_dir.mkdir(exist_ok=True)
+    suffix = ".svg" if is_svg(image) else ".png"
+    saved_path = icons_dir / f"{app.id}{suffix}"
+    if suffix == ".svg":
+        saved_path.write_bytes(image)
+    else:
+        max_geometry = f"{FETCHED_RASTER_MAX_SIZE}x{FETCHED_RASTER_MAX_SIZE}>"
+        subprocess.run(["magick", "-", "-resize", max_geometry, f"png:{saved_path}"], input=image, check=True)
+    for other_suffix in set(ICON_SOURCE_SUFFIXES) - {suffix}:
+        (icons_dir / f"{app.id}{other_suffix}").unlink(missing_ok=True)
+    print(saved_path)
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("command", choices=["probe", "apply"])
-    parser.add_argument("spec", type=Path, help="TOML spec listing [[apps]]")
+    commands = parser.add_subparsers(dest="command", required=True)
+    for command in ("probe", "apply"):
+        commands.add_parser(command).add_argument("spec", type=Path, help="TOML spec listing [[apps]]")
+    fetch_parser = commands.add_parser("fetch")
+    fetch_parser.add_argument("spec", type=Path, help="TOML spec listing [[apps]]")
+    fetch_parser.add_argument("app_id", help="`id` of the app whose icon to download")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    apps = load_web_apps(args.spec)
+    icons_dir = icons_dir_for(args.spec)
+    if args.command == "fetch":
+        return fetch(apps, icons_dir, args.app_id)
     commands = {"probe": probe, "apply": apply}
-    return commands[args.command](InstallLayout.from_environment(), load_web_apps(args.spec))
+    return commands[args.command](InstallLayout.from_environment(), apps, icons_dir)
 
 
 if __name__ == "__main__":
