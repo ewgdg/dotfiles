@@ -53,7 +53,6 @@
     "+extensions/pi-openrouter-controls/index.ts"
   ],
   "fullscreenScrollbar": "always",
-  "tuiMode": "fullscreen",
   "retry": {
     "enabled": true
   },
