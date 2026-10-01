@@ -1,9 +1,10 @@
 # Chrome `--app` launchers installed by scripts/web_apps.py.
+# `name` gets a " Web" suffix in the launcher.
 # `icon` must be a direct image URL (SVG or raster); it is rendered to PNGs.
 
 [[apps]]
 id = "chatgpt"
-name = "ChatGPT Web"
+name = "ChatGPT"
 url = "https://chatgpt.com/"
 icon = "https://chatgpt.com/cdn/assets/favicon-l4nq08hd.svg"
 

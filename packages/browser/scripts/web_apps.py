@@ -27,6 +27,8 @@ import urllib.request
 CHROME_COMMAND = "google-chrome-stable"
 CHROME_PROFILE_DIRECTORY = "Default"
 OWNED_FILE_PREFIX = "webapp-"
+# Tells web-app launchers apart from native apps of the same name.
+DISPLAY_NAME_SUFFIX = " Web"
 # Same sizes Chrome exports to hicolor when it installs a web app.
 ICON_SIZES = (16, 32, 48, 128, 256)
 ICON_SOURCE_KEY = "X-WebApp-Icon-Source"
@@ -125,7 +127,7 @@ def render_desktop_entry(app: WebApp) -> str:
             "[Desktop Entry]",
             "Version=1.0",
             "Type=Application",
-            f"Name={app.name}",
+            f"Name={app.name}{DISPLAY_NAME_SUFFIX}",
             f"Exec={exec_command}",
             f"Icon={OWNED_FILE_PREFIX}{app.id}",
             f"StartupWMClass={chrome_app_window_class(app.url)}",
