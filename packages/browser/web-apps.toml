@@ -20,3 +20,10 @@ url = "https://gemini.google.com/"
 id = "memos"
 name = "Memos Web"
 url = "https://memos.service.xianzzz.com/"
+
+[[apps]]
+id = "claude"
+name = "Claude Web"
+url = "https://claude.ai/"
+# claude.ai blocks non-browser page fetches, so its manifest is unreachable.
+icon = "https://claude.ai/favicon.svg"
