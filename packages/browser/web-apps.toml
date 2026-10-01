@@ -3,14 +3,13 @@
 # so launchers stand apart from native apps.
 # Each app needs a committed icon at icons/<id>.svg or icons/<id>.png; install
 # is offline. `scripts/web_apps.py fetch web-apps.toml <id>` downloads it from
-# the site's web app manifest, or from `icon` (a direct image URL) when set.
+# the site's web app manifest; add it by hand when the site blocks scripts.
 
 [[apps]]
 id = "chatgpt"
 name = "ChatGPT Web"
 url = "https://chatgpt.com/"
-# chatgpt.com blocks non-browser page fetches, so its manifest is unreachable.
-icon = "https://chatgpt.com/cdn/assets/favicon-l4nq08hd.svg"
+# Icon added by hand: chatgpt.com blocks scripted fetches.
 
 [[apps]]
 id = "gemini"
@@ -26,5 +25,4 @@ url = "https://memos.service.xianzzz.com/"
 id = "claude"
 name = "Claude Web"
 url = "https://claude.ai/"
-# claude.ai blocks non-browser page fetches, so its manifest is unreachable.
-icon = "https://claude.ai/favicon.svg"
+# Icon added by hand: claude.ai blocks scripted fetches.

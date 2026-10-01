@@ -221,7 +221,7 @@ def write_manifest_site(site_dir: Path) -> str:
     return (site_dir / "index.html").as_uri()
 
 
-def write_site_spec(tmp_path: Path, url: str, icon_line: str = "") -> Path:
+def write_site_spec(tmp_path: Path, url: str) -> Path:
     spec_path = tmp_path / "web-apps.toml"
     spec_path.write_text(
         f"""
@@ -229,7 +229,6 @@ def write_site_spec(tmp_path: Path, url: str, icon_line: str = "") -> Path:
 id = "site"
 name = "Site Web"
 url = "{url}"
-{icon_line}
 """,
         encoding="utf-8",
     )
@@ -245,17 +244,7 @@ def test_fetch_saves_largest_any_purpose_manifest_icon(tmp_path: Path) -> None:
     assert center_color(tmp_path / "icons/site.png") == "srgb(0,0,255)"
 
 
-def test_fetch_icon_url_overrides_manifest(tmp_path: Path) -> None:
-    url = write_manifest_site(tmp_path / "site")
-    override = solid_png(tmp_path / "override.png", "yellow")
-    spec_path = write_site_spec(tmp_path, url, f'icon = "{override.as_uri()}"')
-
-    run_web_apps("fetch", spec_path, tmp_path / "share", "site").check_returncode()
-
-    assert center_color(tmp_path / "icons/site.png") == "srgb(255,255,0)"
-
-
-def test_fetch_fails_when_site_has_no_manifest_and_no_icon(tmp_path: Path) -> None:
+def test_fetch_fails_when_site_has_no_manifest(tmp_path: Path) -> None:
     page = tmp_path / "index.html"
     page.write_text("<html><head></head></html>", encoding="utf-8")
 

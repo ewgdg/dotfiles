@@ -16,7 +16,7 @@ Everything named `webapp-*` belongs to the script. Removing an app from the spec
 1. Add `id`, `name`, and `url` to `web-apps.toml`. By convention `name` is the app's own name plus ` Web`, e.g. `Gemini Web`, to tell launchers apart from native apps.
 2. Run `uv run packages/browser/scripts/web_apps.py fetch packages/browser/web-apps.toml <id>` and commit the saved icon.
 
-`fetch` reads the site's web app manifest (`<link rel="manifest">`) and picks an icon like Chrome: SVG first, then the largest size, skipping maskable-only icons. SVGs are saved as-is; raster icons are shrunk to 256px. When the page blocks scripted fetches (chatgpt.com and claude.ai return a Cloudflare 403) or has no manifest, set `icon` to a direct image URL and fetch again, or drop a file into `icons/` by hand.
+`fetch` reads the site's web app manifest (`<link rel="manifest">`) and picks an icon like Chrome: SVG first, then the largest size, skipping maskable-only icons. SVGs are saved as-is; raster icons are shrunk to 256px. When the page blocks scripted fetches (chatgpt.com and claude.ai return a Cloudflare 403) or has no manifest, save the site's icon into `icons/` by hand; prefer its SVG favicon.
 
 ### Install is offline
 

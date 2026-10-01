@@ -10,7 +10,7 @@ belongs to this script; launchers dropped from the spec are removed on apply.
 
 probe: exit 0 when live launchers differ from the spec, 100 when current.
 apply: write launchers, render icons, and remove launchers dropped from the spec.
-fetch: download one app's icon into the icons directory, for committing.
+fetch: download one app's icon from its site's manifest, for committing.
 """
 
 from __future__ import annotations
@@ -63,8 +63,6 @@ class WebApp:
     id: str
     name: str
     url: str
-    # Direct icon URL for `fetch`; overrides the icon in the site's manifest.
-    icon: str | None = None
 
 
 @dataclass(frozen=True)
@@ -211,7 +209,7 @@ def discover_manifest_icon_url(app: WebApp) -> str:
     parser = ManifestLinkParser()
     parser.feed(download(app.url).decode("utf-8", errors="replace"))
     if not parser.manifest_href:
-        raise RuntimeError(f"{app.id}: {app.url} links no web app manifest; set `icon` in the spec")
+        raise RuntimeError(f"{app.id}: {app.url} links no web app manifest; add an icon by hand")
     manifest_url = urllib.parse.urljoin(app.url, parser.manifest_href)
     manifest = json.loads(download(manifest_url))
     # Maskable/monochrome-only icons are cropped or flat; launchers need `any`.
@@ -221,7 +219,7 @@ def discover_manifest_icon_url(app: WebApp) -> str:
         if "any" in icon.get("purpose", "any").split()
     ]
     if not launcher_icons:
-        raise RuntimeError(f"{app.id}: {manifest_url} has no `any` purpose icon; set `icon` in the spec")
+        raise RuntimeError(f"{app.id}: {manifest_url} has no `any` purpose icon; add an icon by hand")
     best_icon = max(launcher_icons, key=manifest_icon_rank)
     return urllib.parse.urljoin(manifest_url, best_icon["src"])
 
@@ -311,7 +309,7 @@ def apply(layout: InstallLayout, apps: list[WebApp], icons_dir: Path) -> int:
 def fetch(apps: list[WebApp], icons_dir: Path, app_id: str) -> int:
     """Save an app's icon as its committed source: SVG as-is, rasters shrunk."""
     app = next(app for app in apps if app.id == app_id)
-    image = download(app.icon or discover_manifest_icon_url(app))
+    image = download(discover_manifest_icon_url(app))
     icons_dir.mkdir(exist_ok=True)
     suffix = ".svg" if is_svg(image) else ".png"
     saved_path = icons_dir / f"{app.id}{suffix}"
