@@ -11,7 +11,7 @@ Chromium/Electron launch flags, plus Chrome web-app launchers.
 
 Everything named `webapp-*` belongs to the script. Removing an app from the spec deletes its launcher and icons on the next push.
 
-Add an app with `id`, `name`, `url`, and `icon`. Launcher names get a ` Web` suffix, e.g. `Gemini Web`, to tell them apart from native apps. `icon` must be a direct image URL; site pages often block scraping, so the script does not discover icons.
+Add an app with `id`, `name`, `url`, and `icon`. By convention `name` is the app's own name plus ` Web`, e.g. `Gemini Web`, to tell launchers apart from native apps. `icon` must be a direct image URL; site pages often block scraping, so the script does not discover icons.
 
 ### Why not Chrome's "Install app"
 

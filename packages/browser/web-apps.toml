@@ -1,15 +1,22 @@
 # Chrome `--app` launchers installed by scripts/web_apps.py.
-# `name` gets a " Web" suffix in the launcher.
+# Convention: `name` is the app's own name plus " Web", e.g. "Gemini Web",
+# so launchers stand apart from native apps.
 # `icon` must be a direct image URL (SVG or raster); it is rendered to PNGs.
 
 [[apps]]
 id = "chatgpt"
-name = "ChatGPT"
+name = "ChatGPT Web"
 url = "https://chatgpt.com/"
 icon = "https://chatgpt.com/cdn/assets/favicon-l4nq08hd.svg"
 
 [[apps]]
 id = "gemini"
-name = "Gemini"
+name = "Gemini Web"
 url = "https://gemini.google.com/"
 icon = "https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png"
+
+[[apps]]
+id = "memos"
+name = "Memos Web"
+url = "https://memos.service.xianzzz.com/"
+icon = "https://memos.service.xianzzz.com/android-chrome-512x512.png"

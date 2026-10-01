@@ -42,7 +42,7 @@ def write_spec(tmp_path: Path, icon_path: Path) -> Path:
         f"""
 [[apps]]
 id = "chatgpt"
-name = "ChatGPT"
+name = "ChatGPT Web"
 url = "https://chatgpt.com/"
 icon = "{icon_path.as_uri()}"
 """,
