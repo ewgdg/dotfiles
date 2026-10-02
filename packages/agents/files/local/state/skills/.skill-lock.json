@@ -19,12 +19,6 @@
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/grill-me/SKILL.md"
     },
-    "google-surf-mcp-search": {
-      "source": "aradotso/mcp-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/aradotso/mcp-skills.git",
-      "skillPath": "skills/google-surf-mcp-search/SKILL.md"
-    },
     "surf": {
       "source": "ewgdg/browser-skills",
       "sourceType": "github",
@@ -201,6 +195,18 @@
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/engineering/implement-spec/SKILL.md",
       "pluginName": "mattpocock-skills"
+    },
+    "archify": {
+      "source": "tt-a1i/archify",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/tt-a1i/archify.git",
+      "skillPath": "archify/SKILL.md"
+    },
+    "dotman": {
+      "source": "ewgdg/dotman",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/ewgdg/dotman.git",
+      "skillPath": "skills/dotman/SKILL.md"
     }
   },
   "dismissed": {
