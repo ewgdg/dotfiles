@@ -1,0 +1,43 @@
+{#- Tokens live in the Secret Service keyring, keyed by ortie account name. -#}
+{% macro secret_service_storage(account) -%}
+storage.read.command = ["secret-tool", "lookup", "service", "ortie", "account", "{{ account }}"]
+storage.write.command = ["secret-tool", "store", "--label=ortie {{ account }}", "service", "ortie", "account", "{{ account }}"]
+{%- endmacro %}
+# Both accounts use Thunderbird's public OAuth applications, which Google and
+# Microsoft verified for mail scopes, so no personal app registration is
+# needed. Values come from ortie's README.
+
+[accounts.gmail]
+default = true
+client-id = "406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com"
+client-secret.raw = "kSmqreRr0qwBWJgbf5Y-PjSU"
+endpoints.authorization = "https://accounts.google.com/o/oauth2/v2/auth"
+endpoints.token = "https://oauth2.googleapis.com/token"
+endpoints.redirection = "http://localhost"
+# Google has no read-only IMAP scope; himalaya's missing `smtp` section is the
+# only send switch for Gmail.
+scopes = ["https://mail.google.com/"]
+# Google issues a refresh token only for offline access.
+extras.access_type = "offline"
+extras.login_hint = "{{ vars.email.gmail.address }}"
+auto-refresh = true
+{{ secret_service_storage("gmail") }}
+
+[accounts.outlook]
+client-id = "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
+endpoints.authorization = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+endpoints.token = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+# Pinned by the Thunderbird app registration; nothing listens on https, so
+# sign-in finishes through `ortie auth resume` (see the package README).
+endpoints.redirection = "https://localhost"
+# Without send, the token omits SMTP.Send, so Outlook itself refuses to send.
+scopes = [
+  "https://outlook.office.com/IMAP.AccessAsUser.All",
+{% if vars.email.outlook.send %}
+  "https://outlook.office.com/SMTP.Send",
+{% endif %}
+  "offline_access",
+]
+extras.login_hint = "{{ vars.email.outlook.address }}"
+auto-refresh = true
+{{ secret_service_storage("outlook") }}

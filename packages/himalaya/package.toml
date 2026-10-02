@@ -1,0 +1,42 @@
+id = "himalaya"
+description = "Himalaya mail CLI with ortie OAuth tokens for Gmail and Outlook"
+
+# Addresses live in the private dotman local override (see README.md), so a
+# machine without them fails to render instead of writing an empty account.
+[vars.email]
+display_name = "Xian Zhang"
+
+# `send = true` adds the account's SMTP section; Outlook also adds the
+# SMTP.Send scope, which needs a fresh `ortie auth get -a outlook`.
+[vars.email.gmail]
+send = false
+
+[vars.email.outlook]
+send = false
+
+[targets.f_config_himalaya_config_toml]
+source = "files/config/himalaya/config.toml"
+path = "~/.config/himalaya/config.toml"
+chmod = "600"
+preset = "jinja-patch-editor"
+
+[targets.f_config_ortie_config_toml]
+source = "files/config/ortie/config.toml"
+path = "~/.config/ortie/config.toml"
+chmod = "600"
+preset = "jinja-patch-editor"
+
+[targets.himalaya_installed]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} himalaya'
+
+[targets.himalaya_installed.hooks]
+pre_push = "{{ INSTALL }} himalaya"
+
+[targets.ortie_installed]
+sync_policy = "push-only"
+# AUR package; the Arch install helper routes it through paru.
+probe = '{{ PROBE_PACKAGES_INSTALLED }} ortie'
+
+[targets.ortie_installed.hooks]
+pre_push = "{{ INSTALL }} ortie"

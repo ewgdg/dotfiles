@@ -1,0 +1,47 @@
+display-name = "{{ vars.email.display_name }}"
+
+# Both accounts use IMAP rather than the Gmail/Graph APIs: those bundle sending
+# into the read backend, while IMAP + SMTP lets a missing `smtp` section be the
+# per-account send switch (`vars.email.<account>.send`).
+
+[accounts.gmail]
+default = true
+email = "{{ vars.email.gmail.address }}"
+
+imap.server = "imap.gmail.com"
+imap.sasl.xoauth2.username = "{{ vars.email.gmail.address }}"
+imap.sasl.xoauth2.token.command = ["ortie", "token", "show", "-a", "gmail"]
+
+# IMAP reports only the inbox role, so the other roles are mapped by hand.
+mailbox.alias.sent = "[Gmail]/Sent Mail"
+mailbox.alias.drafts = "[Gmail]/Drafts"
+mailbox.alias.trash = "[Gmail]/Trash"
+mailbox.alias.junk = "[Gmail]/Spam"
+mailbox.alias.archive = "[Gmail]/All Mail"
+{% if vars.email.gmail.send %}
+
+# Gmail files sent mail itself, so no `message.send.save-copy`.
+smtp.server = "smtp.gmail.com"
+smtp.sasl.xoauth2.username = "{{ vars.email.gmail.address }}"
+smtp.sasl.xoauth2.token.command = ["ortie", "token", "show", "-a", "gmail"]
+{% endif %}
+
+[accounts.outlook]
+email = "{{ vars.email.outlook.address }}"
+
+imap.server = "outlook.office365.com"
+imap.sasl.xoauth2.username = "{{ vars.email.outlook.address }}"
+imap.sasl.xoauth2.token.command = ["ortie", "token", "show", "-a", "outlook"]
+
+mailbox.alias.sent = "Sent Items"
+mailbox.alias.drafts = "Drafts"
+mailbox.alias.trash = "Deleted Items"
+mailbox.alias.junk = "Junk Email"
+mailbox.alias.archive = "Archive"
+{% if vars.email.outlook.send %}
+
+smtp.server = "smtp://smtp-mail.outlook.com:587"
+smtp.starttls = true
+smtp.sasl.xoauth2.username = "{{ vars.email.outlook.address }}"
+smtp.sasl.xoauth2.token.command = ["ortie", "token", "show", "-a", "outlook"]
+{% endif %}
