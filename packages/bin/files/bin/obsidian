@@ -1,0 +1,6 @@
+#!/bin/sh
+# Workaround: T3 Code's backend leaks ELECTRON_RUN_AS_NODE=1 into agent shells,
+# which makes Electron start as plain Node instead of opening Obsidian.
+# Remove once T3 Code strips it from spawned agent environments.
+unset ELECTRON_RUN_AS_NODE
+exec /usr/bin/obsidian "$@"
