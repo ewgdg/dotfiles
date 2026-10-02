@@ -1,4 +1,12 @@
 {
+  "storageCleanup": {
+    "worktreeAfterDays": 8,
+    "worktreeOnMerge": true,
+    "worktreeOnDelete": true,
+    "worktreeUnchanged": true,
+    "browserArtifactsAfterDays": 8,
+    "logsAfterDays": 8
+  },
   "providers": {
     "cursor": {
       "enabled": false
