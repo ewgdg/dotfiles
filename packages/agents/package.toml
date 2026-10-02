@@ -6,6 +6,11 @@ depends = [
   "agent-external-tools",
 ]
 
+[vars.agents]
+# Install metadata `npx skills` rewrites on every add/update; it stays
+# live-only so `npx skills update` can still compare folder hashes.
+skill_lock_live_only_selectors = ['re:^skills\..+\.(skillFolderHash|installedAt|updatedAt)$']
+
 [targets.d_agents]
 source = "files/agents"
 path = "~/.agents"
@@ -14,11 +19,20 @@ path = "~/.agents"
 patterns = [
   "artifacts/",
   "skills/agent-web-context/references/",
-  "skills/**/test/",
-  "skills/**/tests/",
   "tools/",
 ]
+# Skills installed by `npx skills` are tracked only by the lock file below.
+command = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" ignores'
 
 [targets.f_local_state_skills_skill_lock_json]
 source = "files/local/state/skills/.skill-lock.json"
 path = "~/.local/state/skills/.skill-lock.json"
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.agents.skill_lock_live_only_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.agents.skill_lock_live_only_selectors|shell_args }}'
+
+[targets.managed_skills_installed]
+sync_policy = "push-only"
+probe = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" probe'
+
+[targets.managed_skills_installed.hooks]
+pre_push = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" install'
