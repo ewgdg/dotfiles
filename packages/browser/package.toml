@@ -29,3 +29,10 @@ path = "~/.local/share/icons/hicolor/256x256/apps"
 
 [targets.d_local_share_icons_webapps.ignore]
 patterns = ["*", "!webapp-*.png"]
+
+# Other installers left an icon-theme.cache in this directory. GTK judges it
+# fresh by the theme root's mtime, which adding a file to a size directory
+# leaves unchanged, so new icons stay hidden until the cache is rebuilt. `-t`
+# because the user hicolor has no index.theme.
+[targets.d_local_share_icons_webapps.hooks]
+post_push = 'gtk-update-icon-cache -q -t -f "$HOME/.local/share/icons/hicolor"'
