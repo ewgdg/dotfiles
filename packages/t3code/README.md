@@ -14,7 +14,7 @@
 
 All under `~/.t3/userdata/` (the `T3CODE_HOME` default):
 
-- `settings.json` — server settings. Stored sparse: only values that differ from defaults. Secrets (provider API keys, tokens) live in `secrets/`, not here.
+- `settings.json` — server settings. Stored sparse: only values that differ from defaults. Secrets (provider API keys, tokens) live in `secrets/`, not here. Per-machine keys are filtered out (see `server_settings_selectors`): the legacy-migration marker `projectSettingsFolded`, per-project overrides keyed by locally generated project ids, and device onboarding/hosts.
 - `client-settings.json` — device preferences such as appearance and confirmations. Written in full, so pulls include defaults.
 - `keybindings.json` — keybinding rules. T3 Code writes its defaults on first start and appends new ones on later starts, so pulls include defaults.
 

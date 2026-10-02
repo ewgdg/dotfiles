@@ -5,6 +5,17 @@ description = "T3 Code desktop app for driving local coding agents"
 # Onboarding completion and dismissed update notices are per-machine state,
 # not preferences.
 client_settings_selectors = ["onboardingCompletedAt", "dismissedProviderUpdateNotificationKeys"]
+# The legacy-migration marker, per-project overrides keyed by locally generated
+# project ids, and device onboarding/hosts are per-machine state.
+server_settings_selectors = [
+  "projectSettingsFolded",
+  "projectSettingsOverrides",
+  "projectScriptOverrides",
+  "projectAutoPullOverrides",
+  "projectAgentBrowserAccessOverrides",
+  "deviceOnboardingCompleted",
+  "deviceHosts",
+]
 
 [targets.t3code_install]
 sync_policy = "push-only"
@@ -25,6 +36,8 @@ pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_
 source = "files/t3/userdata/settings.json"
 path = "~/.t3/userdata/settings.json"
 type = "file"
+render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.t3code.server_settings_selectors|shell_args }}'
+capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.t3code.server_settings_selectors|shell_args }}'
 
 [targets.f_t3_userdata_client_settings_json]
 source = "files/t3/userdata/client-settings.json"
