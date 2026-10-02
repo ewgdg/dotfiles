@@ -75,6 +75,22 @@ def test_symlinked_skill_is_linked_by_its_source_path(tmp_path: Path) -> None:
     assert linked_skills(home) == {"tdd": str(home / ".agents/skills/tdd")}
 
 
+def test_relative_links_into_source_count_as_managed(tmp_path: Path) -> None:
+    # `npx skills` links agent skill dirs with relative paths into ~/.agents/skills.
+    home = make_home(tmp_path, "tdd", "surf")
+    destination = home / ".claude/skills"
+    destination.mkdir(parents=True)
+    (destination / "tdd").symlink_to("../../.agents/skills/tdd")
+    (destination / "gone").symlink_to("../../.agents/skills/gone")
+    run_helper("apply", home)
+
+    assert linked_skills(home) == {
+        "tdd": "../../.agents/skills/tdd",
+        "surf": str(home / ".agents/skills/surf"),
+    }
+    assert run_helper("probe", home).returncode == CURRENT
+
+
 def test_hidden_source_entries_are_not_linked(tmp_path: Path) -> None:
     home = make_home(tmp_path, "tdd")
     (home / ".agents/skills/.DS_Store").write_text("")

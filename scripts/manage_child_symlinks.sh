@@ -18,6 +18,7 @@ expand_home_path "$2"
 destination=$expanded
 expand_home_path "$3"
 source_dir=$expanded
+physical_source_dir=$(CDPATH= cd -P -- "$source_dir" 2>/dev/null && pwd -P) || physical_source_dir=$source_dir
 
 if [ -L "$destination" ]; then
   # Mirroring into a symlink would create links inside SOURCE_DIR itself.
@@ -29,9 +30,27 @@ if [ -e "$destination" ] && [ ! -d "$destination" ]; then
   exit 1
 fi
 
+# Links are compared by where they point, not by their text: `npx skills`
+# writes relative links (../../.agents/skills/x) for the same entries.
+# Only the parent is resolved, so a source entry that is itself a symlink
+# still matches by its source path.
+physical_link_target() {
+  target=$(readlink "$1")
+  case $target in
+    /*) ;;
+    *) target=${1%/*}/$target ;;
+  esac
+  target_parent=$(CDPATH= cd -P -- "${target%/*}" 2>/dev/null && pwd -P) || target_parent=${target%/*}
+  printf '%s/%s\n' "$target_parent" "${target##*/}"
+}
+
+links_to_entry() {
+  [ "$(physical_link_target "$1")" = "$physical_source_dir/${2##*/}" ]
+}
+
 points_into_source() {
-  case $(readlink "$1") in
-    "$source_dir"/*) return 0 ;;
+  case $(physical_link_target "$1") in
+    "$physical_source_dir"/*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -46,7 +65,7 @@ for entry in "$source_dir"/*; do
   [ -e "$entry" ] || [ -L "$entry" ] || continue
   link=$destination/${entry##*/}
   if [ -L "$link" ]; then
-    [ "$(readlink "$link")" = "$entry" ] && continue
+    links_to_entry "$link" "$entry" && continue
     points_into_source "$link" || {
       echo "managed link destination points elsewhere: $link" >&2
       exit 1
@@ -71,7 +90,7 @@ case $mode in
     for entry in "$source_dir"/*; do
       [ -e "$entry" ] || [ -L "$entry" ] || continue
       link=$destination/${entry##*/}
-      [ -L "$link" ] && [ "$(readlink "$link")" = "$entry" ] && continue
+      [ -L "$link" ] && links_to_entry "$link" "$entry" && continue
       [ -L "$link" ] && unlink "$link"
       ln -s "$entry" "$link"
     done
