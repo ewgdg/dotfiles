@@ -23,6 +23,8 @@ spawn-at-startup "obsidian"
 spawn-at-startup "chatgpt"
 // Launch via the AppImage desktop entry so it gets `--class=Paseo` (app-id `Paseo`).
 spawn-at-startup "launch-desktop-app" "Paseo" "^Paseo[.]desktop$"
+// Pin the AppImage-integrated entry; a second legacy `t3code.desktop` shares the same name.
+spawn-at-startup "launch-desktop-app" "T3 Code" "^com[.]t3tools[.]T3Code[.]desktop$"
 // spawn-at-startup "launch-desktop-app" "Google AI Studio" "^chrome-.*-Default[.]desktop$"
 spawn-sh-at-startup "exec \"${TERMINAL:-ghostty}\" --title=logs-journalctl -e journalctl -f -n 20"
 // spawn-at-startup "niri" "msg" "action" "focus-workspace" "main"
