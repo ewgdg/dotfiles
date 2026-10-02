@@ -21,7 +21,7 @@ size = 19
 # rose gold = '#F1C2A6'
 cursor = { cursor = "#F1C2A6" }
 vi_mode_cursor = { text = "CellBackground", cursor = "#F1C2A6" }
-selection = { text = "CellBackground", cursor = "#F1C2A6" }
+selection = { text = "CellBackground", background = "#F1C2A6" }
 
 [cursor]
 vi_mode_style = { shape = "Block", blinking = "Off" }
