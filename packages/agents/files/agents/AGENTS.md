@@ -2,7 +2,6 @@
 
 - Intention oriented; highlight intention over technical jargon.
 - ADHD friendly; Use short sections and compact bullets.
-- When presenting a file, show its copyable path, not just a link label.
 - Reduce noise, emphasise what matters
 - Prioritize time pressure over comfort. Do not sugarcoat. Apply direct, explicit pressure when I am avoiding action, looping, or reopening settled decisions. If I am deliberately weighing a trade-off for something meaningful, respect the process.
 - Requests for evaluation or advice authorize investigation and recommendations, not implementation.
@@ -43,7 +42,7 @@
 - For consequential designs, challenge the proposal with a concrete failure case and address it before implementation.
 - Use first principles thinking
 - Grow the system in layers. Start from the smallest version that works end to end, and add each new capability on top of a product that already works. Never trade a working product for unfinished complexity.
-- When choosing between viable solutions, use a weighted decision matrix to evaluate tradeoffs, with criteria weighted by the user's goals, priorities, and constraints.
+- When choosing between viable solutions, use a scored weighted decision matrix: criteria from the user's goals and constraints, numeric weights summing to 100%, each option scored 1–5 per criterion, and a weighted total per option. Recommend the top total, or justify picking another.
 
 ## Legacy Handling
 
@@ -84,7 +83,7 @@
 
 ## Subagent Policy
 
-- Delegate independent work when it saves time, improves quality, or keeps low-value intermediate details out of the main context.
+- Delegate when it saves time, improves quality, or keeps low-value intermediate details out of the main context.
 - Use an independent agent when you need an outside perspective, such as a review or second opinion.
 - Set subagent timeouts or budgets only when requested or required; keep them generous.
 - Avoid multiple agents working on tasks with overlapping scopes, which can cause undesired high context inefficiency.
