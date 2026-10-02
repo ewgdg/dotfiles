@@ -28,7 +28,7 @@
     "updateForeground": "#7daea3",
     "terminalBackground": "#282828",
     "terminalForeground": "#d4be98",
-    "terminalCursor": "#d4be98",
-    "terminalSelection": "#45403d"
+    "terminalCursor": "#f1c2a6",
+    "terminalSelection": "#5a524c"
   }
 }
