@@ -92,6 +92,7 @@ window-rule {
     match app-id=r#"chatgpt\.com"#
     match title=r#"(?i)^Google AI Studio\b"#
     match app-id=r#"^Paseo$"#
+    match app-id=r#"^com\.t3tools\.T3Code$"#
     open-on-workspace "AI"
 }
 
