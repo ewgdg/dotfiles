@@ -44,4 +44,4 @@ sync_policy = "push-only"
 probe = 'if cargo install --list 2>/dev/null | grep -q "^ortie v"; then exit 100; fi; exit 0'
 
 [targets.ortie_installed.hooks]
-pre_push = "cargo install --locked ortie"
+pre_push = "cargo install ortie"
