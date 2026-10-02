@@ -27,7 +27,8 @@ ortie auth get -a gmail
 ortie auth get -a outlook
 ```
 
-Outlook redirects to `https://localhost/...`, which no local server answers, so `auth get` prints an `ortie auth resume --state=... --pkce=... <REDIRECTED_URI>` command instead. Run it with the browser's failed `https://localhost/?code=...` URL, single-quoted. The printed command omits the account, which works because `outlook` is ortie's default account.
+Both finish on their own: the browser returns to ortie's local listener.
+Outlook relies on the Thunderbird app accepting the `http://127.0.0.1` loopback, as current Thunderbird does. If Microsoft answers with a redirect URI mismatch, set `endpoints.redirection = "https://localhost"` for Outlook and finish with the `ortie auth resume` command that `auth get` then prints, passing the browser's failed URL.
 
 Check with `himalaya envelope list -a gmail` and `-a outlook`.
 
@@ -40,8 +41,6 @@ Each account is drafts-only by default. To allow sending, override in `local.tom
 send = true
 ```
 
-- himalaya gains that account's `smtp` section; without it, `message send` fails.
-- Outlook's token also gains the `SMTP.Send` scope, so the server enforces drafts-only too. Re-run `ortie auth get -a outlook` after toggling.
-- Gmail has no send-free IMAP scope, so for Gmail the missing `smtp` section is the only switch.
+himalaya gains that account's `smtp` section; without it, `message send` fails. Both tokens always carry send rights (Gmail has no send-free scope, and Outlook's is granted up front), so toggling needs no new sign-in.
 
 Agents with shell access can still use the stored token directly; the switch prevents mistakes, not a determined attacker.

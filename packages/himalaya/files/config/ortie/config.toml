@@ -13,8 +13,6 @@ client-secret.raw = "kSmqreRr0qwBWJgbf5Y-PjSU"
 endpoints.authorization = "https://accounts.google.com/o/oauth2/v2/auth"
 endpoints.token = "https://oauth2.googleapis.com/token"
 endpoints.redirection = "http://localhost"
-# Google has no read-only IMAP scope; himalaya's missing `smtp` section is the
-# only send switch for Gmail.
 scopes = ["https://mail.google.com/"]
 # Google issues a refresh token only for offline access.
 extras.access_type = "offline"
@@ -27,15 +25,14 @@ default = true
 client-id = "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
 endpoints.authorization = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 endpoints.token = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-# Pinned by the Thunderbird app registration; nothing listens on https, so
-# sign-in finishes through `ortie auth resume` (see the package README).
-endpoints.redirection = "https://localhost"
-# Without send, the token omits SMTP.Send, so Outlook itself refuses to send.
+# No `endpoints.redirection`: ortie's preset copies Thunderbird's legacy
+# `https://localhost`, which ortie cannot listen on. Current Thunderbird uses
+# the `http://127.0.0.1` loopback, which is also ortie's default.
+# SMTP.Send is always granted so toggling `send` needs no new sign-in;
+# himalaya's `smtp` section is the send switch, as for Gmail.
 scopes = [
   "https://outlook.office.com/IMAP.AccessAsUser.All",
-{% if vars.email.outlook.send %}
   "https://outlook.office.com/SMTP.Send",
-{% endif %}
   "offline_access",
 ]
 extras.login_hint = "{{ vars.email.outlook.address }}"

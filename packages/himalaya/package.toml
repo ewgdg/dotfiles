@@ -6,8 +6,8 @@ description = "Himalaya mail CLI with ortie OAuth tokens for Gmail and Outlook"
 [vars.email]
 display_name = "Xian Zhang"
 
-# `send = true` adds the account's SMTP section; Outlook also adds the
-# SMTP.Send scope, which needs a fresh `ortie auth get -a outlook`.
+# `send = true` adds the account's SMTP section. Tokens always carry send
+# rights, so toggling needs no new sign-in.
 [vars.email.gmail]
 send = false
 
