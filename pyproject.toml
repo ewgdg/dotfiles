@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "dotfiles-tools"
 version = "0.1.0"
 description = "Shared helper scripts for the dotfiles repo"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "PyGObject>=3.54,<4",
   "tomlkit>=0.13,<1",
