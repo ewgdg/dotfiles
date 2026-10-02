@@ -1,5 +1,5 @@
-id = "himalaya"
-description = "Himalaya mail CLI with ortie OAuth tokens for Gmail and Outlook"
+id = "email"
+description = "Email via ortie OAuth tokens: himalaya CLI for Gmail and Outlook"
 
 # Addresses live in the private dotman local override (see README.md), so a
 # machine without them fails to render instead of writing an empty account.
