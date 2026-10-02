@@ -2,6 +2,8 @@
 
 Email setup: [ortie](https://github.com/pimalaya/ortie) OAuth tokens, kept in the Secret Service keyring, shared by mail clients. The [himalaya](https://github.com/pimalaya/himalaya) CLI, used by agents and scripts, reaches Gmail and Outlook over IMAP. The agent-side usage lives in the `email` skill (`packages/agents/files/agents/skills/email/`).
 
+For reading by hand, use the Gmail and Outlook web apps from the `browser` package.
+
 Linux only for now (`groups/apps/linux.toml`): token storage uses `secret-tool`.
 
 ## Private addresses

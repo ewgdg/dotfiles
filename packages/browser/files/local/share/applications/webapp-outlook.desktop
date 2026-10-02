@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Outlook Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://outlook.live.com/mail/"
+Icon=webapp-outlook
+StartupWMClass=chrome-outlook.live.com__mail_-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;

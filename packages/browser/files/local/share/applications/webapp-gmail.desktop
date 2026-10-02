@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Gmail Web
+Exec=google-chrome-stable --profile-directory=Default "--app=https://mail.google.com/mail/"
+Icon=webapp-gmail
+StartupWMClass=chrome-mail.google.com__mail_-Default
+Terminal=false
+StartupNotify=true
+Categories=Network;
