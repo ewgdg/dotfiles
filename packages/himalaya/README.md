@@ -27,7 +27,7 @@ ortie auth get -a gmail
 ortie auth get -a outlook
 ```
 
-Outlook redirects to `https://localhost/...`, which no local server answers, so `auth get` prints an `ortie auth resume --state=... --pkce=... <REDIRECTED_URI>` command instead. Run it with `-a outlook` added (the printed command omits the account, and `gmail` is the default) and the browser's failed `https://localhost/?code=...` URL, single-quoted.
+Outlook redirects to `https://localhost/...`, which no local server answers, so `auth get` prints an `ortie auth resume --state=... --pkce=... <REDIRECTED_URI>` command instead. Run it with the browser's failed `https://localhost/?code=...` URL, single-quoted. The printed command omits the account, which works because `outlook` is ortie's default account.
 
 Check with `himalaya envelope list -a gmail` and `-a outlook`.
 

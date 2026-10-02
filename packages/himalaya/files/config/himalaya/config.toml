@@ -5,7 +5,6 @@ display-name = "{{ vars.email.display_name }}"
 # per-account send switch (`vars.email.<account>.send`).
 
 [accounts.gmail]
-default = true
 email = "{{ vars.email.gmail.address }}"
 
 imap.server = "imap.gmail.com"
@@ -27,6 +26,7 @@ smtp.sasl.xoauth2.token.command = ["ortie", "token", "show", "-a", "gmail"]
 {% endif %}
 
 [accounts.outlook]
+default = true
 email = "{{ vars.email.outlook.address }}"
 
 imap.server = "outlook.office365.com"

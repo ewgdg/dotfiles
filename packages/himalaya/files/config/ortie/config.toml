@@ -8,7 +8,6 @@ storage.write.command = ["secret-tool", "store", "--label=ortie {{ account }}", 
 # needed. Values come from ortie's README.
 
 [accounts.gmail]
-default = true
 client-id = "406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com"
 client-secret.raw = "kSmqreRr0qwBWJgbf5Y-PjSU"
 endpoints.authorization = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -24,6 +23,7 @@ auto-refresh = true
 {{ secret_service_storage("gmail") }}
 
 [accounts.outlook]
+default = true
 client-id = "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
 endpoints.authorization = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 endpoints.token = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
