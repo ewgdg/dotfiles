@@ -350,5 +350,10 @@
     "key": "mod+k",
     "command": "commandPalette.toggle",
     "when": "!terminalFocus"
+  },
+  {
+    "key": "mod+alt+n",
+    "command": "chat.newWithoutProject",
+    "when": "!terminalFocus"
   }
 ]
