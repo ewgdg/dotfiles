@@ -1,6 +1,10 @@
 id = "email"
 description = "Email via ortie OAuth tokens: himalaya CLI for Gmail and Outlook"
 
+depends = [
+  "rustup",
+]
+
 # Addresses live in the private dotman local override (see README.md), so a
 # machine without them fails to render instead of writing an empty account.
 [vars.email]
@@ -35,8 +39,9 @@ pre_push = "{{ INSTALL }} himalaya"
 
 [targets.ortie_installed]
 sync_policy = "push-only"
-# AUR package; the Arch install helper routes it through paru.
-probe = '{{ PROBE_PACKAGES_INSTALLED }} ortie'
+# Built from upstream's crates.io release rather than a third-party AUR
+# PKGBUILD, since ortie holds mail tokens; topgrade's cargo step updates it.
+probe = 'if cargo install --list 2>/dev/null | grep -q "^ortie v"; then exit 100; fi; exit 0'
 
 [targets.ortie_installed.hooks]
-pre_push = "{{ INSTALL }} ortie"
+pre_push = "cargo install --locked ortie"
