@@ -40,7 +40,7 @@
     "splash-window-enabled": "True",
     "automatic-updates": "True",
     "interface-theme": "system",
-    "accent-color": "system",
+    "accent-color": "rgb(61,174,233)",
     "background-mode": "default",
     "banner-enabled": "True",
     "steam-user": "all",
@@ -50,5 +50,14 @@
     "sort-enabled": "True",
     "zoom-enabled": "True",
     "steamgriddb-enabled": "False",
-    "auto-create-shortcuts": "False"
+    "auto-create-shortcuts": "False",
+    "accent-mode": "system",
+    "overview-color-mode": "default",
+    "background-color": "rgb(61,174,233)",
+    "overview-color": "rgb(61,174,233)",
+    "grid-position": "Middle",
+    "grid-orientation": "Vertical",
+    "grid-max-children-enabled": "False",
+    "grid-max-children-per-line": "20",
+    "overview-enabled": "False"
 }
