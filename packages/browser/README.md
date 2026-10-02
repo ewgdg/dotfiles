@@ -14,13 +14,13 @@ The live directories are shared with other apps, so both targets ignore everythi
 ### Adding an app
 
 ```sh
-uv run packages/browser/scripts/web_apps.py add <id> "<Name> Web" <url> [--icon <svg-or-png>]
+uv run packages/browser/scripts/web_apps.py add <id> "<Name> Web" <url> [--icon <svg-or-png path or URL>]
 ```
 
 - By convention the name is the app's own name plus ` Web`, e.g. `Gemini Web`, to tell launchers apart from native apps.
 - Without `--icon`, the script reads the site's web app manifest (`<link rel="manifest">`) and picks an icon like Chrome: SVG first, then the largest size, skipping maskable-only icons.
 - Pass `--icon` when the site blocks scripted fetches (chatgpt.com and claude.ai return a Cloudflare 403) or has no manifest; prefer the site's SVG favicon.
-- When the site has no usable icon (Gmail and Outlook show their manifests only after sign-in), take one from [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) (browse at [dashboardicons.com](https://dashboardicons.com)). Names do not always match the app (`gmail`, but `microsoft-outlook`), so look the name up rather than guessing it. Each icon is served at `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<name>.svg`; download it and pass the file to `--icon`.
+- When the site has no usable icon (Gmail and Outlook show their manifests only after sign-in), take one from [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) (browse at [dashboardicons.com](https://dashboardicons.com)). Names do not always match the app (`gmail`, but `microsoft-outlook`), so look the name up rather than guessing it. Pass its URL straight to `--icon`: `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<name>.svg`.
 - Re-run `add` to change an app's name, URL or icon. Unchanged inputs regenerate byte-identical files.
 
 ### One icon size

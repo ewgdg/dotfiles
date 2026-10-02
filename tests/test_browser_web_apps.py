@@ -158,6 +158,17 @@ def test_svg_icons_render_dark_mode_variant(tmp_path: Path, css_filled_svg: Path
     assert icon_channel_maximum(icon_path(files_dir, "chatgpt"), "r") == 1
 
 
+def test_icon_url_is_downloaded(tmp_path: Path) -> None:
+    files_dir = tmp_path / "files"
+    icon_url = solid_png(tmp_path / "remote.png", "blue").as_uri()
+
+    run_add(
+        files_dir, "site", "Site Web", "https://example.com/", "--icon", icon_url
+    ).check_returncode()
+
+    assert center_color(icon_path(files_dir, "site")) == "srgb(0,0,255)"
+
+
 def write_manifest_site(site_dir: Path) -> str:
     """Serve a page whose manifest lists icons coloured by how Chrome ranks them."""
     site_dir.mkdir()

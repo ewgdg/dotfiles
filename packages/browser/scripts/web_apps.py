@@ -3,8 +3,8 @@
 web_apps.py - Generate a Chrome `--app` launcher into the browser package.
 
 add: write `webapp-<id>.desktop` and one 256px PNG icon under the package's
-`files/`, where dotman tracks them. The icon comes from `--icon` or, without
-it, from the site's web app manifest. Re-running `add` regenerates the app.
+`files/`, where dotman tracks them. The icon comes from `--icon` (a path or
+URL) or, without it, from the site's web app manifest. Re-running `add` regenerates the app.
 """
 
 from __future__ import annotations
@@ -214,8 +214,17 @@ def render_png(image: bytes, output_path: Path) -> None:
     )
 
 
-def add(app: WebApp, icon_source: Path | None, files_dir: Path) -> int:
-    image = icon_source.read_bytes() if icon_source else download(discover_manifest_icon_url(app))
+def read_icon_source(icon_source: str) -> bytes:
+    """Read `--icon` as a URL when it has a scheme, otherwise as a local path."""
+    if urllib.parse.urlparse(icon_source).scheme:
+        return download(icon_source)
+    return Path(icon_source).read_bytes()
+
+
+def add(app: WebApp, icon_source: str | None, files_dir: Path) -> int:
+    image = (
+        read_icon_source(icon_source) if icon_source else download(discover_manifest_icon_url(app))
+    )
     raster_image = rasterize_svg(image) if is_svg(image) else image
     launcher_files = LauncherFiles.under(files_dir, app)
     render_png(raster_image, launcher_files.icon_path)
@@ -234,7 +243,7 @@ def parse_args() -> argparse.Namespace:
     add_parser.add_argument("name", help='launcher name; by convention the app name plus " Web"')
     add_parser.add_argument("url", help="URL to open as a Chrome app window")
     add_parser.add_argument(
-        "--icon", type=Path, help="SVG or raster icon; default: the site's manifest icon"
+        "--icon", help="SVG or raster icon, as a path or URL; default: the site's manifest icon"
     )
     add_parser.add_argument(
         "--files-dir", type=Path, default=PACKAGE_FILES_DIR, help="package `files/` directory"
