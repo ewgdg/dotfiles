@@ -42,9 +42,14 @@ function probe() {
   process.exit(missing.length > 0 ? PROBE_ACTION_NEEDED : PROBE_NOOP);
 }
 
-function install(agents) {
-  if (agents.length === 0) throw new Error("install needs at least one agent");
-  for (const [name, entry] of missingSkills(readLock(repoLockPath))) {
+function install() {
+  const lock = readLock(repoLockPath);
+  // `npx skills` saves the agents picked in its interactive menu here; `--yes`
+  // never reads it, and without `--agent` it falls back to every known agent
+  // when none are detected yet, as on a fresh machine.
+  const agents = lock.lastSelectedAgents ?? [];
+  if (agents.length === 0) throw new Error(`lastSelectedAgents is empty in ${repoLockPath}`);
+  for (const [name, entry] of missingSkills(lock)) {
     const result = spawnSync(
       "npx",
       ["-y", "skills", "add", entry.sourceUrl, "--global", "--skill", name, "--yes", "--agent", ...agents],
@@ -57,7 +62,7 @@ function install(agents) {
 const commands = { ignores: printIgnores, probe, install };
 const command = commands[process.argv[2]];
 if (!command) {
-  console.error("usage: managed_skills.mjs ignores | probe | install AGENT...");
+  console.error("usage: managed_skills.mjs ignores | probe | install");
   process.exit(2);
 }
-command(process.argv.slice(3));
+command();

@@ -9,15 +9,7 @@ depends = [
 [vars.agents]
 # Install metadata `npx skills` rewrites on every add/update; it stays
 # live-only so `npx skills update` can still compare folder hashes.
-skill_lock_live_only_selectors = [
-  're:^skills\..+\.(skillFolderHash|installedAt|updatedAt)$',
-  # Interactive picker memory; installs use skill_install_agents instead.
-  "lastSelectedAgents",
-]
-# Agents `npx skills add` installs reinstalled skills for. Codex reads
-# ~/.agents/skills directly; Claude Code and pi get extra links, which
-# overlap claude_skills_link and pi's own ~/.agents/skills discovery.
-skill_install_agents = ["codex", "claude-code", "pi"]
+skill_lock_live_only_selectors = ['re:^skills\..+\.(skillFolderHash|installedAt|updatedAt)$']
 
 [targets.d_agents]
 source = "files/agents"
@@ -43,4 +35,4 @@ sync_policy = "push-only"
 probe = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" probe'
 
 [targets.managed_skills_installed.hooks]
-pre_push = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" install {{ vars.agents.skill_install_agents|shell_args }}'
+pre_push = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" install'
