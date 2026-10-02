@@ -14,22 +14,10 @@ skill_lock_live_only_selectors = [
   # Interactive picker memory; installs use skill_install_agents instead.
   "lastSelectedAgents",
 ]
-# Agents `npx skills add` links reinstalled skills into; without explicit
-# agents, `--yes` targets every agent and fails on those rejecting global installs.
-skill_install_agents = [
-  "amp",
-  "cline",
-  "codex",
-  "cursor",
-  "droid",
-  "gemini-cli",
-  "github-copilot",
-  "kilo",
-  "kimi-code-cli",
-  "opencode",
-  "warp",
-  "zed",
-]
+# Agents `npx skills add` installs reinstalled skills for. Codex reads
+# ~/.agents/skills directly; Claude Code and pi get extra links, which
+# overlap claude_skills_link and pi's own ~/.agents/skills discovery.
+skill_install_agents = ["codex", "claude-code", "pi"]
 
 [targets.d_agents]
 source = "files/agents"
