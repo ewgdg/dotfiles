@@ -8,7 +8,7 @@
 set -eu
 
 usage() {
-    printf 'usage: %s --name <name> --url <url> [--link-command]\n' "${0##*/}" >&2
+    printf 'usage: %s --name <name> --url <url> [--link-command] [--drop-mime-types]\n' "${0##*/}" >&2
     exit 64
 }
 
@@ -68,11 +68,16 @@ remove_recorded_files() {
 
 install_desktop_entry() {
     desktop_entry=$applications_dir/${source_entry##*/}
+    # Apps that register their own hidden URL-handler entry at runtime would
+    # otherwise appear twice in "Open with" choosers for their schemes.
+    drop_mime_types_script=
+    [ "$drop_mime_types" = false ] || drop_mime_types_script='/^MimeType=/d'
     # Point Exec at the stable AppImage path, keeping upstream arguments.
     mkdir -p "$applications_dir"
     sed \
         -e "s|^Exec=[^ ]*|Exec=\"$appimage_path\"|" \
         -e "s|^TryExec=.*|TryExec=$appimage_path|" \
+        -e "$drop_mime_types_script" \
         "$source_entry" >"$desktop_entry"
     printf '%s\n' "$desktop_entry" >>"$record_path.part"
 }

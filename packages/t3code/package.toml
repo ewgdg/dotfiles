@@ -12,10 +12,12 @@ sync_policy = "push-only"
 # the AUR build unpacks it into /opt, which disables the in-app updater. So we
 # install it once and the app replaces the file in place from then on.
 # Homebrew ships the desktop app as the `t3-code` cask.
+# The app writes its own hidden `com.t3tools.T3Code.desktop` URL handler on
+# every launch, so the menu entry drops its MimeType to avoid a duplicate.
 probe = '{% if os == "linux" %}{{ PROBE_APPIMAGE_INSTALLED }} --name t3code --link-command{% elif os == "darwin" %}{{ PROBE_PACKAGES_INSTALLED }} t3-code{% endif %}'
 
 [targets.t3code_install.hooks]
-pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_appimage_url.sh" {{ cpu_arch }}) && {{ APPIMAGE_INSTALL }} --name t3code --url "$url" --link-command{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
+pre_push = '{% if os == "linux" %}url=$(sh "$DOTMAN_PACKAGE_ROOT/scripts/latest_appimage_url.sh" {{ cpu_arch }}) && {{ APPIMAGE_INSTALL }} --name t3code --url "$url" --link-command --drop-mime-types{% elif os == "darwin" %}{{ INSTALL }} t3-code{% endif %}'
 
 # Sources start absent until the app writes them and `dotman pull` captures
 # them; `type` is required while both repo and live files are missing.
