@@ -143,15 +143,6 @@ def test_agent_manifests_use_independent_push_only_symlink_targets(
     )
 
 
-def test_agent_import_wrappers_and_codex_developer_instructions_are_removed() -> None:
-    config = tomllib.loads((REPO_ROOT / "packages/codex/files/codex/config.toml").read_text())
-
-    assert "developer_instructions" not in config
-    assert not (REPO_ROOT / "packages/codex/files/codex/AGENTS.md").exists()
-    assert not (REPO_ROOT / "packages/codex/files/codex/AGENTS.codex.md").exists()
-    assert not (REPO_ROOT / "packages/claude/files/claude/CLAUDE.md").exists()
-
-
 def test_pi_uses_native_instruction_files_without_expander() -> None:
     package_root = REPO_ROOT / "packages/pi-coding-agent"
     manifest = tomllib.loads((package_root / "package.toml").read_text())

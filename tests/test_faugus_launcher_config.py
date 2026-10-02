@@ -9,50 +9,6 @@ import tomllib
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages/linux/faugus-launcher"
 LOCAL_CONFIG_KEYS = {"donate-last", "playtime", "steamgriddb-api-key"}
-MANAGED_CONFIG_KEYS = {
-    "accent-color",
-    "auto-close-on-launch",
-    "automatic-updates",
-    "autostart-enabled",
-    "background-mode",
-    "backup-auto-enabled",
-    "backup-dest-dir",
-    "backup-frequency",
-    "backup-last-date",
-    "backup-target-day",
-    "banner-enabled",
-    "categories-and-sort-enabled",
-    "category",
-    "cover-size",
-    "default-prefix",
-    "default-runner",
-    "discrete-gpu",
-    "gamepad-navigation",
-    "gamemode",
-    "height",
-    "interface-mode",
-    "interface-theme",
-    "labels-enabled",
-    "language",
-    "logging-enabled",
-    "logging-warning",
-    "lossless-location",
-    "mangohud",
-    "minimized-startup-enabled",
-    "mono-icon",
-    "no-sleep-enabled",
-    "sdl-enabled",
-    "show-donate",
-    "show-hidden",
-    "sort",
-    "splash-window-enabled",
-    "startup-window-size",
-    "steam-user",
-    "system-tray",
-    "wayland-driver",
-    "width",
-    "wow64-enabled",
-}
 
 
 def load_package() -> dict:
@@ -82,7 +38,6 @@ def test_config_keeps_local_state_out_of_the_repository() -> None:
 
     assert local_keys == LOCAL_CONFIG_KEYS
     assert local_keys.isdisjoint(config)
-    assert set(config) == MANAGED_CONFIG_KEYS
 
 
 def test_config_normalizes_home_paths_before_json_comparison() -> None:

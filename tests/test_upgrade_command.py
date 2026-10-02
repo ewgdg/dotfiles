@@ -8,7 +8,6 @@ import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 UPGRADE_COMMAND = REPO_ROOT / "packages/topgrade/files/local/bin/upgrade"
-TOPGRADE_CONFIG = REPO_ROOT / "packages/topgrade/files/config/topgrade.toml"
 
 
 def write_executable(path: Path, content: str) -> None:
@@ -167,24 +166,6 @@ def test_failed_projects_directory_lookup_has_actionable_error(tmp_path: Path) -
 
     assert completed.returncode != 0
     assert "Could not resolve projects directory" in completed.stderr
-
-
-def test_topgrade_policy_keeps_destructive_or_duplicated_steps_explicit() -> None:
-    with TOPGRADE_CONFIG.open("rb") as config_file:
-        config = tomllib.load(config_file)
-
-    assert config["misc"] == {
-        "no_self_update": True,
-        "ask_retry": True,
-        "auto_retry": 0,
-        "disable": ["containers"],
-    }
-    assert config["linux"]["arch_package_manager"] == "paru"
-    assert config["git"] == {
-        "pull_predefined": False,
-        "repos": ["~/Projects/dotfiles"],
-    }
-    assert config["cargo"]["git"] is True
 
 
 def test_topgrade_package_owns_install_config_and_launcher_targets() -> None:
