@@ -27,8 +27,8 @@ ortie auth get -a gmail
 ortie auth get -a outlook
 ```
 
-Both finish on their own: the browser returns to ortie's local listener.
-Outlook relies on the Thunderbird app accepting the `http://127.0.0.1` loopback, as current Thunderbird does. If Microsoft answers with a redirect URI mismatch, set `endpoints.redirection = "https://localhost"` for Outlook and finish with the `ortie auth resume` command that `auth get` then prints, passing the browser's failed URL.
+Both finish on their own: the browser returns to ortie's listener on `http://127.0.0.1:<random port>`.
+If ortie cannot capture the redirect, it prints an `ortie auth resume --state=... --pkce=... <REDIRECTED_URI>` command instead. Run it with `-a <account>` added (the printed command omits the account) and the browser's failed redirect URL, single-quoted.
 
 Check with `himalaya envelope list -a gmail` and `-a outlook`.
 

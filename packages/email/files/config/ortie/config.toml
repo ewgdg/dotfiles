@@ -6,13 +6,18 @@ storage.write.command = ["secret-tool", "store", "--label=ortie {{ account }}", 
 # Both accounts use Thunderbird's public OAuth applications, which Google and
 # Microsoft verified for mail scopes, so no personal app registration is
 # needed. Values come from ortie's README.
+#
+# Neither account sets `endpoints.redirection`: ortie's presets use port-less
+# `http://localhost` (port 80, which an unprivileged listener cannot bind) and
+# Thunderbird's legacy `https://localhost` (which ortie cannot serve). Both
+# providers accept any loopback port for desktop apps, so ortie's default
+# `http://127.0.0.1:<random port>` lets sign-in finish on its own.
 
 [accounts.gmail]
 client-id = "406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com"
 client-secret.raw = "kSmqreRr0qwBWJgbf5Y-PjSU"
 endpoints.authorization = "https://accounts.google.com/o/oauth2/v2/auth"
 endpoints.token = "https://oauth2.googleapis.com/token"
-endpoints.redirection = "http://localhost"
 scopes = ["https://mail.google.com/"]
 # Google issues a refresh token only for offline access.
 extras.access_type = "offline"
@@ -25,9 +30,6 @@ default = true
 client-id = "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
 endpoints.authorization = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 endpoints.token = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-# No `endpoints.redirection`: ortie's preset copies Thunderbird's legacy
-# `https://localhost`, which ortie cannot listen on. Current Thunderbird uses
-# the `http://127.0.0.1` loopback, which is also ortie's default.
 # SMTP.Send is always granted so toggling `send` needs no new sign-in;
 # himalaya's `smtp` section is the send switch, as for Gmail.
 scopes = [
