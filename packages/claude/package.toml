@@ -27,7 +27,6 @@ path = "~/.claude/CLAUDE.md"
 [targets.f_claude_settings_json]
 source = "files/claude/settings.json"
 path = "~/.claude/settings.json"
-chmod = "600"
 render = '{{ JSON_RENDER_HOME_PATHS }} --selector-type retain --selectors {{ vars.claude.settings_selectors|shell_args }}'
 capture = '{{ JSON_CAPTURE_HOME_PATHS }} --selector-type remove --selectors {{ vars.claude.settings_selectors|shell_args }}'
 
