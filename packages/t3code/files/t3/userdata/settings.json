@@ -17,5 +17,12 @@
     "opencode": {
       "enabled": false
     }
+  },
+  "providerInstances": {
+    "pi": {
+      "driver": "pi",
+      "displayName": "Pi",
+      "enabled": true
+    }
   }
 }
