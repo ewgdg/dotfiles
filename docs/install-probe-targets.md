@@ -34,7 +34,11 @@ pre_push = "{{ INSTALL }} go"
 
 ## What To Check
 
-Prefer the cheapest reliable live-state check:
+Every plan runs every probe, so probe cost adds up. Prefer the cheapest reliable live-state check.
+Running a tool to check it (`--version`, `npm prefix`, `uv run` helpers) pays its startup on every plan, and interpreter-based CLIs are slow: Node or Python startup costs 50–350ms per call, while `command -v` costs about 1ms.
+Run the tool only when a version or health check catches a real failure that a cheaper check misses. Network checks follow the same rule; see custom Git builds below.
+
+In order of preference:
 
 1. Use command probes such as `command -v <tool>` when the requirement is a CLI on `PATH` and the command name is the contract.
 2. Use missing-only package-manager checks through `{{ PROBE_PACKAGES_INSTALLED }}` when the requirement is a package identity, bundle, library, font, theme, service, portal, or anything without a reliable command. OS profiles bind that variable to the matching probe helper (`probe_arch_packages_installed.sh` or `probe_homebrew_packages_installed.sh`).
@@ -56,7 +60,7 @@ Use package-local probes for custom or tool-managed installs:
 
 - custom Git builds: check only that the package is installed during normal planning; compare the installed Git hash with upstream `HEAD` only when the update runner opts in (see `packages/niri-custom-git/README.md`)
 - Rust toolchain setup: check required capability state (`rustup`, active toolchain, required components), not newest versions
-- Go/npm tool installs: check command/version state when cheap; avoid making every push fragile just to chase latest
+- Go/npm tool installs: check the command with `command -v`; avoid making every push fragile just to chase latest
 
 ## Marker Files
 
