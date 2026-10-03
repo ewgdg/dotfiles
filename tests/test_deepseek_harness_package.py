@@ -19,14 +19,14 @@ def test_package_tracks_only_non_secret_dsh_settings() -> None:
     assert package["targets"] == {
         "dsh_install": {
             "sync_policy": "push-only",
-            "probe": 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh" ] && "$npm_prefix/bin/dsh" --version >/dev/null 2>&1; then exit 100; fi; exit 0',
+            "probe": 'if command -v dsh >/dev/null 2>&1; then exit 100; fi; exit 0',
             "hooks": {
                 "pre_push": "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
             },
         },
         "dsh_tui_install": {
             "sync_policy": "push-only",
-            "probe": 'npm_prefix=$(npm prefix --global) || exit 1; if [ -x "$npm_prefix/bin/dsh-tui" ] && "$npm_prefix/bin/dsh-tui" version >/dev/null 2>&1; then exit 100; fi; exit 0',
+            "probe": 'if command -v dsh-tui >/dev/null 2>&1; then exit 100; fi; exit 0',
             "hooks": {
                 "pre_push": "{{ NPM_INSTALL }} --legacy-peer-deps @deepseek-harness-tui/dsh-tui"
             },
