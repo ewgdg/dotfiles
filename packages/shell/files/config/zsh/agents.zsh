@@ -379,26 +379,3 @@ claudex() {
   ENABLE_TOOL_SEARCH=false \
   claude "$@"
 }
-
-pi() (
-  if ! _ensure_command pi "Pi coding agent"; then
-    return 1
-  fi
-
-  local -A _keys
-  local -a reply
-  local -a api_key_services=(
-    deepseek-api
-    brave-api
-    exa-api
-  )
-
-  _load_api_keys "${api_key_services[@]}" || return 1
-  _keys=( "${reply[@]}" )
-
-  export DEEPSEEK_API_KEY=${_keys[deepseek-api]}
-  export BRAVE_API_KEY=${_keys[brave-api]}
-  export EXA_API_KEY=${_keys[exa-api]}
-
-  command pi "$@"
-)
