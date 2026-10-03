@@ -5,8 +5,18 @@ depends = [
   "topgrade",
 ]
 
+[targets.niri_custom_git_install]
+sync_policy = "push-only"
+probe = '{{ PROBE_PACKAGES_INSTALLED }} niri-custom-git'
+
+[targets.niri_custom_git_install.hooks]
+pre_push = '{{ INSTALL_CUSTOM_PACKAGE }} --keepsrc "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
+
+# The upstream check is a network round trip, so it runs only when this target
+# is selected by name (Topgrade does), not on every plan.
 [targets.niri_custom_git_update]
 sync_policy = "push-only"
+on_demand = true
 probe = 'bash "$DOTMAN_PACKAGE_ROOT/scripts/needs_niri_custom_git_update.sh" "$DOTMAN_PACKAGE_ROOT/packaging/arch/niri-custom-git"'
 
 [targets.niri_custom_git_update.hooks]

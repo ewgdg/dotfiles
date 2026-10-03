@@ -63,14 +63,6 @@ if [ -z "$installed_record" ]; then
     exit 0
 fi
 
-# The upstream check is a network round trip (~0.5s) that would slow every
-# dotman plan, so plain pushes only ensure the package is installed and the
-# Topgrade command opts into updates.
-if [ "${NIRI_CUSTOM_GIT_CHECK_UPSTREAM:-0}" != 1 ]; then
-    printf '%s is installed; upstream check skipped\n' "$package_name" >&2
-    exit 100
-fi
-
 installed_package_version=${installed_record#"$package_name "}
 installed_pkgver=${installed_package_version%-*}
 installed_commit=$(printf '%s\n' "$installed_pkgver" | sed -n 's/.*\.g\([0-9a-fA-F][0-9a-fA-F]*\)$/\1/p')

@@ -1,3 +1,3 @@
 [misc]
 [commands]
-"Niri custom build" = "NIRI_CUSTOM_GIT_CHECK_UPSTREAM=1 dotman --unattended push niri-custom-git"
+"Niri custom build" = "dotman --unattended push niri-custom-git.niri_custom_git_update"
