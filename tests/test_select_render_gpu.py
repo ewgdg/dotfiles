@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes.util
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import shutil
@@ -126,6 +127,21 @@ def test_discover_gpus_reads_display_devices_behind_render_nodes(tmp_path: Path)
         Gpu(pci="0000:01:00.0", vendor="nvidia", kind="discrete", memory_window=16384 * MiB),
         Gpu(pci="0000:79:00.0", vendor="amd", kind=None, memory_window=256 * MiB),
     ]
+
+
+def test_vulkan_probe_reads_this_hosts_devices_without_crashing() -> None:
+    # Vulkan handles are 64-bit pointers. Undeclared ctypes signatures pass them as
+    # 32-bit ints, which crashed the driver (exit 139) and failed every render.
+    if ctypes.util.find_library("vulkan") is None:
+        pytest.skip("libvulkan is not installed")
+    completed = subprocess.run(
+        [sys.executable, "-c", f"import runpy; runpy.run_path({str(MODULE_PATH)!r})['read_vulkan_kinds']()"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 SUNSHINE_TEMPLATE = REPO_ROOT / "packages/linux/sunshine/files/sunshine.conf"

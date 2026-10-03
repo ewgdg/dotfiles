@@ -161,6 +161,24 @@ class VkPhysicalDeviceProperties2(ctypes.Structure):
     ]
 
 
+def _declare_vulkan_signatures(vulkan: ctypes.CDLL) -> None:
+    # Vulkan handles are 64-bit pointers. Without argtypes, ctypes passes a Python int
+    # as a 32-bit C int, truncating the handle and crashing the driver.
+    handle = ctypes.c_void_p
+    count = ctypes.POINTER(ctypes.c_uint32)
+    signatures = {
+        "vkCreateInstance": (ctypes.c_int32, [ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(handle)]),
+        "vkDestroyInstance": (None, [handle, ctypes.c_void_p]),
+        "vkEnumeratePhysicalDevices": (ctypes.c_int32, [handle, count, ctypes.c_void_p]),
+        "vkEnumerateDeviceExtensionProperties": (ctypes.c_int32, [handle, ctypes.c_char_p, count, ctypes.c_void_p]),
+        "vkGetPhysicalDeviceProperties2": (None, [handle, ctypes.c_void_p]),
+    }
+    for name, (restype, argtypes) in signatures.items():
+        function = getattr(vulkan, name)
+        function.restype = restype
+        function.argtypes = argtypes
+
+
 def _supports_pci_bus_info(vulkan: ctypes.CDLL, device: ctypes.c_void_p) -> bool:
     count = ctypes.c_uint32(0)
     vulkan.vkEnumerateDeviceExtensionProperties(device, None, ctypes.byref(count), None)
@@ -176,6 +194,7 @@ def read_vulkan_kinds() -> dict[str, str]:
     except OSError as error:
         print(f"select_render_gpu: Vulkan unavailable ({error}); ranking by memory window only", file=sys.stderr)
         return {}
+    _declare_vulkan_signatures(vulkan)
 
     app_info = VkApplicationInfo(sType=VK_STRUCTURE_TYPE_APPLICATION_INFO, apiVersion=VK_API_VERSION_1_1)
     create_info = VkInstanceCreateInfo(
@@ -203,7 +222,7 @@ def read_vulkan_kinds() -> dict[str, str]:
                 sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
                 pNext=ctypes.cast(ctypes.pointer(pci_info), ctypes.c_void_p),
             )
-            vulkan.vkGetPhysicalDeviceProperties2(ctypes.c_void_p(device), ctypes.byref(properties))
+            vulkan.vkGetPhysicalDeviceProperties2(device, ctypes.byref(properties))
             pci = (
                 f"{pci_info.pciDomain:04x}:{pci_info.pciBus:02x}:"
                 f"{pci_info.pciDevice:02x}.{pci_info.pciFunction:x}"
