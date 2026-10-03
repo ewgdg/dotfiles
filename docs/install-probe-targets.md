@@ -54,7 +54,7 @@ Renaming `<name>` makes a new install; remove the old one's recorded files, AppI
 
 Use package-local probes for custom or tool-managed installs:
 
-- custom Git builds: compare installed Git hash with upstream `HEAD` when reliable
+- custom Git builds: check only that the package is installed during normal planning; compare the installed Git hash with upstream `HEAD` only when the update runner opts in (see `packages/niri-custom-git/README.md`)
 - Rust toolchain setup: check required capability state (`rustup`, active toolchain, required components), not newest versions
 - Go/npm tool installs: check command/version state when cheap; avoid making every push fragile just to chase latest
 

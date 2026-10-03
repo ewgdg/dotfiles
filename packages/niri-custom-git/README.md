@@ -4,13 +4,22 @@ This dotman package owns the private Arch `niri-custom-git` build. The package
 provides and conflicts with `niri`, so pacman tracks it separately from the
 official repository package.
 
-`dotman push niri-custom-git` compares the installed Git hash with upstream
-`HEAD`. It builds and installs the PKGBUILD when the package is missing,
-upstream has advanced, or the histories have diverged. An installed commit
-that is ahead of upstream is kept.
+A plain `dotman push` only builds and installs the PKGBUILD when the package is
+missing. Checking upstream needs a network round trip, so it runs only when
+`NIRI_CUSTOM_GIT_CHECK_UPSTREAM=1` is set. The probe then compares the
+installed Git hash with upstream `HEAD` and rebuilds when upstream has advanced
+or the histories have diverged. An installed commit that is ahead of upstream is
+kept.
 
 Topgrade loads the package's `~/.config/topgrade.d/niri-custom-git.toml` and
-runs `dotman --unattended push niri-custom-git` as **Niri custom build**. The global `--unattended`
+runs `NIRI_CUSTOM_GIT_CHECK_UPSTREAM=1 dotman --unattended push niri-custom-git`
+as **Niri custom build**. To run only that update:
+
+```bash
+topgrade --only custom_commands --custom-commands "Niri custom build"
+```
+
+The global `--unattended`
 flag skips dotman's review and confirmation, and the narrow selector does not push
 the Niri configuration package. Unattended dotman never prompts for `sudo`: the
 install reuses the sudo ticket from Topgrade's earlier system step and fails with
