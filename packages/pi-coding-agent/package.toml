@@ -43,6 +43,9 @@ patterns = [
   "mcp.log*",
   "*changelog.json",
   "pi-durable-subagents.json",
+  # pi.dev installer-managed releases and launcher; `pi update` owns them.
+  "install/",
+  "bin/",
 ]
 
 [targets.d_pi_agent.path_rules.settings_json]
@@ -62,4 +65,5 @@ sync_policy = "push-only"
 probe = 'if command -v pi >/dev/null 2>&1; then exit 100; fi; exit 0'
 
 [targets.pi_coding_agent_install.hooks]
-pre_push = "{{ NPM_INSTALL }} @earendil-works/pi-coding-agent"
+# The pi.dev installer pins transitive dependencies; the npm package no longer does.
+pre_push = "curl -fsSL https://pi.dev/install.sh | sh"
