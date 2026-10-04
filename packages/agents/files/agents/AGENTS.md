@@ -34,7 +34,7 @@
 
 - document for features or techniques of a project, that worth mention or review
 - Use portable paths in docs.
-- Use an ExecPlan (`~/.agents/docs/plans.md`) when work crosses a context boundary: delegated to subagents, likely to outlive one context window, or setting decisions later sessions must respect. Write it before the first code edit.
+- Use an ExecPlan (`~/.agents/docs/plans.md`), or another tracker that fits better, when work crosses a context boundary: delegated to subagents or likely to outlive one context window. Write it before the first code edit.
 
 ## Problem Solving
 

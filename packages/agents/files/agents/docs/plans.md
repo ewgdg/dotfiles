@@ -17,9 +17,9 @@ Plans should cover, under clear headings when relevant:
 - Validation.
 - Progress.
 - Surprises & Discoveries.
-- Decisions. Record rejected alternatives with their reason; later sessions cite them to keep settled decisions settled.
+- Decisions. Record rejected alternatives with their reason.
 - Outcomes & Retrospective.
 
 During implementation, update progress only for real checkpoints.
 
-Close the plan in the commit that lands or abandons the work: fill Outcomes & Retrospective, then move it to `done/` or `dropped/`. A reverted feature's plan moves to `dropped/` with the reason.
+Close the plan in the commit that lands or abandons the work: fill Outcomes & Retrospective, move decisions worth keeping into `docs/`, then move it to `done/` or `dropped/`. A reverted feature's plan moves to `dropped/` with the reason.
