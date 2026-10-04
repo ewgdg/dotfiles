@@ -14,16 +14,16 @@ binds {
     MOD+SHIFT+B hotkey-overlay-title="Open New Browser Window" { spawn "google-chrome-stable" "--new-window"; }
     MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
     MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
-    MOD+CTRL+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
+    MOD+ALT+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
     MOD+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
     MOD+O repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
-    MOD+CTRL+O repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
+    MOD+ALT+O repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
     MOD+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
-    MOD+CTRL+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
+    MOD+ALT+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
     MOD+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
-    MOD+CTRL+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
-    MOD+CTRL+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict-search"; }
-    MOD+CTRL+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
+    MOD+ALT+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
+    MOD+ALT+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict-search"; }
+    MOD+ALT+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // Ctrl+Shift+L already moves a column to the right monitor.
     MOD+CTRL+ALT+L hotkey-overlay-title="Lock Screen" { spawn "noctalia" "msg" "session" "lock"; }
 
@@ -62,25 +62,25 @@ binds {
     Mod+K     { focus-window-or-workspace-up; }
     Mod+L     { focus-column-or-monitor-right; }
 
-    Mod+Ctrl+Left  { move-column-left-or-to-monitor-left; }
-    Mod+Ctrl+Down  { move-window-down; }
-    Mod+Ctrl+Up    { move-window-up; }
-    Mod+Ctrl+Right { move-column-right-or-to-monitor-right; }
-    Mod+Ctrl+H     { move-column-left-or-to-monitor-left; }
-    // Mod+Ctrl+J     { move-window-down; }
-    Mod+Ctrl+J     { move-window-down-or-to-workspace-down; }
-    // Mod+Ctrl+K     { move-window-up; }
-    Mod+Ctrl+K     { move-window-up-or-to-workspace-up; }
-    Mod+Ctrl+L     { move-column-right-or-to-monitor-right; }
+    Mod+Alt+Left  { move-column-left-or-to-monitor-left; }
+    Mod+Alt+Down  { move-window-down; }
+    Mod+Alt+Up    { move-window-up; }
+    Mod+Alt+Right { move-column-right-or-to-monitor-right; }
+    Mod+Alt+H     { move-column-left-or-to-monitor-left; }
+    // Mod+Alt+J     { move-window-down; }
+    Mod+Alt+J     { move-window-down-or-to-workspace-down; }
+    // Mod+Alt+K     { move-window-up; }
+    Mod+Alt+K     { move-window-up-or-to-workspace-up; }
+    Mod+Alt+L     { move-column-right-or-to-monitor-right; }
     
     Mod+Comma { focus-column-first; }
     Mod+Period { focus-column-last; }
-    Mod+Ctrl+Comma { move-column-to-first; }
-    Mod+Ctrl+Period { move-column-to-last; }
+    Mod+Alt+Comma { move-column-to-first; }
+    Mod+Alt+Period { move-column-to-last; }
     Mod+Shift+Comma { focus-column-first; }
     Mod+Shift+Period { focus-column-last; }
-    Mod+Ctrl+Shift+Comma { move-column-to-first; }
-    Mod+Ctrl+Shift+Period { move-column-to-last; }
+    Mod+Alt+Shift+Comma { move-column-to-first; }
+    Mod+Alt+Shift+Period { move-column-to-last; }
 
     // Monitor Focus
     Mod+Shift+Left  { focus-monitor-left; }
@@ -114,31 +114,31 @@ binds {
     Mod+I              { focus-workspace-up; }
     Mod+Shift+U        { move-workspace-down; }
     Mod+Shift+I        { move-workspace-up; }
-    Mod+Ctrl+U         { move-column-to-workspace-down; }
-    Mod+Ctrl+I         { move-column-to-workspace-up; }
+    Mod+Alt+U         { move-column-to-workspace-down; }
+    Mod+Alt+I         { move-column-to-workspace-up; }
     Mod+S              { focus-workspace "stash"; }
     Mod+Shift+S repeat=false hotkey-overlay-title="Summon Last Stash Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-stash.sh\""; }
-    Mod+Ctrl+S repeat=false { move-window-to-workspace "stash" focus=false; }
+    Mod+Alt+S repeat=false { move-window-to-workspace "stash" focus=false; }
 
     MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
     MOD+WHEELSCROLLUP cooldown-ms=150 { focus-workspace-up; }
-    MOD+CTRL+WHEELSCROLLDOWN cooldown-ms=150 { move-column-to-workspace-down; }
-    MOD+CTRL+WHEELSCROLLUP cooldown-ms=150 { move-column-to-workspace-up; }
+    MOD+ALT+WHEELSCROLLDOWN cooldown-ms=150 { move-column-to-workspace-down; }
+    MOD+ALT+WHEELSCROLLUP cooldown-ms=150 { move-column-to-workspace-up; }
 
     MOD+WHEELSCROLLRIGHT { focus-column-right; }
     MOD+WHEELSCROLLLEFT { focus-column-left; }
-    MOD+CTRL+WHEELSCROLLRIGHT { move-column-right; }
-    MOD+CTRL+WHEELSCROLLLEFT { move-column-left; }
+    MOD+ALT+WHEELSCROLLRIGHT { move-column-right; }
+    MOD+ALT+WHEELSCROLLLEFT { move-column-left; }
 
     MOD+SHIFT+WHEELSCROLLDOWN { focus-column-right; }
     MOD+SHIFT+WHEELSCROLLUP { focus-column-left; }
     MOD+SHIFT+WHEELSCROLLRIGHT { focus-column-right; }
     MOD+SHIFT+WHEELSCROLLLEFT { focus-column-left; }
-    MOD+CTRL+SHIFT+WHEELSCROLLDOWN { move-column-right; }
-    MOD+CTRL+SHIFT+WHEELSCROLLUP { move-column-left; }
+    MOD+ALT+SHIFT+WHEELSCROLLDOWN { move-column-right; }
+    MOD+ALT+SHIFT+WHEELSCROLLUP { move-column-left; }
 
     // Alternatively, there are commands to move just a single window:
-    // Mod+Ctrl+Page_Down { move-window-to-workspace-down; }
+    // Mod+Alt+Page_Down { move-window-to-workspace-down; }
     // ...
 
     MOD+1 { focus-workspace 1; }
@@ -151,18 +151,18 @@ binds {
     MOD+8 { focus-workspace 8; }
     MOD+9 { focus-workspace 9; }
 
-    MOD+CTRL+1 { move-column-to-workspace 1; }
-    MOD+CTRL+2 { move-column-to-workspace 2; }
-    MOD+CTRL+3 { move-column-to-workspace 3; }
-    MOD+CTRL+4 { move-column-to-workspace 4; }
-    MOD+CTRL+5 { move-column-to-workspace 5; }
-    MOD+CTRL+6 { move-column-to-workspace 6; }
-    MOD+CTRL+7 { move-column-to-workspace 7; }
-    MOD+CTRL+8 { move-column-to-workspace 8; }
-    MOD+CTRL+9 { move-column-to-workspace 9; }
+    MOD+ALT+1 { move-column-to-workspace 1; }
+    MOD+ALT+2 { move-column-to-workspace 2; }
+    MOD+ALT+3 { move-column-to-workspace 3; }
+    MOD+ALT+4 { move-column-to-workspace 4; }
+    MOD+ALT+5 { move-column-to-workspace 5; }
+    MOD+ALT+6 { move-column-to-workspace 6; }
+    MOD+ALT+7 { move-column-to-workspace 7; }
+    MOD+ALT+8 { move-column-to-workspace 8; }
+    MOD+ALT+9 { move-column-to-workspace 9; }
 
     // Alternatively, there are commands to move just a single window:
-    // Mod+Ctrl+1 { move-window-to-workspace 1; }
+    // Mod+Alt+1 { move-window-to-workspace 1; }
 
     // Alt+Tab uses Niri's built-in `recent-windows` switcher.
 
@@ -174,8 +174,8 @@ binds {
     // If the window is already in a column, they will expel it out.
     Mod+BracketLeft  { consume-or-expel-window-left; }
     Mod+BracketRight { consume-or-expel-window-right; }
-    Mod+Ctrl+BracketLeft  { consume-window-into-column; }
-    Mod+Ctrl+BracketRight { expel-window-from-column; }
+    Mod+Alt+BracketLeft  { consume-window-into-column; }
+    Mod+Alt+BracketRight { expel-window-from-column; }
 
     // Consume one window from the right to the bottom of the focused column.
     // Mod+Comma  { consume-window-into-column; }
@@ -186,17 +186,17 @@ binds {
     // Cycling through the presets in reverse order is also possible.
     // Mod+R { switch-preset-column-width-back; }
     Mod+Shift+R { switch-preset-window-height; }
-    Mod+Ctrl+R { reset-window-height; }
+    Mod+Alt+R { reset-window-height; }
     Mod+F repeat=false hotkey-overlay-title="Maximize Column or Window" { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
     Mod+Shift+F { fullscreen-window; }
     Mod+M { maximize-window-to-edges; }
-    MOD+CTRL+F { maximize-window-to-edges; }
+    MOD+ALT+F { maximize-window-to-edges; }
     // available width means any space or partially visible window
-    // MOD+CTRL+F { expand-column-to-available-width; }
+    // MOD+ALT+F { expand-column-to-available-width; }
 
     MOD+C { center-column; }
     // Center all fully visible columns on screen.
-    MOD+CTRL+C { center-visible-columns; }
+    MOD+ALT+C { center-visible-columns; }
     MOD+MINUS { set-column-width "-10%"; }
     MOD+EQUAL { set-column-width "+10%"; }
     MOD+Backspace { set-column-width "50%"; }
@@ -221,9 +221,9 @@ binds {
     // Emergency Escape Key
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.
-    MOD+CTRL+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
+    MOD+ALT+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
 
     // Exit / Power
-    Mod+Ctrl+Shift+DELETE { quit; } // Also quits Niri
-    MOD+CTRL+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
+    Mod+Alt+Shift+DELETE { quit; } // Also quits Niri
+    MOD+ALT+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
 }
