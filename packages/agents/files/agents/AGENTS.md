@@ -34,7 +34,7 @@
 
 - document for features or techniques of a project, that worth mention or review
 - Use portable paths in docs.
-- when writing complex features or significant refactors, use an ExecPlan (as described in `~/.agents/docs/plans.md`)
+- Use an ExecPlan (`~/.agents/docs/plans.md`) when work crosses a context boundary: delegated to subagents, likely to outlive one context window, or setting decisions later sessions must respect. Write it before the first code edit.
 
 ## Problem Solving
 
