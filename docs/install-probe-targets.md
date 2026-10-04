@@ -40,7 +40,7 @@ Run the tool only when a version or health check catches a real failure that a c
 
 In order of preference:
 
-1. Use command probes such as `command -v <tool>` when the requirement is a CLI on `PATH` and the command name is the contract.
+1. Use `{{ PROBE_COMMANDS_ON_PATH }} <command>...` when the requirement is a CLI on `PATH` and the command name is the contract. It wraps `command -v` with the probe exit contract.
 2. Use missing-only package-manager checks through `{{ PROBE_PACKAGES_INSTALLED }}` when the requirement is a package identity, bundle, library, font, theme, service, portal, or anything without a reliable command. OS profiles bind that variable to the matching probe helper (`probe_arch_packages_installed.sh` or `probe_homebrew_packages_installed.sh`).
 3. Use package-local probes for custom or tool-managed installs when they need richer state checks.
 
@@ -60,7 +60,7 @@ Use package-local probes for custom or tool-managed installs:
 
 - custom Git builds: use one target that checks the package is installed, plus an `on_demand = true` target that compares the installed Git hash with upstream `HEAD`; the update runner selects that target by name (see `packages/niri-custom-git/README.md`)
 - Rust toolchain setup: check required capability state (`rustup`, active toolchain, required components), not newest versions
-- Go/npm tool installs: check the command with `command -v`; avoid making every push fragile just to chase latest
+- Go/npm tool installs: check the command with `{{ PROBE_COMMANDS_ON_PATH }}`; avoid making every push fragile just to chase latest
 
 ## Marker Files
 

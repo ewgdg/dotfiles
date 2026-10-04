@@ -8,14 +8,14 @@ depends = [
 
 [targets.dsh_install]
 sync_policy = "push-only"
-probe = 'if command -v dsh >/dev/null 2>&1; then exit 100; fi; exit 0'
+probe = '{{ PROBE_COMMANDS_ON_PATH }} dsh'
 
 [targets.dsh_install.hooks]
 pre_push = "{{ NPM_INSTALL }} --foreground-scripts @deepseek-ai/dsh"
 
 [targets.dsh_tui_install]
 sync_policy = "push-only"
-probe = 'if command -v dsh-tui >/dev/null 2>&1; then exit 100; fi; exit 0'
+probe = '{{ PROBE_COMMANDS_ON_PATH }} dsh-tui'
 
 [targets.dsh_tui_install.hooks]
 # The global package is only a dependency-free launcher; the plugin itself runs from the dsh-tui profile.

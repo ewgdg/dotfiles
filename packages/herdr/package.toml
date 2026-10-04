@@ -3,7 +3,7 @@ description = "Herdr terminal workspace manager"
 
 [targets.installed]
 sync_policy = "push-only"
-probe = 'if command -v herdr >/dev/null 2>&1; then exit 100; fi; exit 0'
+probe = '{{ PROBE_COMMANDS_ON_PATH }} herdr'
 
 [targets.installed.hooks]
 pre_push = "curl -fsSL https://herdr.dev/install.sh | sh"

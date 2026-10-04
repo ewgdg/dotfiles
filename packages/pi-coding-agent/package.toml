@@ -62,7 +62,7 @@ pre_push = 'sh "$DOTMAN_REPO_ROOT/scripts/manage_relative_symlink.sh" apply "~/.
 
 [targets.pi_coding_agent_install]
 sync_policy = "push-only"
-probe = 'if command -v pi >/dev/null 2>&1; then exit 100; fi; exit 0'
+probe = '{{ PROBE_COMMANDS_ON_PATH }} pi'
 
 [targets.pi_coding_agent_install.hooks]
 # The pi.dev installer pins transitive dependencies; the npm package no longer does.
