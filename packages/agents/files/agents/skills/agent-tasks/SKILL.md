@@ -28,6 +28,8 @@ Always go through the helper; it writes the frontmatter TaskNotes expects and ed
 EOF
 ```
 
+Add `--parent <task stem>` to nest it under another task, the user's or an agent's.
+
 `create` prints the new task path; its file stem is the task id for `--blocked-by`, `claim`, and `finish`.
 
 **Dispatcher**: the only role that claims. List ready subtasks, claim each one before handing it to a worker thread:

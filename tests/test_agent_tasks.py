@@ -133,3 +133,15 @@ def test_status_update_preserves_untouched_frontmatter_bytes(vault: Path) -> Non
     assert before.split("dateModified:")[0].replace("status: open", "status: in-progress") == after.split(
         "dateModified:"
     )[0]
+
+
+def test_create_can_nest_a_subtask_under_any_existing_task(vault: Path) -> None:
+    (vault / TASKS_DIR / "user-task.md").write_text("---\ntype: task\nstatus: open\naliases: Mine\n---\n")
+    brief = "## Brief\nx\n\n## Done when\ny\n"
+
+    nested = run_tasks(vault, "create", "--title", "Child", "--parent", "user-task", stdin=brief)
+    unknown_parent = run_tasks(vault, "create", "--title", "Orphan", "--parent", "nope", stdin=brief)
+
+    assert nested.returncode == 0, nested.stderr
+    assert 'projects:\n  - "[[user-task]]"\n' in Path(nested.stdout.strip()).read_text()
+    assert unknown_parent.returncode != 0 and "nope" in unknown_parent.stderr

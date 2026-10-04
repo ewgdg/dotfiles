@@ -151,7 +151,7 @@ def read_stdin(name: str) -> str:
     return text
 
 
-def render_new_task(title: str, blocker_stems: list[str], brief: str) -> str:
+def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str], brief: str) -> str:
     timestamp = now_timestamp()
     blocked_by = "".join(f'  - uid: "[[{stem}]]"\n    reltype: FINISHTOSTART\n' for stem in blocker_stems)
     return (
@@ -163,6 +163,8 @@ def render_new_task(title: str, blocker_stems: list[str], brief: str) -> str:
         f"dateCreated: {timestamp}\n"
         f"dateModified: {timestamp}\n"
         f"aliases: {json.dumps(title, ensure_ascii=False)}\n"
+        # TaskNotes treats a task listed in `projects` as the parent of this one.
+        + (f'projects:\n  - "[[{parent_stem}]]"\n' if parent_stem else "")
         + (f"blockedBy:\n{blocked_by}" if blocked_by else "")
         + f"---\n\n{brief}\n\n{RESULT_HEADING}\n"
     )
@@ -187,11 +189,13 @@ def command_print_path(_: argparse.Namespace) -> None:
 
 def command_create(args: argparse.Namespace) -> None:
     directory = tasks_dir()
-    for stem in args.blocked_by:
-        if not (directory / f"{stem}.md").is_file():
-            raise TaskError(f"Blocker task not found: {stem}")
+    linked_stems = {"Parent": [args.parent] if args.parent else [], "Blocker": args.blocked_by}
+    for role, stems in linked_stems.items():
+        for stem in stems:
+            if not (directory / f"{stem}.md").is_file():
+                raise TaskError(f"{role} task not found: {stem}")
     brief = read_stdin("Brief")
-    print(write_new_task_file(directory, render_new_task(args.title, args.blocked_by, brief)))
+    print(write_new_task_file(directory, render_new_task(args.title, args.parent, args.blocked_by, brief)))
 
 
 def command_ready(args: argparse.Namespace) -> None:
@@ -233,6 +237,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     create = commands.add_parser("create", help="Create an agent subtask; brief on stdin; prints its path.")
     create.add_argument("--title", required=True)
+    create.add_argument("--parent", metavar="TASK", help="Task file stem this becomes a subtask of; any owner.")
     create.add_argument("--blocked-by", action="append", default=[], metavar="TASK", help="Blocking task file stem; repeatable.")
     create.set_defaults(handler=command_create)
 
