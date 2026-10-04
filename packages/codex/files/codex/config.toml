@@ -22,7 +22,6 @@ writable_roots = [
   "~/.agents",
   "~/.codex",
   "~/.context-mode",
-  "~/.codegraphcontext",
   "~/sandbox",
   "~/projects/knowledgebase",
 ]
