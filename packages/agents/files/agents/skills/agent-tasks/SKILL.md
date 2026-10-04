@@ -30,7 +30,13 @@ EOF
 
 Add `--parent <task stem>` to nest it under another task, the user's or an agent's.
 
-`create` prints the new task path; its file stem is the task id for `--blocked-by`, `claim`, and `finish`.
+`create` prints the new task path; its file stem is the task id for `--parent`, `--blocked-by`, `edit`, `claim`, and `finish`.
+
+Re-wire an existing agent subtask with `edit`, which mirrors `gh issue edit` (`--parent`, `--remove-parent`, `--add-blocked-by`, `--remove-blocked-by`). The user's own tasks are theirs to change in TaskNotes.
+
+```bash
+~/.agents/skills/agent-tasks/run.py edit <task stem> --parent <task stem> --add-blocked-by <task stem>,<task stem>
+```
 
 **Dispatcher**: the only role that claims. List ready subtasks, claim each one before handing it to a worker thread:
 

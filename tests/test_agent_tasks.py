@@ -145,3 +145,52 @@ def test_create_can_nest_a_subtask_under_any_existing_task(vault: Path) -> None:
     assert nested.returncode == 0, nested.stderr
     assert 'projects:\n  - "[[user-task]]"\n' in Path(nested.stdout.strip()).read_text()
     assert unknown_parent.returncode != 0 and "nope" in unknown_parent.stderr
+
+
+def test_edit_sets_and_removes_task_parent_but_keeps_other_project_links(vault: Path) -> None:
+    (vault / TASKS_DIR / "parent-a.md").write_text("---\ntype: task\nstatus: open\n---\n")
+    (vault / TASKS_DIR / "parent-b.md").write_text("---\ntype: task\nstatus: open\n---\n")
+    task = create_task(vault, "Child")
+    path = vault / TASKS_DIR / f"{task}.md"
+    path.write_text(path.read_text().replace("status: open\n", 'status: open\nprojects:\n  - "[[Dotfile Manager]]"\n'))
+
+    assert run_tasks(vault, "edit", task, "--parent", "parent-a").returncode == 0
+    assert run_tasks(vault, "edit", task, "--parent", "parent-b").returncode == 0
+    reparented = path.read_text()
+    assert run_tasks(vault, "edit", task, "--remove-parent").returncode == 0
+
+    assert 'projects:\n  - "[[Dotfile Manager]]"\n  - "[[parent-b]]"\n' in reparented
+    assert 'projects:\n  - "[[Dotfile Manager]]"\n' in path.read_text()
+    assert "parent-" not in path.read_text()
+
+
+def test_edit_adds_and_removes_blockers_which_gates_readiness(vault: Path) -> None:
+    schema = create_task(vault, "Design schema")
+    review = create_task(vault, "Review schema")
+    api = create_task(vault, "Build API")
+
+    run_tasks(vault, "edit", api, "--add-blocked-by", f"{schema},{review}")
+    run_tasks(vault, "edit", api, "--add-blocked-by", schema)
+    note = (vault / TASKS_DIR / f"{api}.md").read_text()
+    assert note.count(f'uid: "[[{schema}]]"') == 1
+    assert "Build API" not in ready_titles(vault)
+
+    run_tasks(vault, "edit", api, "--remove-blocked-by", schema, "--remove-blocked-by", review)
+    assert "blockedBy" not in (vault / TASKS_DIR / f"{api}.md").read_text()
+    assert "Build API" in ready_titles(vault)
+
+
+def test_edit_refuses_user_tasks_and_unknown_links_without_writing(vault: Path) -> None:
+    user_task = vault / TASKS_DIR / "user-task.md"
+    user_task.write_text("---\ntype: task\nstatus: open\n---\n")
+    task = create_task(vault, "Child")
+    before = (vault / TASKS_DIR / f"{task}.md").read_text()
+
+    on_user_task = run_tasks(vault, "edit", "user-task", "--parent", task)
+    unknown_parent = run_tasks(vault, "edit", task, "--parent", "nope")
+    unknown_blocker = run_tasks(vault, "edit", task, "--add-blocked-by", "nope")
+
+    assert on_user_task.returncode != 0 and "agent-owned" in on_user_task.stderr
+    assert unknown_parent.returncode != 0 and unknown_blocker.returncode != 0
+    assert user_task.read_text() == "---\ntype: task\nstatus: open\n---\n"
+    assert (vault / TASKS_DIR / f"{task}.md").read_text() == before

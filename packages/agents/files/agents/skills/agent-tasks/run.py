@@ -95,7 +95,22 @@ def tasks_dir() -> Path:
 
 
 def unwrap_link(link: str) -> str:
-    return link.removeprefix("[[").removesuffix("]]").split("|")[0]
+    # TaskNotes may write path-style links such as [[Effects/Tasks/name.md|alias]]; reduce them to the note name.
+    target = link.removeprefix("[[").removesuffix("]]").split("|")[0]
+    return target.rsplit("/", 1)[-1].removesuffix(".md")
+
+
+def task_link(stem: str) -> str:
+    return f"[[{stem}]]"
+
+
+def blocker_entry(stem: str) -> dict[str, str]:
+    return {"uid": task_link(stem), "reltype": "FINISHTOSTART"}
+
+
+def task_stem_list(value: str) -> list[str]:
+    # Comma-separated like gh's relationship flags; combined with action="extend" it is also repeatable.
+    return [stem.strip() for stem in value.split(",") if stem.strip()]
 
 
 def yaml_scalar(value: str) -> str:
@@ -134,13 +149,32 @@ def is_ready(task: Task, tasks_by_stem: dict[str, Task]) -> bool:
     )
 
 
-def set_frontmatter_scalars(task: Task, updates: dict[str, str]) -> None:
-    # Edit only the touched top-level lines: a YAML round-trip would reformat TaskNotes' dates and lists.
+def render_frontmatter_key(key: str, value: str | list[str | dict[str, str]]) -> str:
+    """Render one top-level key in TaskNotes' layout; an empty list renders as nothing, dropping the key."""
+    if isinstance(value, str):
+        return f"{key}: {yaml_scalar(value)}\n"
+    lines = [f"{key}:"] if value else []
+    for item in value:
+        if isinstance(item, dict):
+            (first_key, first_value), *rest = item.items()
+            lines.append(f"  - {first_key}: {yaml_scalar(first_value)}")
+            lines += [f"    {item_key}: {yaml_scalar(item_value)}" for item_key, item_value in rest]
+        else:
+            lines.append(f"  - {yaml_scalar(item)}")
+    return "".join(f"{line}\n" for line in lines)
+
+
+def update_frontmatter(task: Task, updates: dict[str, str | list]) -> None:
+    # Rewrite only the touched keys' blocks: a YAML round-trip would reformat TaskNotes' dates and lists.
     frontmatter_text = task.frontmatter_text
     for key, value in updates.items():
-        line = f"{key}: {yaml_scalar(value)}"
-        key_line = re.compile(rf"^{re.escape(key)}:.*$", re.MULTILINE)
-        frontmatter_text = key_line.sub(line, frontmatter_text, count=1) if key_line.search(frontmatter_text) else f"{frontmatter_text}{line}\n"
+        rendered = render_frontmatter_key(key, value)
+        # A key's block is its own line plus the indented or "- " item lines beneath it.
+        key_block = re.compile(rf"^{re.escape(key)}:.*\n(?:(?:[ \t]+|- ).*\n)*", re.MULTILINE)
+        if key_block.search(frontmatter_text):
+            frontmatter_text = key_block.sub(lambda _: rendered, frontmatter_text, count=1)
+        else:
+            frontmatter_text += rendered
     task.path.write_text(f"---\n{frontmatter_text}---\n{task.body}", encoding="utf-8")
 
 
@@ -153,7 +187,6 @@ def read_stdin(name: str) -> str:
 
 def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str], brief: str) -> str:
     timestamp = now_timestamp()
-    blocked_by = "".join(f'  - uid: "[[{stem}]]"\n    reltype: FINISHTOSTART\n' for stem in blocker_stems)
     return (
         "---\n"
         "type: task\n"
@@ -164,8 +197,8 @@ def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str
         f"dateModified: {timestamp}\n"
         f"aliases: {json.dumps(title, ensure_ascii=False)}\n"
         # TaskNotes treats a task listed in `projects` as the parent of this one.
-        + (f'projects:\n  - "[[{parent_stem}]]"\n' if parent_stem else "")
-        + (f"blockedBy:\n{blocked_by}" if blocked_by else "")
+        + render_frontmatter_key("projects", [task_link(parent_stem)] if parent_stem else [])
+        + render_frontmatter_key("blockedBy", [blocker_entry(stem) for stem in blocker_stems])
         + f"---\n\n{brief}\n\n{RESULT_HEADING}\n"
     )
 
@@ -187,15 +220,45 @@ def command_print_path(_: argparse.Namespace) -> None:
     print(tasks_dir())
 
 
+def require_tasks_exist(directory: Path, role: str, stems: list[str]) -> None:
+    for stem in stems:
+        if not (directory / f"{stem}.md").is_file():
+            raise TaskError(f"{role} task not found: {stem}")
+
+
 def command_create(args: argparse.Namespace) -> None:
     directory = tasks_dir()
-    linked_stems = {"Parent": [args.parent] if args.parent else [], "Blocker": args.blocked_by}
-    for role, stems in linked_stems.items():
-        for stem in stems:
-            if not (directory / f"{stem}.md").is_file():
-                raise TaskError(f"{role} task not found: {stem}")
+    require_tasks_exist(directory, "Parent", [args.parent] if args.parent else [])
+    require_tasks_exist(directory, "Blocker", args.blocked_by)
     brief = read_stdin("Brief")
     print(write_new_task_file(directory, render_new_task(args.title, args.parent, args.blocked_by, brief)))
+
+
+def command_edit(args: argparse.Namespace) -> None:
+    directory = tasks_dir()
+    task = load_task(args.task)
+    if not task.is_agent_owned:
+        raise TaskError(f"Task {task.stem} is not agent-owned; change the user's tasks in TaskNotes.")
+    require_tasks_exist(directory, "Parent", [args.parent] if args.parent else [])
+    require_tasks_exist(directory, "Blocker", args.add_blocked_by)
+    if task.stem in [args.parent, *args.add_blocked_by]:
+        raise TaskError(f"Task {task.stem} cannot be its own parent or blocker.")
+
+    fields = task.fields
+    projects = fields.get("projects", [])
+    projects = [projects] if isinstance(projects, str) else projects
+    updates: dict[str, str | list] = {}
+    if args.parent or args.remove_parent:
+        # A parent is a `projects` entry that is a task; other project links belong to the user and stay.
+        non_task_projects = [link for link in projects if not (directory / f"{unwrap_link(link)}.md").is_file()]
+        updates["projects"] = non_task_projects + ([task_link(args.parent)] if args.parent else [])
+    if args.add_blocked_by or args.remove_blocked_by:
+        kept_blockers = [entry for entry in fields.get("blockedBy", []) if unwrap_link(entry["uid"]) not in args.remove_blocked_by]
+        kept_stems = {unwrap_link(entry["uid"]) for entry in kept_blockers}
+        updates["blockedBy"] = kept_blockers + [blocker_entry(stem) for stem in dict.fromkeys(args.add_blocked_by) if stem not in kept_stems]
+    if not updates:
+        raise TaskError("Nothing to edit; pass a relationship flag.")
+    update_frontmatter(task, {**updates, "dateModified": now_timestamp()})
 
 
 def command_ready(args: argparse.Namespace) -> None:
@@ -211,7 +274,7 @@ def command_claim(args: argparse.Namespace) -> None:
         raise TaskError(f"Task {task.stem} is {task.status}, not open.")
     if not is_ready(task, {other.stem: other for other in all_tasks()}):
         raise TaskError(f"Task {task.stem} is not ready: blockers unfinished or not agent-owned.")
-    set_frontmatter_scalars(task, {"status": "in-progress", "claimedBy": args.thread, "dateModified": now_timestamp()})
+    update_frontmatter(task, {"status": "in-progress", "claimedBy": args.thread, "dateModified": now_timestamp()})
 
 
 def command_finish(args: argparse.Namespace) -> None:
@@ -226,7 +289,7 @@ def command_finish(args: argparse.Namespace) -> None:
     updates = {"status": STATUS_FOR_OUTCOME[args.outcome], "dateModified": now_timestamp()}
     if args.outcome == "done":
         updates["completedDate"] = f"{datetime.now():%Y-%m-%d}"
-    set_frontmatter_scalars(task, updates)
+    update_frontmatter(task, updates)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -238,10 +301,19 @@ def build_parser() -> argparse.ArgumentParser:
     create = commands.add_parser("create", help="Create an agent subtask; brief on stdin; prints its path.")
     create.add_argument("--title", required=True)
     create.add_argument("--parent", metavar="TASK", help="Task file stem this becomes a subtask of; any owner.")
-    create.add_argument("--blocked-by", action="append", default=[], metavar="TASK", help="Blocking task file stem; repeatable.")
+    create.add_argument("--blocked-by", type=task_stem_list, action="extend", default=[], metavar="TASKS", help="Blocking task file stems, comma-separated or repeated.")
     create.set_defaults(handler=command_create)
 
     commands.add_parser("ready", help="List open agent subtasks whose blockers are done, as 'stem<TAB>title'.").set_defaults(handler=command_ready)
+
+    edit = commands.add_parser("edit", help="Change an agent subtask's parent or blockers, mirroring `gh issue edit`.")
+    edit.add_argument("task", help="Task file stem.")
+    parent = edit.add_mutually_exclusive_group()
+    parent.add_argument("--parent", metavar="TASK", help="Set the parent task, replacing any previous one.")
+    parent.add_argument("--remove-parent", action="store_true", help="Remove the parent task.")
+    edit.add_argument("--add-blocked-by", type=task_stem_list, action="extend", default=[], metavar="TASKS", help="Add blocking tasks, comma-separated or repeated.")
+    edit.add_argument("--remove-blocked-by", type=task_stem_list, action="extend", default=[], metavar="TASKS", help="Remove blocking tasks, comma-separated or repeated.")
+    edit.set_defaults(handler=command_edit)
 
     claim = commands.add_parser("claim", help="Mark a ready subtask in-progress for a thread.")
     claim.add_argument("task", help="Task file stem.")
