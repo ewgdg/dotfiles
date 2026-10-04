@@ -61,10 +61,6 @@ class Task:
         return [unwrap_link(blocker["uid"]) for blocker in self.fields.get("blockedBy", [])]
 
     @property
-    def goal_links(self) -> list[str]:
-        return [unwrap_link(link) for link in self.fields.get("projects", [])]
-
-    @property
     def title(self) -> str:
         aliases = self.fields.get("aliases", self.stem)
         return aliases[0] if isinstance(aliases, list) else aliases
@@ -155,13 +151,7 @@ def read_stdin(name: str) -> str:
     return text
 
 
-def find_goal_note(vault: Path, goal: str) -> None:
-    matches = [path for path in vault.rglob(f"{goal}.md") if not any(part.startswith(".") for part in path.relative_to(vault).parts)]
-    if len(matches) != 1:
-        raise TaskError(f"Expected one goal note named {goal!r} in the vault, found {len(matches)}.")
-
-
-def render_new_task(title: str, goal: str, blocker_stems: list[str], brief: str) -> str:
+def render_new_task(title: str, blocker_stems: list[str], brief: str) -> str:
     timestamp = now_timestamp()
     blocked_by = "".join(f'  - uid: "[[{stem}]]"\n    reltype: FINISHTOSTART\n' for stem in blocker_stems)
     return (
@@ -173,8 +163,6 @@ def render_new_task(title: str, goal: str, blocker_stems: list[str], brief: str)
         f"dateCreated: {timestamp}\n"
         f"dateModified: {timestamp}\n"
         f"aliases: {json.dumps(title, ensure_ascii=False)}\n"
-        "projects:\n"
-        f"  - {json.dumps(f'[[{goal}]]', ensure_ascii=False)}\n"
         + (f"blockedBy:\n{blocked_by}" if blocked_by else "")
         + f"---\n\n{brief}\n\n{RESULT_HEADING}\n"
     )
@@ -198,20 +186,18 @@ def command_print_path(_: argparse.Namespace) -> None:
 
 
 def command_create(args: argparse.Namespace) -> None:
-    vault = discover_vault_path()
-    directory = vault / TASKS_RELATIVE_DIR
-    find_goal_note(vault, args.goal)
+    directory = tasks_dir()
     for stem in args.blocked_by:
         if not (directory / f"{stem}.md").is_file():
             raise TaskError(f"Blocker task not found: {stem}")
     brief = read_stdin("Brief")
-    print(write_new_task_file(directory, render_new_task(args.title, args.goal, args.blocked_by, brief)))
+    print(write_new_task_file(directory, render_new_task(args.title, args.blocked_by, brief)))
 
 
 def command_ready(args: argparse.Namespace) -> None:
     tasks_by_stem = {task.stem: task for task in all_tasks()}
     for task in tasks_by_stem.values():
-        if is_ready(task, tasks_by_stem) and (args.goal is None or args.goal in task.goal_links):
+        if is_ready(task, tasks_by_stem):
             print(f"{task.stem}\t{task.title}")
 
 
@@ -246,14 +232,11 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_parser("print-path", help="Print the tasks directory.").set_defaults(handler=command_print_path)
 
     create = commands.add_parser("create", help="Create an agent subtask; brief on stdin; prints its path.")
-    create.add_argument("--goal", required=True, help="Goal note name, as in [[name]].")
     create.add_argument("--title", required=True)
     create.add_argument("--blocked-by", action="append", default=[], metavar="TASK", help="Blocking task file stem; repeatable.")
     create.set_defaults(handler=command_create)
 
-    ready = commands.add_parser("ready", help="List open agent subtasks whose blockers are done, as 'stem<TAB>title'.")
-    ready.add_argument("--goal", help="Only tasks linked to this goal note name.")
-    ready.set_defaults(handler=command_ready)
+    commands.add_parser("ready", help="List open agent subtasks whose blockers are done, as 'stem<TAB>title'.").set_defaults(handler=command_ready)
 
     claim = commands.add_parser("claim", help="Mark a ready subtask in-progress for a thread.")
     claim.add_argument("task", help="Task file stem.")

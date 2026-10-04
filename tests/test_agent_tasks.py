@@ -18,8 +18,6 @@ TASKS_DIR = "Effects/Tasks"
 def vault(tmp_path: Path) -> Path:
     vault_root = tmp_path / VAULT_NAME
     (vault_root / TASKS_DIR).mkdir(parents=True)
-    (vault_root / "Effects/Projects").mkdir(parents=True)
-    (vault_root / "Effects/Projects/Ship the blog.md").write_text("goal\n")
     registry = tmp_path / "config/obsidian/obsidian.json"
     registry.parent.mkdir(parents=True)
     registry.write_text(json.dumps({"vaults": {"a1": {"path": str(vault_root), "ts": 1}}}))
@@ -37,7 +35,7 @@ def create_task(vault: Path, title: str, *blocked_by: str) -> str:
     blocker_args = [arg for blocker in blocked_by for arg in ("--blocked-by", blocker)]
     result = run_tasks(
         vault,
-        "create", "--goal", "Ship the blog", "--title", title, *blocker_args,
+        "create", "--title", title, *blocker_args,
         stdin=f"## Brief\n{title}.\n\n## Done when\nIt works.\n",
     )
     assert result.returncode == 0, result.stderr
@@ -54,7 +52,7 @@ def finish(vault: Path, task: str, *args: str) -> subprocess.CompletedProcess[st
     return run_tasks(vault, "finish", task, *args, stdin="Merged https://example.com/pr/1.\n")
 
 
-def test_create_writes_agent_owned_tasknote_linked_to_goal_and_blockers(vault: Path) -> None:
+def test_create_writes_agent_owned_tasknote_with_blockers(vault: Path) -> None:
     blocker = create_task(vault, "Design schema")
     task = create_task(vault, "Build API", blocker)
 
@@ -64,20 +62,16 @@ def test_create_writes_agent_owned_tasknote_linked_to_goal_and_blockers(vault: P
     assert "owner: agent\n" in note
     assert "status: open\n" in note
     assert 'aliases: "Build API"\n' in note
-    assert '  - "[[Ship the blog]]"\n' in note
+    assert "projects:" not in note
     assert f'  - uid: "[[{blocker}]]"\n    reltype: FINISHTOSTART\n' in note
     assert note.rstrip().endswith("## Result")
 
 
-def test_create_rejects_unknown_goal_and_unknown_blocker(vault: Path) -> None:
-    brief = "## Brief\nx\n\n## Done when\ny\n"
-
-    unknown_goal = run_tasks(vault, "create", "--goal", "Nope", "--title", "t", stdin=brief)
+def test_create_rejects_unknown_blocker(vault: Path) -> None:
     unknown_blocker = run_tasks(
-        vault, "create", "--goal", "Ship the blog", "--title", "t", "--blocked-by", "nope", stdin=brief
+        vault, "create", "--title", "t", "--blocked-by", "nope", stdin="## Brief\nx\n\n## Done when\ny\n"
     )
 
-    assert unknown_goal.returncode != 0 and "Nope" in unknown_goal.stderr
     assert unknown_blocker.returncode != 0 and "nope" in unknown_blocker.stderr
     assert list((vault / TASKS_DIR).iterdir()) == []
 
@@ -94,7 +88,6 @@ def test_ready_lists_only_open_agent_tasks_whose_blockers_are_done(vault: Path) 
 
     assert finish(vault, schema).returncode == 0
     assert ready_titles(vault) == ["Build API"]
-    assert ready_titles(vault, "--goal", "Other goal") == []
 
 
 def test_claim_is_exclusive_and_finish_records_result(vault: Path) -> None:

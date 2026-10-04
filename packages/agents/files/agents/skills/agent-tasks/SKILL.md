@@ -1,12 +1,12 @@
 ---
 name: agent-tasks
 description: >
-  Subtasks for autonomous agent orchestration, kept as TaskNotes on the user's Obsidian task board. Use when an orchestration session splits a goal into subtasks, picks the next ready subtask, or a worker starts or finishes one. Work done together with the user (grilling, wayfinder, design sessions) goes to GitHub issues instead.
+  Subtasks for autonomous agent orchestration, kept as TaskNotes on the Agent Board in the user's Obsidian vault. Use when an orchestration session splits work into subtasks, picks the next ready subtask, or a worker starts or finishes one. Work done together with the user (grilling, wayfinder, design sessions) goes to GitHub issues instead.
 ---
 
 # Agent Tasks
 
-A **subtask** is one TaskNote owned by agents (`owner: agent`), linked to a user **goal** note, with **blockers** that must be `done` before it is **ready**. The user's board hides subtasks; the vault picks up new files live, so Obsidian need not be running.
+A **subtask** is one TaskNote owned by agents (`owner: agent`), with **blockers** that must be `done` before it is **ready**. Subtasks live on their own Agent Board, apart from the user's tasks; the vault picks up new files live, so Obsidian need not be running.
 
 Always go through the helper; it writes the frontmatter TaskNotes expects and edits only the lines it changes:
 
@@ -16,10 +16,10 @@ Always go through the helper; it writes the frontmatter TaskNotes expects and ed
 
 ## Roles
 
-**Planner** (the orchestration session with the user): split the goal into subtasks, one `create` per subtask, wiring `--blocked-by` so the order is explicit. The goal must be an existing note; pass its file name.
+**Planner** (the orchestration session with the user): split the work into subtasks, one `create` per subtask, wiring `--blocked-by` so the order is explicit.
 
 ```bash
-~/.agents/skills/agent-tasks/run.py create --goal "<goal note name>" --title "<title>" --blocked-by <task stem> <<'EOF'
+~/.agents/skills/agent-tasks/run.py create --title "<title>" --blocked-by <task stem> <<'EOF'
 ## Brief
 <what to do, where, and the context a fresh agent needs>
 
@@ -33,7 +33,7 @@ EOF
 **Dispatcher**: the only role that claims. List ready subtasks, claim each one before handing it to a worker thread:
 
 ```bash
-~/.agents/skills/agent-tasks/run.py ready [--goal "<goal note name>"]
+~/.agents/skills/agent-tasks/run.py ready
 ~/.agents/skills/agent-tasks/run.py claim <task stem> --thread <thread id>
 ```
 
