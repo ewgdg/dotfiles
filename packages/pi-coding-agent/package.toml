@@ -66,4 +66,7 @@ probe = 'if command -v pi >/dev/null 2>&1; then exit 100; fi; exit 0'
 
 [targets.pi_coding_agent_install.hooks]
 # The pi.dev installer pins transitive dependencies; the npm package no longer does.
-pre_push = "curl -fsSL https://pi.dev/install.sh | sh"
+# It links pi into the first known bin dir on PATH and has no override. Put
+# ~/.local/bin first so it skips ~/bin, which the bin package mirrors and would
+# prune the link from.
+pre_push = 'curl -fsSL https://pi.dev/install.sh | PATH="$HOME/.local/bin:$PATH" sh'
