@@ -3,33 +3,33 @@
 binds {
     // Mod-Shift-/, which is usually the same as Mod-?,
     // shows a list of important hotkeys.
-    MOD+SHIFT+Slash { show-hotkey-overlay; }
+    Mod+Shift+Slash { show-hotkey-overlay; }
 
     // Applications
-    MOD+RETURN repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-ghostty}\""; }
-    MOD+SPACE hotkey-overlay-title="Open Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
-    MOD+SHIFT+SPACE hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
-    MOD+V hotkey-overlay-title="Open Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
-    MOD+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
-    MOD+SHIFT+B hotkey-overlay-title="Open New Browser Window" { spawn "google-chrome-stable" "--new-window"; }
-    MOD+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
-    MOD+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
-    MOD+ALT+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
-    MOD+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
-    MOD+O repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
-    MOD+ALT+O repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
-    MOD+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
-    MOD+ALT+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
-    MOD+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
-    MOD+ALT+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
-    MOD+ALT+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict-search"; }
-    MOD+ALT+SHIFT+SPACE hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
+    Mod+Return repeat=false hotkey-overlay-title="Open Terminal" { spawn-sh "exec \"${TERMINAL:-ghostty}\""; }
+    Mod+Space hotkey-overlay-title="Open Launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    Mod+Shift+Space hotkey-overlay-title="Search Open Windows" { spawn "noctalia" "msg" "panel-toggle" "launcher" "/win "; }
+    Mod+V hotkey-overlay-title="Open Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
+    Mod+B hotkey-overlay-title="Open Browser" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --hide '^google-chrome$' google-chrome-stable"; }
+    Mod+Shift+B hotkey-overlay-title="Open New Browser Window" { spawn "google-chrome-stable" "--new-window"; }
+    Mod+D hotkey-overlay-title="Summon GoldenDict" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --singleton --float '(?i)goldendict' goldendict"; }
+    Mod+P repeat=false hotkey-overlay-title="Pin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" pin"; }
+    Mod+Alt+P repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
+    Mod+Shift+P repeat=false hotkey-overlay-title="Unpin Focused Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" clear"; }
+    Mod+O repeat=false hotkey-overlay-title="Open Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/pinned-window.sh\" summon"; }
+    Mod+Alt+O repeat=false hotkey-overlay-title="Move Window Beside Pinned Window" { spawn-sh "\"$HOME/.config/niri/bin/move-focused-window-beside-pinned-or-main.sh\""; }
+    Mod+N repeat=false hotkey-overlay-title="Open Notes Workspace" { focus-workspace "notes"; }
+    Mod+Alt+N repeat=false hotkey-overlay-title="Move Window To Notes Workspace" { move-window-to-workspace "notes" focus=false; }
+    Mod+A repeat=false hotkey-overlay-title="Open AI Workspace" { focus-workspace "AI"; }
+    Mod+Alt+A repeat=false hotkey-overlay-title="Move Window To AI Workspace" { move-window-to-workspace "AI" focus=false; }
+    Mod+Alt+D hotkey-overlay-title="Open GoldenDict Search" { spawn-sh "goldendict-search"; }
+    Mod+Alt+Shift+Space hotkey-overlay-title="Open 1Password Quick Access" { spawn "1password" "--quick-access"; }
     // Ctrl+Shift+L already moves a column to the right monitor.
-    MOD+CTRL+ALT+L hotkey-overlay-title="Lock Screen" { spawn "noctalia" "msg" "session" "lock"; }
+    Mod+Ctrl+Alt+L hotkey-overlay-title="Lock Screen" { spawn "noctalia" "msg" "session" "lock"; }
 
     // Nautilus changes its title as you browse folders, so match the stable app ID.
     // Summon Nautilus only from this workspace; relaunch a new window if it is already focused.
-    MOD+E repeat=false hotkey-overlay-title="Summon File Manager" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --same-workspace --relaunch-if-focused '(?i)^org\\.gnome\\.Nautilus$' nautilus --new-window"; }
+    Mod+E repeat=false hotkey-overlay-title="Summon File Manager" { spawn-sh "\"$HOME/.config/niri/bin/summon-or-launch.sh\" --same-workspace --relaunch-if-focused '(?i)^org\\.gnome\\.Nautilus$' nautilus --new-window"; }
 
     // Noctalia media, audio, and brightness controls
     XF86AudioPlay allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
@@ -47,9 +47,9 @@ binds {
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,
     // or do a four-finger swipe up on a touchpad.
-    MOD+W repeat=false { toggle-overview; }
+    Mod+W repeat=false { toggle-overview; }
 
-    MOD+Q { close-window; }
+    Mod+Q { close-window; }
 
     Mod+Left  { focus-column-or-monitor-left; }
     Mod+Down  { focus-window-down; }
@@ -120,46 +120,46 @@ binds {
     Mod+Shift+S repeat=false hotkey-overlay-title="Summon Last Stash Window" { spawn-sh "\"$HOME/.config/niri/bin/summon-last-stash.sh\""; }
     Mod+Alt+S repeat=false { move-window-to-workspace "stash" focus=false; }
 
-    MOD+WHEELSCROLLDOWN cooldown-ms=150 { focus-workspace-down; }
-    MOD+WHEELSCROLLUP cooldown-ms=150 { focus-workspace-up; }
-    MOD+ALT+WHEELSCROLLDOWN cooldown-ms=150 { move-column-to-workspace-down; }
-    MOD+ALT+WHEELSCROLLUP cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
+    Mod+Alt+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Alt+WheelScrollUp cooldown-ms=150 { move-column-to-workspace-up; }
 
-    MOD+WHEELSCROLLRIGHT { focus-column-right; }
-    MOD+WHEELSCROLLLEFT { focus-column-left; }
-    MOD+ALT+WHEELSCROLLRIGHT { move-column-right; }
-    MOD+ALT+WHEELSCROLLLEFT { move-column-left; }
+    Mod+WheelScrollRight { focus-column-right; }
+    Mod+WheelScrollLeft { focus-column-left; }
+    Mod+Alt+WheelScrollRight { move-column-right; }
+    Mod+Alt+WheelScrollLeft { move-column-left; }
 
-    MOD+SHIFT+WHEELSCROLLDOWN { focus-column-right; }
-    MOD+SHIFT+WHEELSCROLLUP { focus-column-left; }
-    MOD+SHIFT+WHEELSCROLLRIGHT { focus-column-right; }
-    MOD+SHIFT+WHEELSCROLLLEFT { focus-column-left; }
-    MOD+ALT+SHIFT+WHEELSCROLLDOWN { move-column-right; }
-    MOD+ALT+SHIFT+WHEELSCROLLUP { move-column-left; }
+    Mod+Shift+WheelScrollDown { focus-column-right; }
+    Mod+Shift+WheelScrollUp { focus-column-left; }
+    Mod+Shift+WheelScrollRight { focus-column-right; }
+    Mod+Shift+WheelScrollLeft { focus-column-left; }
+    Mod+Alt+Shift+WheelScrollDown { move-column-right; }
+    Mod+Alt+Shift+WheelScrollUp { move-column-left; }
 
     // Alternatively, there are commands to move just a single window:
     // Mod+Alt+Page_Down { move-window-to-workspace-down; }
     // ...
 
-    MOD+1 { focus-workspace 1; }
-    MOD+2 { focus-workspace 2; }
-    MOD+3 { focus-workspace 3; }
-    MOD+4 { focus-workspace 4; }
-    MOD+5 { focus-workspace 5; }
-    MOD+6 { focus-workspace 6; }
-    MOD+7 { focus-workspace 7; }
-    MOD+8 { focus-workspace 8; }
-    MOD+9 { focus-workspace 9; }
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
 
-    MOD+ALT+1 { move-column-to-workspace 1; }
-    MOD+ALT+2 { move-column-to-workspace 2; }
-    MOD+ALT+3 { move-column-to-workspace 3; }
-    MOD+ALT+4 { move-column-to-workspace 4; }
-    MOD+ALT+5 { move-column-to-workspace 5; }
-    MOD+ALT+6 { move-column-to-workspace 6; }
-    MOD+ALT+7 { move-column-to-workspace 7; }
-    MOD+ALT+8 { move-column-to-workspace 8; }
-    MOD+ALT+9 { move-column-to-workspace 9; }
+    Mod+Alt+1 { move-column-to-workspace 1; }
+    Mod+Alt+2 { move-column-to-workspace 2; }
+    Mod+Alt+3 { move-column-to-workspace 3; }
+    Mod+Alt+4 { move-column-to-workspace 4; }
+    Mod+Alt+5 { move-column-to-workspace 5; }
+    Mod+Alt+6 { move-column-to-workspace 6; }
+    Mod+Alt+7 { move-column-to-workspace 7; }
+    Mod+Alt+8 { move-column-to-workspace 8; }
+    Mod+Alt+9 { move-column-to-workspace 9; }
 
     // Alternatively, there are commands to move just a single window:
     // Mod+Alt+1 { move-window-to-workspace 1; }
@@ -190,40 +190,40 @@ binds {
     Mod+F repeat=false hotkey-overlay-title="Maximize Column or Window" { spawn "~/.config/niri/bin/toggle-expand-focused-window.sh"; }
     Mod+Shift+F { fullscreen-window; }
     Mod+M { maximize-window-to-edges; }
-    MOD+ALT+F { maximize-window-to-edges; }
+    Mod+Alt+F { maximize-window-to-edges; }
     // available width means any space or partially visible window
-    // MOD+ALT+F { expand-column-to-available-width; }
+    // Mod+Alt+F { expand-column-to-available-width; }
 
-    MOD+C { center-column; }
+    Mod+C { center-column; }
     // Center all fully visible columns on screen.
-    MOD+ALT+C { center-visible-columns; }
-    MOD+MINUS { set-column-width "-10%"; }
-    MOD+EQUAL { set-column-width "+10%"; }
-    MOD+Backspace { set-column-width "50%"; }
-    MOD+SHIFT+MINUS { set-window-height "-10%"; }
-    MOD+SHIFT+EQUAL { set-window-height "+10%"; }
+    Mod+Alt+C { center-visible-columns; }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Backspace { set-column-width "50%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
 
     // Move the focused window between the floating and the tiling layout.
     Mod+Z       { toggle-window-floating; }
     Mod+Shift+Z { switch-focus-between-floating-and-tiling; }
 
     // Toggle tabbed column display mode.
-    MOD+T { toggle-column-tabbed-display; }
+    Mod+T { toggle-column-tabbed-display; }
 
     // Screenshots
     // Print { screenshot; }
-    // CTRL+SHIFT+5 { screenshot; }
+    // Ctrl+Shift+5 { screenshot; }
     Print { spawn "noctalia" "msg" "screenshot-region"; }
-    CTRL+SHIFT+5 { spawn "noctalia" "msg" "screenshot-region"; }
+    Ctrl+Shift+5 { spawn "noctalia" "msg" "screenshot-region"; }
     Shift+Print { screenshot-screen show-pointer=false write-to-disk=false; }
-    CTRL+Print { screenshot-window write-to-disk=false; }
+    Ctrl+Print { screenshot-window write-to-disk=false; }
 
     // Emergency Escape Key
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.
-    MOD+ALT+ESCAPE allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Alt+Escape allow-inhibiting=false hotkey-overlay-title="Disable Keyboard Shortcuts Inhibitor" { toggle-keyboard-shortcuts-inhibit; }
 
     // Exit / Power
-    Mod+Alt+Shift+DELETE { quit; } // Also quits Niri
-    MOD+ALT+SHIFT+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
+    Mod+Alt+Shift+Delete { quit; } // Also quits Niri
+    Mod+Alt+Shift+P { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
 }
