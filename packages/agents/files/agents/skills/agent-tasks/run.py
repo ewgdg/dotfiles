@@ -1,0 +1,279 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["pyyaml>=6"]
+# ///
+"""Manage agent-owned subtasks as TaskNotes in the Obsidian vault, by writing files directly."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+import yaml
+
+VAULT_NAME = os.environ.get("AGENT_TASKS_VAULT", "knowledgebase")
+TASKS_RELATIVE_DIR = os.environ.get("AGENT_TASKS_VAULT_RELATIVE_DIR", "Effects/Tasks")
+AGENT_OWNER = "agent"
+CREATE_ATTEMPTS = 5
+PLAIN_SCALAR = re.compile(r"^[\w.:+\-]+$")
+FRONTMATTER = re.compile(r"\A---\n(.*?\n)---\n", re.DOTALL)
+RESULT_HEADING = "## Result"
+STATUS_FOR_OUTCOME = {"done": "done", "failed": "paused"}
+
+
+class TaskError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Task:
+    path: Path
+    frontmatter_text: str
+    body: str
+
+    @property
+    def stem(self) -> str:
+        return self.path.stem
+
+    @property
+    def fields(self) -> dict:
+        # BaseLoader keeps every scalar a string, so dates read exactly as TaskNotes wrote them.
+        return yaml.load(self.frontmatter_text, Loader=yaml.BaseLoader) or {}
+
+    @property
+    def status(self) -> str:
+        return self.fields.get("status", "")
+
+    @property
+    def is_agent_owned(self) -> bool:
+        return self.fields.get("owner") == AGENT_OWNER
+
+    @property
+    def blocker_stems(self) -> list[str]:
+        return [unwrap_link(blocker["uid"]) for blocker in self.fields.get("blockedBy", [])]
+
+    @property
+    def goal_links(self) -> list[str]:
+        return [unwrap_link(link) for link in self.fields.get("projects", [])]
+
+    @property
+    def title(self) -> str:
+        aliases = self.fields.get("aliases", self.stem)
+        return aliases[0] if isinstance(aliases, list) else aliases
+
+
+def discover_vault_path() -> Path:
+    # Read Obsidian's vault registry directly instead of the `obsidian` CLI, which needs the app running.
+    home = Path.home()
+    registry_candidates = [
+        Path(os.environ.get("XDG_CONFIG_HOME", home / ".config")) / "obsidian/obsidian.json",
+        home / "Library/Application Support/obsidian/obsidian.json",
+        Path(os.environ.get("APPDATA", home / "AppData/Roaming")) / "obsidian/obsidian.json",
+    ]
+    registry = next((path for path in registry_candidates if path.is_file()), None)
+    if registry is None:
+        raise TaskError("Obsidian vault registry (obsidian.json) not found.")
+    vault_paths = [
+        Path(entry["path"])
+        for entry in json.loads(registry.read_text(encoding="utf-8"))["vaults"].values()
+        if Path(entry["path"]).name == VAULT_NAME
+    ]
+    if len(vault_paths) != 1:
+        raise TaskError(
+            f"Expected one Obsidian vault named {VAULT_NAME!r} in {registry}, found {len(vault_paths)}. "
+            "Set AGENT_TASKS_VAULT to the vault folder name."
+        )
+    return vault_paths[0]
+
+
+def tasks_dir() -> Path:
+    return discover_vault_path() / TASKS_RELATIVE_DIR
+
+
+def unwrap_link(link: str) -> str:
+    return link.removeprefix("[[").removesuffix("]]").split("|")[0]
+
+
+def yaml_scalar(value: str) -> str:
+    # JSON strings are valid YAML double-quoted scalars.
+    return value if PLAIN_SCALAR.match(value) else json.dumps(value, ensure_ascii=False)
+
+
+def now_timestamp() -> str:
+    return datetime.now().astimezone().isoformat(timespec="milliseconds")
+
+
+def read_task(path: Path) -> Task:
+    text = path.read_text(encoding="utf-8")
+    match = FRONTMATTER.match(text)
+    if match is None:
+        raise TaskError(f"No frontmatter in {path}")
+    return Task(path=path, frontmatter_text=match.group(1), body=text[match.end():])
+
+
+def load_task(stem: str) -> Task:
+    path = tasks_dir() / f"{stem}.md"
+    if not path.is_file():
+        raise TaskError(f"Task not found: {stem}")
+    return read_task(path)
+
+
+def all_tasks() -> list[Task]:
+    return [read_task(path) for path in sorted(tasks_dir().glob("*.md")) if FRONTMATTER.match(path.read_text(encoding="utf-8"))]
+
+
+def is_ready(task: Task, tasks_by_stem: dict[str, Task]) -> bool:
+    return (
+        task.is_agent_owned
+        and task.status == "open"
+        and all(stem in tasks_by_stem and tasks_by_stem[stem].status == "done" for stem in task.blocker_stems)
+    )
+
+
+def set_frontmatter_scalars(task: Task, updates: dict[str, str]) -> None:
+    # Edit only the touched top-level lines: a YAML round-trip would reformat TaskNotes' dates and lists.
+    frontmatter_text = task.frontmatter_text
+    for key, value in updates.items():
+        line = f"{key}: {yaml_scalar(value)}"
+        key_line = re.compile(rf"^{re.escape(key)}:.*$", re.MULTILINE)
+        frontmatter_text = key_line.sub(line, frontmatter_text, count=1) if key_line.search(frontmatter_text) else f"{frontmatter_text}{line}\n"
+    task.path.write_text(f"---\n{frontmatter_text}---\n{task.body}", encoding="utf-8")
+
+
+def read_stdin(name: str) -> str:
+    text = sys.stdin.read().strip()
+    if not text:
+        raise TaskError(f"{name} must be provided on stdin.")
+    return text
+
+
+def find_goal_note(vault: Path, goal: str) -> None:
+    matches = [path for path in vault.rglob(f"{goal}.md") if not any(part.startswith(".") for part in path.relative_to(vault).parts)]
+    if len(matches) != 1:
+        raise TaskError(f"Expected one goal note named {goal!r} in the vault, found {len(matches)}.")
+
+
+def render_new_task(title: str, goal: str, blocker_stems: list[str], brief: str) -> str:
+    timestamp = now_timestamp()
+    blocked_by = "".join(f'  - uid: "[[{stem}]]"\n    reltype: FINISHTOSTART\n' for stem in blocker_stems)
+    return (
+        "---\n"
+        "type: task\n"
+        f"owner: {AGENT_OWNER}\n"
+        "status: open\n"
+        "priority: normal\n"
+        f"dateCreated: {timestamp}\n"
+        f"dateModified: {timestamp}\n"
+        f"aliases: {json.dumps(title, ensure_ascii=False)}\n"
+        "projects:\n"
+        f"  - {json.dumps(f'[[{goal}]]', ensure_ascii=False)}\n"
+        + (f"blockedBy:\n{blocked_by}" if blocked_by else "")
+        + f"---\n\n{brief}\n\n{RESULT_HEADING}\n"
+    )
+
+
+def write_new_task_file(directory: Path, content: str) -> Path:
+    # Names are second-resolution timestamps; exclusive create keeps concurrent creators from overwriting each other.
+    for _ in range(CREATE_ATTEMPTS):
+        path = directory / f"{datetime.now():%Y-%m-%d-%H%M%S}.md"
+        try:
+            with path.open("x", encoding="utf-8") as task_file:
+                task_file.write(content)
+            return path
+        except FileExistsError:
+            time.sleep(1)
+    raise TaskError(f"Could not pick a free task file name in {directory}.")
+
+
+def command_print_path(_: argparse.Namespace) -> None:
+    print(tasks_dir())
+
+
+def command_create(args: argparse.Namespace) -> None:
+    vault = discover_vault_path()
+    directory = vault / TASKS_RELATIVE_DIR
+    find_goal_note(vault, args.goal)
+    for stem in args.blocked_by:
+        if not (directory / f"{stem}.md").is_file():
+            raise TaskError(f"Blocker task not found: {stem}")
+    brief = read_stdin("Brief")
+    print(write_new_task_file(directory, render_new_task(args.title, args.goal, args.blocked_by, brief)))
+
+
+def command_ready(args: argparse.Namespace) -> None:
+    tasks_by_stem = {task.stem: task for task in all_tasks()}
+    for task in tasks_by_stem.values():
+        if is_ready(task, tasks_by_stem) and (args.goal is None or args.goal in task.goal_links):
+            print(f"{task.stem}\t{task.title}")
+
+
+def command_claim(args: argparse.Namespace) -> None:
+    task = load_task(args.task)
+    if task.status != "open":
+        raise TaskError(f"Task {task.stem} is {task.status}, not open.")
+    if not is_ready(task, {other.stem: other for other in all_tasks()}):
+        raise TaskError(f"Task {task.stem} is not ready: blockers unfinished or not agent-owned.")
+    set_frontmatter_scalars(task, {"status": "in-progress", "claimedBy": args.thread, "dateModified": now_timestamp()})
+
+
+def command_finish(args: argparse.Namespace) -> None:
+    task = load_task(args.task)
+    if task.status != "in-progress":
+        raise TaskError(f"Task {task.stem} is {task.status}, not in-progress.")
+    if RESULT_HEADING not in task.body:
+        raise TaskError(f"Task {task.stem} has no {RESULT_HEADING!r} section.")
+    result = read_stdin("Result")
+    before_result = task.body.split(RESULT_HEADING)[0]
+    task = Task(path=task.path, frontmatter_text=task.frontmatter_text, body=f"{before_result}{RESULT_HEADING}\n{result}\n")
+    updates = {"status": STATUS_FOR_OUTCOME[args.outcome], "dateModified": now_timestamp()}
+    if args.outcome == "done":
+        updates["completedDate"] = f"{datetime.now():%Y-%m-%d}"
+    set_frontmatter_scalars(task, updates)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(required=True)
+
+    commands.add_parser("print-path", help="Print the tasks directory.").set_defaults(handler=command_print_path)
+
+    create = commands.add_parser("create", help="Create an agent subtask; brief on stdin; prints its path.")
+    create.add_argument("--goal", required=True, help="Goal note name, as in [[name]].")
+    create.add_argument("--title", required=True)
+    create.add_argument("--blocked-by", action="append", default=[], metavar="TASK", help="Blocking task file stem; repeatable.")
+    create.set_defaults(handler=command_create)
+
+    ready = commands.add_parser("ready", help="List open agent subtasks whose blockers are done, as 'stem<TAB>title'.")
+    ready.add_argument("--goal", help="Only tasks linked to this goal note name.")
+    ready.set_defaults(handler=command_ready)
+
+    claim = commands.add_parser("claim", help="Mark a ready subtask in-progress for a thread.")
+    claim.add_argument("task", help="Task file stem.")
+    claim.add_argument("--thread", required=True, help="Id of the thread doing the work.")
+    claim.set_defaults(handler=command_claim)
+
+    finish = commands.add_parser("finish", help="Record the result (stdin) of an in-progress subtask.")
+    finish.add_argument("task", help="Task file stem.")
+    finish.add_argument("--outcome", choices=STATUS_FOR_OUTCOME, default="done", help="failed parks the task as paused for re-planning.")
+    finish.set_defaults(handler=command_finish)
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    try:
+        args.handler(args)
+    except TaskError as error:
+        sys.exit(str(error))
+
+
+if __name__ == "__main__":
+    main()
