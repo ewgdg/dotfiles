@@ -107,7 +107,7 @@
 ### GitHub
 
 - Link parent/sub-issues natively in GitHub when both repositories are owned by the user.
-- When linking or tracking a repository not owned by the user, leave its timeline unchanged. Use `redirect.github.com` URLs instead of direct issue/PR references or native relationships (dependencies, parent/sub-issues).
+- Silent references (no timeline events on repositories not owned by the user): only when the user asks; follow `~/.agents/docs/github-silent-refs.md`.
 
 ## CLI Tools
 
