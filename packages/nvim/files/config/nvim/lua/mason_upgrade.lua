@@ -39,36 +39,48 @@ local function is_outdated(package)
 	return package:get_installed_version() ~= latest_version and package:is_installable({ version = latest_version })
 end
 
-local function upgrade_packages(packages)
-	local failures, finished_count = {}, 0
-	for _, package in ipairs(packages) do
-		log(("Upgrading %s %s -> %s"):format(package.name, package:get_installed_version(), package:get_latest_version()))
-		package:install({}, function(success, receipt_or_error)
-			if not success then
-				table.insert(failures, ("%s: %s"):format(package.name, vim.inspect(receipt_or_error)))
-			end
-			finished_count = finished_count + 1
-		end)
-	end
-	wait_for(function()
-		return finished_count == #packages
-	end, "package upgrades")
-	if #failures > 0 then
-		error("failed to upgrade:\n" .. table.concat(failures, "\n"))
-	end
+local function is_any_installing(packages)
+	return vim.iter(packages):any(function(package)
+		return package:is_installing()
+	end)
 end
 
 local function upgrade_installed_packages()
 	-- Load through lazy.nvim so LazyVim's mason opts (registries, paths) apply.
 	require("lazy").load({ plugins = { "mason.nvim" } })
 	local registry = require("mason-registry")
+	local installed_count, failures = 0, {}
+	-- Registry-wide, so these also report installs LazyVim starts. Installs
+	-- complete asynchronously, so subscribing after load misses none.
+	registry:on("package:install:success", function(package, receipt)
+		installed_count = installed_count + 1
+		log(("Installed %s %s"):format(package.name, receipt:get_installed_package_version()))
+	end)
+	registry:on("package:install:failed", function(package, error)
+		table.insert(failures, ("%s: %s"):format(package.name, vim.inspect(error)))
+	end)
 	update_registries(registry)
+
 	local outdated_packages = vim.tbl_filter(is_outdated, registry.get_installed_packages())
-	if #outdated_packages == 0 then
-		log("Mason packages are up to date")
-		return
+	for _, package in ipairs(outdated_packages) do
+		log(("Upgrading %s %s -> %s"):format(package.name, package:get_installed_version(), package:get_latest_version()))
+		package:install()
 	end
-	upgrade_packages(outdated_packages)
+
+	-- LazyVim's mason config installs missing `ensure_installed` tools from its
+	-- registry refresh callback. Mason resumes callbacks synchronously, so those
+	-- installs have started by the time `update_registries` returns; wait for
+	-- them too, since exiting nvim aborts in-flight installs.
+	local all_packages = registry.get_all_packages()
+	wait_for(function()
+		return not is_any_installing(all_packages)
+	end, "package installs")
+	if #failures > 0 then
+		error("failed to install:\n" .. table.concat(failures, "\n"))
+	end
+	if installed_count == 0 then
+		log("Mason packages are up to date")
+	end
 end
 
 function M.run()
