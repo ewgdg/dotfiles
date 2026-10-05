@@ -97,7 +97,7 @@
 
 - use semantic commit messages
 - prefer a local worktree dir in `./.worktrees/` if unspecified when a worktree is needed
-- Prefer rebasing followed by a fast-forward merge.
+- Rebase onto the base before merging. Fast-forward small branches; merge large multi-concern branches with `--no-ff` for a one-step revert, and never squash them.
 
 ### Implementation commits
 
