@@ -31,10 +31,6 @@ require("lazy").setup({
 	-- Configure any other settings here. See the documentation for more details.
 	-- colorscheme that will be used when installing plugins.
 	install = { colorscheme = { "habamax" } },
-	-- automatically check for plugin updates
-	checker = {
-		enabled = true,
-		notify = true, -- track updates without popup notifications
-		frequency = 7 * 24 * 60 * 60, -- check once per 7 day
-	},
+	-- plugin updates are handled by topgrade's Vim step (`:Lazy! sync`)
+	checker = { enabled = false },
 })
