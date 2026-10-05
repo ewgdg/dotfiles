@@ -75,8 +75,9 @@ Typical flow:
 
 1. Run `./init.sh` to register this repo in your dotman manager config.
 2. Track the binding you want.
-3. Use `dotman push` for repo-to-live changes.
-4. Use `dotman pull` for live-to-repo changes.
+3. Run `dotman push` once on a fresh host.
+4. Run `dotman sync` day to day ([how sync works](https://github.com/ewgdg/dotman/blob/main/docs/sync.md)).
+5. Run `dotman push` or `dotman pull` to force one direction.
 
 Example commands below assume the repo is registered as `main` in your dotman
 config:
@@ -84,7 +85,7 @@ config:
 ```sh
 dotman track main:host/linux-niri@host/linux-niri
 dotman push
-dotman pull
+dotman sync
 
 dotman list tracked
 dotman info tracked git
@@ -94,8 +95,7 @@ For narrower work, you can track or inspect smaller selectors directly:
 
 ```sh
 dotman track main:git@host/linux-niri
-dotman push git
-dotman pull git
+dotman sync git
 ```
 
 ## Choosing Bindings
