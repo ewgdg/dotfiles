@@ -97,7 +97,9 @@
 
 - use semantic commit messages
 - prefer a local worktree dir in `./.worktrees/` if unspecified when a worktree is needed
-- Rebase onto the base before merging. Fast-forward small branches; merge large multi-concern branches with `--no-ff` for a one-step revert, and never squash them.
+- Rebase onto the base before merging; never squash.
+- PR branches: merge with a merge commit (`gh pr merge --merge`) so history links to the PR, unless the repo restricts merge methods.
+- Branches without a PR: fast-forward; use `--no-ff` only for large multi-concern branches, for a one-step revert.
 
 ### Implementation commits
 
