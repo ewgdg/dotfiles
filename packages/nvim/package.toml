@@ -11,6 +11,10 @@ patterns = [
   ".nvimlog",
 ]
 
+[targets.f_config_topgrade_d_mason_toml]
+source = "files/config/topgrade.d/mason.toml"
+path = "~/.config/topgrade.d/mason.toml"
+
 [hooks]
 pre_push = [
   "{{ INSTALL }} neovim",

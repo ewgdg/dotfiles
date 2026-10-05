@@ -1,0 +1,2 @@
+[commands]
+"Mason packages" = "nvim --headless \"+lua require('mason_upgrade').run()\""
