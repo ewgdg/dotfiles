@@ -18,8 +18,6 @@
 
 - Put package-specific docs in the package directory: use package `README.md` for overview/small docs, and package-local `docs/` for modular or multi-topic package docs; keep root `docs/` for repo-wide, cross-package, or workflow notes.
 - Sync with `dotman`, scoped to the targets your change touches: `dotman push|pull <repo:package.target>`. Preview with `-d` first. Ask before an unscoped run (all tracked targets).
-  - `dotman push` = repo → live system.
-  - `dotman pull` = live system → repo.
 - Run Python helpers with `uv run ...`.
 - Keep hooks/actions idempotent.
 - Do not manually install packages that are already dependencies of installed packages.
