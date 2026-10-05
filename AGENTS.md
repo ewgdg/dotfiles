@@ -3,7 +3,7 @@
 ## Source of Truth
 
 - This repo is built around [`dotman`](https://github.com/ewgdg/dotman).
-- If unsure about repo layout, selectors, tracking, hooks, actions, or transforms: read `README.md` first, then load the `dotman` skill.
+- If unsure about repo layout, selectors, tracking, hooks, actions, or transforms: load the `dotman` skill.
 
 ## Repo Layout
 
