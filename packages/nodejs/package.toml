@@ -8,24 +8,14 @@ chmod = "600"
 
 [targets.nodejs_toolchain_installed]
 sync_policy = "push-only"
-probe = "{{ PROBE_PACKAGES_INSTALLED }} {{ NODEJS_INSTALL_PACKAGES }} bun fnm"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} {{ NODEJS_INSTALL_PACKAGES }} bun"
 
 [targets.nodejs_toolchain_installed.hooks]
 # Package-manager names differ across OS profiles (`nodejs` on Arch, `node` on Homebrew).
 pre_push = [
   "{{ INSTALL }} {{ NODEJS_INSTALL_PACKAGES }}",
-  "{{ INSTALL }} bun fnm",
+  "{{ INSTALL }} bun",
 ]
-
-# The system node owns the ambient runtime and the shared global npm prefix; fnm
-# is kept for project-local versions only. Its default alias is what makes fnm the
-# ambient runtime, so it is removed rather than left in place.
-[targets.fnm_default_alias_removed]
-sync_policy = "push-only"
-probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" probe'
-
-[targets.fnm_default_alias_removed.hooks]
-pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" apply'
 
 # Global npm packages carry native bindings compiled for one node ABI, so moving
 # the system node to another major version invalidates all of them. Declared after the

@@ -1,19 +1,12 @@
 # Node.js
 
-Installs the OS node toolchain, pnpm, bun, and fnm, and tracks `~/.npmrc`.
+Installs the OS node toolchain, pnpm, and bun, and tracks `~/.npmrc`.
 
 ## Who owns node
 
 The **system node** is the ambient runtime: the OS package named in
 `NODEJS_INSTALL_PACKAGES` (`nodejs` on Arch). It also owns the shared global npm
 prefix, since `~/.npmrc` sets `prefix=${HOME}/.npm` for every node on the machine.
-
-**fnm is kept for project-local versions only.** Its `default` alias is what makes
-it the ambient runtime, so `fnm_default_alias_removed` removes the alias and leaves
-the installed version alone: a tree nothing points at is inert, and a project
-pinning that version keeps it. `fnm env` then leaves each shell's multishell link
-dangling, node resolution falls through to `/usr/bin/node`, and `fnm use` still
-repoints the link for a project that needs a different version.
 
 ## Node ABI and the global prefix
 
@@ -35,7 +28,7 @@ Two gaps to know about:
 
 - A pacman upgrade outside a push leaves the tree stale until the next push. A
   pacman hook would close that window and is deliberately not used.
-- Installing globals from a project shell that has an fnm version active writes
+- Installing globals from a shell with another node active (fnm, see `packages/fnm`) writes
   to the same shared prefix with that version's ABI, mixing bindings in one tree.
   The stamp cannot see that, because it records the rebuild, not the tree. Install
   global packages from a normal shell.

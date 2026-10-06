@@ -1,0 +1,9 @@
+id = "fnm"
+description = "fnm Node.js version manager for project-local node versions"
+
+[targets.fnm_installed]
+sync_policy = "push-only"
+probe = "{{ PROBE_PACKAGES_INSTALLED }} fnm"
+
+[targets.fnm_installed.hooks]
+pre_push = "{{ INSTALL }} fnm"

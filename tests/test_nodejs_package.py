@@ -28,11 +28,11 @@ def test_nodejs_package_installs_pnpm_with_each_os_node_toolchain() -> None:
     assert toolchain_target["sync_policy"] == "push-only"
     assert (
         toolchain_target["probe"]
-        == "{{ PROBE_PACKAGES_INSTALLED }} {{ NODEJS_INSTALL_PACKAGES }} bun fnm"
+        == "{{ PROBE_PACKAGES_INSTALLED }} {{ NODEJS_INSTALL_PACKAGES }} bun"
     )
     assert toolchain_target["hooks"]["pre_push"] == [
         "{{ INSTALL }} {{ NODEJS_INSTALL_PACKAGES }}",
-        "{{ INSTALL }} bun fnm",
+        "{{ INSTALL }} bun",
     ]
     assert "hooks" not in package
     assert "pnpm" in arch_profile["vars"]["NODEJS_INSTALL_PACKAGES"].split()
@@ -72,7 +72,6 @@ def run_nodejs_script(
             "CALLS": str(calls),
         }
     )
-    env.pop("FNM_DIR", None)
     if extra_env:
         env.update(extra_env)
 
@@ -88,13 +87,6 @@ def run_nodejs_script(
 def test_nodejs_package_wires_the_node_ownership_targets() -> None:
     package = tomllib.loads(NODE_PACKAGE_PATH.read_text(encoding="utf-8"))
 
-    assert package["targets"]["fnm_default_alias_removed"] == {
-        "sync_policy": "push-only",
-        "probe": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" probe',
-        "hooks": {
-            "pre_push": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" apply'
-        },
-    }
     assert package["targets"]["npm_globals_match_node_abi"] == {
         "sync_policy": "push-only",
         "probe": 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" probe',
@@ -105,41 +97,8 @@ def test_nodejs_package_wires_the_node_ownership_targets() -> None:
     assert list(package["targets"]) == [
         "f_npmrc",
         "nodejs_toolchain_installed",
-        "fnm_default_alias_removed",
         "npm_globals_match_node_abi",
     ]
-
-
-def test_fnm_default_alias_is_removed_only_while_it_exists(tmp_path: Path) -> None:
-    fnm_stub = (
-        "#!/bin/sh\n"
-        'echo "$@" >> "$CALLS"\n'
-        'if [ "$1" = default ]; then echo v22.23.1; fi\n'
-    )
-
-    probe, probe_calls = run_nodejs_script(
-        "fnm_default_alias_removed.sh", "probe", tmp_path, {"fnm": fnm_stub}, label="probe"
-    )
-    assert probe.returncode == 0
-    probe_log = probe_calls.read_text(encoding="utf-8")
-    assert "unalias" not in probe_log
-    assert "uninstall" not in probe_log
-
-    applied, apply_calls = run_nodejs_script(
-        "fnm_default_alias_removed.sh", "apply", tmp_path, {"fnm": fnm_stub}, label="apply"
-    )
-    assert applied.returncode == 0
-    # Only the alias goes: it is what fnm env points shells at, and the version
-    # tree is inert without it, so a project pinning this version keeps it.
-    apply_log = apply_calls.read_text(encoding="utf-8")
-    assert "unalias default" in apply_log
-    assert "uninstall" not in apply_log
-
-    no_alias = '#!/bin/sh\necho "$@" >> "$CALLS"\nexit 1\n'
-    current, _ = run_nodejs_script(
-        "fnm_default_alias_removed.sh", "probe", tmp_path, {"fnm": no_alias}, label="none"
-    )
-    assert current.returncode == 100
 
 
 def test_global_npm_packages_rebuild_when_the_node_abi_moves(tmp_path: Path) -> None:
