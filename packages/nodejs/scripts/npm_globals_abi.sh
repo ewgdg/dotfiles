@@ -1,7 +1,7 @@
 #!/bin/sh
 # Global npm packages live in one shared prefix (see ~/.npmrc) and carry native
 # bindings compiled for a single node ABI (NODE_MODULE_VERSION). Swapping the
-# system node to another LTS line invalidates every one of them, so the ABI the
+# system node to another major version invalidates every one of them, so the ABI the
 # tree was last rebuilt for is recorded and compared with the running node.
 #
 # The stamp records what the rebuild actually did rather than loading an installed

@@ -28,7 +28,7 @@ probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" probe'
 pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/fnm_default_alias_removed.sh" apply'
 
 # Global npm packages carry native bindings compiled for one node ABI, so moving
-# the system node to another LTS line invalidates all of them. Declared after the
+# the system node to another major version invalidates all of them. Declared after the
 # install target so the rebuild runs under the node that is now installed.
 [targets.npm_globals_match_node_abi]
 sync_policy = "push-only"

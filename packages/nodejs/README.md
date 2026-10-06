@@ -4,8 +4,8 @@ Installs the OS node toolchain, pnpm, bun, and fnm, and tracks `~/.npmrc`.
 
 ## Who owns node
 
-The **system node** is the ambient runtime: an Arch LTS package named in
-`profiles/os/arch.toml` (`nodejs-lts-krypton`). It also owns the shared global npm
+The **system node** is the ambient runtime: the OS package named in
+`NODEJS_INSTALL_PACKAGES` (`nodejs` on Arch). It also owns the shared global npm
 prefix, since `~/.npmrc` sets `prefix=${HOME}/.npm` for every node on the machine.
 
 **fnm is kept for project-local versions only.** Its `default` alias is what makes
@@ -15,17 +15,11 @@ pinning that version keeps it. `fnm env` then leaves each shell's multishell lin
 dangling, node resolution falls through to `/usr/bin/node`, and `fnm use` still
 repoints the link for a project that needs a different version.
 
-Moving LTS lines is deliberate — name the next `nodejs-lts-<codename>` in the
-profile. Arch keeps every LTS line as its own package, so pacman never forces the
-move. That matters because devspace asserts `>=20.12 <27`, and Arch's current
-line (`nodejs`, 26.x today) reaches 27 on pacman's schedule with no supported way
-to hold it back.
-
 ## Node ABI and the global prefix
 
 Native bindings are compiled for one node ABI (`NODE_MODULE_VERSION`), and the
 global prefix is shared by every node here, so the node that installs a package
-and the node that runs it must agree. Moving the system node to another LTS line
+and the node that runs it must agree. Moving the system node to another major version
 invalidates all of them at once — `better-sqlite3` and `node-pty` among them.
 
 `npm_globals_match_node_abi` compares the running node's ABI with the one recorded

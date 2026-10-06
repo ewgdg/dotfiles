@@ -110,21 +110,6 @@ def test_nodejs_package_wires_the_node_ownership_targets() -> None:
     ]
 
 
-def test_nodejs_package_names_the_lts_line_in_the_profile() -> None:
-    arch_profile = tomllib.loads(
-        (REPO_ROOT / "profiles/os/arch.toml").read_text(encoding="utf-8")
-    )
-    packages = arch_profile["vars"]["NODEJS_INSTALL_PACKAGES"].split()
-
-    # Arch's own nodejs tracks the current line, which reaches devspace's upper
-    # bound on pacman's schedule; the LTS package is the one that can be held.
-    assert "nodejs-lts-krypton" in packages
-    assert "nodejs" not in packages
-    # The LTS line is named in the repo rather than resolved from the network at
-    # push time, so moving lines is a reviewable change.
-    assert not (NODEJS_SCRIPTS / "fnm_default_lts.sh").exists()
-
-
 def test_fnm_default_alias_is_removed_only_while_it_exists(tmp_path: Path) -> None:
     fnm_stub = (
         "#!/bin/sh\n"
