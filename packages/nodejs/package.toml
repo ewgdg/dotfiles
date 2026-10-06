@@ -5,6 +5,8 @@ description = "Node.js runtime packages, global npm state, and user configuratio
 source = "files/npmrc"
 path = "~/.npmrc"
 chmod = "600"
+render = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npmrc_auth.sh" render "$DOTMAN_REPO_PATH" "$DOTMAN_LIVE_PATH"'
+capture = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npmrc_auth.sh" capture "$DOTMAN_LIVE_PATH"'
 
 [targets.nodejs_toolchain_installed]
 sync_policy = "push-only"

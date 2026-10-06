@@ -9,6 +9,14 @@ The **system node** is the ambient runtime: the OS package named in
 `NODEJS_INSTALL_PACKAGES` (`nodejs` on Arch). It also owns the shared global npm
 prefix, since `~/.npmrc` sets `prefix=${HOME}/.npm` for every node on the machine.
 
+## npm login stays local
+
+`npm login` writes the registry token into `~/.npmrc` as a registry-scoped
+`//registry.npmjs.org/:_authToken=...` line. `scripts/npmrc_auth.sh` is the
+target's render/capture pair: capture drops every `//` line so the token never
+reaches the repo, and render appends the live ones so a push keeps you logged in.
+npm strips comments whenever it rewrites the file; the next push restores them.
+
 ## fnm, disabled
 
 fnm is for projects that pin a node version, so `fnm_installed` is

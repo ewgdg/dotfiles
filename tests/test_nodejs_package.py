@@ -211,3 +211,51 @@ def test_core_env_exports_pnpm_home_and_adds_its_bin_directory(tmp_path: Path) -
     assert pnpm_home == str(data_home / "pnpm")
     assert path.split(":")[0] == str(pnpm_bin)
     assert path.split(":").count(str(pnpm_bin)) == 1
+
+
+NPMRC_AUTH_SCRIPT = NODEJS_SCRIPTS / "npmrc_auth.sh"
+NPM_AUTH_LINE = "//registry.npmjs.org/:_authToken=npm_secret"
+
+
+def run_npmrc_auth(*args: Path | str) -> str:
+    completed = subprocess.run(
+        ["sh", str(NPMRC_AUTH_SCRIPT), *map(str, args)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return completed.stdout
+
+
+def test_npmrc_capture_keeps_registry_credentials_out_of_the_repo(tmp_path: Path) -> None:
+    live = tmp_path / "live.npmrc"
+    live.write_text(f"prefix=${{HOME}}/.npm\n{NPM_AUTH_LINE}\n", encoding="utf-8")
+
+    assert run_npmrc_auth("capture", live) == "prefix=${HOME}/.npm\n"
+
+
+def test_npmrc_render_keeps_the_live_login_through_a_push(tmp_path: Path) -> None:
+    repo = tmp_path / "repo.npmrc"
+    repo.write_text("# comment\nprefix=${HOME}/.npm\n", encoding="utf-8")
+    live = tmp_path / "live.npmrc"
+    live.write_text(f"prefix=old\n{NPM_AUTH_LINE}\n", encoding="utf-8")
+
+    assert (
+        run_npmrc_auth("render", repo, live)
+        == f"# comment\nprefix=${{HOME}}/.npm\n{NPM_AUTH_LINE}\n"
+    )
+    # First push on a new machine: no live file and so no login to keep.
+    assert run_npmrc_auth("render", repo, tmp_path / "missing") == repo.read_text()
+
+
+def test_npmrc_target_routes_through_the_auth_transform() -> None:
+    target = tomllib.loads(NODE_PACKAGE_PATH.read_text(encoding="utf-8"))["targets"][
+        "f_npmrc"
+    ]
+    assert target["render"] == (
+        'sh "$DOTMAN_PACKAGE_ROOT/scripts/npmrc_auth.sh" render '
+        '"$DOTMAN_REPO_PATH" "$DOTMAN_LIVE_PATH"'
+    )
+    assert target["capture"] == (
+        'sh "$DOTMAN_PACKAGE_ROOT/scripts/npmrc_auth.sh" capture "$DOTMAN_LIVE_PATH"'
+    )
