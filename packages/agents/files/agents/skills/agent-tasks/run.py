@@ -185,12 +185,16 @@ def read_stdin(name: str) -> str:
     return text
 
 
-def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str], brief: str) -> str:
+def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str], brief: str, for_user: bool) -> str:
     timestamp = now_timestamp()
+    # The user's own tasks carry no owner; their board shows every task not owned by agents.
+    owner_line = "" if for_user else f"owner: {AGENT_OWNER}\n"
+    # Only agents record a result through `finish`; the user completes their tasks in TaskNotes.
+    result_section = "" if for_user else f"\n{RESULT_HEADING}\n"
     return (
         "---\n"
         "type: task\n"
-        f"owner: {AGENT_OWNER}\n"
+        f"{owner_line}"
         "status: open\n"
         "priority: normal\n"
         f"dateCreated: {timestamp}\n"
@@ -199,7 +203,7 @@ def render_new_task(title: str, parent_stem: str | None, blocker_stems: list[str
         # TaskNotes treats a task listed in `projects` as the parent of this one.
         + render_frontmatter_key("projects", [task_link(parent_stem)] if parent_stem else [])
         + render_frontmatter_key("blockedBy", [blocker_entry(stem) for stem in blocker_stems])
-        + f"---\n\n{brief}\n\n{RESULT_HEADING}\n"
+        + f"---\n\n{brief}\n{result_section}"
     )
 
 
@@ -231,7 +235,7 @@ def command_create(args: argparse.Namespace) -> None:
     require_tasks_exist(directory, "Parent", [args.parent] if args.parent else [])
     require_tasks_exist(directory, "Blocker", args.blocked_by)
     brief = read_stdin("Brief")
-    print(write_new_task_file(directory, render_new_task(args.title, args.parent, args.blocked_by, brief)))
+    print(write_new_task_file(directory, render_new_task(args.title, args.parent, args.blocked_by, brief, args.for_user)))
 
 
 def command_edit(args: argparse.Namespace) -> None:
@@ -298,8 +302,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     commands.add_parser("print-path", help="Print the tasks directory.").set_defaults(handler=command_print_path)
 
-    create = commands.add_parser("create", help="Create an agent subtask; brief on stdin; prints its path.")
+    create = commands.add_parser("create", help="Create an agent subtask, or a task for the user; brief on stdin; prints its path.")
     create.add_argument("--title", required=True)
+    create.add_argument("--for-user", action="store_true", help="Create a task for the user on their board instead of an agent subtask.")
     create.add_argument("--parent", metavar="TASK", help="Task file stem this becomes a subtask of; any owner.")
     create.add_argument("--blocked-by", type=task_stem_list, action="extend", default=[], metavar="TASKS", help="Blocking task file stems, comma-separated or repeated.")
     create.set_defaults(handler=command_create)

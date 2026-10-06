@@ -1,7 +1,7 @@
 ---
 name: agent-tasks
 description: >
-  Subtasks for autonomous agent orchestration, kept as TaskNotes on the Agent Board in the user's Obsidian vault. Use when an orchestration session splits work into subtasks, picks the next ready subtask, or a worker starts or finishes one. Work done together with the user (grilling, wayfinder, design sessions) goes to GitHub issues instead.
+  Subtasks for autonomous agent orchestration, kept as TaskNotes on the Agent Board in the user's Obsidian vault. Use when an orchestration session splits work into subtasks, picks the next ready subtask, a worker starts or finishes one, or an agent needs the user to do something only they can (a decision, a login, a manual step). Work done together with the user (grilling, wayfinder, design sessions) goes to GitHub issues instead.
 ---
 
 # Agent Tasks
@@ -29,6 +29,8 @@ EOF
 ```
 
 Add `--parent <task stem>` to nest it under another task, the user's or an agent's.
+
+Add `--for-user` when only the user can do the step. It lands on the user's own board, not the Agent Board; block the agent subtasks that wait on it with `--blocked-by`, and they become ready once the user marks it done. Agents cannot edit or finish it afterwards.
 
 `create` prints the new task path; its file stem is the task id for `--parent`, `--blocked-by`, `edit`, `claim`, and `finish`.
 
