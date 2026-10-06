@@ -7,7 +7,7 @@ pkgver=dummy
 pkgrel=1
 pkgdesc="Scrollable-tiling Wayland compositor (custom Git build)"
 arch=(x86_64 aarch64)
-url="https://github.com/ewgdg/niri"
+url="https://github.com/xian0x5a/niri"
 license=(GPL-3.0-or-later)
 depends=(
   cairo

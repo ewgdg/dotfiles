@@ -1,6 +1,6 @@
 # Dotfiles
 
-This repo manages user and system configuration with the [`dotman`](https://github.com/ewgdg/dotman) repo layout.
+This repo manages user and system configuration with the [`dotman`](https://github.com/xian0x5a/dotman) repo layout.
 
 ## Repo Layout
 
@@ -47,13 +47,13 @@ What `init.sh` does:
 By default `init.sh` installs dotman from:
 
 ```sh
-git+https://github.com/ewgdg/dotman.git
+git+https://github.com/xian0x5a/dotman.git
 ```
 
 Override it with `DOTMAN_TOOL_SPEC` only if you need a different source:
 
 ```sh
-DOTMAN_TOOL_SPEC='git+https://github.com/ewgdg/dotman.git' ./init.sh
+DOTMAN_TOOL_SPEC='git+https://github.com/xian0x5a/dotman.git' ./init.sh
 ```
 
 The manager repo entry defaults to name `main`, order `10`, and `state_key = "main"`.
@@ -76,7 +76,7 @@ Typical flow:
 1. Run `./init.sh` to register this repo in your dotman manager config.
 2. Track the binding you want.
 3. Run `dotman push` once on a fresh host.
-4. Run `dotman sync` day to day ([how sync works](https://github.com/ewgdg/dotman/blob/main/docs/sync.md)).
+4. Run `dotman sync` day to day ([how sync works](https://github.com/xian0x5a/dotman/blob/main/docs/sync.md)).
 5. Run `dotman push` or `dotman pull` to force one direction.
 
 Example commands below assume the repo is registered as `main` in your dotman

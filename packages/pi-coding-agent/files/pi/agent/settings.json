@@ -8,7 +8,7 @@
     },
     "npm:@firstpick/pi-extension-btw",
     {
-      "source": "git:github.com/ewgdg/pi-durable-subagents",
+      "source": "git:github.com/xian0x5a/pi-durable-subagents",
       "extensions": [
         "+src/index.ts"
       ]

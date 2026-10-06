@@ -16,7 +16,7 @@ script_dir="$(
 )"
 repo_root="${script_dir}"
 default_uv_bin_dir="${HOME}/.local/bin"
-dotman_tool_spec_default='git+https://github.com/ewgdg/dotman.git'
+dotman_tool_spec_default='git+https://github.com/xian0x5a/dotman.git'
 dotman_tool_spec="${DOTMAN_TOOL_SPEC:-$dotman_tool_spec_default}"
 dotman_manager_repo_name="${DOTFILES_DOTMAN_MANAGER_REPO_NAME:-main}"
 dotman_config_overlay_path=""

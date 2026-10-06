@@ -20,9 +20,9 @@
       "skillPath": "skills/productivity/grill-me/SKILL.md"
     },
     "surf": {
-      "source": "ewgdg/browser-skills",
+      "source": "xian0x5a/browser-skills",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
+      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
       "skillPath": "skills/surf/SKILL.md"
     },
     "grill-with-docs": {
@@ -165,9 +165,9 @@
       "skillPath": "skills/productivity/writing-for-agents/SKILL.md"
     },
     "surf-google-search": {
-      "source": "ewgdg/browser-skills",
+      "source": "xian0x5a/browser-skills",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/ewgdg/browser-skills.git",
+      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
       "skillPath": "skills/surf-google-search/SKILL.md"
     },
     "show-me": {
@@ -203,9 +203,9 @@
       "skillPath": "archify/SKILL.md"
     },
     "dotman": {
-      "source": "ewgdg/dotman",
+      "source": "xian0x5a/dotman",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/ewgdg/dotman.git",
+      "sourceUrl": "https://github.com/xian0x5a/dotman.git",
       "skillPath": "skills/dotman/SKILL.md"
     }
   },
