@@ -98,6 +98,7 @@ def test_nodejs_package_wires_the_node_ownership_targets() -> None:
         "f_npmrc",
         "nodejs_toolchain_installed",
         "npm_globals_match_node_abi",
+        "fnm_installed",
     ]
 
 

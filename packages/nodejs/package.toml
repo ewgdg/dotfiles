@@ -26,3 +26,13 @@ probe = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" probe'
 
 [targets.npm_globals_match_node_abi.hooks]
 pre_push = 'sh "$DOTMAN_PACKAGE_ROOT/scripts/npm_globals_abi.sh" apply'
+
+# Disabled: fnm is only for projects that pin a node version. Set to false to
+# install it; see README.md for why shells still start on the system node.
+[targets.fnm_installed]
+sync_policy = "push-only"
+disabled = true
+probe = "{{ PROBE_PACKAGES_INSTALLED }} fnm"
+
+[targets.fnm_installed.hooks]
+pre_push = "{{ INSTALL }} fnm"

@@ -1,5 +1,5 @@
 # fnm
-# Optional: fnm is installed only by the untracked fnm package, so its absence is
+# Optional: the nodejs fnm target is disabled, so its absence is
 # expected and stays silent.
 if (( ${+commands[fnm]} )); then
     eval "$(fnm env --shell zsh)"
