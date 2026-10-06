@@ -84,7 +84,7 @@
 ## Subagent Policy
 
 - Delegate when it saves time, improves quality, or keeps low-value intermediate details out of the main context.
-- Use an independent agent when you need an outside perspective, such as a review or second opinion.
+- Use an independent agent for an outside perspective, such as a second opinion, and to review non-trivial implementation before shipping.
 - Set subagent timeouts or budgets only when requested or required; keep them generous.
 - Avoid multiple agents working on tasks with overlapping scopes, which can cause undesired high context inefficiency.
 
