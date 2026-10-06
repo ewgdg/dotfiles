@@ -23,6 +23,16 @@
       "driver": "pi",
       "displayName": "Pi",
       "enabled": true
+    },
+    "dsh": {
+      "driver": "acpRegistry",
+      "displayName": "DeepSeek Harness",
+      "enabled": true,
+      "config": {
+        "source": "local",
+        "commandPath": "dsh",
+        "commandArgs": ["--profile", "acp"]
+      }
     }
   }
 }

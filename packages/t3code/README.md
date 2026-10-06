@@ -15,6 +15,7 @@
 All under `~/.t3/userdata/` (the `T3CODE_HOME` default):
 
 - `settings.json` — server settings. Stored sparse: only values that differ from defaults. Secrets (provider API keys, tokens) live in `secrets/`, not here. Per-machine keys are filtered out (see `server_settings_selectors`): the legacy-migration marker `projectSettingsFolded`, per-project overrides keyed by locally generated project ids, and device onboarding/hosts.
+  - The `dsh` provider instance runs DeepSeek Harness through T3's ACP driver (`acpRegistry`, source `local`) as `dsh --profile acp`. Launch arguments (`commandArgs`) have no field in the settings form, so they live only in this file. Models and credentials come from DSH's home patch (see `deepseek-harness`).
 - `client-settings.json` — device preferences such as appearance and confirmations. Written in full, so pulls include defaults. Per-machine state and favorite models are filtered out (see `client_settings_selectors`).
 - `keybindings.json` — keybinding rules. T3 Code writes its defaults on first start and appends new ones on later starts, so pulls include defaults.
 - `themes/gruvbox-material.json` — Gruvbox Material dark theme, matching the active Ghostty theme (`Gruvbox Material Dark` plus its cursor override). Seeds `canvas` and `accent`, and overrides text, status, and terminal colors; T3 Code derives the rest. Select it under Settings → Appearance.
