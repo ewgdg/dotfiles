@@ -7,6 +7,7 @@
     "browserArtifactsAfterDays": 8,
     "logsAfterDays": 8
   },
+  "sidebarAutoSettleOnMerge": false,
   "providers": {
     "cursor": {
       "enabled": false
@@ -31,7 +32,10 @@
       "config": {
         "source": "local",
         "commandPath": "dsh",
-        "commandArgs": ["--profile", "acp"]
+        "commandArgs": [
+          "--profile",
+          "acp"
+        ]
       }
     }
   }
