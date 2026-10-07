@@ -20,8 +20,6 @@ spawn-sh-at-startup "autolock=0; if [ \"${AUTOLOGIN_SESSION:-0}\" = \"1\" ]; the
 
 spawn-at-startup "launch-desktop-app" "memos" "^webapp-memos[.]desktop$"
 spawn-at-startup "obsidian"
-// Launch via the AppImage desktop entry so it gets `--class=Paseo` (app-id `Paseo`).
-spawn-at-startup "launch-desktop-app" "Paseo" "^Paseo[.]desktop$"
 // Pin the menu entry installed by `install_appimage.sh`; the app also writes a hidden
 // `com.t3tools.T3Code.desktop` URL handler with the same name.
 spawn-at-startup "launch-desktop-app" "T3 Code" "^t3code[.]desktop$"
