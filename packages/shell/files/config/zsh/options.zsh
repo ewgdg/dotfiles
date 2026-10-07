@@ -1,6 +1,6 @@
 setopt PROMPT_SUBST
 
-# Disallow `>` to overwrite existing files. Use `>|`(sh compatible) or `>!`(zsh only) instead.
+# Disallow `>` to overwrite existing files. Use `>|`(sh compatible) or `>!`(zsh only) instead. Agent shells opt out in agent_env.zsh.
 setopt NO_CLOBBER
 
 # Allow comments starting with `#` in the interactive shell.

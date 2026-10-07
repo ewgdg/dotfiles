@@ -5,6 +5,7 @@ ZSH_CONFIG_DIR=${ZSH_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/zsh}
 source "$ZSH_CONFIG_DIR/env.zsh"
 source "$ZSH_CONFIG_DIR/history.zsh"
 source "$ZSH_CONFIG_DIR/options.zsh"
+source "$ZSH_CONFIG_DIR/agent_env.zsh"
 
 if [[ -o interactive ]]; then
     source "$ZSH_CONFIG_DIR/zim.zsh"
