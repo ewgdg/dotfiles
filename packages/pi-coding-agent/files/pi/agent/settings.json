@@ -10,13 +10,14 @@
     {
       "source": "git:github.com/xian0x5a/pi-durable-subagents",
       "extensions": [
-        "+src/index.ts"
+        "-src/index.ts"
       ]
     },
     "npm:@r3b1s/pi-vim-stash",
     "npm:@howaboua/pi-codex-web-run",
     "npm:@howaboua/pi-codex-imagegen",
-    "npm:pi-antigravity"
+    "npm:pi-antigravity",
+    "npm:@xian0x5a/pi-durable-subagents"
   ],
   "enabledModels": [
     "deepseek/deepseek-v4-pro",
