@@ -68,10 +68,11 @@
 - Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
 - Do not let review feedback expand the task beyond the user's original goal. Address real shortcomings, but avoid scope creep.
 
-## Testing
+## Verification
 
-- Add tests only for valuable, regression-prone behavior, bug fixes included; skip low-value details.
-- Write such tests before the implementation and see them fail for the expected reason.
+- For non-trivial changes, leave test writing to an independent agent whose job is to break the change: brief it with the user's original words and the public interface only, blind to the implementation and your plan. Write tests yourself only for cases the user specified.
+- When an independent test fails, decide whether the code or the test misreads the requirement, and fix that side.
+- Then have another independent agent review the final change before shipping.
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
 - Use bounded test timeouts appropriate to the operation; distinguish slow tests from hung tests.
 - If the full test suite takes long (>10s), do not run it as a whole until you are ready to finish and you should not run the full test suite if the blast radius is small.
@@ -84,7 +85,7 @@
 ## Subagent Policy
 
 - Delegate when it saves time, improves quality, or keeps low-value intermediate details out of the main context.
-- Use an independent agent for an outside perspective, such as a second opinion, and to review non-trivial implementation before shipping.
+- Use an independent agent for an outside perspective, such as a second opinion.
 - Set subagent timeouts or budgets only when requested or required; keep them generous.
 - Avoid multiple agents working on tasks with overlapping scopes, which can cause undesired high context inefficiency.
 
