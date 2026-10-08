@@ -207,6 +207,12 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/xian0x5a/dotman.git",
       "skillPath": "skills/dotman/SKILL.md"
+    },
+    "reasoning-graph": {
+      "source": "xian0x5a/reasoning-graph",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/xian0x5a/reasoning-graph.git",
+      "skillPath": "skills/reasoning-graph/SKILL.md"
     }
   },
   "dismissed": {
