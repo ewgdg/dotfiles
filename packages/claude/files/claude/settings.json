@@ -48,5 +48,6 @@
   "theme": "dark",
   "editorMode": "vim",
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "cleanupPeriodDays": 365
 }
