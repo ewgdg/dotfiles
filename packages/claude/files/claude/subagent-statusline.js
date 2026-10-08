@@ -26,24 +26,13 @@ function plainText(value) {
   return text === '' ? undefined : text;
 }
 
-// Claude Code keeps each subagent's files beside the session transcript: <session>/subagents/agent-<id>.<extension>.
-function subagentFilePath(sessionTranscriptPath, taskId, extension) {
+// Claude Code keeps each subagent's transcript beside the session transcript: <session>/subagents/agent-<id>.jsonl.
+function subagentTranscriptPath(sessionTranscriptPath, taskId) {
   const sessionDirectory = path.join(
     path.dirname(sessionTranscriptPath),
     path.basename(sessionTranscriptPath, path.extname(sessionTranscriptPath)),
   );
-  return path.join(sessionDirectory, 'subagents', `agent-${path.basename(taskId)}.${extension}`);
-}
-
-// Unnamed tasks carry only a generic `type`; the agent type lives in the subagent's metadata file.
-function readAgentType(sessionTranscriptPath, taskId) {
-  try {
-    return JSON.parse(fs.readFileSync(subagentFilePath(sessionTranscriptPath, taskId, 'meta.json'), 'utf8')).agentType;
-  } catch (error) {
-    // Claude Code writes the metadata file only after the subagent starts.
-    if (error.code === 'ENOENT') return undefined;
-    throw error;
-  }
+  return path.join(sessionDirectory, 'subagents', `agent-${path.basename(taskId)}.jsonl`);
 }
 
 function responseEffort(line) {
@@ -105,8 +94,8 @@ function readLatestResponseEffort(transcriptPath) {
   }
 }
 
-function renderTask(task, agentType, effort) {
-  const identity = plainText(task.name) ?? plainText(agentType);
+function renderTask(task, effort) {
+  const identity = plainText(task.name) ?? plainText(task.agentType);
   // Without an identity, leave the row to Claude Code's default rendering.
   if (identity === undefined) return undefined;
 
@@ -126,9 +115,8 @@ function renderTask(task, agentType, effort) {
 function main() {
   const input = JSON.parse(fs.readFileSync(0, 'utf8'));
   const rows = input.tasks.flatMap((task) => {
-    const agentType = task.name === undefined ? readAgentType(input.transcript_path, task.id) : undefined;
-    const effort = task.effort ?? readLatestResponseEffort(subagentFilePath(input.transcript_path, task.id, 'jsonl'));
-    const content = renderTask(task, agentType, effort);
+    const effort = task.effort ?? readLatestResponseEffort(subagentTranscriptPath(input.transcript_path, task.id));
+    const content = renderTask(task, effort);
     return content === undefined ? [] : [JSON.stringify({ id: task.id, content })];
   });
   if (rows.length > 0) process.stdout.write(`${rows.join('\n')}\n`);

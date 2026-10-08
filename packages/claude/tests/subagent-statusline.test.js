@@ -18,15 +18,12 @@ function jsonLines(entries) {
   return entries.map((entry) => `${JSON.stringify(entry)}\n`).join('');
 }
 
-// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.{meta.json,jsonl}.
-function createSession(t, agentTypes = {}, subagentTranscripts = {}) {
+// Mirrors Claude Code's layout: <session>.jsonl plus <session>/subagents/agent-<id>.jsonl.
+function createSession(t, subagentTranscripts = {}) {
   const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-subagent-statusline-'));
   t.after(() => fs.rmSync(projectDirectory, { recursive: true, force: true }));
   const subagentsDirectory = path.join(projectDirectory, 'session', 'subagents');
   fs.mkdirSync(subagentsDirectory, { recursive: true });
-  for (const [taskId, agentType] of Object.entries(agentTypes)) {
-    fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.meta.json`), JSON.stringify({ agentType }));
-  }
   for (const [taskId, transcript] of Object.entries(subagentTranscripts)) {
     fs.writeFileSync(path.join(subagentsDirectory, `agent-${taskId}.jsonl`), transcript);
   }
@@ -72,15 +69,15 @@ test('renders identity, description, model, and context from the payload', (t) =
 
 test('names an unnamed subagent by its agent type and marks auto effort', (t) => {
   const row = renderedRow({
-    transcript_path: createSession(t, { a1: 'Explore' }),
-    tasks: [{ id: 'a1', description: 'Probe', model: 'claude-opus-5-5', tokenCount: 8_894, contextWindowSize: 200_000 }],
+    transcript_path: createSession(t),
+    tasks: [{ id: 'a1', agentType: 'Explore', description: 'Probe', model: 'claude-opus-5-5', tokenCount: 8_894, contextWindowSize: 200_000 }],
   });
 
   assert.equal(stripAnsi(row.content), 'Explore · Probe · claude-opus-5-5•auto · 4%/200k');
 });
 
 test('shows the latest effort the subagent ran at when the payload omits it', (t) => {
-  const transcriptPath = createSession(t, {}, {
+  const transcriptPath = createSession(t, {
     a1: jsonLines([
       { type: 'assistant', effort: 'low' },
       { type: 'user' },
@@ -95,21 +92,21 @@ test('shows the latest effort the subagent ran at when the payload omits it', (t
 });
 
 test('prefers the payload effort over the transcript', (t) => {
-  const transcriptPath = createSession(t, {}, { a1: jsonLines([{ type: 'assistant', effort: 'high' }]) });
+  const transcriptPath = createSession(t, { a1: jsonLines([{ type: 'assistant', effort: 'high' }]) });
   const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm', effort: 'low' }] });
 
   assert.equal(stripAnsi(row.content), 'r · m•low');
 });
 
 test('marks auto effort before the subagent first responds', (t) => {
-  const transcriptPath = createSession(t, {}, { a1: jsonLines([{ type: 'user' }]) });
+  const transcriptPath = createSession(t, { a1: jsonLines([{ type: 'user' }]) });
   const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
 
   assert.equal(stripAnsi(row.content), 'r · m•auto');
 });
 
 test('ignores a partially written last line', (t) => {
-  const transcriptPath = createSession(t, {}, {
+  const transcriptPath = createSession(t, {
     a1: `${jsonLines([{ type: 'assistant', effort: 'low' }])}{"type":"assistant","effort":"hi`,
   });
   const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
@@ -118,14 +115,14 @@ test('ignores a partially written last line', (t) => {
 });
 
 test('stops at the start of a transcript that begins with a line break', (t) => {
-  const transcriptPath = createSession(t, {}, { a1: `\n${jsonLines([{ type: 'user' }])}` });
+  const transcriptPath = createSession(t, { a1: `\n${jsonLines([{ type: 'user' }])}` });
   const row = renderedRow({ transcript_path: transcriptPath, tasks: [{ id: 'a1', name: 'r', model: 'm' }] });
 
   assert.equal(stripAnsi(row.content), 'r · m•auto');
 });
 
 test('finds the latest effort behind a large tool result', (t) => {
-  const transcriptPath = createSession(t, {}, {
+  const transcriptPath = createSession(t, {
     a1: jsonLines([
       { type: 'assistant', effort: 'medium' },
       { type: 'user', content: 'é'.repeat(150_000) },

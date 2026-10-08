@@ -5,7 +5,7 @@ Managed Claude Code configuration, helpers, and status-line renderers.
 ## Language
 
 **Subagent identity**:
-The first segment of a Claude Code subagent status row. It is the task's `name`; when unavailable, it is the `agentType` from the subagent's `agent-<id>.meta.json`. When both are unavailable, the custom renderer omits the row so Claude Code keeps its default rendering.
+The first segment of a Claude Code subagent status row. It is the task's `name`; when unavailable, it is the task's `agentType`. When both are unavailable, the custom renderer omits the row so Claude Code keeps its default rendering.
 _Avoid_: task label
 
 **Subagent status row**:
@@ -24,7 +24,7 @@ The task's `tokenCount` (its current context size) over its `contextWindowSize`,
 _Avoid_: token-sample recovery, cumulative token spend
 
 **Subagent model label**:
-The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written when the payload has it, which is only when the level is set for that subagent or the session was started with `--effort`. A level set with `/effort` or in any settings layer is omitted, so the effort is read from the latest response in the subagent's transcript (`<session>/subagents/agent-<id>.jsonl`), scanning complete lines backward from the end and at most 1 MiB per refresh. It shows `•auto` until the first response is written.
+The task's `model`, displayed verbatim, followed by `•<effort>`. Effort is the task's `effort` as written when the payload has it, which is only when the level is set for that subagent (definition frontmatter or the Agent tool's `effort` parameter) or the session was started with `--effort`. A level set with `/effort` or in any settings layer is omitted, so the effort is read from the latest response in the subagent's transcript (`<session>/subagents/agent-<id>.jsonl`), scanning complete lines backward from the end and at most 1 MiB per refresh. It shows `•auto` until the first response is written.
 _Avoid_: prettified model name, inferred model family
 
 **Status-row colors**:
