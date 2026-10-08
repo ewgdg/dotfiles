@@ -18,7 +18,6 @@ path = "~/.agents"
 [targets.d_agents.ignore]
 patterns = [
   "artifacts/",
-  "skills/agent-web-context/references/",
   "tools/",
 ]
 # Skills installed by `npx skills` are tracked only by the lock file below.
@@ -30,9 +29,9 @@ path = "~/.local/state/skills/.skill-lock.json"
 render = '{{ JSON_RENDER }} --selector-type retain --selectors {{ vars.agents.skill_lock_live_only_selectors|shell_args }}'
 capture = '{{ JSON_CAPTURE }} --selector-type remove --selectors {{ vars.agents.skill_lock_live_only_selectors|shell_args }}'
 
-[targets.managed_skills_installed]
+[targets.managed_skills_reconciled]
 sync_policy = "push-only"
 probe = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" probe'
 
-[targets.managed_skills_installed.hooks]
-pre_push = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" install'
+[targets.managed_skills_reconciled.hooks]
+pre_push = 'node "$DOTMAN_PACKAGE_ROOT/scripts/managed_skills.mjs" reconcile'
