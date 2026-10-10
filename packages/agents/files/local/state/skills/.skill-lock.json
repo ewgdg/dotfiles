@@ -19,12 +19,6 @@
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/grill-me/SKILL.md"
     },
-    "surf": {
-      "source": "xian0x5a/browser-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
-      "skillPath": "skills/surf/SKILL.md"
-    },
     "grill-with-docs": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -71,8 +65,7 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
-      "skillPath": "skills/engineering/implement/SKILL.md",
-      "pluginName": "mattpocock-skills"
+      "skillPath": "skills/engineering/implement/SKILL.md"
     },
     "improve-codebase-architecture": {
       "source": "mattpocock/skills",
@@ -164,12 +157,6 @@
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/writing-for-agents/SKILL.md"
     },
-    "surf-google-search": {
-      "source": "xian0x5a/browser-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
-      "skillPath": "skills/surf-google-search/SKILL.md"
-    },
     "show-me": {
       "source": "humanlayer/skills",
       "sourceType": "github",
@@ -213,6 +200,24 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/xian0x5a/reasoning-graph.git",
       "skillPath": "skills/reasoning-graph/SKILL.md"
+    },
+    "marimo-pair": {
+      "source": "marimo-team/marimo-pair",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/marimo-team/marimo-pair.git",
+      "skillPath": "skills/marimo-pair/SKILL.md"
+    },
+    "browser": {
+      "source": "xian0x5a/browser-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
+      "skillPath": "skills/browser/SKILL.md"
+    },
+    "google-search": {
+      "source": "xian0x5a/browser-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/xian0x5a/browser-skills.git",
+      "skillPath": "skills/google-search/SKILL.md"
     }
   },
   "dismissed": {
@@ -229,9 +234,9 @@
     "kilo",
     "kimi-code-cli",
     "opencode",
+    "pi",
     "warp",
     "zed",
-    "claude-code",
-    "pi"
+    "claude-code"
   ]
 }
