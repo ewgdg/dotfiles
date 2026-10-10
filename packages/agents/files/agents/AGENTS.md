@@ -74,6 +74,7 @@
 - When an independent test fails, decide whether the code or the test misreads the requirement, and fix that side.
 - Then have another independent agent review the final change before shipping.
 - Test observable behavior and stable contracts, not incidental implementation details. Tests should survive behavior-preserving refactors and rewrites; test internals only when they encode intentional, stable invariants.
+- Size tests to the change's risk, not its surface: one test per distinct behavior, at the highest stable layer that exposes it. Avoid overlapping tests. Prefer table-driven tests for input validation.
 - Use bounded test timeouts appropriate to the operation; distinguish slow tests from hung tests.
 - If the full test suite takes long (>10s), do not run it as a whole until you are ready to finish and you should not run the full test suite if the blast radius is small.
 
